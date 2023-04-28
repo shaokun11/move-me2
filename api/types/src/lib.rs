@@ -9,7 +9,7 @@ mod bytecode;
 mod convert;
 mod derives;
 mod error;
-mod hash;
+pub mod hash;
 mod headers;
 mod index;
 mod ledger_info;

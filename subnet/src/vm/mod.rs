@@ -674,7 +674,7 @@ impl ChainVm for Vm
             let unix_now = Utc::now().timestamp() as u64;
 
             let core_pool = self.core_mempool.as_ref().unwrap().read().await;
-            let tx_arr = core_pool.get_batch(1000, 1024000, HashSet::new());
+            let tx_arr = core_pool.get_batch(1000, 1024000, true, HashSet::new());
             log::info!("----from core pool tx-------{}------",tx_arr.clone().len());
             let executor = self.executor.as_ref().unwrap().read().await;
             let signer = self.signer.as_ref().unwrap();
