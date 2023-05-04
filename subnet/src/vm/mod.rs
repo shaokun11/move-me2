@@ -608,7 +608,9 @@ impl Vm {
         let db_path = vm_state.ctx.as_ref().unwrap().node_id.to_vec();
         self.signer = Some(signer.clone());
         let genesis_txn = Transaction::GenesisTransaction(WriteSetPayload::Direct(genesis));
-        let p = format!("/home/ubuntu/aptos-chain-data/{}", hex::encode(db_path).as_str());
+        let p = format!("{}/aptos-chain-data/{}",
+                        dirs::home_dir().unwrap().to_str().unwrap(),
+                        hex::encode(db_path).as_str());
         let db;
         if !fs::metadata(p.clone().as_str()).is_ok() {
             fs::create_dir_all(p.as_str()).unwrap();
