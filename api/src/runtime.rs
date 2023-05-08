@@ -50,6 +50,51 @@ pub fn bootstrap(
 // TODO: https://github.com/poem-web/poem/issues/332
 // TODO: https://github.com/poem-web/poem/issues/333
 
+
+pub type RawApi = (
+    TransactionsApi,
+    ViewFunctionApi,
+    IndexApi,
+    AccountsApi,
+    StateApi,
+    BlocksApi,
+// BasicApi,
+// EventsApi,
+);
+
+pub fn get_raw_api_service(
+    context: Arc<Context>,
+) -> RawApi {
+    let a = (
+        TransactionsApi {
+            context: context.clone(),
+        },
+        ViewFunctionApi {
+            context: context.clone()
+        },
+        IndexApi {
+            context: context.clone(),
+        },
+        AccountsApi {
+            context: context.clone(),
+        },
+        StateApi {
+            context: context.clone(),
+        },
+        BlocksApi {
+            context: context.clone(),
+        },
+        // BasicApi {
+        //     context: context.clone(),
+        // },
+        // EventsApi {
+        //     context: context.clone(),
+        // },
+    );
+    a
+}
+
+
 /// Generate the top level API service
 pub fn get_api_service(
     context: Arc<Context>,
@@ -145,11 +190,11 @@ pub fn attach_poem_to_runtime(
             let rustls_certificate = RustlsCertificate::new().cert(cert).key(key);
             let rustls_config = RustlsConfig::new().fallback(rustls_certificate);
             TcpListener::bind(address).rustls(rustls_config).boxed()
-        },
+        }
         _ => {
             info!("Not using TLS for API");
             TcpListener::bind(address).boxed()
-        },
+        }
     };
 
     let acceptor = tokio::task::block_in_place(move || {
@@ -298,8 +343,8 @@ mod tests {
     }
 
     fn with_retry<F>(f: F) -> anyhow::Result<reqwest::blocking::Response>
-    where
-        F: Fn() -> anyhow::Result<reqwest::blocking::Response>,
+        where
+            F: Fn() -> anyhow::Result<reqwest::blocking::Response>,
     {
         let mut remaining_attempts = 60;
         loop {
@@ -308,7 +353,7 @@ mod tests {
                 Err(_) if remaining_attempts > 0 => {
                     remaining_attempts -= 1;
                     std::thread::sleep(Duration::from_millis(100));
-                },
+                }
                 Err(error) => return Err(error),
             }
         }
