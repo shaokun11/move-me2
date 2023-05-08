@@ -730,7 +730,7 @@ impl ChainVm for Vm
                 choices::status::Status::Processing,
             ).unwrap();
             block_.set_state(state_b.clone());
-            println!("--------vm---build_block----new--{}---parent-{}-----------",,block_.id(),block_.parent_id());
+            println!("--------vm---build_block----new--{}---parent-{}-----------", block_.id(), block_.parent_id());
             block_.verify().await.unwrap();
             return Ok(block_);
         }
