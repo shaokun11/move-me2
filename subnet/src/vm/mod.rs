@@ -498,7 +498,7 @@ impl Vm {
 
             snow::State::StateSyncing => {
                 log::info!("set_state: state syncing");
-                Err(Error::new(ErrorKind::Other, "state sync is not supported"))
+                Ok(())
             }
 
             // called by the bootstrapper to signal bootstrapping has started.
