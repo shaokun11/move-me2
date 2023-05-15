@@ -61,7 +61,7 @@ use crate::api::chain_handlers::{ChainHandler, ChainService};
 use crate::api::static_handlers::{StaticHandler, StaticService};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
-const MOVE_DB_DIR: &str = "aptos-chain-data";
+const MOVE_DB_DIR: &str = "aptos-chain-data2";
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct AptosData(
@@ -497,6 +497,7 @@ impl Vm {
             }
 
             snow::State::StateSyncing => {
+                vm_state.bootstrapped = false;
                 log::info!("set_state: state syncing");
                 Ok(())
             }
