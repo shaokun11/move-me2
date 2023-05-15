@@ -143,6 +143,25 @@ impl StateApi {
         self.module(&accept_type, address.0, module_name.0, ledger_version.0)
     }
 
+    pub async fn get_account_module_raw(
+        &self,
+        accept_type: AcceptType,
+        address: Address,
+        module_name: IdentifierWrapper,
+        ledger_version: Option<U64>,
+    ) -> BasicResultWith404<MoveModuleBytecode> {
+        verify_module_identifier(module_name.as_str())
+            .context("'module_name' invalid")
+            .map_err(|err| {
+                BasicErrorWith404::bad_request_with_code_no_info(err, AptosErrorCode::InvalidInput)
+            })?;
+        fail_point_poem("endpoint_get_account_module")?;
+        self.context
+            .check_api_output_enabled("Get account module", &accept_type)?;
+        self.module(&accept_type, address, module_name, ledger_version)
+    }
+
+
     /// Get table item
     ///
     /// Get a table item at a specific ledger version from the table identified by {table_handle}

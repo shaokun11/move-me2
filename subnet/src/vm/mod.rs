@@ -1,5 +1,4 @@
 use std::{collections::HashMap, fs, io::{self, Error, ErrorKind}, sync::Arc};
-use std::collections::HashSet;
 use std::str::FromStr;
 use avalanche_types::{
     choices, ids,
@@ -24,9 +23,8 @@ use tokio::sync::{mpsc::Sender, RwLock};
 use aptos_api::{Context, get_raw_api_service, RawApi};
 use aptos_api::accept_type::AcceptType;
 use aptos_api::response::{AptosResponseContent, BasicResponse};
-use aptos_api::transactions::SubmitTransactionPost::Bcs;
-use aptos_api::transactions::SubmitTransactionResponse;
-use aptos_api_types::{Address, MoveStructTag, U64, ViewRequest};
+use aptos_api::transactions::{SubmitTransactionPost, SubmitTransactionResponse, SubmitTransactionsBatchPost, SubmitTransactionsBatchResponse};
+use aptos_api_types::{Address, IdentifierWrapper, MoveStructTag, U64, ViewRequest};
 use aptos_config::config::NodeConfig;
 use aptos_crypto::{HashValue, ValidCryptoMaterialStringExt};
 use aptos_crypto::ed25519::Ed25519PublicKey;
@@ -192,6 +190,25 @@ impl Vm {
         ret
     }
 
+    pub async fn get_block_by_version(&self, version: u64, with_transactions: Option<bool>) -> String {
+        let api = self.api_service.as_ref().unwrap();
+        let ret = api.5.get_block_by_version_raw(AcceptType::Json, version, with_transactions).await;
+        let ret = ret.unwrap();
+        let ret = match ret {
+            BasicResponse::Ok(c, ..) => {
+                match c {
+                    AptosResponseContent::Json(json) => {
+                        serde_json::to_string(&json.0).unwrap()
+                    }
+                    AptosResponseContent::Bcs(bytes) => {
+                        format!("{}", hex::encode(bytes.0))
+                    }
+                }
+            }
+        };
+        ret
+    }
+
     pub async fn get_accounts_transactions(&self, account: &str) -> String {
         let api = self.api_service.as_ref().unwrap();
         let ret = api.3.get_account_resources_raw(AcceptType::Json,
@@ -234,6 +251,27 @@ impl Vm {
         let api = self.api_service.as_ref().unwrap();
         let ret = api.3.get_account_raw(AcceptType::Json,
                                         Address::from_str(account).unwrap(), None).await.unwrap();
+        let ret = match ret {
+            BasicResponse::Ok(c, ..) => {
+                match c {
+                    AptosResponseContent::Json(json) => {
+                        serde_json::to_string(&json.0).unwrap()
+                    }
+                    AptosResponseContent::Bcs(bytes) => {
+                        format!("{}", hex::encode(bytes.0))
+                    }
+                }
+            }
+        };
+        ret
+    }
+    pub async fn get_account_modules_state(&self, account: &str, module_name: &str) -> String {
+        let module_name = IdentifierWrapper::from_str(module_name).unwrap();
+        let api = self.api_service.as_ref().unwrap();
+        let ret = api.4.get_account_module_raw(
+            AcceptType::Json,
+            Address::from_str(account).unwrap(),
+            module_name, None).await.unwrap();
         let ret = match ret {
             BasicResponse::Ok(c, ..) => {
                 match c {
@@ -375,9 +413,9 @@ impl Vm {
     pub async fn submit_transaction(&self, data: Vec<u8>) -> String {
         log::info!("submit_transaction length {}",{data.len()});
         let service = self.api_service.as_ref().unwrap();
-        let payload = Bcs(aptos_api::bcs_payload::Bcs(data.clone()));
-        let ret = service.0.submit_transaction_raw(AcceptType::Json,
-                                                   payload).await;
+        let payload = SubmitTransactionPost::Bcs(aptos_api::bcs_payload::Bcs(data.clone()));
+        let ret =
+            service.0.submit_transaction_raw(AcceptType::Json, payload).await;
         let ret = ret.unwrap();
         let ret = match ret {
             SubmitTransactionResponse::Accepted(c, ..) => {
@@ -398,6 +436,57 @@ impl Vm {
         sender.send_app_gossip(serde_json::to_vec(&signed_transaction.clone()).unwrap()).await.unwrap();
         self.add_pool(signed_transaction).await;
         self.notify_block_ready().await;
+        ret
+    }
+
+    pub async fn submit_transaction_batch(&self, data: Vec<u8>) -> String {
+        log::info!("submit_transaction_batch length {}",{data.len()});
+        let service = self.api_service.as_ref().unwrap();
+        let payload = SubmitTransactionsBatchPost::Bcs(aptos_api::bcs_payload::Bcs(data.clone()));
+        let ret = service.0.submit_transactions_batch_raw(AcceptType::Json,
+                                                          payload).await;
+        let ret = ret.unwrap();
+        let mut failed_index = vec![];
+        let ret = match ret {
+            SubmitTransactionsBatchResponse::Accepted(c, ..) => {
+                match c {
+                    AptosResponseContent::Json(json) => {
+                        serde_json::to_string(&json.0).unwrap()
+                    }
+                    AptosResponseContent::Bcs(bytes) => {
+                        format!("{}", hex::encode(bytes.0))
+                    }
+                }
+            }
+            SubmitTransactionsBatchResponse::AcceptedPartial(c, ..) => {
+                match c {
+                    AptosResponseContent::Json(json) => {
+                        for x in &json.transaction_failures {
+                            failed_index.push(x.transaction_index.clone());
+                        }
+                        serde_json::to_string(&json.0).unwrap()
+                    }
+                    AptosResponseContent::Bcs(bytes) => {
+                        format!("{}", hex::encode(bytes.0))
+                    }
+                }
+            }
+        };
+        let signed_transactions: Vec<SignedTransaction> =
+            bcs::from_bytes(&data).unwrap();
+        let sender = self.app_sender.as_ref().unwrap();
+        let mut exist_count = 0;
+        for (i, signed_transaction) in signed_transactions.iter().enumerate() {
+            if !failed_index.contains(&i) {
+                sender.send_app_gossip(serde_json::to_vec(signed_transaction).unwrap()).await.unwrap();
+                self.add_pool(signed_transaction.clone()).await;
+            } else {
+                exist_count += 1;
+            }
+        }
+        if exist_count > 0 {
+            self.notify_block_ready().await;
+        }
         ret
     }
 
@@ -424,7 +513,8 @@ impl Vm {
             AcceptType::Json,
             Some(true),
             Some(false),
-            Some(true), Bcs(aptos_api::bcs_payload::Bcs(data))).await;
+            Some(true),
+            SubmitTransactionPost::Bcs(aptos_api::bcs_payload::Bcs(data))).await;
         let ret = ret.unwrap();
         let ret = match ret {
             BasicResponse::Ok(c, ..) => {
@@ -689,7 +779,7 @@ impl ChainVm for Vm
             let tx_arr = core_pool.get_batch(1000,
                                              1024000,
                                              true,
-                                             true,vec![]);
+                                             true, vec![]);
             println!("----build_block pool tx count-------{}------", tx_arr.clone().len());
             drop(core_pool);
             let executor = self.executor.as_ref().unwrap().read().await;

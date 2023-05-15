@@ -467,6 +467,42 @@ impl TransactionsApi {
             .await
     }
 
+    pub async fn submit_transactions_batch_raw(
+        &self,
+        accept_type: AcceptType,
+        data: SubmitTransactionsBatchPost,
+    ) -> SubmitTransactionsBatchResult<TransactionsBatchSubmissionResult> {
+        data.verify()
+            .context("Submitted transactions invalid")
+            .map_err(|err| {
+                SubmitTransactionError::bad_request_with_code_no_info(
+                    err,
+                    AptosErrorCode::InvalidInput,
+                )
+            })?;
+        fail_point_poem("endpoint_submit_batch_transactions")?;
+        if !self.context.node_config.api.transaction_submission_enabled {
+            return Err(api_disabled("Submit batch transaction"));
+        }
+        self.context
+            .check_api_output_enabled("Submit batch transactions", &accept_type)?;
+        let ledger_info = self.context.get_latest_ledger_info()?;
+        let signed_transactions_batch = self.get_signed_transactions_batch(&ledger_info, data)?;
+        if self.context.max_submit_transaction_batch_size() < signed_transactions_batch.len() {
+            return Err(SubmitTransactionError::bad_request_with_code(
+                format!(
+                    "Submitted too many transactions: {}, while limit is {}",
+                    signed_transactions_batch.len(),
+                    self.context.max_submit_transaction_batch_size(),
+                ),
+                AptosErrorCode::InvalidInput,
+                &ledger_info,
+            ));
+        }
+        self.create_batch(&accept_type, &ledger_info, signed_transactions_batch)
+            .await
+    }
+
     /// Simulate transaction
     ///
     /// The output of the transaction will have the exact transaction outputs and events that running
