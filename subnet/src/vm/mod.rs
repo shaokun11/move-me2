@@ -61,7 +61,7 @@ use crate::api::chain_handlers::{ChainHandler, ChainService};
 use crate::api::static_handlers::{StaticHandler, StaticService};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
-const MOVE_DB_DIR: &str = "aptos-chain-data2";
+const MOVE_DB_DIR: &str = "aptos-chain-data";
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct AptosData(
