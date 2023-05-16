@@ -816,6 +816,29 @@ impl TransactionsApi {
         self.get_signing_message(&accept_type, data.0)
     }
 
+    pub async fn encode_submission_raw(
+        &self,
+        accept_type: AcceptType,
+        data: EncodeSubmissionRequest,
+    ) -> BasicResult<HexEncodedBytes> {
+        data
+            .verify()
+            .context("'UserTransactionRequest' invalid")
+            .map_err(|err| {
+                BasicError::bad_request_with_code_no_info(err, AptosErrorCode::InvalidInput)
+            })?;
+        fail_point_poem("endpoint_encode_submission")?;
+        if !self.context.node_config.api.encode_submission_enabled {
+            return Err(api_forbidden(
+                "Encode submission",
+                "Only JSON is supported as an AcceptType.",
+            ));
+        }
+        self.context
+            .check_api_output_enabled("Encode submission", &accept_type)?;
+        self.get_signing_message(&accept_type, data)
+    }
+
     /// Estimate gas price
     ///
     /// Currently, the gas estimation is handled by taking the median of the last 100,000 transactions

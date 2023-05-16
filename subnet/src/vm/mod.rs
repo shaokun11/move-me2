@@ -24,7 +24,7 @@ use aptos_api::{Context, get_raw_api_service, RawApi};
 use aptos_api::accept_type::AcceptType;
 use aptos_api::response::{AptosResponseContent, BasicResponse};
 use aptos_api::transactions::{SubmitTransactionPost, SubmitTransactionResponse, SubmitTransactionsBatchPost, SubmitTransactionsBatchResponse};
-use aptos_api_types::{Address, IdentifierWrapper, MoveStructTag, U64, ViewRequest};
+use aptos_api_types::{Address, EncodeSubmissionRequest, IdentifierWrapper, MoveStructTag, RawTableItemRequest, TableItemRequest, U64, ViewRequest};
 use aptos_config::config::NodeConfig;
 use aptos_crypto::{HashValue, ValidCryptoMaterialStringExt};
 use aptos_crypto::ed25519::Ed25519PublicKey;
@@ -55,7 +55,7 @@ use aptos_vm::AptosVM;
 use aptos_vm_genesis::{GENESIS_KEYPAIR, test_genesis_change_set_and_validators};
 
 use crate::{block::Block, state};
-use crate::api::chain_handlers::{ChainHandler, ChainService};
+use crate::api::chain_handlers::{ChainHandler, ChainService, RpcEventHandleReq, RpcEventNumReq};
 use crate::api::static_handlers::{StaticHandler, StaticService};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -410,6 +410,27 @@ impl Vm {
         ret
     }
 
+    pub async fn encode_submission(&self, data: &str) -> String {
+        let service = self.api_service.as_ref().unwrap();
+        let payload = serde_json::from_str::<EncodeSubmissionRequest>(data).unwrap();
+        let ret =
+            service.0.encode_submission_raw(AcceptType::Json, payload).await;
+        let ret = ret.unwrap();
+        let ret = match ret {
+            BasicResponse::Ok(c, ..) => {
+                match c {
+                    AptosResponseContent::Json(json) => {
+                        serde_json::to_string(&json.0).unwrap()
+                    }
+                    AptosResponseContent::Bcs(bytes) => {
+                        format!("{}", hex::encode(bytes.0))
+                    }
+                }
+            }
+        };
+        ret
+    }
+
     pub async fn submit_transaction(&self, data: Vec<u8>) -> String {
         log::info!("submit_transaction length {}",{data.len()});
         let service = self.api_service.as_ref().unwrap();
@@ -487,6 +508,100 @@ impl Vm {
         if exist_count > 0 {
             self.notify_block_ready().await;
         }
+        ret
+    }
+    pub async fn get_table_item(&self, account: String, body: String) -> String {
+        let payload = serde_json::from_str::<TableItemRequest>(body.as_str()).unwrap();
+        let api = self.api_service.as_ref().unwrap();
+        let ret = api.4.get_table_item_raw(
+            AcceptType::Json,
+            Address::from_str(account.as_str()).unwrap(),
+            payload,
+            None).await;
+        let ret = ret.unwrap();
+        let ret = match ret {
+            BasicResponse::Ok(c, ..) => {
+                match c {
+                    AptosResponseContent::Json(json) => {
+                        serde_json::to_string(&json.0).unwrap()
+                    }
+                    AptosResponseContent::Bcs(bytes) => {
+                        format!("{}", hex::encode(bytes.0))
+                    }
+                }
+            }
+        };
+        ret
+    }
+
+    pub async fn get_raw_table_item(&self, account: String, body: String) -> String {
+        let payload = serde_json::from_str::<RawTableItemRequest>(body.as_str()).unwrap();
+        let api = self.api_service.as_ref().unwrap();
+        let ret = api.4.get_raw_table_item_raw(
+            AcceptType::Json,
+            Address::from_str(account.as_str()).unwrap(),
+            payload,
+            None).await;
+        let ret = ret.unwrap();
+        let ret = match ret {
+            BasicResponse::Ok(c, ..) => {
+                match c {
+                    AptosResponseContent::Json(json) => {
+                        serde_json::to_string(&json.0).unwrap()
+                    }
+                    AptosResponseContent::Bcs(bytes) => {
+                        format!("{}", hex::encode(bytes.0))
+                    }
+                }
+            }
+        };
+        ret
+    }
+
+    pub async fn get_events_by_creation_number(&self, args: RpcEventNumReq) -> String {
+        let api = self.api_service.as_ref().unwrap();
+        let ret = api.6.get_events_by_creation_number_raw(
+            AcceptType::Json,
+            Address::from_str(args.address.as_str()).unwrap(),
+            args.creation_number,
+            args.start, args.limit).await;
+        let ret = ret.unwrap();
+        let ret = match ret {
+            BasicResponse::Ok(c, ..) => {
+                match c {
+                    AptosResponseContent::Json(json) => {
+                        serde_json::to_string(&json.0).unwrap()
+                    }
+                    AptosResponseContent::Bcs(bytes) => {
+                        format!("{}", hex::encode(bytes.0))
+                    }
+                }
+            }
+        };
+        ret
+    }
+    pub async fn get_events_by_event_handle(&self, args: RpcEventHandleReq) -> String {
+        let event_handle = MoveStructTag::from_str(args.event_handle.as_str()).unwrap();
+        let field_name = IdentifierWrapper::from_str(args.field_name.as_str()).unwrap();
+        let api = self.api_service.as_ref().unwrap();
+        let ret = api.6.get_events_by_event_handle_raw(
+            AcceptType::Json,
+            Address::from_str(args.address.as_str()).unwrap(),
+            event_handle,
+            field_name, args.start, args.limit).await;
+        let ret = ret.unwrap();
+        let ret = match ret {
+            BasicResponse::Ok(c, ..) => {
+                match c {
+                    AptosResponseContent::Json(json) => {
+                        serde_json::to_string(&json.0).unwrap()
+                    }
+                    AptosResponseContent::Bcs(bytes) => {
+                        format!("{}", hex::encode(bytes.0))
+                    }
+                }
+            }
+        };
         ret
     }
 

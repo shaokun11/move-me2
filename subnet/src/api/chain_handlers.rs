@@ -1,14 +1,12 @@
 use std::io;
 use std::marker::PhantomData;
 
-use avalanche_types::ids;
 use avalanche_types::proto::http::Element;
 use avalanche_types::subnet::rpc::http::handle::Handle;
 use bytes::Bytes;
 use jsonrpc_core::{BoxFuture, Error, ErrorCode, IoHandler, Result};
 use jsonrpc_derive::rpc;
 use serde::{Deserialize, Serialize};
-use serde_with::serde_as;
 use aptos_api_types::U64;
 
 use crate::api::de_request;
@@ -18,101 +16,133 @@ use crate::vm::Vm;
 pub trait Rpc {
     /*******************************TRANSACTION START***************************************/
     #[rpc(name = "getTransactions", alias("aptosvm.getTransactions"))]
-    fn get_transactions(&self, args: PageArgs) -> BoxFuture<Result<ViewFunctionArgs>>;
+    fn get_transactions(&self, args: PageArgs) -> BoxFuture<Result<RpcRes>>;
 
     #[rpc(name = "submitTransaction", alias("aptosvm.submitTransaction"))]
-    fn submit_transaction(&self, args: SubmitTransactionArgs) -> BoxFuture<Result<SubmitTransactionRes>>;
+    fn submit_transaction(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>>;
 
     #[rpc(name = "submitTransactionBatch", alias("aptosvm.submitTransactionBatch"))]
-    fn submit_transaction_batch(&self, args: SubmitTransactionArgs) -> BoxFuture<Result<SubmitTransactionRes>>;
+    fn submit_transaction_batch(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>>;
 
     #[rpc(name = "getTransactionByHash", alias("aptosvm.getTransactionByHash"))]
-    fn get_transaction_by_hash(&self, args: GetTransactionByHashArgs) -> BoxFuture<Result<GetTransactionRes>>;
+    fn get_transaction_by_hash(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>>;
 
     #[rpc(name = "getTransactionByVersion", alias("aptosvm.getTransactionByVersion"))]
-    fn get_transaction_by_version(&self, args: GetTransactionByVersionArgs) -> BoxFuture<Result<GetTransactionRes>>;
+    fn get_transaction_by_version(&self, args: GetTransactionByVersionArgs) -> BoxFuture<Result<RpcRes>>;
 
     #[rpc(name = "getAccountsTransactions", alias("aptosvm.getAccountsTransactions"))]
-    fn get_accounts_transactions(&self, args: AccountArgs) -> BoxFuture<Result<ViewFunctionArgs>>;
+    fn get_accounts_transactions(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>>;
 
     #[rpc(name = "simulateTransaction", alias("aptosvm.simulateTransaction"))]
-    fn simulate_transaction(&self, args: SubmitTransactionArgs) -> BoxFuture<Result<SubmitTransactionRes>>;
+    fn simulate_transaction(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>>;
+
+    #[rpc(name = "encodeSubmission", alias("aptosvm.encodeSubmission"))]
+    fn encode_submission(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>>;
 
     #[rpc(name = "estimateGasPrice", alias("aptosvm.estimateGasPrice"))]
-    fn estimate_gas_price(&self) -> BoxFuture<Result<SubmitTransactionRes>>;
-
+    fn estimate_gas_price(&self) -> BoxFuture<Result<RpcRes>>;
     /*******************************TRANSACTION END***************************************/
 
 
     /*******************************HELPER API START***************************************/
     #[rpc(name = "faucet", alias("aptosvm.faucet"))]
-    fn facet_apt(&self, args: AccountArgs) -> BoxFuture<Result<AccountStrRes>>;
+    fn facet_apt(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>>;
 
     #[rpc(name = "createAccount", alias("aptosvm.createAccount"))]
-    fn create_account(&self, args: AccountArgs) -> BoxFuture<Result<AccountStrRes>>;
+    fn create_account(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>>;
 
-    #[rpc(name = "lastAccepted", alias("aptosvm.lastAccepted"))]
-    fn last_accepted(&self) -> BoxFuture<Result<LastAcceptedResponse>>;
     /*******************************HELPER API END***************************************/
 
 
 
-    #[rpc(name = "getLedgerInfo", alias("aptosvm.getLedgerInfo"))]
-    fn get_ledger_info(&self) -> BoxFuture<Result<ViewFunctionArgs>>;
-
     /******************************* ACCOUNT START ***************************************/
 
     #[rpc(name = "getAccount", alias("aptosvm.getAccount"))]
-    fn get_account(&self, args: AccountArgs) -> BoxFuture<Result<ViewFunctionArgs>>;
+    fn get_account(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>>;
 
     #[rpc(name = "getAccountResources", alias("aptosvm.getAccountResources"))]
-    fn get_account_resources(&self, args: AccountArgs) -> BoxFuture<Result<ViewFunctionArgs>>;
+    fn get_account_resources(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>>;
 
     #[rpc(name = "getAccountModules", alias("aptosvm.getAccountModules"))]
-    fn get_account_modules(&self, args: AccountArgs) -> BoxFuture<Result<ViewFunctionArgs>>;
+    fn get_account_modules(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>>;
 
     #[rpc(name = "getAccountResourcesState", alias("aptosvm.getAccountResourcesState"))]
-    fn get_account_resources_state(&self, args: AccountStateArgs) -> BoxFuture<Result<ViewFunctionArgs>>;
+    fn get_account_resources_state(&self, args: AccountStateArgs) -> BoxFuture<Result<RpcRes>>;
 
     #[rpc(name = "getAccountModulesState", alias("aptosvm.getAccountModulesState"))]
-    fn get_account_modules_state(&self, args: AccountStateArgs) -> BoxFuture<Result<ViewFunctionArgs>>;
+    fn get_account_modules_state(&self, args: AccountStateArgs) -> BoxFuture<Result<RpcRes>>;
     /******************************* ACCOUNT END ***************************************/
 
 
     /*******************************BLOCK START***************************************/
-    #[rpc(name = "GetBlockByHeight", alias("aptosvm.GetBlockByHeight"))]
-    fn get_block_by_height(&self, args: BlockArgs) -> BoxFuture<Result<ViewFunctionArgs>>;
+    #[rpc(name = "getBlockByHeight", alias("aptosvm.getBlockByHeight"))]
+    fn get_block_by_height(&self, args: BlockArgs) -> BoxFuture<Result<RpcRes>>;
 
-    #[rpc(name = "GetBlockByVersion", alias("aptosvm.GetBlockByVersion"))]
-    fn get_block_by_version(&self, args: BlockArgs) -> BoxFuture<Result<ViewFunctionArgs>>;
+    #[rpc(name = "getBlockByVersion", alias("aptosvm.getBlockByVersion"))]
+    fn get_block_by_version(&self, args: BlockArgs) -> BoxFuture<Result<RpcRes>>;
     /*******************************BLOCK END***************************************/
 
     #[rpc(name = "viewFunction", alias("aptosvm.viewFunction"))]
-    fn view_function(&self, args: ViewFunctionArgs) -> BoxFuture<Result<SubmitTransactionArgs>>;
+    fn view_function(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>>;
+
+    #[rpc(name = "getTableItem", alias("aptosvm.getTableItem"))]
+    fn get_table_item(&self, args: RpcTableReq) -> BoxFuture<Result<RpcRes>>;
+
+    #[rpc(name = "getRawTableItem", alias("aptosvm.getRawTableItem"))]
+    fn get_raw_table_item(&self, args: RpcTableReq) -> BoxFuture<Result<RpcRes>>;
+
+    #[rpc(name = "getEventsByCreationNumber", alias("aptosvm.getEventsByCreationNumber"))]
+    fn get_events_by_creation_number(&self, args: RpcEventNumReq) -> BoxFuture<Result<RpcRes>>;
+
+    #[rpc(name = "getEventsByEventHandle", alias("aptosvm.getEventsByEventHandle"))]
+    fn get_events_by_event_handle(&self, args: RpcEventHandleReq) -> BoxFuture<Result<RpcRes>>;
+
+    #[rpc(name = "getLedgerInfo", alias("aptosvm.getLedgerInfo"))]
+    fn get_ledger_info(&self) -> BoxFuture<Result<RpcRes>>;
+
 }
 
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct ViewFunctionArgs {
+pub struct GetTableItemArgs {
+    pub table_handle: String,
+    pub key_type: String,
+    pub value_type: String,
+    pub key: String,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct RpcReq {
+    pub data: String,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct RpcRes {
     pub data: String,
 }
 
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct SubmitTransactionArgs {
-    ///  bsc payload as hex
-    pub data: String,
-}
-
-#[serde_as]
-#[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct SubmitTransactionRes {
-    pub data: String,
+pub struct RpcTableReq {
+    pub query: String,
+    pub body: String,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct LastAcceptedResponse {
-    pub id: ids::Id,
+pub struct RpcEventNumReq {
+    pub address: String,
+    pub creation_number: U64,
+    pub start: Option<U64>,
+    pub limit: Option<u16>,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct RpcEventHandleReq {
+    pub start: Option<U64>,
+    pub limit: Option<u16>,
+    pub address: String,
+    pub event_handle: String,
+    pub field_name: String,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -127,22 +157,6 @@ pub struct GetTransactionByVersionArgs {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct GetTransactionByHashArgs {
-    pub hash: String,
-}
-
-
-#[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct GetTransactionRes {
-    pub data: String,
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct AccountArgs {
-    pub account: String,
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct AccountStateArgs {
     pub account: String,
     pub resource: String,
@@ -152,16 +166,6 @@ pub struct AccountStateArgs {
 pub struct PageArgs {
     pub start: Option<U64>,
     pub limit: Option<u16>,
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct AccountNumberRes {
-    pub data: u64,
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct AccountStrRes {
-    pub data: String,
 }
 
 
@@ -178,185 +182,202 @@ impl ChainService {
 
 
 impl Rpc for ChainService {
-    fn get_transactions(&self, args: PageArgs) -> BoxFuture<Result<ViewFunctionArgs>> {
+    fn get_transactions(&self, args: PageArgs) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
             let ret = vm.get_transactions(args.start, args.limit).await;
-            return Ok(ViewFunctionArgs { data: ret });
+            return Ok(RpcRes { data: ret });
         })
     }
 
-    fn submit_transaction(&self, args: SubmitTransactionArgs) -> BoxFuture<Result<SubmitTransactionRes>> {
+    fn submit_transaction(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
         log::debug!("submit_transaction called");
         let vm = self.vm.clone();
         Box::pin(async move {
             let r = vm.submit_transaction(hex::decode(args.data).unwrap()).await;
-            Ok(SubmitTransactionRes { data: r })
+            Ok(RpcRes { data: r })
         })
     }
 
-    fn submit_transaction_batch(&self, args: SubmitTransactionArgs) -> BoxFuture<Result<SubmitTransactionRes>> {
+    fn submit_transaction_batch(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
             let r = vm.submit_transaction_batch(hex::decode(args.data).unwrap()).await;
-            Ok(SubmitTransactionRes { data: r })
+            Ok(RpcRes { data: r })
         })
     }
 
-    fn get_transaction_by_hash(&self, args: GetTransactionByHashArgs) -> BoxFuture<Result<GetTransactionRes>> {
+    fn get_transaction_by_hash(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let hash = args.hash.as_str();
-            let ret = vm.get_transaction_by_hash(hash).await;
-            return Ok(GetTransactionRes { data: ret });
+            let ret = vm.get_transaction_by_hash(args.data.as_str()).await;
+            return Ok(RpcRes { data: ret });
         })
     }
 
-    fn get_transaction_by_version(&self, args: GetTransactionByVersionArgs) -> BoxFuture<Result<GetTransactionRes>> {
+    fn get_transaction_by_version(&self, args: GetTransactionByVersionArgs) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
             let ret = vm.get_transaction_by_version(args.version).await;
-            return Ok(GetTransactionRes { data: ret });
+            return Ok(RpcRes { data: ret });
         })
     }
 
-    fn get_accounts_transactions(&self, args: AccountArgs) -> BoxFuture<Result<ViewFunctionArgs>> {
+    fn get_accounts_transactions(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.get_accounts_transactions(args.account.as_str()).await;
-            return Ok(ViewFunctionArgs { data: ret });
+            let ret = vm.get_accounts_transactions(args.data.as_str()).await;
+            return Ok(RpcRes { data: ret });
         })
     }
 
-    fn simulate_transaction(&self, args: SubmitTransactionArgs) -> BoxFuture<Result<SubmitTransactionRes>> {
+    fn simulate_transaction(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
             let data = hex::decode(args.data).unwrap();
             let ret = vm.simulate_transaction(data).await;
-            Ok(SubmitTransactionRes { data: ret })
+            Ok(RpcRes { data: ret })
         })
     }
 
-    fn estimate_gas_price(&self) -> BoxFuture<Result<SubmitTransactionRes>> {
+    fn encode_submission(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
+        let vm = self.vm.clone();
+        Box::pin(async move {
+            let ret = vm.encode_submission(args.data.as_str()).await;
+            return Ok(RpcRes { data: ret });
+        })
+    }
+
+    fn estimate_gas_price(&self) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
             let ret = vm.estimate_gas_price().await;
-            Ok(SubmitTransactionRes { data: ret })
+            Ok(RpcRes { data: ret })
         })
     }
 
-    fn facet_apt(&self, args: AccountArgs) -> BoxFuture<Result<AccountStrRes>> {
+    fn facet_apt(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let acc = hex::decode(args.account).unwrap();
+            let acc = hex::decode(args.data).unwrap();
             let ret = vm.facet_apt(acc).await;
-            Ok(AccountStrRes { data: ret })
+            Ok(RpcRes { data: ret })
         })
     }
 
-    fn create_account(&self, args: AccountArgs) -> BoxFuture<Result<AccountStrRes>> {
+    fn create_account(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.create_account(args.account.as_str()).await;
-            Ok(AccountStrRes { data: ret })
+            let ret = vm.create_account(args.data.as_str()).await;
+            Ok(RpcRes { data: ret })
         })
     }
 
-    fn last_accepted(&self) -> BoxFuture<Result<LastAcceptedResponse>> {
-        let vm = self.vm.clone();
-
-        Box::pin(async move {
-            let vm_state = vm.state.read().await;
-            if let Some(state) = &vm_state.state {
-                let last_accepted = state
-                    .get_last_accepted_block_id()
-                    .await
-                    .map_err(create_jsonrpc_error)?;
-
-                return Ok(LastAcceptedResponse { id: last_accepted });
-            }
-
-            Err(Error {
-                code: ErrorCode::InternalError,
-                message: String::from("no state manager found"),
-                data: None,
-            })
-        })
-    }
-
-    fn view_function(&self, args: ViewFunctionArgs) -> BoxFuture<Result<SubmitTransactionArgs>> {
+    fn get_account(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            log::info!("view_function called {}",args.data.clone());
-            let ret = vm.view_function(args.data.as_str()).await;
-            return Ok(SubmitTransactionArgs { data: ret });
+            let ret = vm.get_account(args.data.as_str()).await;
+            return Ok(RpcRes { data: ret });
         })
     }
 
-    fn get_ledger_info(&self) -> BoxFuture<Result<ViewFunctionArgs>> {
+    fn get_account_resources(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.get_ledger_info().await;
-            return Ok(ViewFunctionArgs { data: ret });
+            let ret = vm.get_account_resources(args.data.as_str()).await;
+            return Ok(RpcRes { data: ret });
         })
     }
 
-    fn get_account(&self, args: AccountArgs) -> BoxFuture<Result<ViewFunctionArgs>> {
+    fn get_account_modules(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.get_account(args.account.as_str()).await;
-            return Ok(ViewFunctionArgs { data: ret });
+            let ret = vm.get_account_modules(args.data.as_str()).await;
+            return Ok(RpcRes { data: ret });
         })
     }
 
-    fn get_account_resources(&self, args: AccountArgs) -> BoxFuture<Result<ViewFunctionArgs>> {
-        let vm = self.vm.clone();
-        Box::pin(async move {
-            let ret = vm.get_account_resources(args.account.as_str()).await;
-            return Ok(ViewFunctionArgs { data: ret });
-        })
-    }
-
-    fn get_account_modules(&self, args: AccountArgs) -> BoxFuture<Result<ViewFunctionArgs>> {
-        let vm = self.vm.clone();
-        Box::pin(async move {
-            let ret = vm.get_account_modules(args.account.as_str()).await;
-            return Ok(ViewFunctionArgs { data: ret });
-        })
-    }
-
-    fn get_account_resources_state(&self, args: AccountStateArgs) -> BoxFuture<Result<ViewFunctionArgs>> {
+    fn get_account_resources_state(&self, args: AccountStateArgs) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
             let ret = vm.get_account_resources_state(args.account.as_str(),
                                                      args.resource.as_str()).await;
-            return Ok(ViewFunctionArgs { data: ret });
+            return Ok(RpcRes { data: ret });
         })
     }
 
-    fn get_account_modules_state(&self, args: AccountStateArgs) -> BoxFuture<Result<ViewFunctionArgs>> {
+    fn get_account_modules_state(&self, args: AccountStateArgs) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
             let ret = vm.get_account_modules_state(args.account.as_str(),
                                                    args.resource.as_str()).await;
-            return Ok(ViewFunctionArgs { data: ret });
+            return Ok(RpcRes { data: ret });
         })
     }
 
-    fn get_block_by_height(&self, args: BlockArgs) -> BoxFuture<Result<ViewFunctionArgs>> {
+    fn get_block_by_height(&self, args: BlockArgs) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
             let ret = vm.get_block_by_height(args.height_or_version, args.with_transactions).await;
-            return Ok(ViewFunctionArgs { data: ret });
+            return Ok(RpcRes { data: ret });
         })
     }
 
-    fn get_block_by_version(&self, args: BlockArgs) -> BoxFuture<Result<ViewFunctionArgs>> {
+    fn get_block_by_version(&self, args: BlockArgs) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
             let ret = vm.get_block_by_version(args.height_or_version,
                                               args.with_transactions).await;
-            return Ok(ViewFunctionArgs { data: ret });
+            return Ok(RpcRes { data: ret });
+        })
+    }
+
+    fn view_function(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
+        let vm = self.vm.clone();
+        Box::pin(async move {
+            log::info!("view_function called {}",args.data.clone());
+            let ret = vm.view_function(args.data.as_str()).await;
+            return Ok(RpcRes { data: ret });
+        })
+    }
+
+    fn get_table_item(&self, args: RpcTableReq) -> BoxFuture<Result<RpcRes>> {
+        let vm = self.vm.clone();
+        Box::pin(async move {
+            let ret = vm.get_table_item(args.query, args.body).await;
+            return Ok(RpcRes { data: ret });
+        })
+    }
+
+    fn get_raw_table_item(&self, args: RpcTableReq) -> BoxFuture<Result<RpcRes>> {
+        let vm = self.vm.clone();
+        Box::pin(async move {
+            let ret = vm.get_raw_table_item(args.query, args.body).await;
+            return Ok(RpcRes { data: ret });
+        })
+    }
+
+    fn get_events_by_creation_number(&self, args: RpcEventNumReq) -> BoxFuture<Result<RpcRes>> {
+        let vm = self.vm.clone();
+        Box::pin(async move {
+            let ret = vm.get_events_by_creation_number(args).await;
+            return Ok(RpcRes { data: ret });
+        })
+    }
+
+    fn get_events_by_event_handle(&self, args: RpcEventHandleReq) -> BoxFuture<Result<RpcRes>> {
+        let vm = self.vm.clone();
+        Box::pin(async move {
+            let ret = vm.get_events_by_event_handle(args).await;
+            return Ok(RpcRes { data: ret });
+        })
+    }
+
+    fn get_ledger_info(&self) -> BoxFuture<Result<RpcRes>> {
+        let vm = self.vm.clone();
+        Box::pin(async move {
+            let ret = vm.get_ledger_info().await;
+            return Ok(RpcRes { data: ret });
         })
     }
 }
