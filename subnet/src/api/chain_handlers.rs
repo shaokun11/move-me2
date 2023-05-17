@@ -54,7 +54,6 @@ pub trait Rpc {
     /*******************************HELPER API END***************************************/
 
 
-
     /******************************* ACCOUNT START ***************************************/
 
     #[rpc(name = "getAccount", alias("aptosvm.getAccount"))]
@@ -99,7 +98,6 @@ pub trait Rpc {
 
     #[rpc(name = "getLedgerInfo", alias("aptosvm.getLedgerInfo"))]
     fn get_ledger_info(&self) -> BoxFuture<Result<RpcRes>>;
-
 }
 
 
@@ -119,6 +117,7 @@ pub struct RpcReq {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct RpcRes {
     pub data: String,
+    pub header: String,
 }
 
 
@@ -186,7 +185,7 @@ impl Rpc for ChainService {
         let vm = self.vm.clone();
         Box::pin(async move {
             let ret = vm.get_transactions(args.start, args.limit).await;
-            return Ok(RpcRes { data: ret });
+            return Ok(ret);
         })
     }
 
@@ -195,7 +194,7 @@ impl Rpc for ChainService {
         let vm = self.vm.clone();
         Box::pin(async move {
             let r = vm.submit_transaction(hex::decode(args.data).unwrap()).await;
-            Ok(RpcRes { data: r })
+            Ok(r)
         })
     }
 
@@ -203,7 +202,7 @@ impl Rpc for ChainService {
         let vm = self.vm.clone();
         Box::pin(async move {
             let r = vm.submit_transaction_batch(hex::decode(args.data).unwrap()).await;
-            Ok(RpcRes { data: r })
+            Ok(r)
         })
     }
 
@@ -211,7 +210,7 @@ impl Rpc for ChainService {
         let vm = self.vm.clone();
         Box::pin(async move {
             let ret = vm.get_transaction_by_hash(args.data.as_str()).await;
-            return Ok(RpcRes { data: ret });
+            return Ok(ret);
         })
     }
 
@@ -219,7 +218,7 @@ impl Rpc for ChainService {
         let vm = self.vm.clone();
         Box::pin(async move {
             let ret = vm.get_transaction_by_version(args.version).await;
-            return Ok(RpcRes { data: ret });
+            return Ok(ret);
         })
     }
 
@@ -227,7 +226,7 @@ impl Rpc for ChainService {
         let vm = self.vm.clone();
         Box::pin(async move {
             let ret = vm.get_accounts_transactions(args.data.as_str()).await;
-            return Ok(RpcRes { data: ret });
+            return Ok(ret);
         })
     }
 
@@ -236,7 +235,7 @@ impl Rpc for ChainService {
         Box::pin(async move {
             let data = hex::decode(args.data).unwrap();
             let ret = vm.simulate_transaction(data).await;
-            Ok(RpcRes { data: ret })
+            Ok(ret)
         })
     }
 
@@ -244,7 +243,7 @@ impl Rpc for ChainService {
         let vm = self.vm.clone();
         Box::pin(async move {
             let ret = vm.encode_submission(args.data.as_str()).await;
-            return Ok(RpcRes { data: ret });
+            return Ok(ret);
         })
     }
 
@@ -252,7 +251,7 @@ impl Rpc for ChainService {
         let vm = self.vm.clone();
         Box::pin(async move {
             let ret = vm.estimate_gas_price().await;
-            Ok(RpcRes { data: ret })
+            Ok(ret)
         })
     }
 
@@ -261,7 +260,7 @@ impl Rpc for ChainService {
         Box::pin(async move {
             let acc = hex::decode(args.data).unwrap();
             let ret = vm.facet_apt(acc).await;
-            Ok(RpcRes { data: ret })
+            Ok(ret)
         })
     }
 
@@ -269,7 +268,7 @@ impl Rpc for ChainService {
         let vm = self.vm.clone();
         Box::pin(async move {
             let ret = vm.create_account(args.data.as_str()).await;
-            Ok(RpcRes { data: ret })
+            Ok(ret)
         })
     }
 
@@ -277,7 +276,7 @@ impl Rpc for ChainService {
         let vm = self.vm.clone();
         Box::pin(async move {
             let ret = vm.get_account(args.data.as_str()).await;
-            return Ok(RpcRes { data: ret });
+            return Ok(ret);
         })
     }
 
@@ -285,7 +284,7 @@ impl Rpc for ChainService {
         let vm = self.vm.clone();
         Box::pin(async move {
             let ret = vm.get_account_resources(args.data.as_str()).await;
-            return Ok(RpcRes { data: ret });
+            return Ok(ret);
         })
     }
 
@@ -293,7 +292,7 @@ impl Rpc for ChainService {
         let vm = self.vm.clone();
         Box::pin(async move {
             let ret = vm.get_account_modules(args.data.as_str()).await;
-            return Ok(RpcRes { data: ret });
+            return Ok(ret);
         })
     }
 
@@ -302,7 +301,7 @@ impl Rpc for ChainService {
         Box::pin(async move {
             let ret = vm.get_account_resources_state(args.account.as_str(),
                                                      args.resource.as_str()).await;
-            return Ok(RpcRes { data: ret });
+            return Ok(ret);
         })
     }
 
@@ -311,7 +310,7 @@ impl Rpc for ChainService {
         Box::pin(async move {
             let ret = vm.get_account_modules_state(args.account.as_str(),
                                                    args.resource.as_str()).await;
-            return Ok(RpcRes { data: ret });
+            return Ok(ret);
         })
     }
 
@@ -319,7 +318,7 @@ impl Rpc for ChainService {
         let vm = self.vm.clone();
         Box::pin(async move {
             let ret = vm.get_block_by_height(args.height_or_version, args.with_transactions).await;
-            return Ok(RpcRes { data: ret });
+            return Ok(ret);
         })
     }
 
@@ -328,7 +327,7 @@ impl Rpc for ChainService {
         Box::pin(async move {
             let ret = vm.get_block_by_version(args.height_or_version,
                                               args.with_transactions).await;
-            return Ok(RpcRes { data: ret });
+            return Ok(ret);
         })
     }
 
@@ -337,7 +336,7 @@ impl Rpc for ChainService {
         Box::pin(async move {
             log::info!("view_function called {}",args.data.clone());
             let ret = vm.view_function(args.data.as_str()).await;
-            return Ok(RpcRes { data: ret });
+            return Ok(ret);
         })
     }
 
@@ -345,7 +344,7 @@ impl Rpc for ChainService {
         let vm = self.vm.clone();
         Box::pin(async move {
             let ret = vm.get_table_item(args.query, args.body).await;
-            return Ok(RpcRes { data: ret });
+            return Ok(ret);
         })
     }
 
@@ -353,7 +352,7 @@ impl Rpc for ChainService {
         let vm = self.vm.clone();
         Box::pin(async move {
             let ret = vm.get_raw_table_item(args.query, args.body).await;
-            return Ok(RpcRes { data: ret });
+            return Ok(ret);
         })
     }
 
@@ -361,7 +360,7 @@ impl Rpc for ChainService {
         let vm = self.vm.clone();
         Box::pin(async move {
             let ret = vm.get_events_by_creation_number(args).await;
-            return Ok(RpcRes { data: ret });
+            return Ok(ret);
         })
     }
 
@@ -369,7 +368,7 @@ impl Rpc for ChainService {
         let vm = self.vm.clone();
         Box::pin(async move {
             let ret = vm.get_events_by_event_handle(args).await;
-            return Ok(RpcRes { data: ret });
+            return Ok(ret);
         })
     }
 
@@ -377,7 +376,7 @@ impl Rpc for ChainService {
         let vm = self.vm.clone();
         Box::pin(async move {
             let ret = vm.get_ledger_info().await;
-            return Ok(RpcRes { data: ret });
+            return Ok(ret);
         })
     }
 }
