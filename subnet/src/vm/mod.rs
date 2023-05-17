@@ -802,12 +802,12 @@ impl Vm {
             li = serde_json::from_slice::<LedgerInfoWithSignatures>(&aptos_data.5).unwrap();
         }
         executor.commit_blocks(vec![block_id], li.clone()).unwrap();
+        let mut core_pool = self.core_mempool.as_ref().unwrap().write().await;
         for t in block_tx.iter() {
             match t {
                 UserTransaction(t) => {
                     let sender = t.sender();
                     let sequence_number = t.sequence_number();
-                    let mut core_pool = self.core_mempool.as_ref().unwrap().write().await;
                     core_pool.commit_transaction(&AccountAddress::from(sender), sequence_number);
                 }
                 _ => {}
