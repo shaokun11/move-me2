@@ -24,7 +24,7 @@ use aptos_api::{Context, get_raw_api_service, RawApi};
 use aptos_api::accept_type::AcceptType;
 use aptos_api::response::{AptosResponseContent, BasicResponse};
 use aptos_api::transactions::{SubmitTransactionPost, SubmitTransactionResponse, SubmitTransactionsBatchPost, SubmitTransactionsBatchResponse};
-use aptos_api_types::{Address, EncodeSubmissionRequest, IdentifierWrapper, MoveStructTag, RawTableItemRequest, TableItemRequest, U64, ViewRequest};
+use aptos_api_types::{Address, EncodeSubmissionRequest, IdentifierWrapper, MoveStructTag, RawTableItemRequest, StateKeyWrapper, TableItemRequest, U64, ViewRequest};
 use aptos_config::config::NodeConfig;
 use aptos_crypto::{HashValue, ValidCryptoMaterialStringExt};
 use aptos_crypto::ed25519::Ed25519PublicKey;
@@ -55,7 +55,7 @@ use aptos_vm::AptosVM;
 use aptos_vm_genesis::{GENESIS_KEYPAIR, test_genesis_change_set_and_validators};
 
 use crate::{block::Block, state};
-use crate::api::chain_handlers::{ChainHandler, ChainService, RpcEventHandleReq, RpcEventNumReq, RpcRes};
+use crate::api::chain_handlers::{AccountStateArgs, ChainHandler, ChainService, RpcEventHandleReq, RpcEventNumReq, RpcReq, RpcRes, RpcTableReq};
 use crate::api::static_handlers::{StaticHandler, StaticService};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -254,10 +254,20 @@ impl Vm {
         RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
 
-    pub async fn get_accounts_transactions(&self, account: &str) -> RpcRes {
+    pub async fn get_accounts_transactions(&self, args: RpcReq) -> RpcRes {
+        let account = args.data.as_str();
         let api = self.api_service.as_ref().unwrap();
-        let ret = api.3.get_account_resources_raw(AcceptType::Json,
-                                                  Address::from_str(account).unwrap()).await.unwrap();
+        let start = match args.start {
+            None => None,
+            Some(_) => Some(StateKeyWrapper::from_str(args.start.unwrap().as_str()).unwrap())
+        };
+        let ret = api.3.get_account_resources_raw(
+            AcceptType::Json,
+            Address::from_str(account).unwrap(),
+            args.ledger_version,
+            start,
+            args.limit,
+        ).await.unwrap();
         let header;
         let ret = match ret {
             BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
@@ -284,10 +294,20 @@ impl Vm {
         RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
 
-    pub async fn get_account_resources(&self, account: &str) -> RpcRes {
+    pub async fn get_account_resources(&self, args: RpcReq) -> RpcRes {
+        let account = args.data.as_str();
         let api = self.api_service.as_ref().unwrap();
-        let ret = api.3.get_account_resources_raw(AcceptType::Json,
-                                                  Address::from_str(account).unwrap()).await.unwrap();
+        let start = match args.start {
+            None => None,
+            Some(_) => Some(StateKeyWrapper::from_str(args.start.unwrap().as_str()).unwrap())
+        };
+        let ret = api.3.get_account_resources_raw(
+            AcceptType::Json,
+            Address::from_str(account).unwrap(),
+            args.ledger_version,
+            start,
+            args.limit,
+        ).await.unwrap();
         let header;
         let ret = match ret {
             BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
@@ -314,10 +334,11 @@ impl Vm {
         RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
 
-    pub async fn get_account(&self, account: &str) -> RpcRes {
+    pub async fn get_account(&self, args: RpcReq) -> RpcRes {
+        let account = args.data.as_str();
         let api = self.api_service.as_ref().unwrap();
         let ret = api.3.get_account_raw(AcceptType::Json,
-                                        Address::from_str(account).unwrap(), None).await.unwrap();
+                                        Address::from_str(account).unwrap(), args.ledger_version).await.unwrap();
         let header;
         let ret = match ret {
             BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
@@ -343,13 +364,15 @@ impl Vm {
         };
         RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
-    pub async fn get_account_modules_state(&self, account: &str, module_name: &str) -> RpcRes {
+    pub async fn get_account_modules_state(&self, args: AccountStateArgs) -> RpcRes {
+        let account = args.account.as_str();
+        let module_name = args.resource.as_str();
         let module_name = IdentifierWrapper::from_str(module_name).unwrap();
         let api = self.api_service.as_ref().unwrap();
         let ret = api.4.get_account_module_raw(
             AcceptType::Json,
             Address::from_str(account).unwrap(),
-            module_name, None).await.unwrap();
+            module_name, args.ledger_version).await.unwrap();
         let header;
         let ret = match ret {
             BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
@@ -376,11 +399,14 @@ impl Vm {
         RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
 
-    pub async fn get_account_resources_state(&self, account: &str, resource: &str) -> RpcRes {
+    pub async fn get_account_resources_state(&self, args: AccountStateArgs) -> RpcRes {
+        let account = args.account.as_str();
+        let resource = args.resource.as_str();
         let api = self.api_service.as_ref().unwrap();
         let ret = api.4.get_account_resource_raw(AcceptType::Json,
                                                  Address::from_str(account).unwrap(),
-                                                 MoveStructTag::from_str(resource).unwrap(), None).await.unwrap();
+                                                 MoveStructTag::from_str(resource).unwrap(),
+                                                 args.ledger_version).await.unwrap();
         let header;
         let ret = match ret {
             BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
@@ -407,14 +433,19 @@ impl Vm {
         RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
 
-    pub async fn get_account_modules(&self, account: &str) -> RpcRes {
+    pub async fn get_account_modules(&self, args: RpcReq) -> RpcRes {
+        let account = args.data.as_str();
+        let start = match args.start {
+            None => None,
+            Some(_) => Some(StateKeyWrapper::from_str(args.start.unwrap().as_str()).unwrap())
+        };
         let api = self.api_service.as_ref().unwrap();
         let address = Address::from_str(account).unwrap();
         let ret = api.3.get_account_modules_raw(AcceptType::Json,
                                                 address,
-                                                None,
-                                                None,
-                                                None).await.unwrap();
+                                                args.ledger_version,
+                                                start,
+                                                args.limit).await.unwrap();
         let header;
         let ret = match ret {
             BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
@@ -470,10 +501,14 @@ impl Vm {
         RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
 
-    pub async fn view_function(&self, req: &str) -> RpcRes {
+    pub async fn view_function(&self, req: &str, ver: Option<U64>) -> RpcRes {
         let api = self.api_service.as_ref().unwrap();
         let req = serde_json::from_str::<ViewRequest>(req).unwrap();
-        let ret = api.1.view_function_raw(AcceptType::Json, req, None).await;
+        let ret = api.1.view_function_raw(
+            AcceptType::Json,
+            req,
+            ver,
+        ).await;
         let ret = ret.unwrap();
         let header;
         let ret = match ret {
@@ -708,14 +743,16 @@ impl Vm {
         }
         RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
-    pub async fn get_table_item(&self, account: String, body: String) -> RpcRes {
+    pub async fn get_table_item(&self, args: RpcTableReq) -> RpcRes {
+        let account = args.query;
+        let body = args.body;
         let payload = serde_json::from_str::<TableItemRequest>(body.as_str()).unwrap();
         let api = self.api_service.as_ref().unwrap();
         let ret = api.4.get_table_item_raw(
             AcceptType::Json,
             Address::from_str(account.as_str()).unwrap(),
             payload,
-            None).await;
+            args.ledger_version).await;
         let ret = ret.unwrap();
         let header;
         let ret = match ret {
@@ -743,14 +780,16 @@ impl Vm {
         RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
 
-    pub async fn get_raw_table_item(&self, account: String, body: String) -> RpcRes {
+    pub async fn get_raw_table_item(&self, args: RpcTableReq) -> RpcRes {
+        let account = args.query;
+        let body = args.body;
         let payload = serde_json::from_str::<RawTableItemRequest>(body.as_str()).unwrap();
         let api = self.api_service.as_ref().unwrap();
         let ret = api.4.get_raw_table_item_raw(
             AcceptType::Json,
             Address::from_str(account.as_str()).unwrap(),
             payload,
-            None).await;
+            args.ledger_version).await;
         let ret = ret.unwrap();
         let header;
         let ret = match ret {

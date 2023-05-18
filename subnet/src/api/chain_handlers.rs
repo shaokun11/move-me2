@@ -112,6 +112,9 @@ pub struct GetTableItemArgs {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct RpcReq {
     pub data: String,
+    pub ledger_version: Option<U64>,
+    pub start: Option<String>,
+    pub limit: Option<u16>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -125,6 +128,7 @@ pub struct RpcRes {
 pub struct RpcTableReq {
     pub query: String,
     pub body: String,
+    pub ledger_version: Option<U64>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -159,6 +163,7 @@ pub struct GetTransactionByVersionArgs {
 pub struct AccountStateArgs {
     pub account: String,
     pub resource: String,
+    pub ledger_version: Option<U64>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -225,7 +230,7 @@ impl Rpc for ChainService {
     fn get_accounts_transactions(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.get_accounts_transactions(args.data.as_str()).await;
+            let ret = vm.get_accounts_transactions(args).await;
             return Ok(ret);
         })
     }
@@ -275,7 +280,7 @@ impl Rpc for ChainService {
     fn get_account(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.get_account(args.data.as_str()).await;
+            let ret = vm.get_account(args).await;
             return Ok(ret);
         })
     }
@@ -283,7 +288,7 @@ impl Rpc for ChainService {
     fn get_account_resources(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.get_account_resources(args.data.as_str()).await;
+            let ret = vm.get_account_resources(args).await;
             return Ok(ret);
         })
     }
@@ -291,7 +296,7 @@ impl Rpc for ChainService {
     fn get_account_modules(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.get_account_modules(args.data.as_str()).await;
+            let ret = vm.get_account_modules(args).await;
             return Ok(ret);
         })
     }
@@ -299,8 +304,7 @@ impl Rpc for ChainService {
     fn get_account_resources_state(&self, args: AccountStateArgs) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.get_account_resources_state(args.account.as_str(),
-                                                     args.resource.as_str()).await;
+            let ret = vm.get_account_resources_state(args).await;
             return Ok(ret);
         })
     }
@@ -308,8 +312,7 @@ impl Rpc for ChainService {
     fn get_account_modules_state(&self, args: AccountStateArgs) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.get_account_modules_state(args.account.as_str(),
-                                                   args.resource.as_str()).await;
+            let ret = vm.get_account_modules_state(args).await;
             return Ok(ret);
         })
     }
@@ -335,7 +338,7 @@ impl Rpc for ChainService {
         let vm = self.vm.clone();
         Box::pin(async move {
             log::info!("view_function called {}",args.data.clone());
-            let ret = vm.view_function(args.data.as_str()).await;
+            let ret = vm.view_function(args.data.as_str(), args.ledger_version).await;
             return Ok(ret);
         })
     }
@@ -343,7 +346,7 @@ impl Rpc for ChainService {
     fn get_table_item(&self, args: RpcTableReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.get_table_item(args.query, args.body).await;
+            let ret = vm.get_table_item(args).await;
             return Ok(ret);
         })
     }
@@ -351,7 +354,7 @@ impl Rpc for ChainService {
     fn get_raw_table_item(&self, args: RpcTableReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.get_raw_table_item(args.query, args.body).await;
+            let ret = vm.get_raw_table_item(args).await;
             return Ok(ret);
         })
     }
