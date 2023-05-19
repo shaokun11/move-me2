@@ -1196,7 +1196,7 @@ impl ChainVm for Vm
             let unix_now = Utc::now().timestamp() as u64;
             let core_pool = self.core_mempool.as_ref().unwrap().read().await;
             let tx_arr = core_pool.get_batch(1000,
-                                             1024000,
+                                             1024 * 1000,
                                              true,
                                              true, vec![]);
             println!("----build_block pool tx count-------{}------", tx_arr.clone().len());
@@ -1243,7 +1243,7 @@ impl ChainVm for Vm
                 choices::status::Status::Processing,
             ).unwrap();
             block_.set_state(state_b.clone());
-            println!("--------vm---build_block----new--{}---parent-{}-----------", block_.id(), block_.parent_id());
+            println!("--------vm---build_block---------", block_.id());
             block_.verify().await.unwrap();
             return Ok(block_);
         }
@@ -1307,12 +1307,9 @@ impl NetworkAppHandler for Vm
     async fn app_gossip(&self, _node_id: &ids::node::Id, msg: &[u8]) -> io::Result<()> {
         match serde_json::from_slice::<SignedTransaction>(msg) {
             Ok(s) => {
-                println!("-------------app_gossip new tx--ok--------------");
                 self.add_pool(s).await;
             }
-            Err(_) => {
-                println!("-------------app_gossip new tx--fail--------------");
-            }
+            Err(_) => {}
         }
         Ok(())
     }
