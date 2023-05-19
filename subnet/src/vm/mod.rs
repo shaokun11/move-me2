@@ -1147,6 +1147,8 @@ impl Vm {
             db = DbReaderWriter::wrap(
                 AptosDB::new_for_test(p.as_str()));
         }
+        // BLOCK-STM
+        // AptosVM::set_concurrency_level_once(2);
         self.db = Some(Arc::new(RwLock::new(db.1.clone())));
         let executor = BlockExecutor::new(db.1.clone());
         self.executor = Some(Arc::new(RwLock::new(executor)));
