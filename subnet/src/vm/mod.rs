@@ -1243,7 +1243,7 @@ impl ChainVm for Vm
                 choices::status::Status::Processing,
             ).unwrap();
             block_.set_state(state_b.clone());
-            println!("--------vm---build_block---------", block_.id());
+            println!("--------vm---build_block------{}---", block_.id());
             block_.verify().await.unwrap();
             return Ok(block_);
         }
