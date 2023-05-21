@@ -28,7 +28,6 @@ use std::{
     collections::{HashMap, HashSet},
     time::{Duration, SystemTime},
 };
-
 pub struct Mempool {
     // Stores the metadata of all transactions in mempool (of all states).
     transactions: TransactionStore,
@@ -47,7 +46,7 @@ impl Mempool {
     }
 
     /// This function will be called once the transaction has been stored.
-    pub(crate) fn commit_transaction(&mut self, sender: &AccountAddress, sequence_number: u64) {
+    pub fn commit_transaction(&mut self, sender: &AccountAddress, sequence_number: u64) {
         trace!(
             LogSchema::new(LogEntry::RemoveTxn).txns(TxnsLog::new_txn(*sender, sequence_number)),
             is_rejected = false
@@ -127,7 +126,7 @@ impl Mempool {
 
     /// Used to add a transaction to the Mempool.
     /// Performs basic validation: checks account's sequence number.
-    pub(crate) fn add_txn(
+    pub fn add_txn(
         &mut self,
         txn: SignedTransaction,
         ranking_score: u64,
@@ -180,7 +179,7 @@ impl Mempool {
     /// `exclude_transactions` - transactions that were sent to Consensus but were not committed yet
     ///  mempool should filter out such transactions.
     #[allow(clippy::explicit_counter_loop)]
-    pub(crate) fn get_batch(
+    pub fn get_batch(
         &self,
         max_txns: u64,
         max_bytes: u64,
