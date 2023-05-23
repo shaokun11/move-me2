@@ -1080,7 +1080,7 @@ impl Vm {
                 "block error,maybe not sync ",
             ));
         }
-        println!("------------inner_build_block------parent-{}-new--{}-----", parent_block_id, block_id);
+        println!("------------inner_build_block-------{}----", block_id);
         let next_epoch = aptos_data.3;
         let ts = aptos_data.4;
         let output = executor
@@ -1243,7 +1243,7 @@ impl ChainVm for Vm
                 choices::status::Status::Processing,
             ).unwrap();
             block_.set_state(state_b.clone());
-            println!("--------vm---build_block------{}---", block_.id());
+            println!("--------vm_build_block------{}---", block_.id());
             block_.verify().await.unwrap();
             return Ok(block_);
         }
