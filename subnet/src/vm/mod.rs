@@ -976,7 +976,7 @@ impl Vm {
         let tx_factory = TransactionFactory::new(ChainId::test());
         let tx_acc_mint = core_account
             .sign_with_transaction_builder(
-                tx_factory.mint(to, 1000 * 100_000_000)
+                tx_factory.mint(to, 10 * 100_000_000)
             );
         return self.submit_transaction(bcs::to_bytes(&tx_acc_mint).unwrap()).await;
     }
