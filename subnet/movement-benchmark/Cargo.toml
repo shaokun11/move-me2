@@ -1,5 +1,5 @@
 [package]
-name = "movement benchmark"
+name = "movement-benchmark"
 description = "movement transaction benchmarks"
 version = "0.1.0"
 
