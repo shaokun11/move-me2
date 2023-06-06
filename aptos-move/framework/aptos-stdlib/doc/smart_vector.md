@@ -772,25 +772,25 @@ Return <code><b>true</b></code> if the vector <code>v</code> has no elements and
 
 <dl>
 <dt>
-<code>inline_vec: <a href="../../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;T&gt;</code>
+<code>inline_vec: <a href="..\../move-stdlib\doc\vector.md#0x1_vector">vector</a>&lt;T&gt;</code>
 </dt>
 <dd>
 
 </dd>
 <dt>
-<code>big_vec: <a href="../../move-stdlib/doc/option.md#0x1_option_Option">option::Option</a>&lt;<a href="big_vector.md#0x1_big_vector_BigVector">big_vector::BigVector</a>&lt;T&gt;&gt;</code>
+<code>big_vec: <a href="..\../move-stdlib\doc\option.md#0x1_option_Option">option::Option</a>&lt;<a href="big_vector.md#0x1_big_vector_BigVector">big_vector::BigVector</a>&lt;T&gt;&gt;</code>
 </dt>
 <dd>
 
 </dd>
 <dt>
-<code>inline_capacity: <a href="../../move-stdlib/doc/option.md#0x1_option_Option">option::Option</a>&lt;u64&gt;</code>
+<code>inline_capacity: <a href="..\../move-stdlib\doc\option.md#0x1_option_Option">option::Option</a>&lt;u64&gt;</code>
 </dt>
 <dd>
 
 </dd>
 <dt>
-<code>bucket_size: <a href="../../move-stdlib/doc/option.md#0x1_option_Option">option::Option</a>&lt;u64&gt;</code>
+<code>bucket_size: <a href="..\../move-stdlib\doc\option.md#0x1_option_Option">option::Option</a>&lt;u64&gt;</code>
 </dt>
 <dd>
 
@@ -799,12 +799,12 @@ Return <code><b>true</b></code> if the vector <code>v</code> has no elements and
 
 
 
-<pre><code><b>invariant</b> <a href="../../move-stdlib/doc/option.md#0x1_option_is_none">option::is_none</a>(bucket_size)
-    || (<a href="../../move-stdlib/doc/option.md#0x1_option_is_some">option::is_some</a>(bucket_size) && <a href="../../move-stdlib/doc/option.md#0x1_option_borrow">option::borrow</a>(bucket_size) != 0);
-<b>invariant</b> <a href="../../move-stdlib/doc/option.md#0x1_option_is_none">option::is_none</a>(inline_capacity)
-    || (<a href="../../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(inline_vec) &lt;= <a href="../../move-stdlib/doc/option.md#0x1_option_borrow">option::borrow</a>(inline_capacity));
-<b>invariant</b> (<a href="../../move-stdlib/doc/option.md#0x1_option_is_none">option::is_none</a>(inline_capacity) && <a href="../../move-stdlib/doc/option.md#0x1_option_is_none">option::is_none</a>(bucket_size))
-    || (<a href="../../move-stdlib/doc/option.md#0x1_option_is_some">option::is_some</a>(inline_capacity) && <a href="../../move-stdlib/doc/option.md#0x1_option_is_some">option::is_some</a>(bucket_size));
+<pre><code><b>invariant</b> <a href="..\../move-stdlib\doc\option.md#0x1_option_is_none">option::is_none</a>(bucket_size)
+    || (<a href="..\../move-stdlib\doc\option.md#0x1_option_is_some">option::is_some</a>(bucket_size) && <a href="..\../move-stdlib\doc\option.md#0x1_option_borrow">option::borrow</a>(bucket_size) != 0);
+<b>invariant</b> <a href="..\../move-stdlib\doc\option.md#0x1_option_is_none">option::is_none</a>(inline_capacity)
+    || (<a href="..\../move-stdlib\doc\vector.md#0x1_vector_length">vector::length</a>(inline_vec) &lt;= <a href="..\../move-stdlib\doc\option.md#0x1_option_borrow">option::borrow</a>(inline_capacity));
+<b>invariant</b> (<a href="..\../move-stdlib\doc\option.md#0x1_option_is_none">option::is_none</a>(inline_capacity) && <a href="..\../move-stdlib\doc\option.md#0x1_option_is_none">option::is_none</a>(bucket_size))
+    || (<a href="..\../move-stdlib\doc\option.md#0x1_option_is_some">option::is_some</a>(inline_capacity) && <a href="..\../move-stdlib\doc\option.md#0x1_option_is_some">option::is_some</a>(bucket_size));
 </code></pre>
 
 
@@ -853,8 +853,8 @@ Return <code><b>true</b></code> if the vector <code>v</code> has no elements and
 
 
 <pre><code><b>aborts_if</b> !(<a href="smart_vector.md#0x1_smart_vector_is_empty">is_empty</a>(v));
-<b>aborts_if</b> <a href="../../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(v.inline_vec) != 0
-    || <a href="../../move-stdlib/doc/option.md#0x1_option_is_some">option::is_some</a>(v.big_vec);
+<b>aborts_if</b> <a href="..\../move-stdlib\doc\vector.md#0x1_vector_length">vector::length</a>(v.inline_vec) != 0
+    || <a href="..\../move-stdlib\doc\option.md#0x1_option_is_some">option::is_some</a>(v.big_vec);
 </code></pre>
 
 
@@ -871,8 +871,8 @@ Return <code><b>true</b></code> if the vector <code>v</code> has no elements and
 
 
 <pre><code><b>aborts_if</b> i &gt;= <a href="smart_vector.md#0x1_smart_vector_length">length</a>(v);
-<b>aborts_if</b> <a href="../../move-stdlib/doc/option.md#0x1_option_is_some">option::is_some</a>(v.big_vec) && (
-    (<a href="../../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(v.inline_vec) + <a href="big_vector.md#0x1_big_vector_length">big_vector::length</a>&lt;T&gt;(<a href="../../move-stdlib/doc/option.md#0x1_option_borrow">option::borrow</a>(v.big_vec))) &gt; MAX_U64
+<b>aborts_if</b> <a href="..\../move-stdlib\doc\option.md#0x1_option_is_some">option::is_some</a>(v.big_vec) && (
+    (<a href="..\../move-stdlib\doc\vector.md#0x1_vector_length">vector::length</a>(v.inline_vec) + <a href="big_vector.md#0x1_big_vector_length">big_vector::length</a>&lt;T&gt;(<a href="..\../move-stdlib\doc\option.md#0x1_option_borrow">option::borrow</a>(v.big_vec))) &gt; MAX_U64
 );
 </code></pre>
 
@@ -889,12 +889,12 @@ Return <code><b>true</b></code> if the vector <code>v</code> has no elements and
 
 
 
-<pre><code><b>aborts_if</b>  <a href="../../move-stdlib/doc/option.md#0x1_option_is_some">option::is_some</a>(v.big_vec)
+<pre><code><b>aborts_if</b>  <a href="..\../move-stdlib\doc\option.md#0x1_option_is_some">option::is_some</a>(v.big_vec)
     &&
-    (<a href="table_with_length.md#0x1_table_with_length_spec_len">table_with_length::spec_len</a>(<a href="../../move-stdlib/doc/option.md#0x1_option_borrow">option::borrow</a>(v.big_vec).buckets) == 0);
+    (<a href="table_with_length.md#0x1_table_with_length_spec_len">table_with_length::spec_len</a>(<a href="..\../move-stdlib\doc\option.md#0x1_option_borrow">option::borrow</a>(v.big_vec).buckets) == 0);
 <b>aborts_if</b> <a href="smart_vector.md#0x1_smart_vector_is_empty">is_empty</a>(v);
-<b>aborts_if</b> <a href="../../move-stdlib/doc/option.md#0x1_option_is_some">option::is_some</a>(v.big_vec) && (
-    (<a href="../../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(v.inline_vec) + <a href="big_vector.md#0x1_big_vector_length">big_vector::length</a>&lt;T&gt;(<a href="../../move-stdlib/doc/option.md#0x1_option_borrow">option::borrow</a>(v.big_vec))) &gt; MAX_U64
+<b>aborts_if</b> <a href="..\../move-stdlib\doc\option.md#0x1_option_is_some">option::is_some</a>(v.big_vec) && (
+    (<a href="..\../move-stdlib\doc\vector.md#0x1_vector_length">vector::length</a>(v.inline_vec) + <a href="big_vector.md#0x1_big_vector_length">big_vector::length</a>&lt;T&gt;(<a href="..\../move-stdlib\doc\option.md#0x1_option_borrow">option::borrow</a>(v.big_vec))) &gt; MAX_U64
 );
 <b>ensures</b> <a href="smart_vector.md#0x1_smart_vector_length">length</a>(v) == <a href="smart_vector.md#0x1_smart_vector_length">length</a>(<b>old</b>(v)) - 1;
 </code></pre>
@@ -914,8 +914,8 @@ Return <code><b>true</b></code> if the vector <code>v</code> has no elements and
 
 <pre><code><b>pragma</b> verify_duration_estimate = 120;
 <b>aborts_if</b> i &gt;= <a href="smart_vector.md#0x1_smart_vector_length">length</a>(v);
-<b>aborts_if</b> <a href="../../move-stdlib/doc/option.md#0x1_option_is_some">option::is_some</a>(v.big_vec) && (
-    (<a href="../../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(v.inline_vec) + <a href="big_vector.md#0x1_big_vector_length">big_vector::length</a>&lt;T&gt;(<a href="../../move-stdlib/doc/option.md#0x1_option_borrow">option::borrow</a>(v.big_vec))) &gt; MAX_U64
+<b>aborts_if</b> <a href="..\../move-stdlib\doc\option.md#0x1_option_is_some">option::is_some</a>(v.big_vec) && (
+    (<a href="..\../move-stdlib\doc\vector.md#0x1_vector_length">vector::length</a>(v.inline_vec) + <a href="big_vector.md#0x1_big_vector_length">big_vector::length</a>&lt;T&gt;(<a href="..\../move-stdlib\doc\option.md#0x1_option_borrow">option::borrow</a>(v.big_vec))) &gt; MAX_U64
 );
 <b>ensures</b> <a href="smart_vector.md#0x1_smart_vector_length">length</a>(v) == <a href="smart_vector.md#0x1_smart_vector_length">length</a>(<b>old</b>(v)) - 1;
 </code></pre>

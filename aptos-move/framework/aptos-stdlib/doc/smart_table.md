@@ -850,7 +850,7 @@ Update <code>target_bucket_size</code>.
 
 <dl>
 <dt>
-<code>buckets: <a href="table_with_length.md#0x1_table_with_length_TableWithLength">table_with_length::TableWithLength</a>&lt;u64, <a href="../../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="smart_table.md#0x1_smart_table_Entry">smart_table::Entry</a>&lt;K, V&gt;&gt;&gt;</code>
+<code>buckets: <a href="table_with_length.md#0x1_table_with_length_TableWithLength">table_with_length::TableWithLength</a>&lt;u64, <a href="..\../move-stdlib\doc\vector.md#0x1_vector">vector</a>&lt;<a href="smart_table.md#0x1_smart_table_Entry">smart_table::Entry</a>&lt;K, V&gt;&gt;&gt;</code>
 </dt>
 <dd>
 
@@ -943,7 +943,7 @@ Update <code>target_bucket_size</code>.
 <pre><code><b>pragma</b> aborts_if_is_partial = <b>true</b>;
 <b>aborts_if</b> <a href="table.md#0x1_table">table</a>.size != 0;
 <b>requires</b> <b>forall</b> i in 0..<a href="table_with_length.md#0x1_table_with_length_spec_len">table_with_length::spec_len</a>(<a href="table.md#0x1_table">table</a>.buckets): <a href="table_with_length.md#0x1_table_with_length_spec_contains">table_with_length::spec_contains</a>(<a href="table.md#0x1_table">table</a>.buckets, i);
-<b>requires</b> <b>forall</b> i in 0..<a href="table_with_length.md#0x1_table_with_length_spec_len">table_with_length::spec_len</a>(<a href="table.md#0x1_table">table</a>.buckets): <a href="../../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(<a href="table_with_length.md#0x1_table_with_length_spec_get">table_with_length::spec_get</a>(<a href="table.md#0x1_table">table</a>.buckets, i)) == 0;
+<b>requires</b> <b>forall</b> i in 0..<a href="table_with_length.md#0x1_table_with_length_spec_len">table_with_length::spec_len</a>(<a href="table.md#0x1_table">table</a>.buckets): <a href="..\../move-stdlib\doc\vector.md#0x1_vector_length">vector::length</a>(<a href="table_with_length.md#0x1_table_with_length_spec_get">table_with_length::spec_get</a>(<a href="table.md#0x1_table">table</a>.buckets, i)) == 0;
 <b>requires</b> <a href="table.md#0x1_table">table</a>.num_buckets == <a href="table_with_length.md#0x1_table_with_length_spec_len">table_with_length::spec_len</a>(<a href="table.md#0x1_table">table</a>.buckets);
 </code></pre>
 
@@ -1002,7 +1002,7 @@ Update <code>target_bucket_size</code>.
 ### Function `bucket_index`
 
 
-<pre><code><b>fun</b> <a href="smart_table.md#0x1_smart_table_bucket_index">bucket_index</a>(level: u8, num_buckets: u64, <a href="../../move-stdlib/doc/hash.md#0x1_hash">hash</a>: u64): u64
+<pre><code><b>fun</b> <a href="smart_table.md#0x1_smart_table_bucket_index">bucket_index</a>(level: u8, num_buckets: u64, <a href="..\../move-stdlib\doc\hash.md#0x1_hash">hash</a>: u64): u64
 </code></pre>
 
 
@@ -1025,9 +1025,9 @@ Update <code>target_bucket_size</code>.
 
 
 <pre><code><b>pragma</b> aborts_if_is_partial = <b>true</b>;
-<b>aborts_if</b> <a href="../../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(<a href="table_with_length.md#0x1_table_with_length_spec_get">table_with_length::spec_get</a>(<a href="table.md#0x1_table">table</a>.buckets, <a href="smart_table.md#0x1_smart_table_get_index">get_index</a>(<a href="table.md#0x1_table">table</a>.level, <a href="table.md#0x1_table">table</a>.num_buckets, key))) == 0;
-<b>aborts_if</b> <b>forall</b> i in 0..<a href="../../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(<a href="table_with_length.md#0x1_table_with_length_spec_get">table_with_length::spec_get</a>(<a href="table.md#0x1_table">table</a>.buckets, <a href="smart_table.md#0x1_smart_table_get_index">get_index</a>(<a href="table.md#0x1_table">table</a>.level, <a href="table.md#0x1_table">table</a>.num_buckets, key))):
-        <a href="../../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(
+<b>aborts_if</b> <a href="..\../move-stdlib\doc\vector.md#0x1_vector_length">vector::length</a>(<a href="table_with_length.md#0x1_table_with_length_spec_get">table_with_length::spec_get</a>(<a href="table.md#0x1_table">table</a>.buckets, <a href="smart_table.md#0x1_smart_table_get_index">get_index</a>(<a href="table.md#0x1_table">table</a>.level, <a href="table.md#0x1_table">table</a>.num_buckets, key))) == 0;
+<b>aborts_if</b> <b>forall</b> i in 0..<a href="..\../move-stdlib\doc\vector.md#0x1_vector_length">vector::length</a>(<a href="table_with_length.md#0x1_table_with_length_spec_get">table_with_length::spec_get</a>(<a href="table.md#0x1_table">table</a>.buckets, <a href="smart_table.md#0x1_smart_table_get_index">get_index</a>(<a href="table.md#0x1_table">table</a>.level, <a href="table.md#0x1_table">table</a>.num_buckets, key))):
+        <a href="..\../move-stdlib\doc\vector.md#0x1_vector_borrow">vector::borrow</a>(
             <a href="table_with_length.md#0x1_table_with_length_spec_get">table_with_length::spec_get</a>(
                     <a href="table.md#0x1_table">table</a>.buckets, <a href="smart_table.md#0x1_smart_table_get_index">get_index</a>(<a href="table.md#0x1_table">table</a>.level, <a href="table.md#0x1_table">table</a>.num_buckets, key)
             ),
@@ -1066,7 +1066,7 @@ Update <code>target_bucket_size</code>.
 
 <pre><code><b>pragma</b> verify_duration_estimate = 120;
 <b>pragma</b> aborts_if_is_partial = <b>true</b>;
-<b>aborts_if</b> <a href="../../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(<a href="table_with_length.md#0x1_table_with_length_spec_get">table_with_length::spec_get</a>(<a href="table.md#0x1_table">table</a>.buckets, <a href="smart_table.md#0x1_smart_table_get_index">get_index</a>(<a href="table.md#0x1_table">table</a>.level, <a href="table.md#0x1_table">table</a>.num_buckets, key))) == 0;
+<b>aborts_if</b> <a href="..\../move-stdlib\doc\vector.md#0x1_vector_length">vector::length</a>(<a href="table_with_length.md#0x1_table_with_length_spec_get">table_with_length::spec_get</a>(<a href="table.md#0x1_table">table</a>.buckets, <a href="smart_table.md#0x1_smart_table_get_index">get_index</a>(<a href="table.md#0x1_table">table</a>.level, <a href="table.md#0x1_table">table</a>.num_buckets, key))) == 0;
 <b>aborts_if</b> !<a href="table_with_length.md#0x1_table_with_length_spec_contains">table_with_length::spec_contains</a>(<a href="table.md#0x1_table">table</a>.buckets, <a href="smart_table.md#0x1_smart_table_get_index">get_index</a>(<a href="table.md#0x1_table">table</a>.level, <a href="table.md#0x1_table">table</a>.num_buckets, key));
 </code></pre>
 
@@ -1119,9 +1119,9 @@ Update <code>target_bucket_size</code>.
 
 <pre><code><b>pragma</b> aborts_if_is_partial = <b>true</b>;
 <b>aborts_if</b> <a href="table.md#0x1_table">table</a>.size == 0;
-<b>aborts_if</b> <a href="../../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(<a href="table_with_length.md#0x1_table_with_length_spec_get">table_with_length::spec_get</a>(<a href="table.md#0x1_table">table</a>.buckets, <a href="smart_table.md#0x1_smart_table_get_index">get_index</a>(<a href="table.md#0x1_table">table</a>.level, <a href="table.md#0x1_table">table</a>.num_buckets, key))) == 0;
-<b>aborts_if</b> <b>forall</b> i in 0..<a href="../../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(<a href="table_with_length.md#0x1_table_with_length_spec_get">table_with_length::spec_get</a>(<a href="table.md#0x1_table">table</a>.buckets, <a href="smart_table.md#0x1_smart_table_get_index">get_index</a>(<a href="table.md#0x1_table">table</a>.level, <a href="table.md#0x1_table">table</a>.num_buckets, key))):
-        <a href="../../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(
+<b>aborts_if</b> <a href="..\../move-stdlib\doc\vector.md#0x1_vector_length">vector::length</a>(<a href="table_with_length.md#0x1_table_with_length_spec_get">table_with_length::spec_get</a>(<a href="table.md#0x1_table">table</a>.buckets, <a href="smart_table.md#0x1_smart_table_get_index">get_index</a>(<a href="table.md#0x1_table">table</a>.level, <a href="table.md#0x1_table">table</a>.num_buckets, key))) == 0;
+<b>aborts_if</b> <b>forall</b> i in 0..<a href="..\../move-stdlib\doc\vector.md#0x1_vector_length">vector::length</a>(<a href="table_with_length.md#0x1_table_with_length_spec_get">table_with_length::spec_get</a>(<a href="table.md#0x1_table">table</a>.buckets, <a href="smart_table.md#0x1_smart_table_get_index">get_index</a>(<a href="table.md#0x1_table">table</a>.level, <a href="table.md#0x1_table">table</a>.num_buckets, key))):
+        <a href="..\../move-stdlib\doc\vector.md#0x1_vector_borrow">vector::borrow</a>(
             <a href="table_with_length.md#0x1_table_with_length_spec_get">table_with_length::spec_get</a>(
                     <a href="table.md#0x1_table">table</a>.buckets, <a href="smart_table.md#0x1_smart_table_get_index">get_index</a>(<a href="table.md#0x1_table">table</a>.level, <a href="table.md#0x1_table">table</a>.num_buckets, key)
             ),
@@ -1153,8 +1153,8 @@ Update <code>target_bucket_size</code>.
 
 <pre><code><b>fun</b> <a href="smart_table.md#0x1_smart_table_get_index">get_index</a>&lt;K&gt;(level: u8, num_buckets: u64, key: K): u64 {
    <b>use</b> std::bcs;
-   <b>let</b> <a href="../../move-stdlib/doc/hash.md#0x1_hash">hash</a> = spec_sip_hash(<a href="../../move-stdlib/doc/bcs.md#0x1_bcs_serialize">bcs::serialize</a>(key));
-   <b>let</b> index = <a href="../../move-stdlib/doc/hash.md#0x1_hash">hash</a> % (1 &lt;&lt; (level + 1));
+   <b>let</b> <a href="..\../move-stdlib\doc\hash.md#0x1_hash">hash</a> = spec_sip_hash(<a href="..\../move-stdlib\doc\bcs.md#0x1_bcs_serialize">bcs::serialize</a>(key));
+   <b>let</b> index = <a href="..\../move-stdlib\doc\hash.md#0x1_hash">hash</a> % (1 &lt;&lt; (level + 1));
    <b>if</b> (index &lt; num_buckets) {
        index
    } <b>else</b> {

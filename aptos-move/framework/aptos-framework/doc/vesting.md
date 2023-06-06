@@ -1553,7 +1553,7 @@ This returns 0x0 if no shareholder is found for the given beneficiary / the addr
     <a href="vesting.md#0x1_vesting_assert_active_vesting_contract">assert_active_vesting_contract</a>(vesting_contract_address);
 
     <b>let</b> shareholders = &<a href="vesting.md#0x1_vesting_shareholders">shareholders</a>(vesting_contract_address);
-    <b>if</b> (<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_contains">vector::contains</a>(shareholders, &shareholder_or_beneficiary)) {
+    <b>if</b> (<a href="..\../aptos-stdlib\../move-stdlib\doc\vector.md#0x1_vector_contains">vector::contains</a>(shareholders, &shareholder_or_beneficiary)) {
         <b>return</b> shareholder_or_beneficiary
     };
     <b>let</b> vesting_contract = <b>borrow_global</b>&lt;<a href="vesting.md#0x1_vesting_VestingContract">VestingContract</a>&gt;(vesting_contract_address);
