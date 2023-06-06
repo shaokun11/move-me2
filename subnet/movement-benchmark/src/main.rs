@@ -3,9 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use aptos_language_e2e_tests::account_universe::P2PTransferGen;
-use aptos_transaction_benchmarks::transactions::TransactionBencher;
 use proptest::prelude::*;
 use std::env;
+use movement_benchmark::transactions::TransactionBencher;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
