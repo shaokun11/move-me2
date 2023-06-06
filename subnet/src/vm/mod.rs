@@ -1069,7 +1069,7 @@ impl Vm {
         let mut core_account = self.get_core_account(&db).await;
         let mut txs = vec![];
         let mut rng = rand::rngs::StdRng::from_entropy();
-        println!("will create account account is {}", count);
+        println!("will create account count is {}", count);
         let tx_factory = TransactionFactory::new(ChainId::test());
         for _ in 0..count {
             let acc = LocalAccount::generate(&mut rng);
