@@ -30,6 +30,7 @@ use aptos_types::{
 use aptos_vm::AptosVM;
 use fail::fail_point;
 use std::{marker::PhantomData, sync::Arc};
+use std::time::Instant;
 
 pub trait TransactionBlockExecutor<T>: Send + Sync {
     fn execute_transaction_block(
@@ -217,7 +218,7 @@ where
                     Arc::new(AsyncProofFetcher::new(self.db.reader.clone())),
                 )?
             };
-
+            let start = Instant::now();
             let chunk_output = {
                 let _timer = APTOS_EXECUTOR_VM_EXECUTE_BLOCK_SECONDS.start_timer();
                 fail_point!("executor::vm_execute_block", |_| {
@@ -227,6 +228,8 @@ where
                 });
                 V::execute_transaction_block(transactions, state_view)?
             };
+            let as_millis = start.elapsed().as_millis();
+            println!("execute_block ts:{} ", as_millis, );
             chunk_output.trace_log_transaction_status();
 
             let _timer = APTOS_EXECUTOR_OTHER_TIMERS_SECONDS

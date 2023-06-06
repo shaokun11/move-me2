@@ -1135,9 +1135,8 @@ impl Vm {
         let output = executor
             .execute_block((block_id, block_tx.clone()), parent_block_id)
             .unwrap();
-        let elapsed = start.elapsed();
-        let as_millis = elapsed.as_millis();
-        println!("execute_block ts:{} tps:{}", as_millis, block_tx.len() * 1000 / as_millis as usize);
+        let as_millis = start.elapsed().as_millis();
+        // println!("execute_block ts:{} tps:{}", as_millis, block_tx.len() * 1000 / as_millis as usize);
 
         let ledger_info = LedgerInfo::new(
             BlockInfo::new(
