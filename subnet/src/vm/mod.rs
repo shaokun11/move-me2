@@ -1,5 +1,6 @@
 use std::{collections::HashMap, fs, io::{self, Error, ErrorKind}, sync::Arc};
 use std::str::FromStr;
+use std::time::{Instant};
 use avalanche_types::{
     choices, ids,
     subnet::{self, rpc::snow},
@@ -17,6 +18,7 @@ use avalanche_types::subnet::rpc::snowman::block::{ChainVm, Getter, Parser};
 use chrono::{DateTime, Utc};
 use futures::{channel::mpsc as futures_mpsc, StreamExt};
 use hex;
+use rand::SeedableRng;
 use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc::Sender, RwLock};
 
@@ -34,6 +36,7 @@ use aptos_executor::db_bootstrapper::{generate_waypoint, maybe_bootstrap};
 use aptos_executor_types::BlockExecutorTrait;
 use aptos_mempool::{MempoolClientRequest, MempoolClientSender, SubmissionStatus};
 use aptos_mempool::core_mempool::{CoreMempool, TimelineState};
+use aptos_sdk::rest_client::Account;
 use aptos_sdk::rest_client::aptos_api_types::MAX_RECURSIVE_TYPES_ALLOWED;
 use aptos_sdk::transaction_builder::TransactionFactory;
 use aptos_sdk::types::{AccountKey, LocalAccount};
@@ -1060,6 +1063,49 @@ impl Vm {
             sn,
         )
     }
+
+    pub async fn test_tx(&self, count: u64) {
+        let db = self.db.as_ref().unwrap().read().await;
+        let mut core_account = self.get_core_account(&db).await;
+        let mut txs = vec![];
+        let mut rng = rand::rngs::StdRng::from_entropy();
+        println!("will create account account is {}", count);
+        let tx_factory = TransactionFactory::new(ChainId::test());
+        for _ in 0..count {
+            let acc = LocalAccount::generate(&mut rng);
+            let tx = core_account
+                .sign_with_transaction_builder(tx_factory.create_user_account(acc.public_key()));
+            txs.push(UserTransaction(tx));
+        }
+        let latest_ledger_info = db.reader.get_latest_ledger_info().unwrap();
+        let next_epoch = latest_ledger_info.ledger_info().next_block_epoch();
+        let unix_now = Utc::now().timestamp() as u64;
+        let block_id = HashValue::random();
+        let signer = self.signer.as_ref().unwrap();
+        let block_meta = Transaction::BlockMetadata(BlockMetadata::new(
+            block_id,
+            next_epoch,
+            0,
+            signer.author(),
+            vec![],
+            vec![],
+            unix_now,
+        ));
+        let mut block_tx: Vec<_> = vec![];
+        block_tx.push(block_meta);
+        block_tx.append(&mut txs);
+        block_tx.push(Transaction::StateCheckpoint(HashValue::random()));
+        let executor = self.executor.as_ref().unwrap().read().await;
+        let parent_block_id = executor.committed_block_id();
+        let block_tx_bytes = serde_json::to_vec(&block_tx).unwrap();
+        let data = AptosData(block_tx_bytes,
+                             block_id.clone(),
+                             parent_block_id,
+                             next_epoch,
+                             unix_now, vec![]);
+        self.inner_build_block(serde_json::to_vec(&data.clone()).unwrap(), true).await.expect("TODO: panic message");
+    }
+
     pub async fn inner_build_block(&self, data: Vec<u8>, is_miner: bool) -> io::Result<Vec<u8>> {
         let executor = self.executor.as_ref().unwrap().read().await;
         let aptos_data = serde_json::from_slice::<AptosData>(&data).unwrap();
@@ -1085,9 +1131,14 @@ impl Vm {
         println!("------------inner_build_block-------{}----", block_id);
         let next_epoch = aptos_data.3;
         let ts = aptos_data.4;
+        let start = Instant::now();
         let output = executor
             .execute_block((block_id, block_tx.clone()), parent_block_id)
             .unwrap();
+        let elapsed = start.elapsed();
+        let as_millis = elapsed.as_millis();
+        println!("execute_block ts:{} tps:{}", as_millis, block_tx.len() * 1000 / as_millis as usize);
+
         let ledger_info = LedgerInfo::new(
             BlockInfo::new(
                 next_epoch,
@@ -1150,7 +1201,7 @@ impl Vm {
                 AptosDB::new_for_test(p.as_str()));
         }
         // BLOCK-STM
-        // AptosVM::set_concurrency_level_once(2);
+        AptosVM::set_concurrency_level_once(2);
         self.db = Some(Arc::new(RwLock::new(db.1.clone())));
         let executor = BlockExecutor::new(db.1.clone());
         self.executor = Some(Arc::new(RwLock::new(executor)));

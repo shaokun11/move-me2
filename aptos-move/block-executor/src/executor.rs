@@ -361,7 +361,7 @@ where
         if signature_verified_block.is_empty() {
             return Ok(vec![]);
         }
-
+        println!("--------execute_transactions_parallel-----{}---",self.concurrency_level );
         let num_txns = signature_verified_block.len() as u32;
         let last_input_output = TxnLastInputOutput::new(num_txns);
         let scheduler = Scheduler::new(num_txns);
@@ -450,7 +450,7 @@ where
         let num_txns = signature_verified_block.len();
         let executor = E::init(executor_arguments);
         let mut data_map = BTreeMap::new();
-
+        println!("--------execute_transactions_sequential-----{}---",self.concurrency_level );
         let mut ret = Vec::with_capacity(num_txns);
         for (idx, txn) in signature_verified_block.iter().enumerate() {
             let res = executor.execute_transaction(

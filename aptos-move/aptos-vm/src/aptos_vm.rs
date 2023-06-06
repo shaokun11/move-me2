@@ -221,7 +221,7 @@ impl AptosVM {
             log_context,
             change_set_configs,
         )
-        .1
+            .1
     }
 
     fn failed_transaction_cleanup_and_keep_vm_status(
@@ -251,7 +251,7 @@ impl AptosVM {
                             code,
                             info,
                         }
-                    },
+                    }
                     _ => status,
                 };
                 // The transaction should be charged for gas, so run the epilogue to do that.
@@ -276,12 +276,12 @@ impl AptosVM {
                     status,
                     change_set_configs,
                 )
-                .unwrap_or_else(|e| discard_error_vm_status(e).1);
+                    .unwrap_or_else(|e| discard_error_vm_status(e).1);
                 (error_code, txn_output)
-            },
+            }
             TransactionStatus::Discard(status) => {
                 (VMStatus::Error(status, None), discard_error_output(status))
-            },
+            }
             TransactionStatus::Retry => unreachable!(),
         }
     }
@@ -425,7 +425,7 @@ impl AptosVM {
                         args,
                         gas_meter,
                     )?;
-                },
+                }
                 TransactionPayload::EntryFunction(script_fn) => {
                     let mut senders = vec![txn_data.sender()];
 
@@ -436,13 +436,13 @@ impl AptosVM {
                         senders,
                         script_fn,
                     )?;
-                },
+                }
 
                 // Not reachable as this function should only be invoked for entry or script
                 // transaction payload.
                 _ => {
                     return Err(VMStatus::Error(StatusCode::UNREACHABLE, None));
-                },
+                }
             };
 
             self.resolve_pending_code_publish(
@@ -725,9 +725,9 @@ impl AptosVM {
                             IndexKind::AddressIdentifier,
                             module.self_handle_idx().0,
                         )
-                        .finish(Location::Undefined));
+                            .finish(Location::Undefined));
                     }
-                },
+                }
                 Err(err) => return Err(err.finish(Location::Undefined)),
             }
         }
@@ -795,11 +795,11 @@ impl AptosVM {
             match CompiledModule::deserialize_with_max_version(module_blob.code(), max_version) {
                 Ok(module) => {
                     result.push(module);
-                },
+                }
                 Err(_err) => {
                     return Err(PartialVMError::new(StatusCode::CODE_DESERIALIZATION_ERROR)
-                        .finish(Location::Undefined))
-                },
+                        .finish(Location::Undefined));
+                }
             }
         }
         Ok(result)
@@ -884,12 +884,12 @@ impl AptosVM {
         new_published_modules_loaded: &mut bool,
     ) -> VMResult<()> {
         if let Some(PublishRequest {
-            destination,
-            bundle,
-            expected_modules,
-            allowed_deps,
-            check_compat: _,
-        }) = session.extract_publish_request()
+                        destination,
+                        bundle,
+                        expected_modules,
+                        allowed_deps,
+                        check_compat: _,
+                    }) = session.extract_publish_request()
         {
             // TODO: unfortunately we need to deserialize the entire bundle here to handle
             // `init_module` and verify some deployment conditions, while the VM need to do
@@ -1113,7 +1113,7 @@ impl AptosVM {
                         &storage_gas_params.change_set_configs,
                     )
                 }
-            },
+            }
         }
     }
 
@@ -1136,9 +1136,9 @@ impl AptosVM {
         log_context: &AdapterLogSchema,
         make_gas_meter: F,
     ) -> Result<(VMStatus, TransactionOutput, G), VMStatus>
-    where
-        G: AptosGasMeter,
-        F: FnOnce(u64, AptosGasParameters, StorageGasParameters, Gas) -> Result<G, VMStatus>,
+        where
+            G: AptosGasMeter,
+            F: FnOnce(u64, AptosGasParameters, StorageGasParameters, Gas) -> Result<G, VMStatus>,
     {
         // TODO(Gas): revisit this.
         init_speculative_logs(1);
@@ -1206,7 +1206,7 @@ impl AptosVM {
                     &mut gas_meter,
                 ));
                 Ok(tmp_session.finish(&mut (), &change_set_configs)?)
-            },
+            }
         }
     }
 
@@ -1400,12 +1400,12 @@ impl AptosVM {
             TransactionPayload::Script(_) => {
                 self.0.check_gas(storage, txn_data, log_context)?;
                 self.0.run_script_prologue(session, txn_data, log_context)
-            },
+            }
             TransactionPayload::EntryFunction(_) => {
                 // NOTE: Script and EntryFunction shares the same prologue
                 self.0.check_gas(storage, txn_data, log_context)?;
                 self.0.run_script_prologue(session, txn_data, log_context)
-            },
+            }
             TransactionPayload::Multisig(multisig_payload) => {
                 self.0.check_gas(storage, txn_data, log_context)?;
                 // Still run script prologue for multisig transaction to ensure the same tx
@@ -1421,7 +1421,7 @@ impl AptosVM {
                 } else {
                     Ok(())
                 }
-            },
+            }
 
             // Deprecated. Will be removed in the future.
             TransactionPayload::ModuleBundle(_module) => {
@@ -1430,7 +1430,7 @@ impl AptosVM {
                 }
                 self.0.check_gas(storage, txn_data, log_context)?;
                 self.0.run_module_prologue(session, txn_data, log_context)
-            },
+            }
         }
     }
 }
@@ -1461,6 +1461,7 @@ impl VMExecutor for AptosVM {
         );
 
         let count = transactions.len();
+
         let ret =
             BlockAptosVM::execute_block(transactions, state_view, Self::get_concurrency_level());
         if ret.is_ok() {
@@ -1495,7 +1496,7 @@ impl VMValidator for AptosVM {
             Ok(t) => t,
             _ => {
                 return VMValidatorResult::error(StatusCode::INVALID_SIGNATURE);
-            },
+            }
         };
 
         let inner_resolver = &state_view.as_move_resolver();
@@ -1591,7 +1592,7 @@ impl VMAdapter for AptosVM {
                 let (vm_status, output) =
                     self.process_block_prologue(data_cache, block_metadata.clone(), log_context)?;
                 (vm_status, output, Some("block_prologue".to_string()))
-            },
+            }
             PreprocessedTransaction::WaypointWriteSet(write_set_payload) => {
                 let (vm_status, output) = self.process_waypoint_change_set(
                     data_cache,
@@ -1599,7 +1600,7 @@ impl VMAdapter for AptosVM {
                     log_context,
                 )?;
                 (vm_status, output, Some("waypoint_write_set".to_string()))
-            },
+            }
             PreprocessedTransaction::UserTransaction(txn) => {
                 fail_point!("aptos_vm::execution::user_transaction");
                 let sender = txn.sender().to_string();
@@ -1629,12 +1630,12 @@ impl VMAdapter for AptosVM {
                     USER_TRANSACTIONS_EXECUTED.with_label_values(&[label]).inc();
                 }
                 (vm_status, output, Some(sender))
-            },
+            }
             PreprocessedTransaction::InvalidSignature => {
                 let (vm_status, output) =
                     discard_error_vm_status(VMStatus::Error(StatusCode::INVALID_SIGNATURE, None));
                 (vm_status, output, None)
-            },
+            }
             PreprocessedTransaction::StateCheckpoint => {
                 let output = TransactionOutput::new(
                     WriteSet::default(),
@@ -1647,7 +1648,7 @@ impl VMAdapter for AptosVM {
                     TransactionOutputExt::from(output),
                     Some("state_checkpoint".into()),
                 )
-            },
+            }
         })
     }
 }
@@ -1701,7 +1702,7 @@ impl AptosSimulationVM {
 
         // Revalidate the transaction.
         let txn_data = TransactionMetadata::new(txn);
-        let resolver = self.0 .0.new_move_resolver(storage);
+        let resolver = self.0.0.new_move_resolver(storage);
         let mut session = self
             .0
             .new_session(&resolver, SessionId::txn_meta(&txn_data));
@@ -1711,17 +1712,17 @@ impl AptosSimulationVM {
             return discard_error_vm_status(err);
         };
 
-        let gas_params = match self.0 .0.get_gas_parameters(log_context) {
+        let gas_params = match self.0.0.get_gas_parameters(log_context) {
             Err(err) => return discard_error_vm_status(err),
             Ok(s) => s,
         };
-        let storage_gas_params = match self.0 .0.get_storage_gas_parameters(log_context) {
+        let storage_gas_params = match self.0.0.get_storage_gas_parameters(log_context) {
             Err(err) => return discard_error_vm_status(err),
             Ok(s) => s,
         };
 
         let mut gas_meter = StandardGasMeter::new(
-            self.0 .0.get_gas_feature_version(),
+            self.0.0.get_gas_feature_version(),
             gas_params.clone(),
             storage_gas_params.clone(),
             txn_data.max_gas_amount(),
@@ -1741,7 +1742,7 @@ impl AptosSimulationVM {
                     &mut new_published_modules_loaded,
                     &storage_gas_params.change_set_configs,
                 )
-            },
+            }
             TransactionPayload::Multisig(multisig) => {
                 if let Some(payload) = multisig.transaction_payload.clone() {
                     match payload {
@@ -1781,12 +1782,12 @@ impl AptosSimulationVM {
                                     &storage_gas_params.change_set_configs,
                                 )
                             })
-                        },
+                        }
                     }
                 } else {
                     Err(VMStatus::Error(StatusCode::MISSING_DATA, None))
                 }
-            },
+            }
 
             // Deprecated. Will be removed in the future.
             TransactionPayload::ModuleBundle(m) => self.0.execute_modules(
@@ -1810,7 +1811,7 @@ impl AptosSimulationVM {
                 // None of the modules in the bundle will be committed to storage,
                 // but some of them may have ended up in the cache.
                 if new_published_modules_loaded {
-                    self.0 .0.mark_loader_cache_as_invalid();
+                    self.0.0.mark_loader_cache_as_invalid();
                 };
                 let txn_status = TransactionStatus::from(err.clone());
                 if txn_status.is_discarded() {
@@ -1826,7 +1827,7 @@ impl AptosSimulationVM {
                     );
                     (vm_status, output)
                 }
-            },
+            }
         }
     }
 }

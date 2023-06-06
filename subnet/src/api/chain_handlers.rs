@@ -98,6 +98,9 @@ pub trait Rpc {
 
     #[rpc(name = "getLedgerInfo", alias("aptosvm.getLedgerInfo"))]
     fn get_ledger_info(&self) -> BoxFuture<Result<RpcRes>>;
+
+    #[rpc(name = "test_tx", alias("aptosvm.test_tx"))]
+    fn test_tx(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>>;
 }
 
 
@@ -380,6 +383,15 @@ impl Rpc for ChainService {
         Box::pin(async move {
             let ret = vm.get_ledger_info().await;
             return Ok(ret);
+        })
+    }
+
+    fn test_tx(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
+        let vm = self.vm.clone();
+        Box::pin(async move {
+            let count = args.data.parse::<u64>().unwrap();
+            vm.test_tx(count).await;
+            return Ok(RpcRes { data: "".to_string(), header: "".to_string() });
         })
     }
 }
