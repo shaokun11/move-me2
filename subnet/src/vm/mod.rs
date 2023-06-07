@@ -1,9 +1,11 @@
 use std::{collections::HashMap, fs, io::{self, Error, ErrorKind}, sync::Arc};
 use std::str::FromStr;
+use std::time::Duration;
 use avalanche_types::{
     choices, ids,
     subnet::{self, rpc::snow},
 };
+use avalanche_types::ids::Id;
 use avalanche_types::subnet::rpc::database::manager::{DatabaseManager, Manager};
 use avalanche_types::subnet::rpc::health::Checkable;
 use avalanche_types::subnet::rpc::snow::engine::common::appsender::AppSender;
@@ -13,7 +15,8 @@ use avalanche_types::subnet::rpc::snow::engine::common::http_handler::{HttpHandl
 use avalanche_types::subnet::rpc::snow::engine::common::message::Message::PendingTxs;
 use avalanche_types::subnet::rpc::snow::engine::common::vm::{CommonVm, Connector};
 use avalanche_types::subnet::rpc::snow::validators::client::ValidatorStateClient;
-use avalanche_types::subnet::rpc::snowman::block::{ChainVm, Getter, Parser};
+use avalanche_types::subnet::rpc::snowman::block::{BatchedChainVm, ChainVm, Getter, Parser};
+use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use futures::{channel::mpsc as futures_mpsc, StreamExt};
 use hex;
@@ -1181,6 +1184,24 @@ impl Vm {
                 }
             }
         });
+    }
+}
+
+impl BatchedChainVm for Vm {
+    type Block = Block;
+
+    async fn get_ancestors(&self, block_id: Id, max_block_num: i32, max_block_size: i32, max_block_retrival_time: Duration) -> io::Result<Vec<Bytes>> {
+        Err(Error::new(
+            ErrorKind::Unsupported,
+            "get_ancestors not implemented",
+        ))
+    }
+
+    async fn batched_parse_block(&self, blocks: &[Vec<u8>]) -> io::Result<Vec<Self::Block>> {
+        Err(Error::new(
+            ErrorKind::Unsupported,
+            "batched_parse_block not implemented",
+        ))
     }
 }
 
