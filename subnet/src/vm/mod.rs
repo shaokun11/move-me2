@@ -1191,14 +1191,20 @@ impl Vm {
 impl BatchedChainVm for Vm {
     type Block = Block;
 
-    async fn get_ancestors(&self, block_id: Id, max_block_num: i32, max_block_size: i32, max_block_retrival_time: Duration) -> io::Result<Vec<Bytes>> {
+    async fn get_ancestors(
+        &self,
+        _block_id: ids::Id,
+        _max_block_num: i32,
+        _max_block_size: i32,
+        _max_block_retrival_time: Duration,
+    ) -> io::Result<Vec<Bytes>> {
         Err(Error::new(
             ErrorKind::Unsupported,
             "get_ancestors not implemented",
         ))
     }
 
-    async fn batched_parse_block(&self, blocks: &[Vec<u8>]) -> io::Result<Vec<Self::Block>> {
+    async fn batched_parse_block(&self, _blocks: &[Vec<u8>]) -> io::Result<Vec<Self::Block>> {
         Err(Error::new(
             ErrorKind::Unsupported,
             "batched_parse_block not implemented",
