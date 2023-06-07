@@ -1187,6 +1187,7 @@ impl Vm {
     }
 }
 
+#[tonic::async_trait]
 impl BatchedChainVm for Vm {
     type Block = Block;
 
