@@ -5,7 +5,6 @@ use avalanche_types::{
     choices, ids,
     subnet::{self, rpc::snow},
 };
-use avalanche_types::ids::Id;
 use avalanche_types::subnet::rpc::database::manager::{DatabaseManager, Manager};
 use avalanche_types::subnet::rpc::health::Checkable;
 use avalanche_types::subnet::rpc::snow::engine::common::appsender::AppSender;
