@@ -1156,7 +1156,7 @@ impl Vm {
                 "block error,maybe not sync ",
             ));
         }
-        println!("------------inner_build_block-------{}----", block_id);
+        println!("------------inner_build_block {}----", block_id);
         let next_epoch = aptos_data.3;
         let ts = aptos_data.4;
         let output = executor
