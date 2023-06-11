@@ -49,6 +49,7 @@ fn main() {
         }
     }
 
+    println!("Movement Subnet Transaction Stress Test...\n");
     println!("\nconcurrency_level = {}\n", concurrency_level);
 
     let mut i = 0;
