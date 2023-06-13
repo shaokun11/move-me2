@@ -5,15 +5,7 @@
 use aptos_language_e2e_tests::account_universe::P2PTransferGen;
 use proptest::prelude::*;
 use std::env;
-use movement_benchmark::transactions::TransactionBencher;
-use chrono::Local;
-
-fn print_now() {
-    let dt = Local::now();
-    let time_str = dt.format("%Y-%m-%d %H:%M:%S.%3f").to_string();
-    print!("[{}] ", time_str);
-}
-
+use movement_benchmark::transactions::{print_now, TransactionBencher};
 fn main() {
     let args: Vec<String> = env::args().collect();
     let (run_par, run_seq) = if args.len() == 4 {

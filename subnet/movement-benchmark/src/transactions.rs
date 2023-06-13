@@ -21,6 +21,14 @@ use proptest::{
     strategy::{Strategy, ValueTree},
     test_runner::TestRunner,
 };
+use chrono::Local;
+
+pub fn print_now() {
+    let dt = Local::now();
+    let time_str = dt.format("%Y-%m-%d %H:%M:%S.%3f").to_string();
+    print!("[{}] ", time_str);
+}
+
 
 /// Benchmarking support for transactions.
 #[derive(Clone, Debug)]
@@ -112,9 +120,11 @@ where
             let state = TransactionBenchState::with_size(&self.strategy, num_accounts, num_txn);
 
             if i < num_warmups {
+                print_now();
                 println!("WARMUP - ignore results");
                 state.execute_blockstm_benchmark(concurrency_level, run_par, run_seq);
             } else {
+                print_now();
                 println!(
                     "RUN benchmark for: num_threads = {}, \
                         num_account = {}, \
