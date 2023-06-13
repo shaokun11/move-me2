@@ -34,7 +34,13 @@ use move_core_types::vm_status::VMStatus;
 use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use std::time::Instant;
+use chrono::Local;
 
+fn print_now() {
+    let dt = Local::now();
+    let time_str = dt.format("%Y-%m-%d %H:%M:%S.%3f").to_string();
+    print!("[{}] ", time_str);
+}
 impl BlockExecutorTransaction for PreprocessedTransaction {
     type Key = StateKey;
     type Value = WriteOp;
@@ -201,6 +207,7 @@ impl BlockAptosVM {
         let executor = BlockExecutor::<PreprocessedTransaction, AptosExecutorTask<S>, S>::new(
             concurrency_level,
         );
+        print_now();
         println!("Parallel execution starts...");
         let timer = Instant::now();
         let par_ret = executor
@@ -213,6 +220,7 @@ impl BlockAptosVM {
             });
 
         let exec_t = timer.elapsed();
+        print_now();
         println!(
             "Parallel execution finishes, TPS = {}",
             block_size * 1000 / exec_t.as_millis() as usize
@@ -250,6 +258,7 @@ impl BlockAptosVM {
         // sequentially execute the block and check if the results match
         let seq_executor =
             BlockExecutor::<PreprocessedTransaction, AptosExecutorTask<S>, S>::new(1);
+        print_now();
         println!("Sequential execution starts...");
         let seq_timer = Instant::now();
         let seq_ret = seq_executor
@@ -261,6 +270,7 @@ impl BlockAptosVM {
                     .collect()
             });
         let seq_exec_t = seq_timer.elapsed();
+        print_now();
         println!(
             "Sequential execution finishes, TPS = {}",
             block_size * 1000 / seq_exec_t.as_millis() as usize
