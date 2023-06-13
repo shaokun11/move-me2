@@ -13,6 +13,7 @@ repository = { workspace = true }
 rust-version = { workspace = true }
 
 [dependencies]
+chrono = "0.4.26"
 aptos-bitvec = { workspace = true }
 aptos-crypto = { workspace = true }
 aptos-gas = { workspace = true, features = ["testing"] }

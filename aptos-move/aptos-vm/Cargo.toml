@@ -13,6 +13,7 @@ repository = { workspace = true }
 rust-version = { workspace = true }
 
 [dependencies]
+chrono = "0.4.26"
 anyhow = { workspace = true }
 aptos-aggregator = { workspace = true }
 aptos-block-executor = { workspace = true }
