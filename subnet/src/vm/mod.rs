@@ -1201,7 +1201,6 @@ impl Vm {
         }
     }
     async fn init_aptos(&mut self) {
-        let vm_state = self.state.write().await;
         let (genesis, validators) = test_genesis_change_set_and_validators(Some(1));
         let signer = ValidatorSigner::new(
             validators[0].data.owner_address,
