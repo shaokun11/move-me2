@@ -61,7 +61,7 @@ use crate::api::chain_handlers::{AccountStateArgs, ChainHandler, ChainService, R
 use crate::api::static_handlers::{StaticHandler, StaticService};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
-const MOVE_DB_DIR: &str = "aptos-chain-data";
+const MOVE_DB_DIR: &str = ".move-chain-data";
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct AptosData(
@@ -1207,13 +1207,11 @@ impl Vm {
             validators[0].data.owner_address,
             validators[0].consensus_key.clone(),
         );
-        let db_path = vm_state.ctx.as_ref().unwrap().node_id.to_vec();
         self.signer = Some(signer.clone());
         let genesis_txn = Transaction::GenesisTransaction(WriteSetPayload::Direct(genesis));
-        let p = format!("{}/{}/{}",
+        let p = format!("{}/{}",
                         dirs::home_dir().unwrap().to_str().unwrap(),
-                        MOVE_DB_DIR,
-                        hex::encode(db_path).as_str());
+                        MOVE_DB_DIR);
         let db;
         if !fs::metadata(p.clone().as_str()).is_ok() {
             fs::create_dir_all(p.as_str()).unwrap();
