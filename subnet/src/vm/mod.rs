@@ -1328,9 +1328,6 @@ impl ChainVm for Vm
             block_.set_state(state_b.clone());
             println!("--------vm_build_block------{}---", block_.id());
             block_.verify().await.unwrap();
-            let mut new_state = state_b.clone();
-            new_state.set_vm(self.clone());
-            block_.set_state(new_state);
             return Ok(block_);
         }
         Err(Error::new(
@@ -1494,7 +1491,7 @@ impl Parser for Vm
             let mut new_state = state.clone();
             new_state.set_vm(self.clone());
             let mut b = match state.get_block(&new_block.id()).await {
-                Ok(mut prev) => {
+                Ok(prev) => {
                     println!("-----parse_block-----prev--");
                     prev
                 }
