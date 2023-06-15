@@ -1134,6 +1134,10 @@ impl Vm {
         )
     }
     pub async fn inner_build_block(&self, data: Vec<u8>) -> io::Result<()> {
+        {
+            let mut is_build = self.is_building_block.write().await;
+            *is_build = false;
+        }
         let executor = self.executor.as_ref().unwrap().read().await;
         let aptos_data = serde_json::from_slice::<AptosData>(&data).unwrap();
         let block_tx = serde_json::from_slice::<Vec<Transaction>>(&aptos_data.0).unwrap();
@@ -1186,8 +1190,6 @@ impl Vm {
                 _ => {}
             }
         }
-        let mut is_build = self.is_building_block.write().await;
-        *is_build = false;
         Ok(())
     }
     async fn init_aptos(&mut self) {
