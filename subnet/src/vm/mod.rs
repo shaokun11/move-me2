@@ -1470,7 +1470,7 @@ impl Getter for Vm
         if let Some(state) = &vm_state.state {
             let mut block = state.get_block(&blk_id).await?;
             let mut new_state = state.clone();
-            block.set_vm(self.clone());
+            new_state.set_vm(self.clone());
             block.set_state(new_state);
             return Ok(block);
         }

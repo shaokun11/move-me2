@@ -782,6 +782,8 @@ impl TestValidator {
             data,
         }
     }
+
+    #[allow(dead_code)]
     fn gen(rng: &mut StdRng, initial_stake: Option<u64>) -> TestValidator {
         let key = Ed25519PrivateKey::generate(rng);
         let auth_key = AuthenticationKey::ed25519(&key.public_key());
