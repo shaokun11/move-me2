@@ -48,7 +48,7 @@ use aptos_types::account_view::AccountView;
 use aptos_types::block_info::BlockInfo;
 use aptos_types::block_metadata::BlockMetadata;
 use aptos_types::chain_id::ChainId;
-use aptos_types::ledger_info::{generate_ledger_info_with_sig, LedgerInfo, LedgerInfoWithSignatures};
+use aptos_types::ledger_info::{generate_ledger_info_with_sig, LedgerInfo};
 use aptos_types::mempool_status::{MempoolStatus, MempoolStatusCode};
 use aptos_types::transaction::{SignedTransaction, Transaction, WriteSetPayload};
 use aptos_types::transaction::Transaction::UserTransaction;
@@ -65,7 +65,7 @@ const MOVE_DB_DIR: &str = ".move-chain-data";
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct AptosData(
-    pub Vec<u8>,   // block info
+    pub Vec<u8>, // block info
     pub HashValue, // block id
     pub HashValue,
     pub u64,
@@ -1312,11 +1312,11 @@ impl ChainVm for Vm
             block_tx.push(Transaction::StateCheckpoint(HashValue::random()));
             let parent_block_id = executor.committed_block_id();
             let block_tx_bytes = serde_json::to_vec(&block_tx).unwrap();
-            let  data = AptosData(block_tx_bytes,
-                                     block_id.clone(),
-                                     parent_block_id,
-                                     next_epoch,
-                                     unix_now);
+            let data = AptosData(block_tx_bytes,
+                                 block_id.clone(),
+                                 parent_block_id,
+                                 next_epoch,
+                                 unix_now);
 
             let mut block_ = Block::new(
                 prnt_blk.id(),
@@ -1328,6 +1328,9 @@ impl ChainVm for Vm
             block_.set_state(state_b.clone());
             println!("--------vm_build_block------{}---", block_.id());
             block_.verify().await.unwrap();
+            let mut new_state = state_b.clone();
+            new_state.set_vm(self.clone());
+            block_.set_state(new_state);
             return Ok(block_);
         }
         Err(Error::new(
@@ -1489,16 +1492,15 @@ impl Parser for Vm
             new_block.set_status(choices::status::Status::Processing);
             let mut new_state = state.clone();
             new_state.set_vm(self.clone());
-            let mut b = match state.get_block(&new_block.id()).await {
+            new_block.set_state(new_state);
+            return match state.get_block(&new_block.id()).await {
                 Ok(prev) => {
-                    prev
+                    Ok(prev)
                 }
                 Err(_) => {
-                    new_block
+                    Ok(new_block)
                 }
             };
-            b.set_state(new_state);
-            return Ok(b);
         }
 
         Err(Error::new(ErrorKind::NotFound, "state manager not found"))
