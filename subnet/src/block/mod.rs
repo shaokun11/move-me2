@@ -147,7 +147,6 @@ impl Block {
 
     /// Updates the state of the block.
     pub fn set_state(&mut self, state: state::State) {
-        println!("-------set_state---------");
         self.state = state;
     }
 
@@ -215,11 +214,10 @@ impl Block {
         // only decided blocks are persistent -- no reorg
         self.state.write_block(&self.clone()).await?;
         self.state.set_last_accepted_block(&self.id()).await?;
-
-        self.state.remove_verified(&self.id()).await;
         println!("-----accept----1---");
+        self.state.remove_verified(&self.id()).await;
         if let Some(vm_) = self.state.vm.as_ref() {
-            println!("-----accept----2---");
+
             let vm = vm_.read().await;
             vm.inner_build_block(self.data.clone()).await.unwrap();
         }
