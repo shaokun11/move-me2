@@ -147,6 +147,7 @@ impl Block {
 
     /// Updates the state of the block.
     pub fn set_state(&mut self, state: state::State) {
+        println!("-------set_state---------");
         self.state = state;
     }
 
