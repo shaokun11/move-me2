@@ -219,7 +219,7 @@ impl Block {
 
         if let Some(vm_) = self.state.vm.as_ref() {
             let vm = vm_.read().await;
-            vm.inner_build_block(self.data.clone(), false).await.unwrap();
+            vm.inner_build_block(self.data.clone()).await.unwrap();
         }
         Ok(())
     }

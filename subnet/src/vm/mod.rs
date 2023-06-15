@@ -65,12 +65,11 @@ const MOVE_DB_DIR: &str = ".move-chain-data";
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct AptosData(
-    pub Vec<u8>, // block info
+    pub Vec<u8>,   // block info
     pub HashValue, // block id
     pub HashValue,
     pub u64,
     pub u64,
-    pub Vec<u8>,// leger info
 );
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -135,7 +134,7 @@ pub struct Vm {
 
     pub executor: Option<Arc<RwLock<BlockExecutor<AptosVM, Transaction>>>>,
 
-    pub is_buiding_block: Arc<RwLock<bool>>,
+    pub is_building_block: Arc<RwLock<bool>>,
 
 }
 
@@ -160,7 +159,7 @@ impl Vm {
             signer: None,
             executor: None,
             db: None,
-            is_buiding_block: Arc::new(RwLock::new(false)),
+            is_building_block: Arc::new(RwLock::new(false)),
         }
     }
 
@@ -927,13 +926,13 @@ impl Vm {
                 // Wait for the specified time interval before continuing.
                 _ = tokio::time::sleep(check_duration).await;
                 // Acquire a read lock on the shared `is_building_block` data to check if there are any blocks being built.
-                let is_build = shared_self.is_buiding_block.read().await;
+                let is_build = shared_self.is_building_block.read().await;
                 if !*is_build { // If there is no building block...
                     // Check if the time elapsed since the last check is greater than the timeout duration.
                     if last_check_time.elapsed() > check_timeout_duration {
                         // If so, release the read lock and acquire a write lock to modify the shared data.
                         drop(is_build);
-                        let mut is_build = shared_self.is_buiding_block.write().await;
+                        let mut is_build = shared_self.is_building_block.write().await;
                         // Set the `is_building_block` to `false` to indicate that a new block can now be built.
                         *is_build = false;
                     } else { // If the timeout duration has not yet been reached...
@@ -956,7 +955,7 @@ impl Vm {
 
     async fn notify_block_ready(&self) {
         {
-            let is_build = self.is_buiding_block.read().await;
+            let is_build = self.is_building_block.read().await;
             if *is_build {
                 return;
             }
@@ -967,7 +966,7 @@ impl Vm {
                 to_engine.send(PendingTxs).await
             };
             if send_result.is_ok() {
-                let mut is_build = self.is_buiding_block.write().await;
+                let mut is_build = self.is_building_block.write().await;
                 *is_build = true;
             } else {
                 log::info!("send tx to_engine error ")
@@ -1134,7 +1133,7 @@ impl Vm {
             sn,
         )
     }
-    pub async fn inner_build_block(&self, data: Vec<u8>, is_miner: bool) -> io::Result<Vec<u8>> {
+    pub async fn inner_build_block(&self, data: Vec<u8>) -> io::Result<()> {
         let executor = self.executor.as_ref().unwrap().read().await;
         let aptos_data = serde_json::from_slice::<AptosData>(&data).unwrap();
         let block_tx = serde_json::from_slice::<Vec<Transaction>>(&aptos_data.0).unwrap();
@@ -1174,12 +1173,7 @@ impl Vm {
             ),
             HashValue::zero(),
         );
-        let li;
-        if is_miner {
-            li = generate_ledger_info_with_sig(&[self.signer.as_ref().unwrap().clone()], ledger_info);
-        } else {
-            li = serde_json::from_slice::<LedgerInfoWithSignatures>(&aptos_data.5).unwrap();
-        }
+        let li = generate_ledger_info_with_sig(&[self.signer.as_ref().unwrap().clone()], ledger_info);
         executor.commit_blocks(vec![block_id], li.clone()).unwrap();
         let mut core_pool = self.core_mempool.as_ref().unwrap().write().await;
         for t in block_tx.iter() {
@@ -1192,13 +1186,9 @@ impl Vm {
                 _ => {}
             }
         }
-        let mut is_build = self.is_buiding_block.write().await;
+        let mut is_build = self.is_building_block.write().await;
         *is_build = false;
-        if is_miner {
-            Ok(serde_json::to_vec(&li).unwrap())
-        } else {
-            Ok(vec![])
-        }
+        Ok(())
     }
     async fn init_aptos(&mut self) {
         let (genesis, validators) = test_genesis_change_set_and_validators(Some(1));
@@ -1326,11 +1316,8 @@ impl ChainVm for Vm
                                      block_id.clone(),
                                      parent_block_id,
                                      next_epoch,
-                                     unix_now, vec![]);
+                                     unix_now);
 
-            data.5 = self.inner_build_block(
-                serde_json::to_vec(&data.clone()).unwrap(),
-                true).await.unwrap();
             let mut block_ = Block::new(
                 prnt_blk.id(),
                 prnt_blk.height() + 1,
@@ -1502,15 +1489,16 @@ impl Parser for Vm
             new_block.set_status(choices::status::Status::Processing);
             let mut new_state = state.clone();
             new_state.set_vm(self.clone());
-            new_block.set_state(new_state);
-            return match state.get_block(&new_block.id()).await {
+            let mut b = match state.get_block(&new_block.id()).await {
                 Ok(prev) => {
-                    Ok(prev)
+                    prev
                 }
                 Err(_) => {
-                    Ok(new_block)
+                    new_block
                 }
             };
+            b.set_state(new_state);
+            return Ok(b);
         }
 
         Err(Error::new(ErrorKind::NotFound, "state manager not found"))
@@ -1563,8 +1551,7 @@ impl CommonVm for Vm
                                  HashValue::zero(),
                                  HashValue::zero(),
                                  0,
-                                 0,
-                                 vec![]);
+                                 0);
             let mut genesis_block = Block::new(
                 ids::Id::empty(),
                 0,
