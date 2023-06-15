@@ -1492,12 +1492,12 @@ impl Parser for Vm
             new_state.set_vm(self.clone());
             let mut b = match state.get_block(&new_block.id()).await {
                 Ok(mut prev) => {
-                    Ok(prev)
+                    prev
                 }
                 Err(_) => {
-                    Ok(new_block)
+                    new_block
                 }
-            }.unwrap();
+            };
             b.set_state(new_state);
             return Ok(b);
         }
