@@ -1312,7 +1312,7 @@ impl ChainVm for Vm
             block_tx.push(Transaction::StateCheckpoint(HashValue::random()));
             let parent_block_id = executor.committed_block_id();
             let block_tx_bytes = serde_json::to_vec(&block_tx).unwrap();
-            let mut data = AptosData(block_tx_bytes,
+            let  data = AptosData(block_tx_bytes,
                                      block_id.clone(),
                                      parent_block_id,
                                      next_epoch,

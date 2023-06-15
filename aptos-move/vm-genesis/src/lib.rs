@@ -111,7 +111,7 @@ pub fn encode_aptos_mainnet_genesis_transaction(
         Features::default(),
         TimedFeatures::enable_all(),
     )
-    .unwrap();
+        .unwrap();
     let id1 = HashValue::zero();
     let mut session = move_vm.new_session(&data_cache, SessionId::genesis(id1));
 
@@ -747,11 +747,13 @@ impl TestValidator {
             .map(|_| TestValidator::gen_raw(&mut rng, initial_stake))
             .collect()
     }
-    fn gen_raw(rng: &mut StdRng, initial_stake: Option<u64>) -> TestValidator {
-        let key = Ed25519PrivateKey::try_from("movement20230615.owner".as_bytes()).unwrap();
+    fn gen_raw(_rng: &mut StdRng, initial_stake: Option<u64>) -> TestValidator {
+        let k1 = [1u8; 32];
+        let k2 = [1u8; 32];
+        let key = Ed25519PrivateKey::try_from(k.as_slice()).unwrap();
         let auth_key = AuthenticationKey::ed25519(&key.public_key());
         let owner_address = auth_key.derived_address();
-        let consensus_key = bls12381::PrivateKey::try_from("movement20230615.consensus".as_bytes()).unwrap();
+        let consensus_key = bls12381::PrivateKey::try_from(k2.as_bytes()).unwrap();
         let consensus_pubkey = consensus_key.public_key().to_bytes().to_vec();
         let proof_of_possession = bls12381::ProofOfPossession::create(&consensus_key)
             .to_bytes()
