@@ -1328,9 +1328,6 @@ impl ChainVm for Vm
             block_.set_state(state_b.clone());
             println!("--------vm_build_block------{}---", block_.id());
             block_.verify().await.unwrap();
-            let mut new_state = state_b.clone();
-            new_state.set_vm(self.clone());
-            block_.set_state(new_state);
             return Ok(block_);
         }
         Err(Error::new(
@@ -1493,15 +1490,16 @@ impl Parser for Vm
             new_block.set_status(choices::status::Status::Processing);
             let mut new_state = state.clone();
             new_state.set_vm(self.clone());
-            new_block.set_state(new_state);
-            return match state.get_block(&new_block.id()).await {
-                Ok(prev) => {
+            let mut b = match state.get_block(&new_block.id()).await {
+                Ok(mut prev) => {
                     Ok(prev)
                 }
                 Err(_) => {
                     Ok(new_block)
                 }
-            };
+            }.unwrap();
+            b.set_state(new_state);
+            return Ok(b);
         }
 
         Err(Error::new(ErrorKind::NotFound, "state manager not found"))
