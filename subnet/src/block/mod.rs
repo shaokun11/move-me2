@@ -216,8 +216,9 @@ impl Block {
         self.state.set_last_accepted_block(&self.id()).await?;
 
         self.state.remove_verified(&self.id()).await;
-
+        println!("-----accept----1---");
         if let Some(vm_) = self.state.vm.as_ref() {
+            println!("-----accept----2---");
             let vm = vm_.read().await;
             vm.inner_build_block(self.data.clone()).await.unwrap();
         }
@@ -227,7 +228,7 @@ impl Block {
     /// Mark this [`Block`](Block) rejected and updates [`State`](crate::state::State) accordingly.
     pub async fn reject(&mut self) -> io::Result<()> {
         self.set_status(choices::status::Status::Rejected);
-
+        println!("-----reject----1---");
         // only decided blocks are persistent -- no reorg
         self.state.write_block(&self.clone()).await?;
 

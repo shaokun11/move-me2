@@ -1486,6 +1486,7 @@ impl Parser for Vm
         &self,
         bytes: &[u8],
     ) -> io::Result<<Self as Parser>::Block> {
+        println!("-----parse_block-------");
         let vm_state = self.state.read().await;
         if let Some(state) = vm_state.state.as_ref() {
             let mut new_block = Block::from_slice(bytes)?;
