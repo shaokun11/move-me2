@@ -147,7 +147,6 @@ impl Block {
 
     /// Updates the state of the block.
     pub fn set_state(&mut self, state: state::State) {
-        println!("-------set_state---------");
         self.state = state;
     }
 
@@ -219,7 +218,6 @@ impl Block {
         self.state.remove_verified(&self.id()).await;
         println!("-----accept----1---");
         if let Some(vm_) = self.state.vm.as_ref() {
-            println!("-----accept----2---");
             let vm = vm_.read().await;
             vm.inner_build_block(self.data.clone()).await.unwrap();
         }

@@ -1468,7 +1468,10 @@ impl Getter for Vm
     ) -> io::Result<<Self as Getter>::Block> {
         let vm_state = self.state.read().await;
         if let Some(state) = &vm_state.state {
-            let block = state.get_block(&blk_id).await?;
+            let mut block = state.get_block(&blk_id).await?;
+            let mut new_state = state.clone();
+            block.set_vm(self.clone());
+            block.set_state(new_state);
             return Ok(block);
         }
         Err(Error::new(ErrorKind::NotFound, "state manager not found"))
@@ -1483,27 +1486,22 @@ impl Parser for Vm
         &self,
         bytes: &[u8],
     ) -> io::Result<<Self as Parser>::Block> {
-        println!("-----parse_block-------");
         let vm_state = self.state.read().await;
         if let Some(state) = vm_state.state.as_ref() {
             let mut new_block = Block::from_slice(bytes)?;
             new_block.set_status(choices::status::Status::Processing);
             let mut new_state = state.clone();
             new_state.set_vm(self.clone());
-            let mut b = match state.get_block(&new_block.id()).await {
+            new_block.set_state(new_state);
+            return match state.get_block(&new_block.id()).await {
                 Ok(prev) => {
-                    println!("-----parse_block-----prev--");
-                    prev
+                    Ok(prev)
                 }
                 Err(_) => {
-                    println!("-----parse_block-----new_block--");
-                    new_block
+                    Ok(new_block)
                 }
             };
-            b.set_state(new_state);
-            return Ok(b);
         }
-
         Err(Error::new(ErrorKind::NotFound, "state manager not found"))
     }
 }
