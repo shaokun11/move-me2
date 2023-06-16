@@ -912,26 +912,28 @@ impl Vm {
     /// waiting time for unprocessed transactions has not timed out, it continues to wait.
     async fn check_pending_tx(&self) {
         let shared_self = Arc::new(self.clone());
-        let check_timeout_duration = Duration::from_secs(2);
+        // let check_timeout_duration = Duration::from_secs(2);
         let check_duration = Duration::from_millis(500);
         tokio::task::spawn(async move {
-            let mut last_check_time = Instant::now();
+            // let mut last_check_time = Instant::now();
             loop {
                 _ = tokio::time::sleep(check_duration).await;
                 let is_build = shared_self.is_building_block.read().await;
+                println!("------------check_pending_tx {}", is_build);
                 if !*is_build {
                     let tx_arr = shared_self.get_pending_tx(1).await;
                     if !tx_arr.is_empty() {
                         shared_self.notify_block_ready().await;
                     }
-                    last_check_time = Instant::now();
+                    // last_check_time = Instant::now();
                 } else {
-                    if last_check_time.elapsed() > check_timeout_duration {
-                        drop(is_build);
-                        let mut is_build = shared_self.is_building_block.write().await;
-                        *is_build = false;
-                        last_check_time = Instant::now();
-                    }
+                    // if last_check_time.elapsed() > check_timeout_duration {
+                    //     drop(is_build);
+                    //     let mut is_build = shared_self.is_building_block.write().await;
+                    //     *is_build = false;
+                    //     last_check_time = Instant::now();
+                    //     println!("------------check_pending_tx timeout ");
+                    // }
                 }
             }
         });
@@ -942,6 +944,7 @@ impl Vm {
         {
             let is_build = self.is_building_block.read().await;
             if *is_build {
+                println!("------------notify_block_ready ignore");
                 return;
             }
         }
@@ -953,6 +956,7 @@ impl Vm {
             if send_result.is_ok() {
                 let mut is_build = self.is_building_block.write().await;
                 *is_build = true;
+                println!("---------------notify_block_ready success");
             } else {
                 log::info!("send tx to_engine error ")
             }
@@ -1118,11 +1122,14 @@ impl Vm {
             sn,
         )
     }
+
+    async fn reset_building_status(&self) {
+        let mut is_build = self.is_building_block.write().await;
+        *is_build = false;
+    }
+
     pub async fn inner_build_block(&self, data: Vec<u8>) -> io::Result<()> {
-        {
-            let mut is_build = self.is_building_block.write().await;
-            *is_build = false;
-        }
+        self.reset_building_status().await;
         let executor = self.executor.as_ref().unwrap().read().await;
         let aptos_data = serde_json::from_slice::<AptosData>(&data).unwrap();
         let block_tx = serde_json::from_slice::<Vec<Transaction>>(&aptos_data.0).unwrap();
