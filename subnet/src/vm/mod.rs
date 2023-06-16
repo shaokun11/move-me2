@@ -927,25 +927,22 @@ impl Vm {
                 _ = tokio::time::sleep(check_duration).await;
                 // Acquire a read lock on the shared `is_building_block` data to check if there are any blocks being built.
                 let is_build = shared_self.is_building_block.read().await;
-                if !*is_build { // If there is no building block...
-                    // Check if the time elapsed since the last check is greater than the timeout duration.
+
+                if *is_build {
                     if last_check_time.elapsed() > check_timeout_duration {
                         // If so, release the read lock and acquire a write lock to modify the shared data.
                         drop(is_build);
                         let mut is_build = shared_self.is_building_block.write().await;
                         // Set the `is_building_block` to `false` to indicate that a new block can now be built.
                         *is_build = false;
-                    } else { // If the timeout duration has not yet been reached...
-                        // Call the `get_pending_tx` function to acquire the list of unprocessed transactions.
-                        let tx_arr = shared_self.get_pending_tx(1).await;
-                        if !tx_arr.is_empty() { // If there are any unprocessed transactions...
-                            // Notify the main thread that a block is ready to be built, and update the last check time.
-                            shared_self.notify_block_ready().await;
-                            last_check_time = Instant::now();
-                        }
+                        last_check_time = Instant::now();
                     }
-                } else { // If there is a building block...
-                    // Update the last check time to prevent any timeouts during the block construction process.
+                } else {
+                    let tx_arr = shared_self.get_pending_tx(1).await;
+                    if !tx_arr.is_empty() { // If there are any unprocessed transactions...
+                        // Notify the main thread that a block is ready to be built, and update the last check time.
+                        shared_self.notify_block_ready().await;
+                    }
                     last_check_time = Instant::now();
                 }
             }
@@ -1191,7 +1188,6 @@ impl Vm {
         Ok(())
     }
     async fn init_aptos(&mut self) {
-
         let (genesis, validators) = test_genesis_change_set_and_validators(Some(1));
         let signer = ValidatorSigner::new(
             validators[0].data.owner_address,
