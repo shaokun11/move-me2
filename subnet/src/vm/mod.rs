@@ -919,7 +919,6 @@ impl Vm {
             loop {
                 _ = tokio::time::sleep(check_duration).await;
                 let is_build = shared_self.is_building_block.read().await;
-                println!("------------check_pending_tx {}", is_build);
                 if !*is_build {
                     let tx_arr = shared_self.get_pending_tx(1).await;
                     if !tx_arr.is_empty() {
@@ -941,22 +940,22 @@ impl Vm {
 
 
     async fn notify_block_ready(&self) {
-        {
-            let is_build = self.is_building_block.read().await;
-            if *is_build {
-                println!("------------notify_block_ready ignore");
-                return;
-            }
-        }
+        // {
+        //     let is_build = self.is_building_block.read().await;
+        //     if *is_build {
+        //         println!("------------notify_block_ready ignore");
+        //         return;
+        //     }
+        // }
         if let Some(to_engine) = &self.to_engine {
             let send_result = {
                 let to_engine = to_engine.read().await;
                 to_engine.send(PendingTxs).await
             };
             if send_result.is_ok() {
-                let mut is_build = self.is_building_block.write().await;
-                *is_build = true;
-                println!("---------------notify_block_ready success");
+                // let mut is_build = self.is_building_block.write().await;
+                // *is_build = true;
+                println!("---------------notify_block_ready success---------------------");
             } else {
                 log::info!("send tx to_engine error ")
             }
@@ -1129,7 +1128,7 @@ impl Vm {
     }
 
     pub async fn inner_build_block(&self, data: Vec<u8>) -> io::Result<()> {
-        self.reset_building_status().await;
+        // self.reset_building_status().await;
         let executor = self.executor.as_ref().unwrap().read().await;
         let aptos_data = serde_json::from_slice::<AptosData>(&data).unwrap();
         let block_tx = serde_json::from_slice::<Vec<Transaction>>(&aptos_data.0).unwrap();
@@ -1223,7 +1222,7 @@ impl Vm {
         let service = get_raw_api_service(Arc::new(context));
         self.api_service = Some(service);
         self.core_mempool = Some(Arc::new(RwLock::new(CoreMempool::new(&node_config))));
-        self.check_pending_tx().await;
+        // self.check_pending_tx().await;
         tokio::task::spawn(async move {
             while let Some(request) = mempool_client_receiver.next().await {
                 match request {
