@@ -18,7 +18,7 @@ use clap_complete::{generate, Shell};
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, fmt::Formatter, path::PathBuf, str::FromStr};
 
-/// Tool for interacting with configuration of the Aptos CLI tool
+/// Tool for interacting with configuration of the Movement subnet CLI tool
 ///
 /// This tool handles the global configuration of the CLI tool for
 /// default configuration, and user specific settings.
@@ -68,7 +68,7 @@ impl CliCommand<()> for GenerateShellCompletions {
         let mut command = Tool::command();
         let mut file = std::fs::File::create(self.output_file.as_path())
             .map_err(|err| CliError::IO(self.output_file.display().to_string(), err))?;
-        generate(self.shell, &mut command, "aptos".to_string(), &mut file);
+        generate(self.shell, &mut command, "movement".to_string(), &mut file);
         Ok(())
     }
 }
