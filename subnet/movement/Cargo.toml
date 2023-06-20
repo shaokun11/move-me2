@@ -1,11 +1,10 @@
 [package]
 name = "movement"
-authors = ["Movement Protocol"]
 description = "Movement tool for management of nodes and interacting with the blockchain"
 version = "1.0.0"
 
 # Workspace inherited keys
-authors = { workspace = true }
+authors = ["Movement Protocol"]
 edition = { workspace = true }
 homepage = { workspace = true }
 license = { workspace = true }
