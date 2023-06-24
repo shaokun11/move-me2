@@ -135,6 +135,7 @@ pub struct Vm {
     pub executor: Option<Arc<RwLock<BlockExecutor<AptosVM, Transaction>>>>,
 
     pub is_building_block: Arc<RwLock<bool>>,
+    pub is_notify_ignore: Arc<RwLock<bool>>,
 
 }
 
@@ -160,6 +161,7 @@ impl Vm {
             executor: None,
             db: None,
             is_building_block: Arc::new(RwLock::new(false)),
+            is_notify_ignore: Arc::new(RwLock::new(false)),
         }
     }
 
@@ -905,34 +907,18 @@ impl Vm {
                             true, vec![])
     }
 
-    /// The logic of this function is to periodically check whether there is a block currently
-    /// being constructed and whether there are pending transactions. If there is no block being
-    /// constructed and the waiting time for unprocessed transactions has timed out, it allows
-    /// the construction of a new block. If there is a block currently being constructed or the
-    /// waiting time for unprocessed transactions has not timed out, it continues to wait.
     async fn check_pending_tx(&self) {
         let shared_self = Arc::new(self.clone());
-        // let check_timeout_duration = Duration::from_secs(2);
         let check_duration = Duration::from_millis(500);
         tokio::task::spawn(async move {
-            // let mut last_check_time = Instant::now();
             loop {
                 _ = tokio::time::sleep(check_duration).await;
                 let is_build = shared_self.is_building_block.read().await;
-                if !*is_build {
-                    let tx_arr = shared_self.get_pending_tx(1).await;
-                    if !tx_arr.is_empty() {
+                let is_ignore = self.is_notify_ignore.read().await;
+                if *is_build == false {
+                    if *is_ignore == true {
                         shared_self.notify_block_ready().await;
                     }
-                    // last_check_time = Instant::now();
-                } else {
-                    // if last_check_time.elapsed() > check_timeout_duration {
-                    //     drop(is_build);
-                    //     let mut is_build = shared_self.is_building_block.write().await;
-                    //     *is_build = false;
-                    //     last_check_time = Instant::now();
-                    //     println!("------------check_pending_tx timeout ");
-                    // }
                 }
             }
         });
@@ -940,22 +926,29 @@ impl Vm {
 
 
     async fn notify_block_ready(&self) {
-        // {
-        //     let is_build = self.is_building_block.read().await;
-        //     if *is_build {
-        //         println!("------------notify_block_ready ignore");
-        //         return;
-        //     }
-        // }
+        {
+            // must keep build is finished, otherwise this will cause fork on inner build block
+            let is_build = self.is_building_block.read().await;
+            let is_ignore = self.is_notify_ignore.write().await;
+            if *is_build == true {
+                if *is_ignore == false {
+                    *is_ignore = true;
+                }
+                return;
+            } else {
+                if *is_ignore == true {
+                    *is_ignore = false;
+                }
+            }
+        }
         if let Some(to_engine) = &self.to_engine {
             let send_result = {
                 let to_engine = to_engine.read().await;
                 to_engine.send(PendingTxs).await
             };
             if send_result.is_ok() {
-                // let mut is_build = self.is_building_block.write().await;
-                // *is_build = true;
-                println!("---------------notify_block_ready success---------------------");
+                let mut is_build = self.is_building_block.write().await;
+                *is_build = true;
             } else {
                 log::info!("send tx to_engine error ")
             }
@@ -1128,7 +1121,6 @@ impl Vm {
     }
 
     pub async fn inner_build_block(&self, data: Vec<u8>) -> io::Result<()> {
-        // self.reset_building_status().await;
         let executor = self.executor.as_ref().unwrap().read().await;
         let aptos_data = serde_json::from_slice::<AptosData>(&data).unwrap();
         let block_tx = serde_json::from_slice::<Vec<Transaction>>(&aptos_data.0).unwrap();
@@ -1181,6 +1173,7 @@ impl Vm {
                 _ => {}
             }
         }
+        self.reset_building_status().await;
         Ok(())
     }
     async fn init_aptos(&mut self) {
@@ -1222,7 +1215,7 @@ impl Vm {
         let service = get_raw_api_service(Arc::new(context));
         self.api_service = Some(service);
         self.core_mempool = Some(Arc::new(RwLock::new(CoreMempool::new(&node_config))));
-        // self.check_pending_tx().await;
+        self.check_pending_tx().await;
         tokio::task::spawn(async move {
             while let Some(request) = mempool_client_receiver.next().await {
                 match request {
