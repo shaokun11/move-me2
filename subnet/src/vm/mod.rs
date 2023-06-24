@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fs, io::{self, Error, ErrorKind}, sync::Arc};
 use std::str::FromStr;
-use std::time::{Duration, Instant};
+use std::time::{Duration};
 use avalanche_types::{
     choices, ids,
     subnet::{self, rpc::snow},
@@ -915,7 +915,7 @@ impl Vm {
                 _ = tokio::time::sleep(check_duration).await;
                 let is_build = shared_self.is_building_block.read().await;
                 if *is_build == false {
-                    let is_ignore = self.is_notify_ignore.read().await;
+                    let is_ignore = shared_self.is_notify_ignore.read().await;
                     if *is_ignore == true {
                         shared_self.notify_block_ready().await;
                     }
