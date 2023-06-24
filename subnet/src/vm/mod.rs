@@ -929,7 +929,7 @@ impl Vm {
         {
             // must keep build is finished, otherwise this will cause fork on inner build block
             let is_build = self.is_building_block.read().await;
-            let is_ignore = self.is_notify_ignore.write().await;
+            let mut is_ignore = self.is_notify_ignore.write().await;
             if *is_build == true {
                 if *is_ignore == false {
                     *is_ignore = true;
