@@ -914,8 +914,8 @@ impl Vm {
             loop {
                 _ = tokio::time::sleep(check_duration).await;
                 let is_build = shared_self.is_building_block.read().await;
-                let is_ignore = self.is_notify_ignore.read().await;
                 if *is_build == false {
+                    let is_ignore = self.is_notify_ignore.read().await;
                     if *is_ignore == true {
                         shared_self.notify_block_ready().await;
                     }
@@ -937,6 +937,7 @@ impl Vm {
                 return;
             } else {
                 if *is_ignore == true {
+                    // we will build block, so update this flag
                     *is_ignore = false;
                 }
             }
