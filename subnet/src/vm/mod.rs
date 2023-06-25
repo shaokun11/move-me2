@@ -134,8 +134,9 @@ pub struct Vm {
 
     pub executor: Option<Arc<RwLock<BlockExecutor<AptosVM, Transaction>>>>,
 
-    pub is_building_block: Arc<RwLock<bool>>,
-    pub is_notify_ignore: Arc<RwLock<bool>>,
+    pub build_status: Arc<RwLock<u8>>,
+    // 0 done 1 building
+    pub has_pending_tx: Arc<RwLock<bool>>,
 
 }
 
@@ -160,8 +161,8 @@ impl Vm {
             signer: None,
             executor: None,
             db: None,
-            is_building_block: Arc::new(RwLock::new(false)),
-            is_notify_ignore: Arc::new(RwLock::new(false)),
+            build_status: Arc::new(RwLock::new(0)),
+            has_pending_tx: Arc::new(RwLock::new(false)),
         }
     }
 
@@ -909,52 +910,84 @@ impl Vm {
 
     async fn check_pending_tx(&self) {
         let shared_self = Arc::new(self.clone());
-        let check_duration = Duration::from_millis(500);
-        tokio::task::spawn(async move {
+        let check_duration = Duration::from_millis(2000);
+        tokio::spawn(async move {
             loop {
                 _ = tokio::time::sleep(check_duration).await;
-                let is_build = shared_self.is_building_block.read().await;
-                if *is_build == false {
-                    let is_ignore = shared_self.is_notify_ignore.read().await;
-                    if *is_ignore == true {
-                        shared_self.notify_block_ready().await;
+                let status = shared_self.build_status.try_read();
+                match status {
+                    Ok(s_) => {
+                        let s = s_.clone();
+                        drop(s_);
+                        if let 0 = s {
+                            let more = shared_self.has_pending_tx.try_read();
+                            match more {
+                                Ok(t_) => {
+                                    let t = t_.clone();
+                                    drop(t_);
+                                    if t == true {
+                                        shared_self.update_pending_tx_flag(false).await;
+                                        shared_self.notify_block_ready2().await;
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
                     }
+                    _ => {}
                 }
             }
         });
     }
 
-
-    async fn notify_block_ready(&self) {
-        {
-            // must keep build is finished, otherwise this will cause fork on inner build block
-            let is_build = self.is_building_block.read().await;
-            let mut is_ignore = self.is_notify_ignore.write().await;
-            if *is_build == true {
-                if *is_ignore == false {
-                    *is_ignore = true;
-                }
-                return;
-            } else {
-                if *is_ignore == true {
-                    // we will build block, so update this flag
-                    *is_ignore = false;
-                }
-            }
+    async fn update_build_block_status(&self, s: u8) {
+        let mut status = self.build_status.write().await;
+        if *status != s {
+            *status = s;
         }
+    }
+
+    async fn update_pending_tx_flag(&self, n: bool) {
+        let mut tx = self.has_pending_tx.write().await;
+        if *tx != n {
+            *tx = n;
+        }
+    }
+
+    async fn notify_block_ready2(&self) {
         if let Some(to_engine) = &self.to_engine {
             let send_result = {
                 let to_engine = to_engine.read().await;
                 to_engine.send(PendingTxs).await
             };
             if send_result.is_ok() {
-                let mut is_build = self.is_building_block.write().await;
-                *is_build = true;
+                self.update_build_block_status(1).await;
             } else {
                 log::info!("send tx to_engine error ")
             }
         } else {
             log::info!("send tx to_engine error ")
+        }
+    }
+
+    async fn notify_block_ready(&self) {
+        let status_ = self.build_status.read().await;
+        let tx_ = self.has_pending_tx.read().await;
+        let status = status_.clone();
+        let tx = tx_.clone();
+        drop(tx_);
+        drop(status_);
+        match status {
+            1 => { // building
+                if tx == false {
+                    self.update_pending_tx_flag(true).await;
+                } else {
+                }
+            }
+            0 => {// done
+                self.notify_block_ready2().await;
+            }
+            _ => {}
         }
     }
 
@@ -1116,10 +1149,6 @@ impl Vm {
         )
     }
 
-    async fn reset_building_status(&self) {
-        let mut is_build = self.is_building_block.write().await;
-        *is_build = false;
-    }
 
     pub async fn inner_build_block(&self, data: Vec<u8>) -> io::Result<()> {
         let executor = self.executor.as_ref().unwrap().read().await;
@@ -1174,9 +1203,10 @@ impl Vm {
                 _ => {}
             }
         }
-        self.reset_building_status().await;
+        self.update_build_block_status(0).await;
         Ok(())
     }
+
     async fn init_aptos(&mut self) {
         let (genesis, validators) = test_genesis_change_set_and_validators(Some(1));
         let signer = ValidatorSigner::new(
