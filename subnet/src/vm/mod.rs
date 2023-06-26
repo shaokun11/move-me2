@@ -899,6 +899,7 @@ impl Vm {
                           0,
                           signed_transaction.clone().sequence_number(),
                           TimelineState::NonQualified);
+        drop(core_pool);
     }
     async fn get_pending_tx(&self, count: u64) -> Vec<SignedTransaction> {
         let core_pool = self.core_mempool.as_ref().unwrap().read().await;
@@ -1204,6 +1205,7 @@ impl Vm {
                 _ => {}
             }
         }
+        drop(core_pool);
         self.update_build_block_status(0).await;
         Ok(())
     }
@@ -1230,10 +1232,13 @@ impl Vm {
             db = DbReaderWriter::wrap(
                 AptosDB::new_for_test(p.as_str()));
         }
+        println!("------------init ----1----");
         // BLOCK-STM
         // AptosVM::set_concurrency_level_once(2);
         self.db = Some(Arc::new(RwLock::new(db.1.clone())));
         let executor = BlockExecutor::new(db.1.clone());
+        let id = executor.committed_block_id();
+        println!("------------init block id {}----", id);
         self.executor = Some(Arc::new(RwLock::new(executor)));
 
         let (mempool_client_sender,
