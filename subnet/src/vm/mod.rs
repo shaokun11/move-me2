@@ -962,6 +962,7 @@ impl Vm {
             };
             if send_result.is_ok() {
                 self.update_build_block_status(1).await;
+                println!("----------notify_block_ready----success------------------");
             } else {
                 log::info!("send tx to_engine error ")
             }
@@ -981,8 +982,8 @@ impl Vm {
             1 => { // building
                 if tx == false {
                     self.update_pending_tx_flag(true).await;
-                } else {
-                }
+                } else {}
+                println!("----------notify_block_ready----ignore------------------");
             }
             0 => {// done
                 self.notify_block_ready2().await;
