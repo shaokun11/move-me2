@@ -1232,13 +1232,10 @@ impl Vm {
             db = DbReaderWriter::wrap(
                 AptosDB::new_for_test(p.as_str()));
         }
-        println!("------------init ----1----");
         // BLOCK-STM
         // AptosVM::set_concurrency_level_once(2);
         self.db = Some(Arc::new(RwLock::new(db.1.clone())));
         let executor = BlockExecutor::new(db.1.clone());
-        let id = executor.committed_block_id();
-        println!("------------init block id {}----", id);
         self.executor = Some(Arc::new(RwLock::new(executor)));
 
         let (mempool_client_sender,
