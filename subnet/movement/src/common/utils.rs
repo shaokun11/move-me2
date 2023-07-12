@@ -438,7 +438,6 @@ pub async fn fund_pub_key(
         "{}v1/mint?&pub_key={}",
         faucet_url, pub_key
     );
-    println!("---fund_pub_key url {}", url);
     let response = reqwest::Client::new()
         .post(url)
         .body("{}")
