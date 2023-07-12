@@ -210,8 +210,9 @@ impl Block {
 
     /// Mark this [`Block`](Block) accepted and updates [`State`](crate::state::State) accordingly.
     pub async fn accept(&mut self) -> io::Result<()> {
+        log::info!(">>>>>>>>>> accept inner build block start >>>>>>>>>>");
         self.inner_build().await?;
-        println!("-----accept----1---");
+        log::info!("<<<<<<<<<< accept outer block height {} <<<<<<<<<", self.height);
         self.set_status(choices::status::Status::Accepted);
         // only decided blocks are persistent -- no reorg
         self.state.write_block(&self.clone()).await?;
