@@ -7,6 +7,6 @@
 /// Non-cryptograhic hashes:
 module aptos_std::evm {
 
-    public native fun block_chainid(): u256;
+    public native fun chain_id(): u256;
 
 }
