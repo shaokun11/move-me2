@@ -11,6 +11,7 @@ pub mod cryptography;
 pub mod debug;
 pub mod event;
 pub mod hash;
+pub mod evm;
 mod helpers;
 pub mod object;
 pub mod state_storage;
@@ -46,6 +47,7 @@ pub struct GasParameters {
     pub secp256k1: cryptography::secp256k1::GasParameters,
     pub ristretto255: cryptography::ristretto255::GasParameters,
     pub hash: hash::GasParameters,
+    pub evm: evm::GasParameters,
     pub type_info: type_info::GasParameters,
     pub util: util::GasParameters,
     pub transaction_context: transaction_context::GasParameters,
@@ -181,6 +183,11 @@ impl GasParameters {
                 scalar_sub: 0.into(),
                 point_parse_arg: 0.into(),
                 scalar_parse_arg: 0.into(),
+            },
+            evm: evm::GasParameters {
+                chain_id: evm::ChainIdGasParameters {
+                    base: 0.into()
+                },
             },
             hash: hash::GasParameters {
                 sip_hash: hash::SipHashGasParameters {
@@ -351,6 +358,10 @@ pub fn all_natives(
     add_natives_from_module!(
         "aptos_hash",
         hash::make_all(gas_params.hash, timed_features.clone(), features.clone())
+    );
+    add_natives_from_module!(
+        "evm",
+        evm::make_all(gas_params.evm, timed_features.clone(), features.clone())
     );
     add_natives_from_module!(
         "ristretto255",
