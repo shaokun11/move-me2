@@ -1,6 +1,8 @@
 // Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
+use std::collections::vec_deque::VecDeque;
+use std::sync::Arc;
 use crate::{
     natives::helpers::{make_safe_native, SafeNativeContext, SafeNativeResult},
     safely_assert_eq, safely_pop_arg,
@@ -12,6 +14,7 @@ use move_vm_types::{loaded_data::runtime_types::Type, values::Value};
 use ripemd::Digest as OtherDigest;
 use sha2::Digest;
 use smallvec::{smallvec, SmallVec};
+use move_core_types::account_address::AccountAddress;
 
 /***************************************************************************************************
  * native fun sip_hash
@@ -35,8 +38,9 @@ fn native_address_to_vector(
     debug_assert!(_ty_args.is_empty());
     debug_assert!(args.len() == 1);
     context.charge(gas_params.base)?;
-    let bytes = safely_pop_arg!(args, Vec<u8>);
-    Ok(smallvec![Value::vector_u8(bytes)])
+    println!("call native_address_to_vector");
+    let bytes = safely_pop_arg!(args, AccountAddress);
+    Ok(smallvec![Value::vector_u8(bytes.to_vec())])
 }
 
 /***************************************************************************************************

@@ -140,7 +140,7 @@ crate::natives::define_gas_parameters_for_natives!(GasParameters, "aptos_framewo
     [.hash.keccak256.base, { 1.. => "hash.keccak256.base" }, 4000 * MUL],
     [.hash.keccak256.per_byte, { 1.. => "hash.keccak256.per_byte" }, 45 * MUL],
 
-    [.evm.address_to_vector.base, "evm.address_to_vector.base", 10 * MUL],
+    [.evm.address_to_vector.base, "evm.address_to_vector.base", 300 * MUL],
 
     [.type_info.type_of.base, "type_info.type_of.base", 300 * MUL],
     // TODO(Gas): the on-chain name is wrong...
