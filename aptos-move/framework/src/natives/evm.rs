@@ -12,8 +12,6 @@ use move_vm_types::{loaded_data::runtime_types::Type, values::Value};
 use ripemd::Digest as OtherDigest;
 use sha2::Digest;
 use smallvec::{smallvec, SmallVec};
-use std::{collections::VecDeque, hash::Hasher, sync::Arc};
-use tiny_keccak::{Hasher as KeccakHasher, Keccak};
 
 /***************************************************************************************************
  * native fun sip_hash
@@ -22,22 +20,23 @@ use tiny_keccak::{Hasher as KeccakHasher, Keccak};
  *
  **************************************************************************************************/
 
+
 #[derive(Debug, Clone)]
-pub struct ChainIdGasParameters {
+pub struct AddressVectorGasParameters {
     pub base: InternalGas,
 }
 
-fn native_chain_id(
-    gas_params: &ChainIdGasParameters,
+fn native_address_to_vector(
+    gas_params: &AddressVectorGasParameters,
     context: &mut SafeNativeContext,
-    mut _ty_args: Vec<Type>,
+    _ty_args: Vec<Type>,
     mut args: VecDeque<Value>,
 ) -> SafeNativeResult<SmallVec<[Value; 1]>> {
     debug_assert!(_ty_args.is_empty());
-    debug_assert!(args.is_empty());
+    debug_assert!(args.len() == 1);
     context.charge(gas_params.base)?;
-    println!("native_chain_id call gas_params.base {} ",gas_params.base,);
-    Ok(smallvec![Value::u256(10)])
+    let bytes = safely_pop_arg!(args, Vec<u8>);
+    Ok(smallvec![Value::vector_u8(bytes)])
 }
 
 /***************************************************************************************************
@@ -46,22 +45,22 @@ fn native_chain_id(
  **************************************************************************************************/
 #[derive(Debug, Clone)]
 pub struct GasParameters {
-    pub chain_id: ChainIdGasParameters,
+    pub address_to_vector: AddressVectorGasParameters,
 }
 
 pub fn make_all(
     gas_params: GasParameters,
     timed_features: TimedFeatures,
     features: Arc<Features>,
-) -> impl Iterator<Item = (String, NativeFunction)> {
+) -> impl Iterator<Item=(String, NativeFunction)> {
     let natives = [
         (
-            "chain_id",
+            "address_to_vector",
             make_safe_native(
-                gas_params.chain_id,
+                gas_params.address_to_vector,
                 timed_features.clone(),
                 features.clone(),
-                native_chain_id,
+                native_address_to_vector,
             ),
         ),
     ];

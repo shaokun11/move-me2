@@ -185,7 +185,7 @@ impl GasParameters {
                 scalar_parse_arg: 0.into(),
             },
             evm: evm::GasParameters {
-                chain_id: evm::ChainIdGasParameters {
+                address_to_vector: evm::AddressVectorGasParameters {
                     base: 0.into()
                 },
             },

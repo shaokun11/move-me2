@@ -125,3 +125,4 @@ run_*
 /aptos-move/framework/aptos-token/doc_template/
 /aptos-move/framework/aptos-token-objects/doc/
 /aptos-move/framework/move-stdlib/doc/
+aptos-move/framework/**/*.md
