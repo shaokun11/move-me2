@@ -38,7 +38,6 @@ fn native_address_to_vector(
     debug_assert!(_ty_args.is_empty());
     debug_assert!(args.len() == 1);
     context.charge(gas_params.base)?;
-    println!("call native_address_to_vector");
     let bytes = safely_pop_arg!(args, AccountAddress);
     Ok(smallvec![Value::vector_u8(bytes.to_vec())])
 }

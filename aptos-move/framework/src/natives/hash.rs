@@ -73,7 +73,6 @@ fn native_keccak256(
     hasher.update(&bytes);
     let mut output = [0u8; 32];
     hasher.finalize(&mut output);
-    println!("native_keccak256 call gas_params.base {} gas_params.per_byte {} ",gas_params.base,gas_params.per_byte);
     Ok(smallvec![Value::vector_u8(output)])
 }
 
