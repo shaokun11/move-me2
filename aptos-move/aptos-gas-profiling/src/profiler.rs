@@ -443,6 +443,10 @@ where
 
         res
     }
+
+    fn execution_gas_used(&self) -> InternalGas {
+        self.base.execution_gas_used()
+    }
 }
 
 fn write_op_type(op: &WriteOp) -> WriteOpType {

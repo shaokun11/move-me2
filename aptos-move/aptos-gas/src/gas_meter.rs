@@ -912,6 +912,11 @@ impl MoveGasMeter for StandardGasMeter {
 
         Ok(())
     }
+
+    #[inline]
+    fn execution_gas_used(&self) -> InternalGas {
+        self.execution_gas_used
+    }
 }
 
 impl AptosGasMeter for StandardGasMeter {
@@ -1002,6 +1007,12 @@ impl AptosGasMeter for StandardGasMeter {
         Ok(())
     }
 
+    fn charge_intrinsic_gas_for_transaction(&mut self, txn_size: NumBytes) -> VMResult<()> {
+        let cost = self.gas_params.txn.calculate_intrinsic_gas(txn_size);
+        self.charge_execution(cost)
+            .map_err(|e| e.finish(Location::Undefined))
+    }
+
     fn io_gas_per_write(&self, key: &StateKey, op: &WriteOp) -> InternalGas {
         self.storage_gas_params.pricing.io_gas_per_write(key, op)
     }
@@ -1022,11 +1033,5 @@ impl AptosGasMeter for StandardGasMeter {
         self.gas_params
             .txn
             .storage_fee_for_transaction_storage(txn_size)
-    }
-
-    fn charge_intrinsic_gas_for_transaction(&mut self, txn_size: NumBytes) -> VMResult<()> {
-        let cost = self.gas_params.txn.calculate_intrinsic_gas(txn_size);
-        self.charge_execution(cost)
-            .map_err(|e| e.finish(Location::Undefined))
     }
 }

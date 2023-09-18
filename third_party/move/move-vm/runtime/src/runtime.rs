@@ -41,7 +41,7 @@ pub(crate) struct VMRuntime {
 
 impl VMRuntime {
     pub(crate) fn new(
-        natives: impl IntoIterator<Item = (AccountAddress, Identifier, Identifier, NativeFunction)>,
+        natives: impl IntoIterator<Item=(AccountAddress, Identifier, Identifier, NativeFunction)>,
         vm_config: VMConfig,
     ) -> PartialVMResult<Self> {
         Ok(VMRuntime {
@@ -93,7 +93,7 @@ impl VMRuntime {
                         "[VM] module deserialization failed".to_string(),
                     )
                     .finish(Location::Undefined));
-            },
+            }
         };
 
         // Make sure all modules' self addresses matches the transaction sender. The self address is
@@ -106,7 +106,7 @@ impl VMRuntime {
                     IndexKind::AddressIdentifier,
                     module.self_handle_idx().0,
                 )
-                .finish(Location::Undefined));
+                    .finish(Location::Undefined));
             }
         }
 
@@ -213,8 +213,8 @@ impl VMRuntime {
                 return Err(PartialVMError::new(
                     StatusCode::INVALID_PARAM_TYPE_FOR_DESERIALIZATION,
                 )
-                .with_message("[VM] failed to get layout from type".to_string()));
-            },
+                    .with_message("[VM] failed to get layout from type".to_string()));
+            }
         };
 
         match Value::simple_deserialize(arg.borrow(), &layout) {
@@ -261,7 +261,7 @@ impl VMRuntime {
                             .enable_invariant_violation_check_in_swap_loc,
                     )?;
                     dummy_locals.borrow_loc(idx)
-                },
+                }
                 _ => self.deserialize_value(&arg_ty, arg_bytes),
             })
             .collect::<PartialVMResult<Vec<_>>>()?;
@@ -282,7 +282,7 @@ impl VMRuntime {
                 })?;
                 let inner_value = ref_value.read_ref()?;
                 (&**inner, inner_value)
-            },
+            }
             _ => (ty, value),
         };
 
@@ -365,7 +365,10 @@ impl VMRuntime {
             extensions,
             &self.loader,
         )?;
-
+        let x = gas_meter.execution_gas_used();
+        if x.to_string() != "18446744073709551615" {
+            println!("execute_function_impl execution_gas_used:{}", x);
+        }
         let serialized_return_values = self
             .serialize_return_values(&return_types, return_values)
             .map_err(|e| e.finish(Location::Undefined))?;

@@ -205,6 +205,7 @@ impl<'b> GasMeter for GasStatus<'b> {
         self.gas_left
     }
 
+
     /// Charge an instruction and fail if not enough gas units are left.
     fn charge_simple_instr(&mut self, instr: SimpleInstruction) -> PartialVMResult<()> {
         self.charge_instr(instr.to_opcode())
@@ -508,6 +509,10 @@ impl<'b> GasMeter for GasStatus<'b> {
         _locals: impl Iterator<Item = impl ValueView>,
     ) -> PartialVMResult<()> {
         Ok(())
+    }
+
+    fn execution_gas_used(&self) -> InternalGas {
+        self.gas_left
     }
 }
 
