@@ -210,9 +210,8 @@ impl Block {
 
     /// Mark this [`Block`](Block) accepted and updates [`State`](crate::state::State) accordingly.
     pub async fn accept(&mut self) -> io::Result<()> {
-        log::info!(">>>>>>>>>> accept inner build block start >>>>>>>>>>");
+        log::info!("accept block height {} ", self.height);
         self.inner_build().await?;
-        log::info!("<<<<<<<<<< accept outer block height {} <<<<<<<<<", self.height);
         self.set_status(choices::status::Status::Accepted);
         // only decided blocks are persistent -- no reorg
         self.state.write_block(&self.clone()).await?;
@@ -232,7 +231,7 @@ impl Block {
     /// Mark this [`Block`](Block) rejected and updates [`State`](crate::state::State) accordingly.
     pub async fn reject(&mut self) -> io::Result<()> {
         self.set_status(choices::status::Status::Rejected);
-        println!("-----reject----1---");
+        log::info!(">>>>>>>>>> reject >>>>>>>>>>");
         // only decided blocks are persistent -- no reorg
         self.state.write_block(&self.clone()).await?;
 

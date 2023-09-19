@@ -1255,7 +1255,6 @@ impl Vm {
                 "block error,maybe not sync ",
             ));
         }
-        println!("------------inner_build_block {}----", block_id);
         let next_epoch = aptos_data.3;
         let ts = aptos_data.4;
         let output = executor
@@ -1388,7 +1387,7 @@ impl ChainVm for Vm
             let prnt_blk = state_b.get_block(&vm_state.preferred).await.unwrap();
             let unix_now = Utc::now().timestamp() as u64;
             let tx_arr = self.get_pending_tx(10000).await;
-            println!("----build_block pool tx count-------{}------", tx_arr.clone().len());
+            log::info!("build_block pool tx count {}", tx_arr.clone().len());
             let executor = self.executor.as_ref().unwrap().read().await;
             let signer = self.signer.as_ref().unwrap();
             let db = self.db.as_ref().unwrap().read().await;
@@ -1428,7 +1427,6 @@ impl ChainVm for Vm
                 choices::status::Status::Processing,
             ).unwrap();
             block_.set_state(state_b.clone());
-            println!("--------vm_build_block------{}---", block_.id());
             block_.verify().await.unwrap();
             return Ok(block_);
         }
@@ -1445,6 +1443,18 @@ impl ChainVm for Vm
             ErrorKind::Unsupported,
             "issue_tx not implemented",
         ))
+    }
+    async fn verify_height_index(&self) -> io::Result<()> {
+        Ok(())
+    }
+
+    // Returns an error as a no-op for now.
+    async fn get_block_id_at_height(&self, _height: u64) -> io::Result<ids::Id> {
+        Err(Error::new(ErrorKind::NotFound, "block id not found"))
+    }
+
+    async fn state_sync_enabled(&self) -> io::Result<bool> {
+        Ok(false)
     }
 
     async fn set_preference(&self, id: ids::Id) -> io::Result<()> {
