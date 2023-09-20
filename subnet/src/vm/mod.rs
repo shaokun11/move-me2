@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fs, io::{self, Error, ErrorKind}, sync::Arc};
 use std::str::FromStr;
-use std::time::{Duration};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use avalanche_types::{
     choices, ids,
     subnet::{self, rpc::snow},
@@ -994,6 +994,7 @@ impl Vm {
         let shared_self = Arc::new(self.clone());
         let check_duration = Duration::from_millis(2000);
         tokio::spawn(async move {
+            let mut last_check_build_time = get_current_time_seconds();
             loop {
                 _ = tokio::time::sleep(check_duration).await;
                 let status = shared_self.build_status.try_read();
@@ -1001,18 +1002,27 @@ impl Vm {
                     Ok(s_) => {
                         let s = s_.clone();
                         drop(s_);
-                        if let 0 = s {
+                        if s == 0 { // build finished
+                            last_check_build_time = get_current_time_seconds();
                             let more = shared_self.has_pending_tx.try_read();
                             match more {
                                 Ok(t_) => {
                                     let t = t_.clone();
                                     drop(t_);
                                     if t == true {
+                                        // build finished but the memory pool still has pending transactions
                                         shared_self.update_pending_tx_flag(false).await;
                                         shared_self.notify_block_ready2().await;
                                     }
                                 }
                                 _ => {}
+                            }
+                        } else { // still pending
+                            let now = get_current_time_seconds();
+                            if (now - last_check_build_time) > 120 { // 120s
+                                // timeout for build, we can send more pending tx to the engine
+                                shared_self.update_build_block_status(0).await;
+                                last_check_build_time = get_current_time_seconds();
                             }
                         }
                     }
@@ -1044,7 +1054,7 @@ impl Vm {
             };
             if send_result.is_ok() {
                 self.update_build_block_status(1).await;
-                println!("----------notify_block_ready----success------------------");
+                log::info!("notify_block_ready:success");
             } else {
                 log::info!("send tx to_engine error ")
             }
@@ -1065,7 +1075,7 @@ impl Vm {
                 if tx == false {
                     self.update_pending_tx_flag(true).await;
                 } else {}
-                println!("----------notify_block_ready----ignore------------------");
+                log::info!("notify_block_ready ignore");
             }
             0 => {// done
                 self.notify_block_ready2().await;
@@ -1387,7 +1397,17 @@ impl ChainVm for Vm
             let prnt_blk = state_b.get_block(&vm_state.preferred).await.unwrap();
             let unix_now = Utc::now().timestamp() as u64;
             let tx_arr = self.get_pending_tx(10000).await;
-            log::info!("build_block pool tx count {}", tx_arr.clone().len());
+            let len = tx_arr.clone().len();
+            log::info!("build_block pool tx count {}",len );
+            // now we allow to build empty block
+            // if len == 0 {
+            //     self.update_build_block_status(0).await;
+            //     self.update_pending_tx_flag(false).await;
+            //     return Err(Error::new(
+            //         ErrorKind::Other,
+            //         "no pending transaction found",
+            //     ));
+            // }
             let executor = self.executor.as_ref().unwrap().read().await;
             let signer = self.signer.as_ref().unwrap();
             let db = self.db.as_ref().unwrap().read().await;
@@ -1728,4 +1748,11 @@ impl CommonVm for Vm
 
         Ok(handlers)
     }
+}
+
+fn get_current_time_seconds() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("Failed to get timestamp")
+        .as_secs()
 }
