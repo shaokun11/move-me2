@@ -1267,23 +1267,28 @@ impl Vm {
         }
         let next_epoch = aptos_data.3;
         let ts = aptos_data.4;
-        let output = executor
-            .execute_block((block_id, block_tx.clone()), parent_block_id)
-            .unwrap();
-        let ledger_info = LedgerInfo::new(
-            BlockInfo::new(
-                next_epoch,
-                0,
-                block_id,
-                output.root_hash(),
-                output.version(),
-                ts,
-                output.epoch_state().clone(),
-            ),
-            HashValue::zero(),
-        );
-        let li = generate_ledger_info_with_sig(&[self.signer.as_ref().unwrap().clone()], ledger_info);
-        executor.commit_blocks(vec![block_id], li.clone()).unwrap();
+        match executor
+            .execute_block((block_id, block_tx.clone()), parent_block_id) {
+            Ok(output) => {
+                let ledger_info = LedgerInfo::new(
+                    BlockInfo::new(
+                        next_epoch,
+                        0,
+                        block_id,
+                        output.root_hash(),
+                        output.version(),
+                        ts,
+                        output.epoch_state().clone(),
+                    ),
+                    HashValue::zero(),
+                );
+                let li = generate_ledger_info_with_sig(&[self.signer.as_ref().unwrap().clone()], ledger_info);
+                executor.commit_blocks(vec![block_id], li.clone()).unwrap();
+            }
+            Err(err) => {
+                log::info!("inner build error {}", err);
+            }
+        }
         let mut core_pool = self.core_mempool.as_ref().unwrap().write().await;
         for t in block_tx.iter() {
             match t {

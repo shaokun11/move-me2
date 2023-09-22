@@ -88,7 +88,7 @@ pub fn convert_prologue_error(
 				location, code, category, reason),
 		    );
                     return Err(VMStatus::Error(
-                        StatusCode::UNEXPECTED_ERROR_FROM_KNOWN_MOVE_FUNCTION,
+                        StatusCode::REJECTED_WRITE_SET,
                         None,
                     ));
                 },
@@ -125,7 +125,7 @@ pub fn convert_prologue_error(
 				location, code, category, reason),
                     );
                     return Err(VMStatus::Error(
-                        StatusCode::UNEXPECTED_ERROR_FROM_KNOWN_MOVE_FUNCTION,
+                        StatusCode::REJECTED_WRITE_SET,
                         None,
                     ));
                 },
@@ -137,7 +137,7 @@ pub fn convert_prologue_error(
                 log_context,
                 format!("[aptos_vm] Unexpected prologue error: {:?}", status),
             );
-            VMStatus::Error(StatusCode::UNEXPECTED_ERROR_FROM_KNOWN_MOVE_FUNCTION, None)
+            VMStatus::Error(StatusCode::REJECTED_WRITE_SET, None)
         },
     })
 }
@@ -162,7 +162,7 @@ pub fn convert_epilogue_error(
                 format!("[aptos_vm] Unexpected success epilogue Move abort: {:?}::{:?} (Category: {:?} Reason: {:?})",
 			location, code, category, reason),
             );
-            VMStatus::Error(StatusCode::UNEXPECTED_ERROR_FROM_KNOWN_MOVE_FUNCTION, None)
+            VMStatus::Error(StatusCode::REJECTED_WRITE_SET, None)
         },
 
         VMStatus::MoveAbort(location, code) => match error_split(code) {
@@ -173,7 +173,7 @@ pub fn convert_epilogue_error(
                     format!("[aptos_vm] Unexpected success epilogue Move abort: {:?}::{:?} (Category: {:?} Reason: {:?})",
 			    location, code, category, reason),
                 );
-                VMStatus::Error(StatusCode::UNEXPECTED_ERROR_FROM_KNOWN_MOVE_FUNCTION, None)
+                VMStatus::Error(StatusCode::REJECTED_WRITE_SET, None)
             },
         },
 
@@ -182,7 +182,7 @@ pub fn convert_epilogue_error(
                 log_context,
                 format!("[aptos_vm] Unexpected success epilogue error: {:?}", status),
             );
-            VMStatus::Error(StatusCode::UNEXPECTED_ERROR_FROM_KNOWN_MOVE_FUNCTION, None)
+            VMStatus::Error(StatusCode::REJECTED_WRITE_SET, None)
         },
     })
 }
@@ -209,7 +209,7 @@ pub fn expect_only_successful_execution(
                     function_name, status
                 ),
             );
-            VMStatus::Error(StatusCode::UNEXPECTED_ERROR_FROM_KNOWN_MOVE_FUNCTION, None)
+            VMStatus::Error(StatusCode::REJECTED_WRITE_SET, None)
         },
     })
 }
