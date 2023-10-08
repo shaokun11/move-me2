@@ -102,7 +102,7 @@ Module providing debug functionality.
 
 
 
-<pre><code><b>fun</b> <a href="debug.md#0x1_debug_format">format</a>&lt;T&gt;(x: &T): <a href="../../move-stdlib/doc/string.md#0x1_string_String">string::String</a>
+<pre><code><b>fun</b> <a href="debug.md#0x1_debug_format">format</a>&lt;T&gt;(x: &T): <a href="..\../move-stdlib\doc\string.md#0x1_string_String">string::String</a>
 </code></pre>
 
 

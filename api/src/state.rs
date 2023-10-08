@@ -215,6 +215,31 @@ impl StateApi {
         )
     }
 
+    pub async fn get_raw_table_item_raw(
+        &self,
+        accept_type: AcceptType,
+        table_handle: Address,
+        table_item_request: RawTableItemRequest,
+        ledger_version: Option<U64>,
+    ) -> BasicResultWith404<MoveValue> {
+        fail_point_poem("endpoint_get_table_item")?;
+
+        if AcceptType::Json == accept_type {
+            return Err(api_forbidden(
+                "Get raw table item",
+                "Only BCS is supported as an AcceptType.",
+            ));
+        }
+        self.context
+            .check_api_output_enabled("Get raw table item", &accept_type)?;
+
+        self.raw_table_item(
+            &accept_type,
+            table_handle,
+            table_item_request,
+            ledger_version,
+        )
+    }
     /// Get raw state value.
     ///
     /// Get a state value at a specific ledger version, identified by the key provided

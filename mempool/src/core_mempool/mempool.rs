@@ -47,7 +47,7 @@ impl Mempool {
     }
 
     /// This function will be called once the transaction has been stored.
-    pub(crate) fn commit_transaction(&mut self, sender: &AccountAddress, sequence_number: u64) {
+    pub fn commit_transaction(&mut self, sender: &AccountAddress, sequence_number: u64) {
         self.transactions
             .commit_transaction(sender, sequence_number);
     }
