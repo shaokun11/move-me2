@@ -20,6 +20,7 @@ async fn test_indexer() {
     let version = swarm.versions().max().unwrap();
     let fullnode_peer_id = swarm
         .add_full_node(&version, NodeConfig::get_default_pfn_config())
+        .await
         .unwrap();
     let validator_peer_id = swarm.validators().next().unwrap().peer_id();
     let _vfn_peer_id = swarm
@@ -38,7 +39,7 @@ async fn test_indexer() {
 
     let client = fullnode.rest_client();
 
-    let mut account1 = swarm.aptos_public_info().random_account();
+    let account1 = swarm.aptos_public_info().random_account();
     let account2 = swarm.aptos_public_info().random_account();
 
     let mut chain_info = swarm.chain_info().into_aptos_public_info();

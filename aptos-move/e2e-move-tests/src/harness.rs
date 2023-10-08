@@ -7,7 +7,8 @@ use aptos::move_tool::MemberId;
 use aptos_cached_packages::aptos_stdlib;
 use aptos_crypto::{ed25519::Ed25519PrivateKey, PrivateKey, Uniform};
 use aptos_framework::{natives::code::PackageMetadata, BuildOptions, BuiltPackage};
-use aptos_gas::{
+use aptos_gas_profiling::TransactionGasLog;
+use aptos_gas_schedule::{
     AptosGasParameters, FromOnChainGasSchedule, InitialGasSchedule, ToOnChainGasSchedule,
 };
 use aptos_language_e2e_tests::{
@@ -17,15 +18,19 @@ use aptos_language_e2e_tests::{
 use aptos_types::{
     access_path::AccessPath,
     account_address::AccountAddress,
-    account_config::{AccountResource, CORE_CODE_ADDRESS},
+    account_config::{AccountResource, CoinStoreResource, CORE_CODE_ADDRESS},
     contract_event::ContractEvent,
     on_chain_config::{FeatureFlag, GasScheduleV2, OnChainConfig},
-    state_store::state_key::StateKey,
+    state_store::{
+        state_key::StateKey,
+        state_value::{StateValue, StateValueMetadata},
+    },
     transaction::{
         EntryFunction, Script, SignedTransaction, TransactionArgument, TransactionOutput,
         TransactionPayload, TransactionStatus,
     },
 };
+use aptos_vm::AptosVM;
 use move_core_types::{
     language_storage::{StructTag, TypeTag},
     move_resource::MoveStructType,
@@ -72,6 +77,15 @@ impl MoveHarness {
         register_package_hooks(Box::new(AptosPackageHooks {}));
         Self {
             executor: FakeExecutor::from_head_genesis(),
+            txn_seq_no: BTreeMap::default(),
+            default_gas_unit_price: DEFAULT_GAS_UNIT_PRICE,
+        }
+    }
+
+    pub fn new_with_executor(executor: FakeExecutor) -> Self {
+        register_package_hooks(Box::new(AptosPackageHooks {}));
+        Self {
+            executor,
             txn_seq_no: BTreeMap::default(),
             default_gas_unit_price: DEFAULT_GAS_UNIT_PRICE,
         }
@@ -164,6 +178,7 @@ impl MoveHarness {
         let output = self.executor.execute_transaction(txn);
         if matches!(output.status(), TransactionStatus::Keep(_)) {
             self.executor.apply_write_set(output.write_set());
+            self.executor.append_events(output.events().to_vec());
         }
         output
     }
@@ -233,6 +248,23 @@ impl MoveHarness {
         let output = self.run_raw(txn);
         assert_success!(output.status().to_owned());
         output.gas_used()
+    }
+
+    /// Runs a transaction with the gas profiler.
+    pub fn evaluate_gas_with_profiler(
+        &mut self,
+        account: &Account,
+        payload: TransactionPayload,
+    ) -> (TransactionGasLog, u64) {
+        let txn = self.create_transaction_payload(account, payload);
+        let (output, gas_log) = self
+            .executor
+            .execute_transaction_with_gas_profiler(txn)
+            .unwrap();
+        if matches!(output.status(), TransactionStatus::Keep(_)) {
+            self.executor.apply_write_set(output.write_set());
+        }
+        (gas_log, output.gas_used())
     }
 
     /// Creates a transaction which runs the specified entry point `fun`. Arguments need to be
@@ -338,6 +370,22 @@ impl MoveHarness {
         output.gas_used()
     }
 
+    pub fn evaluate_publish_gas_with_profiler(
+        &mut self,
+        account: &Account,
+        path: &Path,
+    ) -> (TransactionGasLog, u64) {
+        let txn = self.create_publish_package(account, path, None, |_| {});
+        let (output, gas_log) = self
+            .executor
+            .execute_transaction_with_gas_profiler(txn)
+            .unwrap();
+        if matches!(output.status(), TransactionStatus::Keep(_)) {
+            self.executor.apply_write_set(output.write_set());
+        }
+        (gas_log, output.gas_used())
+    }
+
     /// Runs transaction which publishes the Move Package.
     pub fn publish_package_with_options(
         &mut self,
@@ -394,14 +442,16 @@ impl MoveHarness {
             .run_block_with_metadata(proposer, failed_proposer_indices, txns)
     }
 
-    pub fn read_state_value(&self, state_key: &StateKey) -> Option<Vec<u8>> {
-        self.executor.read_state_value(state_key).and_then(|bytes| {
-            if bytes.is_empty() {
-                None
-            } else {
-                Some(bytes)
-            }
-        })
+    pub fn get_events(&self) -> &[ContractEvent] {
+        self.executor.get_events()
+    }
+
+    pub fn read_state_value(&self, state_key: &StateKey) -> Option<StateValue> {
+        self.executor.read_state_value(state_key)
+    }
+
+    pub fn read_state_value_bytes(&self, state_key: &StateKey) -> Option<Vec<u8>> {
+        self.read_state_value(state_key).map(StateValue::into_bytes)
     }
 
     /// Reads the raw, serialized data of a resource.
@@ -412,7 +462,7 @@ impl MoveHarness {
     ) -> Option<Vec<u8>> {
         let path =
             AccessPath::resource_access_path(*addr, struct_tag).expect("access path in test");
-        self.read_state_value(&StateKey::access_path(path))
+        self.read_state_value_bytes(&StateKey::access_path(path))
     }
 
     /// Reads the resource data `T`.
@@ -428,13 +478,24 @@ impl MoveHarness {
         )
     }
 
+    pub fn read_resource_metadata(
+        &self,
+        addr: &AccountAddress,
+        struct_tag: StructTag,
+    ) -> Option<Option<StateValueMetadata>> {
+        self.read_state_value(&StateKey::access_path(
+            AccessPath::resource_access_path(*addr, struct_tag).expect("access path in test"),
+        ))
+        .map(StateValue::into_metadata)
+    }
+
     pub fn read_resource_group(
         &self,
         addr: &AccountAddress,
         struct_tag: StructTag,
     ) -> Option<BTreeMap<StructTag, Vec<u8>>> {
         let path = AccessPath::resource_group_access_path(*addr, struct_tag);
-        self.read_state_value(&StateKey::access_path(path))
+        self.read_state_value_bytes(&StateKey::access_path(path))
             .map(|data| bcs::from_bytes(&data).unwrap())
     }
 
@@ -455,6 +516,12 @@ impl MoveHarness {
     /// Checks whether resource exists.
     pub fn exists_resource(&self, addr: &AccountAddress, struct_tag: StructTag) -> bool {
         self.read_resource_raw(addr, struct_tag).is_some()
+    }
+
+    pub fn read_aptos_balance(&self, addr: &AccountAddress) -> u64 {
+        self.read_resource::<CoinStoreResource>(addr, CoinStoreResource::struct_tag())
+            .unwrap()
+            .coin()
     }
 
     /// Write the resource data `T`.
@@ -491,7 +558,7 @@ impl MoveHarness {
         // explicitly manipulating gas entries. Wasn't obvious from the gas code how to
         // do this differently then below, so perhaps improve this...
         let entries = AptosGasParameters::initial()
-            .to_on_chain_gas_schedule(aptos_gas::LATEST_GAS_FEATURE_VERSION);
+            .to_on_chain_gas_schedule(aptos_gas_schedule::LATEST_GAS_FEATURE_VERSION);
         let entries = entries
             .into_iter()
             .map(|(name, val)| {
@@ -503,7 +570,7 @@ impl MoveHarness {
             })
             .collect::<Vec<_>>();
         let gas_schedule = GasScheduleV2 {
-            feature_version: aptos_gas::LATEST_GAS_FEATURE_VERSION,
+            feature_version: aptos_gas_schedule::LATEST_GAS_FEATURE_VERSION,
             entries,
         };
         let schedule_bytes = bcs::to_bytes(&gas_schedule).expect("bcs");
@@ -522,6 +589,18 @@ impl MoveHarness {
         self.read_resource::<AccountResource>(addr, AccountResource::struct_tag())
             .unwrap()
             .sequence_number()
+    }
+
+    pub fn modify_gas_schedule_raw(&mut self, modify: impl FnOnce(&mut GasScheduleV2)) {
+        let mut gas_schedule: GasScheduleV2 = self
+            .read_resource(&CORE_CODE_ADDRESS, GasScheduleV2::struct_tag())
+            .unwrap();
+        modify(&mut gas_schedule);
+        self.set_resource(
+            CORE_CODE_ADDRESS,
+            GasScheduleV2::struct_tag(),
+            &gas_schedule,
+        )
     }
 
     pub fn modify_gas_schedule(&mut self, modify: impl FnOnce(&mut AptosGasParameters)) {
@@ -543,6 +622,10 @@ impl MoveHarness {
                 entries: gas_params.to_on_chain_gas_schedule(feature_version),
             },
         );
+    }
+
+    pub fn new_vm(&self) -> AptosVM {
+        AptosVM::new_from_state_view(self.executor.data_store())
     }
 
     pub fn set_default_gas_unit_price(&mut self, gas_unit_price: u64) {

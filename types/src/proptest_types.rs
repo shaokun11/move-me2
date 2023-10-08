@@ -19,8 +19,8 @@ use crate::{
     proof::TransactionInfoListWithProof,
     state_store::{state_key::StateKey, state_value::StateValue},
     transaction::{
-        ChangeSet, ExecutionStatus, Module, ModuleBundle, NoOpChangeSetChecker, RawTransaction,
-        Script, SignatureCheckedTransaction, SignedTransaction, Transaction, TransactionArgument,
+        ChangeSet, ExecutionStatus, Module, ModuleBundle, RawTransaction, Script,
+        SignatureCheckedTransaction, SignedTransaction, Transaction, TransactionArgument,
         TransactionInfo, TransactionListWithProof, TransactionPayload, TransactionStatus,
         TransactionToCommit, Version, WriteSetPayload,
     },
@@ -37,6 +37,7 @@ use aptos_crypto::{
     traits::*,
     HashValue,
 };
+use arr_macro::arr;
 use move_core_types::language_storage::TypeTag;
 use proptest::{
     collection::{vec, SizeRange},
@@ -107,7 +108,7 @@ impl Arbitrary for ChangeSet {
 
     fn arbitrary_with(_args: ()) -> Self::Strategy {
         (any::<WriteSet>(), vec(any::<ContractEvent>(), 0..10))
-            .prop_map(|(ws, events)| ChangeSet::new(ws, events, &NoOpChangeSetChecker).unwrap())
+            .prop_map(|(ws, events)| ChangeSet::new(ws, events))
             .boxed()
     }
 }
@@ -298,7 +299,7 @@ impl RawTransactionGen {
         sender_index: Index,
         universe: &mut AccountInfoUniverse,
     ) -> RawTransaction {
-        let mut sender_info = universe.get_account_info_mut(sender_index);
+        let sender_info = universe.get_account_info_mut(sender_index);
 
         let sequence_number = sender_info.sequence_number;
         sender_info.sequence_number += 1;
@@ -621,6 +622,7 @@ pub struct ContractEventGen {
     type_tag: TypeTag,
     payload: Vec<u8>,
     use_sent_key: bool,
+    use_event_v2: bool,
 }
 
 impl ContractEventGen {
@@ -630,16 +632,20 @@ impl ContractEventGen {
         universe: &mut AccountInfoUniverse,
     ) -> ContractEvent {
         let account_info = universe.get_account_info_mut(account_index);
-        let event_handle = if self.use_sent_key {
-            &mut account_info.sent_event_handle
+        if self.use_event_v2 {
+            ContractEvent::new_v2(self.type_tag, self.payload)
         } else {
-            &mut account_info.received_event_handle
-        };
-        let sequence_number = event_handle.count();
-        *event_handle.count_mut() += 1;
-        let event_key = event_handle.key();
+            let event_handle = if self.use_sent_key {
+                &mut account_info.sent_event_handle
+            } else {
+                &mut account_info.received_event_handle
+            };
+            let sequence_number = event_handle.count();
+            *event_handle.count_mut() += 1;
+            let event_key = event_handle.key();
 
-        ContractEvent::new(*event_key, sequence_number, self.type_tag, self.payload)
+            ContractEvent::new_v1(*event_key, sequence_number, self.type_tag, self.payload)
+        }
     }
 }
 
@@ -725,7 +731,7 @@ impl ContractEvent {
             vec(any::<u8>(), 1..10),
         )
             .prop_map(|(event_key, seq_num, type_tag, event_data)| {
-                ContractEvent::new(event_key, seq_num, type_tag, event_data)
+                ContractEvent::new_v1(event_key, seq_num, type_tag, event_data)
             })
     }
 }
@@ -807,10 +813,15 @@ impl TransactionToCommitGen {
                     })
             })
             .unzip();
+        let mut sharded_state_updates = arr![HashMap::new(); 16];
+        state_updates.into_iter().for_each(|(k, v)| {
+            sharded_state_updates[k.get_shard_id() as usize].insert(k, v);
+        });
+
         TransactionToCommit::new(
             Transaction::UserTransaction(transaction),
             TransactionInfo::new_placeholder(self.gas_used, None, self.status),
-            state_updates,
+            sharded_state_updates,
             WriteSetMut::new(write_set).freeze().expect("Cannot fail"),
             events,
             false, /* event_gen never generates reconfig events */
@@ -1124,7 +1135,7 @@ impl BlockGen {
                 Some(HashValue::random()),
                 ExecutionStatus::Success,
             ),
-            HashMap::new(),
+            arr_macro::arr![HashMap::new(); 16],
             WriteSet::default(),
             Vec::new(),
             false,

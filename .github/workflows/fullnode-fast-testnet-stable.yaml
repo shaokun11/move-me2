@@ -6,7 +6,7 @@ name: "fullnode-fast-testnet-stable"
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 0,12 * * *" # At hour 0 and 12 - aka twice a day (UTC)
+    - cron: "30 3 */3 * *" # Once every three days, at 03:30 (UTC)
 
 permissions:
   contents: read
@@ -28,7 +28,7 @@ jobs:
     secrets: inherit
     with:
       TEST_NAME: fullnode-fast-testnet-stable
-      BRANCH: testnet
+      GIT_REF: testnet
       NETWORK: testnet
       BOOTSTRAPPING_MODE: DownloadLatestStates
       CONTINUOUS_SYNCING_MODE: ExecuteTransactions

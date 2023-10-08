@@ -13,7 +13,7 @@ use move_async_vm::{
 use move_binary_format::access::ModuleAccess;
 use move_command_line_common::testing::EXP_EXT;
 use move_compiler::{
-    compiled_unit::CompiledUnit, diagnostics::report_diagnostics_to_buffer,
+    attr_derivation, compiled_unit::CompiledUnit, diagnostics::report_diagnostics_to_buffer,
     shared::NumericalAddress, Compiler, Flags,
 };
 use move_core_types::{
@@ -22,7 +22,8 @@ use move_core_types::{
     ident_str,
     identifier::{IdentStr, Identifier},
     language_storage::{ModuleId, StructTag},
-    resolver::{ModuleResolver, ResourceResolver},
+    metadata::Metadata,
+    resolver::{resource_size, ModuleResolver, ResourceResolver},
 };
 use move_prover_test_utils::{baseline_test::verify_or_update_baseline, extract_test_directives};
 use move_vm_test_utils::gas_schedule::GasStatus;
@@ -348,8 +349,10 @@ impl Harness {
                 .filter(|p| *p != path)
                 .cloned()
                 .collect();
-            let compiler = Compiler::from_files(targets, deps, address_map.clone())
-                .set_flags(Flags::empty().set_flavor("async"));
+            let flags = Flags::empty().set_flavor("async");
+            let known_attributes = attr_derivation::get_known_attributes_for_flavor(&flags);
+            let compiler =
+                Compiler::from_files(targets, deps, address_map.clone(), flags, &known_attributes);
             let (sources, inner) = compiler.build()?;
             match inner {
                 Err(diags) => bail!(
@@ -378,6 +381,10 @@ struct HarnessProxy<'a> {
 }
 
 impl<'a> ModuleResolver for HarnessProxy<'a> {
+    fn get_module_metadata(&self, _module_id: &ModuleId) -> Vec<Metadata> {
+        vec![]
+    }
+
     fn get_module(&self, id: &ModuleId) -> Result<Option<Vec<u8>>, Error> {
         Ok(self
             .harness
@@ -388,18 +395,20 @@ impl<'a> ModuleResolver for HarnessProxy<'a> {
 }
 
 impl<'a> ResourceResolver for HarnessProxy<'a> {
-    fn get_resource(
+    fn get_resource_with_metadata(
         &self,
         address: &AccountAddress,
         typ: &StructTag,
-    ) -> Result<Option<Vec<u8>>, Error> {
+        _metadata: &[Metadata],
+    ) -> anyhow::Result<(Option<Vec<u8>>, usize)> {
         let res = self
             .harness
             .resource_store
             .borrow()
             .get(&(*address, typ.clone()))
             .cloned();
-        Ok(res)
+        let res_size = resource_size(&res);
+        Ok((res, res_size))
     }
 }
 

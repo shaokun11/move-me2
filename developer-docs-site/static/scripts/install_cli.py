@@ -215,13 +215,13 @@ class Installer:
         version: Optional[str] = None,
         force: bool = False,
         accept_all: bool = False,
-        path: Optional[str] = None,
+        bin_dir: Optional[str] = None,
     ) -> None:
         self._version = version
         self._force = force
         self._accept_all = accept_all
+        self._bin_dir = Path(bin_dir).expanduser() if bin_dir else None
 
-        self._bin_dir = None
         self._release_info = None
         self._latest_release_info = None
 
@@ -450,11 +450,15 @@ class Installer:
             )
             return None
 
-        if MACOS:
-            return "MacOSX-x86_64"
-
         if WINDOWS:
             return "Windows-x86_64"
+        
+        if MACOS:
+            sys.stdout.write(
+                colorize("error", "You are trying to install from macOS. Please use brew to install Aptos CLI instead - [brew install aptos]")
+            )
+            self._write("")
+            sys.exit(1)
 
         # On Linux, we check what version of OpenSSL we're working with to figure out
         # which binary to download.
@@ -514,12 +518,17 @@ def main():
         action="store_true",
         default=False,
     )
+    parser.add_argument(
+        "--bin-dir",
+        help="If given, the CLI binary will be downloaded here instead",
+    )
 
     args = parser.parse_args()
 
     installer = Installer(
         force=args.force,
         accept_all=args.accept_all or not is_interactive(),
+        bin_dir=args.bin_dir,
     )
 
     try:

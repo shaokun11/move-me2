@@ -173,6 +173,15 @@ This struct represents an element of a structure <code>S</code>.
 
 
 
+<a name="0x1_crypto_algebra_E_TOO_MUCH_MEMORY_USED"></a>
+
+
+
+<pre><code><b>const</b> <a href="crypto_algebra.md#0x1_crypto_algebra_E_TOO_MUCH_MEMORY_USED">E_TOO_MUCH_MEMORY_USED</a>: u64 = 3;
+</code></pre>
+
+
+
 <a name="0x1_crypto_algebra_eq"></a>
 
 ## Function `eq`
@@ -1719,4 +1728,4 @@ NOTE: some hashing methods do not accept a <code>dst</code> and will abort if a 
 </code></pre>
 
 
-[move-book]: https://aptos.dev/guides/move-guides/book/SUMMARY
+[move-book]: https://aptos.dev/move/book/SUMMARY

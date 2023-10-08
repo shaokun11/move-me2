@@ -1,6 +1,37 @@
 spec aptos_framework::coin {
     spec module {
         pragma verify = true;
+        global supply<CoinType>: num;
+        global aggregate_supply<CoinType>: num;
+        apply TotalSupplyTracked<CoinType> to *<CoinType> except
+            initialize, initialize_internal, initialize_with_parallelizable_supply;
+        apply TotalSupplyNoChange<CoinType> to *<CoinType> except mint,
+            burn, burn_from, initialize, initialize_internal, initialize_with_parallelizable_supply;
+    }
+
+    spec fun spec_fun_supply_tracked<CoinType>(val: u64, supply: Option<OptionalAggregator>): bool {
+        option::spec_is_some(supply) ==> val == optional_aggregator::optional_aggregator_value
+                (option::spec_borrow(supply))
+    }
+
+    spec schema TotalSupplyTracked<CoinType> {
+        ensures old(spec_fun_supply_tracked<CoinType>(supply<CoinType> + aggregate_supply<CoinType>,
+            global<CoinInfo<CoinType>>(type_info::type_of<CoinType>().account_address).supply)) ==>
+            spec_fun_supply_tracked<CoinType>(supply<CoinType> + aggregate_supply<CoinType>,
+                global<CoinInfo<CoinType>>(type_info::type_of<CoinType>().account_address).supply);
+    }
+
+    spec fun spec_fun_supply_no_change<CoinType>(old_supply: Option<OptionalAggregator>,
+                                                 supply: Option<OptionalAggregator>): bool {
+        option::spec_is_some(old_supply) ==> optional_aggregator::optional_aggregator_value
+            (option::spec_borrow(old_supply)) == optional_aggregator::optional_aggregator_value
+            (option::spec_borrow(supply))
+    }
+
+    spec schema TotalSupplyNoChange<CoinType> {
+        let old_supply = global<CoinInfo<CoinType>>(type_info::type_of<CoinType>().account_address).supply;
+        let post supply = global<CoinInfo<CoinType>>(type_info::type_of<CoinType>().account_address).supply;
+        ensures spec_fun_supply_no_change<CoinType>(old_supply, supply);
     }
 
     spec AggregatableCoin {
@@ -14,6 +45,7 @@ spec aptos_framework::coin {
         modifies global<CoinInfo<CoinType>>(addr);
         aborts_if [abstract] false;
         ensures [abstract] result.value == amount;
+        ensures supply<CoinType> == old(supply<CoinType>) + amount;
     }
 
     /// Get address by reflection.
@@ -49,7 +81,11 @@ spec aptos_framework::coin {
     }
 
     spec is_coin_initialized<CoinType>(): bool {
-        pragma verify = false;
+        aborts_if false;
+    }
+
+    spec is_account_registered<CoinType>(account_addr: address): bool {
+        aborts_if false;
     }
 
     spec fun get_coin_supply_opt<CoinType>(): Option<OptionalAggregator> {
@@ -111,6 +147,7 @@ spec aptos_framework::coin {
         include AbortsIfNotExistCoinInfo<CoinType>;
         aborts_if coin.value == 0;
         include AbortsIfAggregator<CoinType>;
+        ensures supply<CoinType> == old(supply<CoinType>) - coin.value;
     }
 
     spec burn_from<CoinType>(
@@ -130,8 +167,8 @@ spec aptos_framework::coin {
         aborts_if coin_store.coin.value < amount;
 
         let maybe_supply = global<CoinInfo<CoinType>>(addr).supply;
-        let supply = option::spec_borrow(maybe_supply);
-        let value = optional_aggregator::optional_aggregator_value(supply);
+        let supply_aggr = option::spec_borrow(maybe_supply);
+        let value = optional_aggregator::optional_aggregator_value(supply_aggr);
 
         let post post_maybe_supply = global<CoinInfo<CoinType>>(addr).supply;
         let post post_supply = option::spec_borrow(post_maybe_supply);
@@ -145,11 +182,13 @@ spec aptos_framework::coin {
         } else {
             option::spec_is_none(post_maybe_supply)
         };
+        ensures supply<CoinType> == old(supply<CoinType>) - amount;
     }
 
     /// `account_addr` is not frozen.
     spec deposit<CoinType>(account_addr: address, coin: Coin<CoinType>) {
         modifies global<CoinInfo<CoinType>>(account_addr);
+        include DepositAbortsIf<CoinType>;
         ensures global<CoinStore<CoinType>>(account_addr).coin.value == old(global<CoinStore<CoinType>>(account_addr)).coin.value + coin.value;
     }
     spec schema DepositAbortsIf<CoinType> {
@@ -158,6 +197,12 @@ spec aptos_framework::coin {
         let coin_store = global<CoinStore<CoinType>>(account_addr);
         aborts_if !exists<CoinStore<CoinType>>(account_addr);
         aborts_if coin_store.frozen;
+    }
+
+    spec force_deposit<CoinType>(account_addr: address, coin: Coin<CoinType>) {
+        modifies global<CoinStore<CoinType>>(account_addr);
+        aborts_if !exists<CoinStore<CoinType>>(account_addr);
+        ensures global<CoinStore<CoinType>>(account_addr).coin.value == old(global<CoinStore<CoinType>>(account_addr)).coin.value + coin.value;
     }
 
     /// The value of `zero_coin` must be 0.

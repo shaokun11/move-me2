@@ -4,18 +4,18 @@
 use aptos_aggregator::{
     aggregator_extension::{AggregatorData, AggregatorID, AggregatorState},
     delta_change_set::{DeltaOp, DeltaUpdate},
+    resolver::AggregatorResolver,
 };
 use aptos_types::vm_status::VMStatus;
 use better_any::{Tid, TidAble};
 use move_binary_format::errors::Location;
-use move_table_extension::TableResolver;
 use std::{
     cell::RefCell,
     collections::{btree_map, BTreeMap},
 };
 
 /// Represents a single aggregator change.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum AggregatorChange {
     // A value should be written to storage.
     Write(u128),
@@ -38,14 +38,14 @@ pub struct AggregatorChangeSet {
 #[derive(Tid)]
 pub struct NativeAggregatorContext<'a> {
     txn_hash: [u8; 32],
-    pub(crate) resolver: &'a dyn TableResolver,
+    pub(crate) resolver: &'a dyn AggregatorResolver,
     pub(crate) aggregator_data: RefCell<AggregatorData>,
 }
 
 impl<'a> NativeAggregatorContext<'a> {
     /// Creates a new instance of a native aggregator context. This must be
     /// passed into VM session.
-    pub fn new(txn_hash: [u8; 32], resolver: &'a dyn TableResolver) -> Self {
+    pub fn new(txn_hash: [u8; 32], resolver: &'a dyn AggregatorResolver) -> Self {
         Self {
             txn_hash,
             resolver,
@@ -127,7 +127,7 @@ impl AggregatorChangeSet {
                             // `delta1` occurred before `delta2`, therefore we must ensure we merge the latter
                             // one to the initial delta.
                             delta2
-                                .merge_onto(delta1)
+                                .merge_with_previous_delta(delta1)
                                 .map_err(|e| e.finish(Location::Undefined).into_vm_status())?;
                             *entry_mut = Merge(delta2)
                         },
@@ -145,37 +145,24 @@ impl AggregatorChangeSet {
 #[cfg(test)]
 mod test {
     use super::*;
-    use aptos_aggregator::aggregator_extension::aggregator_id_for_test;
-    use claims::assert_matches;
-    use move_table_extension::TableHandle;
-
-    struct EmptyStorage;
-
-    impl TableResolver for EmptyStorage {
-        fn resolve_table_entry(
-            &self,
-            _handle: &TableHandle,
-            _key: &[u8],
-        ) -> Result<Option<Vec<u8>>, anyhow::Error> {
-            Ok(None)
-        }
-    }
+    use aptos_aggregator::{aggregator_id_for_test, AggregatorStore};
+    use claims::{assert_matches, assert_ok};
 
     // All aggregators are initialized deterministically based on their ID,
     // with the following spec.
     //
-    //     +-------+---------------+----------+-----+---------+
-    //     |  key  | storage value |  create  | get | remove  |
-    //     +-------+---------------+----------+-----+---------+
-    //     |  100  |               |   yes    | yes |   yes   |
-    //     |  200  |               |   yes    | yes |         |
-    //     |  300  |               |   yes    |     |   yes   |
-    //     |  400  |               |   yes    |     |         |
-    //     |  500  |               |          | yes |   yes   |
-    //     |  600  |               |          | yes |         |
-    //     |  700  |               |          | yes |         |
-    //     |  800  |               |          |     |   yes   |
-    //     +-------+---------------+----------+-----+---------+
+    //     +-------+---------------+-----------+-----+---------+
+    //     |  key  | storage value |  create   | get | remove  |
+    //     +-------+---------------+-----------+-----+---------+
+    //     |  100  |               |   yes     | yes |   yes   |
+    //     |  200  |               |   yes     | yes |         |
+    //     |  300  |               |   yes     |     |   yes   |
+    //     |  400  |               |   yes     |     |         |
+    //     |  500  |               |           | yes |   yes   |
+    //     |  600  |               |           | yes |         |
+    //     |  700  |               |           | yes |         |
+    //     |  800  |               |           |     |   yes   |
+    //     +-------+---------------+-----------+-----+---------+
     fn test_set_up(context: &NativeAggregatorContext) {
         let mut aggregator_data = context.aggregator_data.borrow_mut();
 
@@ -184,11 +171,23 @@ mod test {
         aggregator_data.create_new_aggregator(aggregator_id_for_test(300), 300);
         aggregator_data.create_new_aggregator(aggregator_id_for_test(400), 400);
 
-        aggregator_data.get_aggregator(aggregator_id_for_test(100), 100);
-        aggregator_data.get_aggregator(aggregator_id_for_test(200), 200);
-        aggregator_data.get_aggregator(aggregator_id_for_test(500), 500);
-        aggregator_data.get_aggregator(aggregator_id_for_test(600), 600);
-        aggregator_data.get_aggregator(aggregator_id_for_test(700), 700);
+        assert_ok!(aggregator_data.get_aggregator(aggregator_id_for_test(100), 100));
+        assert_ok!(aggregator_data.get_aggregator(aggregator_id_for_test(200), 200));
+        aggregator_data
+            .get_aggregator(aggregator_id_for_test(500), 500)
+            .unwrap()
+            .add(150)
+            .unwrap();
+        aggregator_data
+            .get_aggregator(aggregator_id_for_test(600), 600)
+            .unwrap()
+            .add(100)
+            .unwrap();
+        aggregator_data
+            .get_aggregator(aggregator_id_for_test(700), 700)
+            .unwrap()
+            .add(200)
+            .unwrap();
 
         aggregator_data.remove_aggregator(aggregator_id_for_test(100));
         aggregator_data.remove_aggregator(aggregator_id_for_test(300));
@@ -198,19 +197,39 @@ mod test {
 
     #[test]
     fn test_into_change_set() {
-        let context = NativeAggregatorContext::new([0; 32], &EmptyStorage);
-        use AggregatorChange::*;
+        let resolver = AggregatorStore::default();
+        let context = NativeAggregatorContext::new([0; 32], &resolver);
 
         test_set_up(&context);
         let AggregatorChangeSet { changes } = context.into_change_set();
 
         assert!(!changes.contains_key(&aggregator_id_for_test(100)));
-        assert_matches!(changes.get(&aggregator_id_for_test(200)).unwrap(), Write(0));
+        assert_matches!(
+            changes.get(&aggregator_id_for_test(200)).unwrap(),
+            AggregatorChange::Write(0)
+        );
         assert!(!changes.contains_key(&aggregator_id_for_test(300)));
-        assert_matches!(changes.get(&aggregator_id_for_test(400)).unwrap(), Write(0));
-        assert_matches!(changes.get(&aggregator_id_for_test(500)).unwrap(), Delete);
-        assert!(changes.contains_key(&aggregator_id_for_test(600)));
-        assert!(changes.contains_key(&aggregator_id_for_test(700)));
-        assert_matches!(changes.get(&aggregator_id_for_test(800)).unwrap(), Delete);
+        assert_matches!(
+            changes.get(&aggregator_id_for_test(400)).unwrap(),
+            AggregatorChange::Write(0)
+        );
+        assert_matches!(
+            changes.get(&aggregator_id_for_test(500)).unwrap(),
+            AggregatorChange::Delete
+        );
+        let delta_100 = DeltaOp::new(DeltaUpdate::Plus(100), 600, 100, 0);
+        assert_eq!(
+            *changes.get(&aggregator_id_for_test(600)).unwrap(),
+            AggregatorChange::Merge(delta_100)
+        );
+        let delta_200 = DeltaOp::new(DeltaUpdate::Plus(200), 700, 200, 0);
+        assert_eq!(
+            *changes.get(&aggregator_id_for_test(700)).unwrap(),
+            AggregatorChange::Merge(delta_200)
+        );
+        assert_matches!(
+            changes.get(&aggregator_id_for_test(800)).unwrap(),
+            AggregatorChange::Delete
+        );
     }
 }

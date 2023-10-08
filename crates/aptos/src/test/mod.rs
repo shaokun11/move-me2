@@ -12,17 +12,18 @@ use crate::{
     common::{
         init::{InitTool, Network},
         types::{
-            account_address_from_public_key, AccountAddressWrapper, ArgWithTypeVec, CliError,
-            CliTypedResult, EncodingOptions, EntryFunctionArguments, FaucetOptions, GasOptions,
-            KeyType, MoveManifestAccountWrapper, MovePackageDir, OptionalPoolAddressArgs,
-            PoolAddressArgs, PrivateKeyInputOptions, PromptOptions, PublicKeyInputOptions,
-            RestOptions, RngArgs, SaveFile, TransactionOptions, TransactionSummary,
+            account_address_from_public_key, AccountAddressWrapper, ArgWithTypeVec,
+            AuthenticationKeyInputOptions, CliError, CliTypedResult, EncodingOptions,
+            EntryFunctionArguments, FaucetOptions, GasOptions, KeyType, MoveManifestAccountWrapper,
+            MovePackageDir, OptionalPoolAddressArgs, PoolAddressArgs, PrivateKeyInputOptions,
+            PromptOptions, PublicKeyInputOptions, RestOptions, RngArgs, SaveFile,
+            ScriptFunctionArguments, TransactionOptions, TransactionSummary, TypeArgVec,
         },
         utils::write_to_file,
     },
     governance::{
-        CompileScriptFunction, ProposalSubmissionSummary, SubmitProposal, SubmitVote,
-        VerifyProposal, VerifyProposalResponse,
+        CompileScriptFunction, ProposalSubmissionSummary, SubmitProposal, SubmitProposalArgs,
+        SubmitVote, SubmitVoteArgs, VerifyProposal, VerifyProposalResponse,
     },
     move_tool::{
         ArgWithType, CompilePackage, DownloadPackage, FrameworkPackageArgs, IncludedArtifacts,
@@ -223,7 +224,7 @@ impl CliTestFramework {
     pub async fn fund_account(&self, index: usize, amount: Option<u64>) -> CliTypedResult<String> {
         FundWithFaucet {
             profile_options: Default::default(),
-            account: self.account_id(index),
+            account: Some(self.account_id(index)),
             faucet_options: self.faucet_options(),
             amount: amount.unwrap_or(DEFAULT_FUNDED_COINS),
             rest_options: self.rest_options(),
@@ -241,6 +242,7 @@ impl CliTestFramework {
             rest_options: self.rest_options(),
             encoding_options: Default::default(),
             profile_options: Default::default(),
+            authentication_key_options: AuthenticationKeyInputOptions::from_public_key(public_key),
         }
         .execute()
         .await
@@ -310,22 +312,25 @@ impl CliTestFramework {
     ) -> CliTypedResult<TransactionSummary> {
         RunFunction {
             entry_function_args: EntryFunctionArguments {
-                function_id: MemberId {
+                function_id: Some(MemberId {
                     module_id: ModuleId::new(AccountAddress::ONE, ident_str!("coin").into()),
                     member_id: ident_str!("transfer").into(),
-                },
+                }),
                 arg_vec: ArgWithTypeVec {
                     args: vec![
                         ArgWithType::from_str("address:0xdeadbeefcafebabe").unwrap(),
                         ArgWithType::from_str(&format!("u64:{}", amount)).unwrap(),
                     ],
                 },
-                type_args: vec![MoveType::Struct(MoveStructTag::new(
-                    AccountAddress::ONE.into(),
-                    ident_str!("aptos_coin").into(),
-                    ident_str!("AptosCoin").into(),
-                    vec![],
-                ))],
+                type_arg_vec: TypeArgVec {
+                    type_args: vec![MoveType::Struct(MoveStructTag::new(
+                        AccountAddress::ONE.into(),
+                        ident_str!("aptos_coin").into(),
+                        ident_str!("AptosCoin").into(),
+                        vec![],
+                    ))],
+                },
+                json_file: None,
             },
             txn_options: self.transaction_options(sender_index, gas_options),
         }
@@ -536,12 +541,15 @@ impl CliTestFramework {
             network: Some(Network::Custom),
             rest_url: Some(self.endpoint.clone()),
             faucet_url: Some(self.faucet_endpoint.clone()),
+            faucet_auth_token: None,
             rng_args: RngArgs::from_seed([0; 32]),
             private_key_options: PrivateKeyInputOptions::from_private_key(private_key)?,
             profile_options: Default::default(),
             prompt_options: PromptOptions::yes(),
             encoding_options: EncodingOptions::default(),
             skip_faucet: false,
+            ledger: false,
+            hardware_wallet_options: Default::default(),
         }
         .execute()
         .await
@@ -587,8 +595,9 @@ impl CliTestFramework {
     ) -> CliTypedResult<TransactionSummary> {
         RunFunction {
             entry_function_args: EntryFunctionArguments {
-                function_id: MemberId::from_str("0x1::staking_contract::create_staking_contract")
-                    .unwrap(),
+                function_id: Some(
+                    MemberId::from_str("0x1::staking_contract::create_staking_contract").unwrap(),
+                ),
                 arg_vec: ArgWithTypeVec {
                     args: vec![
                         ArgWithType::address(self.account_id(operator_index)),
@@ -598,7 +607,8 @@ impl CliTestFramework {
                         ArgWithType::bytes(vec![]),
                     ],
                 },
-                type_args: vec![],
+                type_arg_vec: TypeArgVec { type_args: vec![] },
+                json_file: None,
             },
             txn_options: self.transaction_options(owner_index, None),
         }
@@ -909,12 +919,15 @@ impl CliTestFramework {
         }
 
         RunFunction {
-            txn_options: self.transaction_options(index, gas_options),
             entry_function_args: EntryFunctionArguments {
-                function_id,
+                function_id: Some(function_id),
                 arg_vec: ArgWithTypeVec { args: parsed_args },
-                type_args: parsed_type_args,
+                type_arg_vec: TypeArgVec {
+                    type_args: parsed_type_args,
+                },
+                json_file: None,
             },
+            txn_options: self.transaction_options(index, gas_options),
         }
         .execute()
         .await
@@ -976,8 +989,11 @@ impl CliTestFramework {
                 framework_package_args,
                 bytecode_version: None,
             },
-            arg_vec: ArgWithTypeVec { args: Vec::new() },
-            type_args: Vec::new(),
+            script_function_args: ScriptFunctionArguments {
+                type_arg_vec: TypeArgVec { type_args: vec![] },
+                arg_vec: ArgWithTypeVec { args: vec![] },
+                json_file: None,
+            },
         }
         .execute()
         .await
@@ -1002,8 +1018,11 @@ impl CliTestFramework {
                 },
                 bytecode_version: None,
             },
-            arg_vec: ArgWithTypeVec { args },
-            type_args,
+            script_function_args: ScriptFunctionArguments {
+                type_arg_vec: TypeArgVec { type_args },
+                arg_vec: ArgWithTypeVec { args },
+                json_file: None,
+            },
         }
         .execute()
         .await
@@ -1020,11 +1039,14 @@ impl CliTestFramework {
 
     pub fn move_options(&self, account_strs: BTreeMap<&str, &str>) -> MovePackageDir {
         MovePackageDir {
+            dev: true,
             package_dir: Some(self.move_dir()),
             output_dir: None,
             named_addresses: Self::named_addresses(account_strs),
             skip_fetch_latest_git_deps: true,
             bytecode_version: None,
+            compiler_version: None,
+            skip_attribute_checks: false,
         }
     }
 
@@ -1061,7 +1083,7 @@ impl CliTestFramework {
     }
 
     pub fn faucet_options(&self) -> FaucetOptions {
-        FaucetOptions::new(Some(self.faucet_endpoint.clone()))
+        FaucetOptions::new(Some(self.faucet_endpoint.clone()), None)
     }
 
     fn transaction_options(
@@ -1114,19 +1136,23 @@ impl CliTestFramework {
         is_multi_step: bool,
     ) -> CliTypedResult<ProposalSubmissionSummary> {
         SubmitProposal {
-            metadata_url: Url::parse(metadata_url).unwrap(),
             pool_address_args: PoolAddressArgs { pool_address },
-            txn_options: self.transaction_options(index, None),
-            is_multi_step,
-            compile_proposal_args: CompileScriptFunction {
-                script_path: Some(script_path),
-                compiled_script_path: None,
-                framework_package_args: FrameworkPackageArgs {
-                    framework_git_rev: None,
-                    framework_local_dir: Some(Self::aptos_framework_dir()),
-                    skip_fetch_latest_git_deps: false,
+            args: SubmitProposalArgs {
+                #[cfg(feature = "no-upload-proposal")]
+                metadata_path: None,
+                metadata_url: Url::parse(metadata_url).unwrap(),
+                txn_options: self.transaction_options(index, None),
+                is_multi_step,
+                compile_proposal_args: CompileScriptFunction {
+                    script_path: Some(script_path),
+                    compiled_script_path: None,
+                    framework_package_args: FrameworkPackageArgs {
+                        framework_git_rev: None,
+                        framework_local_dir: Some(Self::aptos_framework_dir()),
+                        skip_fetch_latest_git_deps: false,
+                    },
+                    bytecode_version: None,
                 },
-                bytecode_version: None,
             },
         }
         .execute()
@@ -1142,11 +1168,14 @@ impl CliTestFramework {
         pool_addresses: Vec<AccountAddress>,
     ) {
         SubmitVote {
-            proposal_id,
-            yes,
-            no,
             pool_addresses,
-            txn_options: self.transaction_options(index, None),
+            args: SubmitVoteArgs {
+                proposal_id,
+                yes,
+                no,
+                voting_power: None,
+                txn_options: self.transaction_options(index, None),
+            },
         }
         .execute()
         .await

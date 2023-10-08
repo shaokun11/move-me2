@@ -545,6 +545,10 @@ impl<'a> FunctionGenerator<'a> {
                             builtin(YulFunction::Neq, dest, srcs)
                         }
                     },
+
+                    // Unimplemented
+                    Vector => unimplemented!("vector"),
+
                     // Specification or other operations which can be ignored here
                     GetField(_, _, _, _)
                     | GetGlobal(_, _, _)
@@ -613,7 +617,7 @@ impl<'a> FunctionGenerator<'a> {
                 format!("{}", v)
             },
             Constant::Address(a) => {
-                format!("0x{}", a.to_str_radix(16))
+                format!("0x{}", a.expect_numerical().short_str_lossless())
             },
             Constant::ByteArray(_) => "".to_string(),
             Constant::AddressArray(_) => "".to_string(),

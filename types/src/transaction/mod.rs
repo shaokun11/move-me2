@@ -6,11 +6,12 @@ use crate::{
     account_address::AccountAddress,
     block_metadata::BlockMetadata,
     chain_id::ChainId,
-    contract_event::ContractEvent,
+    contract_event::{ContractEvent, FEE_STATEMENT_EVENT_TYPE},
     ledger_info::LedgerInfo,
     proof::{
         accumulator::InMemoryAccumulator, TransactionInfoListWithProof, TransactionInfoWithProof,
     },
+    state_store::ShardedStateUpdates,
     transaction::authenticator::{AccountAuthenticator, TransactionAuthenticator},
     vm_status::{DiscardedVMStatus, KeptVMStatus, StatusCode, StatusType, VMStatus},
     write_set::WriteSet,
@@ -29,12 +30,12 @@ use move_core_types::transaction_argument::convert_txn_args;
 use proptest_derive::Arbitrary;
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::HashMap,
     convert::TryFrom,
     fmt,
     fmt::{Debug, Display, Formatter},
 };
 
+pub mod analyzed_transaction;
 pub mod authenticator;
 mod change_set;
 mod module;
@@ -42,10 +43,8 @@ mod multisig;
 mod script;
 mod transaction_argument;
 
-use crate::state_store::{state_key::StateKey, state_value::StateValue};
-#[cfg(any(test, feature = "fuzzing"))]
-pub use change_set::NoOpChangeSetChecker;
-pub use change_set::{ChangeSet, CheckChangeSet};
+use crate::fee_statement::FeeStatement;
+pub use change_set::ChangeSet;
 pub use module::{Module, ModuleBundle};
 use move_core_types::vm_status::AbortLocation;
 pub use multisig::{ExecutionError, Multisig, MultisigTransactionPayload};
@@ -285,6 +284,63 @@ impl RawTransaction {
         ))
     }
 
+    /// Signs the given fee-payer `RawTransaction`, which is a transaction with secondary
+    /// signers and a gas payer in addition to a sender. The private keys of the sender, the
+    /// secondary signers, and gas payer signer are used to sign the transaction.
+    ///
+    /// The order and length of the secondary keys provided here have to match the order and
+    /// length of the `secondary_signers`.
+    pub fn sign_fee_payer(
+        self,
+        sender_private_key: &Ed25519PrivateKey,
+        secondary_signers: Vec<AccountAddress>,
+        secondary_private_keys: Vec<&Ed25519PrivateKey>,
+        fee_payer_address: AccountAddress,
+        fee_payer_private_key: &Ed25519PrivateKey,
+    ) -> Result<SignatureCheckedTransaction> {
+        let message = RawTransactionWithData::new_fee_payer(
+            self.clone(),
+            secondary_signers.clone(),
+            fee_payer_address,
+        );
+        let sender_signature = sender_private_key.sign(&message)?;
+        let sender_authenticator = AccountAuthenticator::ed25519(
+            Ed25519PublicKey::from(sender_private_key),
+            sender_signature,
+        );
+
+        if secondary_private_keys.len() != secondary_signers.len() {
+            return Err(format_err!(
+                "number of secondary private keys and number of secondary signers don't match"
+            ));
+        }
+        let mut secondary_authenticators = vec![];
+        for priv_key in secondary_private_keys {
+            let signature = priv_key.sign(&message)?;
+            secondary_authenticators.push(AccountAuthenticator::ed25519(
+                Ed25519PublicKey::from(priv_key),
+                signature,
+            ));
+        }
+
+        let fee_payer_signature = fee_payer_private_key.sign(&message)?;
+        let fee_payer_authenticator = AccountAuthenticator::ed25519(
+            Ed25519PublicKey::from(fee_payer_private_key),
+            fee_payer_signature,
+        );
+
+        Ok(SignatureCheckedTransaction(
+            SignedTransaction::new_fee_payer(
+                self,
+                sender_authenticator,
+                secondary_signers,
+                secondary_authenticators,
+                fee_payer_address,
+                fee_payer_authenticator,
+            ),
+        ))
+    }
+
     #[cfg(any(test, feature = "fuzzing"))]
     pub fn multi_sign_for_testing(
         self,
@@ -368,9 +424,26 @@ pub enum RawTransactionWithData {
         raw_txn: RawTransaction,
         secondary_signer_addresses: Vec<AccountAddress>,
     },
+    MultiAgentWithFeePayer {
+        raw_txn: RawTransaction,
+        secondary_signer_addresses: Vec<AccountAddress>,
+        fee_payer_address: AccountAddress,
+    },
 }
 
 impl RawTransactionWithData {
+    pub fn new_fee_payer(
+        raw_txn: RawTransaction,
+        secondary_signer_addresses: Vec<AccountAddress>,
+        fee_payer_address: AccountAddress,
+    ) -> Self {
+        Self::MultiAgentWithFeePayer {
+            raw_txn,
+            secondary_signer_addresses,
+            fee_payer_address,
+        }
+    }
+
     pub fn new_multi_agent(
         raw_txn: RawTransaction,
         secondary_signer_addresses: Vec<AccountAddress>,
@@ -511,6 +584,27 @@ impl SignedTransaction {
         }
     }
 
+    pub fn new_fee_payer(
+        raw_txn: RawTransaction,
+        sender: AccountAuthenticator,
+        secondary_signer_addresses: Vec<AccountAddress>,
+        secondary_signers: Vec<AccountAuthenticator>,
+        fee_payer_address: AccountAddress,
+        fee_payer_signer: AccountAuthenticator,
+    ) -> Self {
+        SignedTransaction {
+            raw_txn,
+            authenticator: TransactionAuthenticator::fee_payer(
+                sender,
+                secondary_signer_addresses,
+                secondary_signers,
+                fee_payer_address,
+                fee_payer_signer,
+            ),
+            size: OnceCell::new(),
+        }
+    }
+
     pub fn new_multisig(
         raw_txn: RawTransaction,
         public_key: MultiEd25519PublicKey,
@@ -556,12 +650,20 @@ impl SignedTransaction {
         self.authenticator.clone()
     }
 
+    pub fn authenticator_ref(&self) -> &TransactionAuthenticator {
+        &self.authenticator
+    }
+
     pub fn sender(&self) -> AccountAddress {
         self.raw_txn.sender
     }
 
     pub fn into_raw_transaction(self) -> RawTransaction {
         self.raw_txn
+    }
+
+    pub fn raw_transaction_ref(&self) -> &RawTransaction {
+        &self.raw_txn
     }
 
     pub fn sequence_number(&self) -> u64 {
@@ -819,17 +921,24 @@ impl TransactionStatus {
         }
     }
 
+    pub fn is_retry(&self) -> bool {
+        match self {
+            TransactionStatus::Discard(_) => false,
+            TransactionStatus::Keep(_) => false,
+            TransactionStatus::Retry => true,
+        }
+    }
+
     pub fn as_kept_status(&self) -> Result<ExecutionStatus> {
         match self {
             TransactionStatus::Keep(s) => Ok(s.clone()),
             _ => Err(format_err!("Not Keep.")),
         }
     }
-}
 
-impl From<VMStatus> for TransactionStatus {
-    fn from(vm_status: VMStatus) -> Self {
+    pub fn from_vm_status(vm_status: VMStatus, charge_invariant_violation: bool) -> Self {
         let status_code = vm_status.status_code();
+        // TODO: keep_or_discard logic should be deprecated from Move repo and refactored into here.
         match vm_status.keep_or_discard() {
             Ok(recorded) => match recorded {
                 KeptVMStatus::MiscellaneousError => {
@@ -837,8 +946,22 @@ impl From<VMStatus> for TransactionStatus {
                 },
                 _ => TransactionStatus::Keep(recorded.into()),
             },
-            Err(code) => TransactionStatus::Discard(code),
+            Err(code) => {
+                if code.status_type() == StatusType::InvariantViolation
+                    && charge_invariant_violation
+                {
+                    TransactionStatus::Keep(ExecutionStatus::MiscellaneousError(Some(code)))
+                } else {
+                    TransactionStatus::Discard(code)
+                }
+            },
         }
+    }
+}
+
+impl From<VMStatus> for TransactionStatus {
+    fn from(vm_status: VMStatus) -> Self {
+        TransactionStatus::from_vm_status(vm_status, true)
     }
 }
 
@@ -1016,6 +1139,16 @@ impl TransactionOutput {
 
         Ok(())
     }
+
+    pub fn try_extract_fee_statement(&self) -> Result<Option<FeeStatement>> {
+        // Look backwards since the fee statement is expected to be the last event.
+        for event in self.events.iter().rev() {
+            if let Some(fee_statement) = event.try_v2_typed(&FEE_STATEMENT_EVENT_TYPE)? {
+                return Ok(Some(fee_statement));
+            }
+        }
+        Ok(None)
+    }
 }
 
 /// `TransactionInfo` is the object we store in the transaction accumulator. It consists of the
@@ -1170,7 +1303,7 @@ impl Display for TransactionInfo {
 pub struct TransactionToCommit {
     transaction: Transaction,
     transaction_info: TransactionInfo,
-    state_updates: HashMap<StateKey, Option<StateValue>>,
+    state_updates: ShardedStateUpdates,
     write_set: WriteSet,
     events: Vec<ContractEvent>,
     is_reconfig: bool,
@@ -1180,7 +1313,7 @@ impl TransactionToCommit {
     pub fn new(
         transaction: Transaction,
         transaction_info: TransactionInfo,
-        state_updates: HashMap<StateKey, Option<StateValue>>,
+        state_updates: ShardedStateUpdates,
         write_set: WriteSet,
         events: Vec<ContractEvent>,
         is_reconfig: bool,
@@ -1212,7 +1345,7 @@ impl TransactionToCommit {
         self.transaction_info = txn_info
     }
 
-    pub fn state_updates(&self) -> &HashMap<StateKey, Option<StateValue>> {
+    pub fn state_updates(&self) -> &ShardedStateUpdates {
         &self.state_updates
     }
 

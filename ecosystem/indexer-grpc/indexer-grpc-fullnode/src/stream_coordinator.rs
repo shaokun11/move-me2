@@ -8,13 +8,15 @@ use crate::{
 };
 use aptos_api::context::Context;
 use aptos_api_types::{AsConverter, Transaction as APITransaction, TransactionOnChainData};
+use aptos_indexer_grpc_utils::{chunk_transactions, constants::MESSAGE_SIZE_LIMIT};
 use aptos_logger::{error, info, sample, sample::SampleRate};
 use aptos_protos::{
     internal::fullnode::v1::{
         transactions_from_node_response, TransactionsFromNodeResponse, TransactionsOutput,
     },
-    transaction::testing1::v1::Transaction as TransactionPB,
+    transaction::v1::Transaction as TransactionPB,
 };
+use aptos_vm::data_cache::AsMoveResolver;
 use std::{
     sync::Arc,
     time::{Duration, SystemTime, UNIX_EPOCH},
@@ -86,24 +88,26 @@ impl IndexerStreamCoordinator {
                 let raw_txns =
                     Self::fetch_raw_txns_with_retries(context.clone(), ledger_version, batch).await;
                 let api_txns = Self::convert_to_api_txns(context, raw_txns).await;
-                api_txns.first().map(record_fetched_transaction_latency);
+                api_txns.last().map(record_fetched_transaction_latency);
                 let pb_txns = Self::convert_to_pb_txns(api_txns);
                 // Wrap in stream response object and send to channel
                 for chunk in pb_txns.chunks(output_batch_size as usize) {
-                    let item = TransactionsFromNodeResponse {
-                        response: Some(transactions_from_node_response::Response::Data(
-                            TransactionsOutput {
-                                transactions: chunk.to_vec(),
+                    for chunk in chunk_transactions(chunk.to_vec(), MESSAGE_SIZE_LIMIT) {
+                        let item = TransactionsFromNodeResponse {
+                            response: Some(transactions_from_node_response::Response::Data(
+                                TransactionsOutput {
+                                    transactions: chunk,
+                                },
+                            )),
+                            chain_id: ledger_chain_id as u32,
+                        };
+                        match transaction_sender.send(Result::<_, Status>::Ok(item)).await {
+                            Ok(_) => {},
+                            Err(_) => {
+                                // Client disconnects.
+                                return Err(Status::aborted("Client disconnected"));
                             },
-                        )),
-                        chain_id: ledger_chain_id as u32,
-                    };
-                    match transaction_sender.send(Result::<_, Status>::Ok(item)).await {
-                        Ok(_) => {},
-                        Err(_) => {
-                            // Client disconnects.
-                            return Err(Status::aborted("Client disconnected"));
-                        },
+                        }
                     }
                 }
                 Ok(pb_txns.last().unwrap().version)
@@ -220,7 +224,8 @@ impl IndexerStreamCoordinator {
         let start_millis = chrono::Utc::now().naive_utc();
 
         let first_version = raw_txns.first().map(|txn| txn.version).unwrap();
-        let resolver = context.move_resolver().unwrap();
+        let state_view = context.latest_state_view().unwrap();
+        let resolver = state_view.as_move_resolver();
         let converter = resolver.as_converter(context.db.clone());
 
         // Enrich data with block metadata

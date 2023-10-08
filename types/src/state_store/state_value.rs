@@ -2,14 +2,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
-    proof::SparseMerkleRangeProof, state_store::state_key::StateKey, transaction::Version,
+    on_chain_config::CurrentTimeMicroseconds, proof::SparseMerkleRangeProof,
+    state_store::state_key::StateKey, transaction::Version,
 };
 use aptos_crypto::{
     hash::{CryptoHash, SPARSE_MERKLE_PLACEHOLDER_HASH},
     HashValue,
 };
 use aptos_crypto_derive::{BCSCryptoHash, CryptoHasher};
-use move_core_types::account_address::AccountAddress;
 use once_cell::sync::OnceCell;
 #[cfg(any(test, feature = "fuzzing"))]
 use proptest::{arbitrary::Arbitrary, prelude::*};
@@ -30,10 +30,30 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 )]
 pub enum StateValueMetadata {
     V0 {
-        payer: AccountAddress,
         deposit: u64,
         creation_time_usecs: u64,
     },
+}
+
+impl StateValueMetadata {
+    pub fn new(deposit: u64, creation_time_usecs: &CurrentTimeMicroseconds) -> Self {
+        Self::V0 {
+            deposit,
+            creation_time_usecs: creation_time_usecs.microseconds,
+        }
+    }
+
+    pub fn deposit(&self) -> u64 {
+        match self {
+            StateValueMetadata::V0 { deposit, .. } => *deposit,
+        }
+    }
+
+    pub fn set_deposit(&mut self, amount: u64) {
+        match self {
+            StateValueMetadata::V0 { deposit, .. } => *deposit = amount,
+        }
+    }
 }
 
 #[derive(Clone, Debug, CryptoHasher)]
@@ -130,6 +150,13 @@ impl StateValue {
     pub fn into_bytes(self) -> Vec<u8> {
         match self.inner {
             StateValueInner::V0(data) | StateValueInner::WithMetadata { data, .. } => data,
+        }
+    }
+
+    pub fn into_metadata(self) -> Option<StateValueMetadata> {
+        match self.inner {
+            StateValueInner::V0(_) => None,
+            StateValueInner::WithMetadata { metadata, .. } => Some(metadata),
         }
     }
 }

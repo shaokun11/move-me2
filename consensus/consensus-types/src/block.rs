@@ -203,6 +203,19 @@ impl Block {
         }
     }
 
+    pub fn new_for_dag(
+        epoch: u64,
+        round: Round,
+        timestamp: u64,
+        payload: Payload,
+        author: Author,
+        failed_authors: Vec<(Round, Author)>,
+    ) -> anyhow::Result<Self> {
+        let block_data =
+            BlockData::new_for_dag(epoch, round, timestamp, payload, author, failed_authors);
+        Self::new_proposal_from_block_data(block_data, &ValidatorSigner::from_int(0))
+    }
+
     pub fn new_proposal(
         payload: Payload,
         round: Round,
@@ -346,13 +359,26 @@ impl Block {
         &self,
         validators: &[AccountAddress],
         txns: Vec<SignedTransaction>,
+        block_gas_limit: Option<u64>,
     ) -> Vec<Transaction> {
-        once(Transaction::BlockMetadata(
-            self.new_block_metadata(validators),
-        ))
-        .chain(txns.into_iter().map(Transaction::UserTransaction))
-        .chain(once(Transaction::StateCheckpoint(self.id)))
-        .collect()
+        if block_gas_limit.is_some() {
+            // After the per-block gas limit change, StateCheckpoint txn
+            // is inserted after block execution
+            once(Transaction::BlockMetadata(
+                self.new_block_metadata(validators),
+            ))
+            .chain(txns.into_iter().map(Transaction::UserTransaction))
+            .collect()
+        } else {
+            // Before the per-block gas limit change, StateCheckpoint txn
+            // is inserted here for compatibility.
+            once(Transaction::BlockMetadata(
+                self.new_block_metadata(validators),
+            ))
+            .chain(txns.into_iter().map(Transaction::UserTransaction))
+            .chain(once(Transaction::StateCheckpoint(self.id)))
+            .collect()
+        }
     }
 
     fn new_block_metadata(&self, validators: &[AccountAddress]) -> BlockMetadata {

@@ -6,7 +6,7 @@ name: "fullnode-execute-devnet-stable"
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 0,12 * * *" # At hour 0 and 12 - aka twice a day (UTC)
+    - cron: "30 1 */3 * *" # Once every three days, at 01:30 (UTC)
 
 permissions:
   contents: read
@@ -28,7 +28,7 @@ jobs:
     secrets: inherit
     with:
       TEST_NAME: fullnode-execute-devnet-stable
-      BRANCH: devnet
+      GIT_REF: devnet
       NETWORK: devnet
       BOOTSTRAPPING_MODE: ExecuteTransactionsFromGenesis
       CONTINUOUS_SYNCING_MODE: ExecuteTransactions

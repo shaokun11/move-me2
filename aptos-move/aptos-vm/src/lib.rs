@@ -106,29 +106,29 @@ mod access_path_cache;
 pub mod counters;
 pub mod data_cache;
 
-#[cfg(feature = "mirai-contracts")]
-pub mod foreign_contracts;
-
-mod adapter_common;
+pub mod adapter_common;
 pub mod aptos_vm;
 mod aptos_vm_impl;
 pub mod block_executor;
-mod delta_state_view;
 mod errors;
 pub mod move_vm_ext;
 pub mod natives;
-pub mod read_write_set_analysis;
+pub mod sharded_block_executor;
 pub mod system_module_names;
+pub mod testing;
 pub mod transaction_metadata;
+mod transaction_validation;
 mod verifier;
 
 pub use crate::aptos_vm::AptosVM;
+use crate::sharded_block_executor::{executor_client::ExecutorClient, ShardedBlockExecutor};
 use aptos_state_view::StateView;
 use aptos_types::{
+    block_executor::partitioner::PartitionedTransactions,
     transaction::{SignedTransaction, Transaction, TransactionOutput, VMValidatorResult},
     vm_status::VMStatus,
 };
-use std::marker::Sync;
+use std::{marker::Sync, sync::Arc};
 pub use verifier::view_function::determine_is_view;
 
 /// This trait describes the VM's validation interfaces.
@@ -152,6 +152,15 @@ pub trait VMExecutor: Send + Sync {
     fn execute_block(
         transactions: Vec<Transaction>,
         state_view: &(impl StateView + Sync),
+        maybe_block_gas_limit: Option<u64>,
+    ) -> Result<Vec<TransactionOutput>, VMStatus>;
+
+    /// Executes a block of transactions using a sharded block executor and returns the results.
+    fn execute_block_sharded<S: StateView + Sync + Send + 'static, E: ExecutorClient<S>>(
+        sharded_block_executor: &ShardedBlockExecutor<S, E>,
+        transactions: PartitionedTransactions,
+        state_view: Arc<S>,
+        maybe_block_gas_limit: Option<u64>,
     ) -> Result<Vec<TransactionOutput>, VMStatus>;
 }
 

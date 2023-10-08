@@ -6,12 +6,12 @@
 
 use crate::{
     boogie_helpers::{
-        boogie_address_blob, boogie_bv_type, boogie_byte_blob, boogie_choice_fun_name,
-        boogie_declare_global, boogie_field_sel, boogie_inst_suffix, boogie_modifies_memory_name,
-        boogie_num_type_base, boogie_reflection_type_info, boogie_reflection_type_is_struct,
-        boogie_reflection_type_name, boogie_resource_memory_name, boogie_spec_fun_name,
-        boogie_spec_var_name, boogie_struct_name, boogie_type, boogie_type_suffix,
-        boogie_type_suffix_bv, boogie_value_blob, boogie_well_formed_expr,
+        boogie_address, boogie_address_blob, boogie_bv_type, boogie_byte_blob,
+        boogie_choice_fun_name, boogie_declare_global, boogie_field_sel, boogie_inst_suffix,
+        boogie_modifies_memory_name, boogie_num_type_base, boogie_reflection_type_info,
+        boogie_reflection_type_is_struct, boogie_reflection_type_name, boogie_resource_memory_name,
+        boogie_spec_fun_name, boogie_spec_var_name, boogie_struct_name, boogie_type,
+        boogie_type_suffix, boogie_type_suffix_bv, boogie_value_blob, boogie_well_formed_expr,
         boogie_well_formed_expr_bv,
     },
     options::BoogieOptions,
@@ -27,15 +27,15 @@ use move_model::{
     code_writer::CodeWriter,
     emit, emitln,
     model::{
-        FieldId, GlobalEnv, Loc, ModuleEnv, ModuleId, NodeId, QualifiedInstId, SpecFunId,
-        SpecVarId, StructId,
+        FieldId, GlobalEnv, Loc, ModuleEnv, ModuleId, NodeId, Parameter, QualifiedInstId,
+        SpecFunId, SpecVarId, StructId,
     },
     pragmas::INTRINSIC_TYPE_MAP,
     symbol::Symbol,
     ty::{PrimitiveType, Type},
     well_known::{TYPE_INFO_SPEC, TYPE_NAME_GET_SPEC, TYPE_NAME_SPEC, TYPE_SPEC_IS_STRUCT},
 };
-use move_stackless_bytecode::{
+use move_prover_bytecode_pipeline::{
     mono_analysis::MonoInfo,
     number_operation::{GlobalNumberOperationState, NumOperation::Bitwise},
 };
@@ -326,26 +326,30 @@ impl<'env> SpecTranslator<'env> {
                 format!("__unused_{}", param_repr)
             }
         });
-        let params = fun.params.iter().enumerate().map(|(i, (name, ty))| {
-            let bv_flag = if global_state
-                .spec_fun_operation_map
-                .contains_key(&(module_env.get_id(), id))
-            {
-                global_state
+        let params = fun
+            .params
+            .iter()
+            .enumerate()
+            .map(|(i, Parameter(name, ty))| {
+                let bv_flag = if global_state
                     .spec_fun_operation_map
-                    .get(&(module_env.get_id(), id))
-                    .unwrap()
-                    .0[i]
-                    == Bitwise
-            } else {
-                false
-            };
-            format!(
-                "{}: {}",
-                name.display(module_env.symbol_pool()),
-                ty_str_fn(bv_flag)(self.env, &self.inst(ty))
-            )
-        });
+                    .contains_key(&(module_env.get_id(), id))
+                {
+                    global_state
+                        .spec_fun_operation_map
+                        .get(&(module_env.get_id(), id))
+                        .unwrap()
+                        .0[i]
+                        == Bitwise
+                } else {
+                    false
+                };
+                format!(
+                    "{}: {}",
+                    name.display(module_env.symbol_pool()),
+                    ty_str_fn(bv_flag)(self.env, &self.inst(ty))
+                )
+            });
         self.writer.set_location(&fun.loc);
         let boogie_name = boogie_spec_fun_name(module_env, id, &self.type_inst, bv_flag_result);
         let param_list = mem_params.chain(params).join(", ");
@@ -372,7 +376,7 @@ impl<'env> SpecTranslator<'env> {
                 boogie_name,
                 fun.params
                     .iter()
-                    .map(|(n, _)| { format!("{}", n.display(module_env.symbol_pool())) })
+                    .map(|Parameter(n, _)| { format!("{}", n.display(module_env.symbol_pool())) })
                     .join(", ")
             );
             let type_check =
@@ -699,6 +703,7 @@ impl<'env> SpecTranslator<'env> {
             | ExpData::Sequence(..)
             | ExpData::Loop(..)
             | ExpData::Assign(..)
+            | ExpData::Mutate(..)
             | ExpData::LoopCont(..) => panic!("imperative expressions not supported"),
         }
     }
@@ -721,14 +726,19 @@ impl<'env> SpecTranslator<'env> {
             suffix = boogie_bv_type(self.env, self.env.get_node_type(node_id).skip_reference());
         }
         match val {
-            Value::Address(addr) => emit!(self.writer, "{}", addr),
+            Value::Address(addr) => emit!(self.writer, "{}", boogie_address(self.env, addr)),
             Value::Number(val) => emit!(self.writer, "{}{}", val, suffix),
             Value::Bool(val) => emit!(self.writer, "{}", val),
             Value::ByteArray(val) => {
                 emit!(self.writer, &boogie_byte_blob(self.options, val, bv_flag))
             },
-            Value::AddressArray(val) => emit!(self.writer, &boogie_address_blob(self.options, val)),
-            Value::Vector(val) => emit!(self.writer, &boogie_value_blob(self.options, val)),
+            Value::AddressArray(val) => emit!(
+                self.writer,
+                &boogie_address_blob(self.env, self.options, val)
+            ),
+            Value::Vector(val) => {
+                emit!(self.writer, &boogie_value_blob(self.env, self.options, val))
+            },
         }
     }
 
@@ -786,7 +796,7 @@ impl<'env> SpecTranslator<'env> {
             Operation::EventStoreIncludedIn => self.translate_event_store_included_in(args),
 
             // Regular expressions
-            Operation::Function(module_id, fun_id, memory_labels) => {
+            Operation::SpecFunction(module_id, fun_id, memory_labels) => {
                 self.translate_spec_fun_call(node_id, *module_id, *fun_id, args, memory_labels)
             },
             Operation::Pack(mid, sid) => self.translate_pack(node_id, *mid, *sid, args),
@@ -899,7 +909,18 @@ impl<'env> SpecTranslator<'env> {
                     "currently `TRACE(..)` cannot be used in spec functions or in lets",
                 )
             },
-            Operation::Old => panic!("operation unexpected: {:?}", oper),
+            Operation::MoveFunction(_, _)
+            | Operation::BorrowGlobal(_)
+            | Operation::Borrow(..)
+            | Operation::Deref
+            | Operation::MoveTo
+            | Operation::MoveFrom
+            | Operation::Freeze
+            | Operation::Abort
+            | Operation::Vector
+            | Operation::Old => {
+                panic!("operation unexpected: {:?}", oper)
+            },
         }
     }
 
@@ -1073,18 +1094,17 @@ impl<'env> SpecTranslator<'env> {
         args: &[Exp],
     ) {
         let struct_env = self.env.get_module(module_id).into_struct(struct_id);
-        if struct_env.is_native_or_intrinsic() {
+        if struct_env.is_intrinsic() {
             self.env.error(
                 &self.env.get_node_loc(node_id),
                 "cannot select field of intrinsic struct",
             );
         }
         let struct_type = &self.get_node_type(args[0].node_id());
-        let (_, _, inst) = struct_type.skip_reference().require_struct();
+        let (_, _, _) = struct_type.skip_reference().require_struct();
         let field_env = struct_env.get_field(field_id);
-        emit!(self.writer, "{}(", boogie_field_sel(&field_env, inst));
         self.translate_exp(&args[0]);
-        emit!(self.writer, ")");
+        emit!(self.writer, "->{}", boogie_field_sel(&field_env));
     }
 
     fn translate_update_field(
@@ -1160,12 +1180,9 @@ impl<'env> SpecTranslator<'env> {
         emit!(self.writer, "{}[", resource_name);
 
         let is_signer = self.env.get_node_type(args[0].node_id()).is_signer();
-        if is_signer {
-            emit!(self.writer, "$addr#$signer(");
-        }
         self.translate_exp(&args[0]);
         if is_signer {
-            emit!(self.writer, ")");
+            emit!(self.writer, "->$addr");
         }
         emit!(self.writer, "]");
     }
@@ -1785,10 +1802,7 @@ impl<'env> SpecTranslator<'env> {
                     );
                     emit!(
                         self.writer,
-                        &format!(
-                            " && $1_signer_is_txn_signer_addr($addr#$signer({}))",
-                            target
-                        )
+                        &format!(" && $1_signer_is_txn_signer_addr({}->$addr)", target)
                     );
                 }
             },

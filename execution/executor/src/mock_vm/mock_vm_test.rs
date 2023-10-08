@@ -28,10 +28,6 @@ impl TStateView for MockStateView {
         Ok(None)
     }
 
-    fn is_genesis(&self) -> bool {
-        false
-    }
-
     fn get_usage(&self) -> Result<StateStorageUsage> {
         Ok(StateStorageUsage::new_untracked())
     }
@@ -45,7 +41,7 @@ fn test_mock_vm_different_senders() {
         txns.push(encode_mint_transaction(gen_address(i), amount));
     }
 
-    let outputs = MockVM::execute_block(txns.clone(), &MockStateView)
+    let outputs = MockVM::execute_block(txns.clone(), &MockStateView, None)
         .expect("MockVM should not fail to start");
 
     for (output, txn) in itertools::zip_eq(outputs.iter(), txns.iter()) {
@@ -82,7 +78,7 @@ fn test_mock_vm_same_sender() {
     }
 
     let outputs =
-        MockVM::execute_block(txns, &MockStateView).expect("MockVM should not fail to start");
+        MockVM::execute_block(txns, &MockStateView, None).expect("MockVM should not fail to start");
 
     for (i, output) in outputs.iter().enumerate() {
         assert_eq!(
@@ -116,7 +112,7 @@ fn test_mock_vm_payment() {
     ];
 
     let output =
-        MockVM::execute_block(txns, &MockStateView).expect("MockVM should not fail to start");
+        MockVM::execute_block(txns, &MockStateView, None).expect("MockVM should not fail to start");
 
     let mut output_iter = output.iter();
     output_iter.next();

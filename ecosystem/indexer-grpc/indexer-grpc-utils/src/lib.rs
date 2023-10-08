@@ -6,12 +6,11 @@ pub mod config;
 pub mod constants;
 pub mod file_store_operator;
 
-use aptos_inspection_service::inspection_service::encode_metrics;
 use aptos_protos::{
-    internal::fullnode::v1::fullnode_data_client::FullnodeDataClient, util::timestamp::Timestamp,
+    internal::fullnode::v1::fullnode_data_client::FullnodeDataClient, transaction::v1::Transaction,
+    util::timestamp::Timestamp,
 };
-use prometheus::TextEncoder;
-use warp::{http::Response, Filter};
+use prost::Message;
 
 pub type GrpcClientType = FullnodeDataClient<tonic::transport::Channel>;
 
@@ -20,14 +19,14 @@ pub async fn create_grpc_client(address: String) -> GrpcClientType {
     backoff::future::retry(backoff::ExponentialBackoff::default(), || async {
         match FullnodeDataClient::connect(address.clone()).await {
             Ok(client) => {
-                aptos_logger::info!(
+                tracing::info!(
                     address = address.clone(),
                     "[Indexer Cache] Connected to indexer gRPC server."
                 );
                 Ok(client)
             },
             Err(e) => {
-                aptos_logger::error!(
+                tracing::error!(
                     address = address.clone(),
                     "[Indexer Cache] Failed to connect to indexer gRPC server: {}",
                     e
@@ -55,23 +54,6 @@ pub fn build_protobuf_encoded_transaction_wrappers(
         .collect()
 }
 
-fn metrics() -> Vec<u8> {
-    encode_metrics(TextEncoder)
-}
-
-pub async fn register_probes_and_metrics_handler(port: u16) {
-    let readiness = warp::path("readiness")
-        .map(move || warp::reply::with_status("ready", warp::http::StatusCode::OK));
-    let metrics_endpoint = warp::path("metrics").map(|| {
-        Response::builder()
-            .header("Content-Type", "text/plain")
-            .body(metrics())
-    });
-    warp::serve(readiness.or(metrics_endpoint))
-        .run(([0, 0, 0, 0], port))
-        .await;
-}
-
 pub fn time_diff_since_pb_timestamp_in_secs(timestamp: &Timestamp) -> f64 {
     let current_timestamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -79,4 +61,75 @@ pub fn time_diff_since_pb_timestamp_in_secs(timestamp: &Timestamp) -> f64 {
         .as_secs_f64();
     let transaction_time = timestamp.seconds as f64 + timestamp.nanos as f64 * 1e-9;
     current_timestamp - transaction_time
+}
+
+/// Chunk transactions into chunks with chunk size less than or equal to chunk_size.
+/// If a single transaction is larger than chunk_size, it will be put into a chunk by itself.
+pub fn chunk_transactions(
+    transactions: Vec<Transaction>,
+    chunk_size: usize,
+) -> Vec<Vec<Transaction>> {
+    let mut chunked_transactions = vec![];
+    let mut chunk = vec![];
+    let mut current_size = 0;
+
+    for transaction in transactions {
+        // Only add the chunk when it's empty.
+        if !chunk.is_empty() && current_size + transaction.encoded_len() > chunk_size {
+            chunked_transactions.push(chunk);
+            chunk = vec![];
+            current_size = 0;
+        }
+        current_size += transaction.encoded_len();
+        chunk.push(transaction);
+    }
+    if !chunk.is_empty() {
+        chunked_transactions.push(chunk);
+    }
+    chunked_transactions
+}
+
+// Tests
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_chunk_the_transactions_correctly_with_large_transaction() {
+        let t = Transaction {
+            version: 2,
+            timestamp: Some(Timestamp {
+                seconds: 1,
+                nanos: 0,
+            }),
+            ..Transaction::default()
+        };
+        // Create a vec with 10 transactions.
+        let transactions = vec![t.clone(); 10];
+        assert!(t.encoded_len() > 1);
+        let chunked_transactions = chunk_transactions(transactions, 1);
+        assert_eq!(chunked_transactions.len(), 10);
+    }
+
+    #[test]
+    fn test_chunk_the_transactions_correctly() {
+        let t = Transaction {
+            version: 2,
+            timestamp: Some(Timestamp {
+                seconds: 1,
+                nanos: 0,
+            }),
+            ..Transaction::default()
+        };
+        // Create a vec with 10 transactions.
+        let transactions = vec![t.clone(); 10];
+        assert!(t.encoded_len() == 6);
+        let chunked_transactions = chunk_transactions(transactions, 20);
+        assert_eq!(chunked_transactions.len(), 4);
+        let total_count = chunked_transactions
+            .iter()
+            .map(|chunk| chunk.len())
+            .sum::<usize>();
+        assert!(total_count == 10);
+    }
 }

@@ -44,7 +44,7 @@ struct VersionedValue<V> {
     aggregator_base_value: Option<u128>,
 }
 
-/// Maps each key (access path) to an interal VersionedValue.
+/// Maps each key (access path) to an internal VersionedValue.
 pub struct VersionedData<K, V> {
     values: DashMap<K, VersionedValue<V>>,
 }
@@ -123,26 +123,26 @@ impl<V: TransactionWrite> VersionedValue<V> {
                 (EntryCell::Write(incarnation, data), Some(accumulator)) => {
                     // Deltas were applied. We must deserialize the value
                     // of the write and apply the aggregated delta accumulator.
-
-                    // None if data represents deletion. Otherwise, panics if the
-                    // data can't be resolved to an aggregator value.
-                    let maybe_value = AggregatorValue::from_write(data.as_ref());
-
-                    if maybe_value.is_none() {
-                        // Resolve to the write if the WriteOp was deletion
-                        // (MoveVM will observe 'deletion'). This takes precedence
-                        // over any speculative delta accumulation errors on top.
-                        let write_version = (*idx, *incarnation);
-                        return Ok(Versioned(write_version, data.clone()));
-                    }
-                    return accumulator
-                        .map_err(|_| DeltaApplicationFailure)
-                        .and_then(|a| {
-                            // Apply accumulated delta to resolve the aggregator value.
-                            a.apply_to(maybe_value.unwrap().into())
-                                .map(|result| Resolved(result))
+                    return match AggregatorValue::from_write(data.as_ref()) {
+                        None => {
+                            // Resolve to the write if the WriteOp was deletion
+                            // (MoveVM will observe 'deletion'). This takes precedence
+                            // over any speculative delta accumulation errors on top.
+                            let write_version = (*idx, *incarnation);
+                            Ok(Versioned(write_version, data.clone()))
+                        },
+                        Some(value) => {
+                            // Panics if the data can't be resolved to an aggregator value.
+                            accumulator
                                 .map_err(|_| DeltaApplicationFailure)
-                        });
+                                .and_then(|a| {
+                                    // Apply accumulated delta to resolve the aggregator value.
+                                    a.apply_to(value.into())
+                                        .map(|result| Resolved(result))
+                                        .map_err(|_| DeltaApplicationFailure)
+                                })
+                        },
+                    };
                 },
                 (EntryCell::Delta(delta, maybe_shortcut), Some(accumulator)) => {
                     if let Some(shortcut_value) = maybe_shortcut {
@@ -161,7 +161,7 @@ impl<V: TransactionWrite> VersionedValue<V> {
                         // other deltas. Merge two deltas together. If Delta application
                         // fails, we record an error, but continue processing (to e.g.
                         // account for the case when the aggregator was deleted).
-                        if a.merge_onto(*delta).is_err() {
+                        if a.merge_with_previous_delta(*delta).is_err() {
                             Err(())
                         } else {
                             Ok(a)
@@ -217,13 +217,15 @@ impl<K: Hash + Clone + Debug + Eq, V: TransactionWrite> VersionedData<K, V> {
         assert_eq!(*v.aggregator_base_value.get_or_insert(value), value);
     }
 
-    pub(crate) fn add_delta(&self, key: &K, txn_idx: TxnIndex, delta: DeltaOp) {
-        let mut v = self.values.entry(key.clone()).or_default();
+    pub(crate) fn add_delta(&self, key: K, txn_idx: TxnIndex, delta: DeltaOp) {
+        let mut v = self.values.entry(key).or_default();
         v.versioned_map
             .insert(txn_idx, CachePadded::new(Entry::new_delta_from(delta)));
     }
 
-    pub(crate) fn mark_estimate(&self, key: &K, txn_idx: TxnIndex) {
+    /// Mark an entry from transaction 'txn_idx' at access path 'key' as an estimated write
+    /// (for future incarnation). Will panic if the entry is not in the data-structure.
+    pub fn mark_estimate(&self, key: &K, txn_idx: TxnIndex) {
         let mut v = self.values.get_mut(key).expect("Path must exist");
         v.versioned_map
             .get_mut(&txn_idx)
@@ -231,7 +233,9 @@ impl<K: Hash + Clone + Debug + Eq, V: TransactionWrite> VersionedData<K, V> {
             .mark_estimate();
     }
 
-    pub(crate) fn delete(&self, key: &K, txn_idx: TxnIndex) {
+    /// Delete an entry from transaction 'txn_idx' at access path 'key'. Will panic
+    /// if the corresponding entry does not exist.
+    pub fn delete(&self, key: &K, txn_idx: TxnIndex) {
         // TODO: investigate logical deletion.
         let mut v = self.values.get_mut(key).expect("Path must exist");
         assert!(
@@ -251,10 +255,11 @@ impl<K: Hash + Clone + Debug + Eq, V: TransactionWrite> VersionedData<K, V> {
             .unwrap_or(Err(MVDataError::NotFound))
     }
 
-    pub(crate) fn write(&self, key: &K, version: Version, data: V) {
+    /// Versioned write of data at a given key (and version).
+    pub fn write(&self, key: K, version: Version, data: V) {
         let (txn_idx, incarnation) = version;
 
-        let mut v = self.values.entry(key.clone()).or_default();
+        let mut v = self.values.entry(key).or_default();
         let prev_entry = v.versioned_map.insert(
             txn_idx,
             CachePadded::new(Entry::new_write_from(incarnation, data)),
@@ -270,12 +275,13 @@ impl<K: Hash + Clone + Debug + Eq, V: TransactionWrite> VersionedData<K, V> {
         }));
     }
 
-    // When a transaction is committed, this method can be called for its delta outputs to add
-    // a 'shortcut' to the corresponding materialized aggregator value, so any subsequent reads
-    // do not have to traverse below the index. It must be guaranteed by the caller that the
-    // data recorded below this index will not change after the call, and that the corresponding
-    // transaction has indeed produced a delta recorded at the given key.
-    // If the result is None, it means the base value hadn't been set.
+    /// When a transaction is committed, this method can be called for its delta outputs to add
+    /// a 'shortcut' to the corresponding materialized aggregator value, so any subsequent reads
+    /// do not have to traverse below the index. It must be guaranteed by the caller that the
+    /// data recorded below this index will not change after the call, and that the corresponding
+    /// transaction has indeed produced a delta recorded at the given key.
+    ///
+    /// If the result is Err(op), it means the base value to apply DeltaOp op hadn't been set.
     pub(crate) fn materialize_delta(&self, key: &K, txn_idx: TxnIndex) -> Result<u128, DeltaOp> {
         let mut v = self.values.get_mut(key).expect("Path must exist");
 
@@ -290,7 +296,10 @@ impl<K: Hash + Clone + Debug + Eq, V: TransactionWrite> VersionedData<K, V> {
                 Ok(value)
             },
             Err(MVDataError::Unresolved(op)) => Err(op),
-            _ => unreachable!("Must be a delta at key = {:?}, txn_idx = {}", key, txn_idx),
+            _ => unreachable!(
+                "Must resolve delta at key = {:?}, txn_idx = {}",
+                key, txn_idx
+            ),
         }
     }
 }

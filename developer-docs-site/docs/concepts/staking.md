@@ -151,7 +151,7 @@ The below ruleset is applicable during the changes of state:
 See [Staking pool operations](../nodes/validator-node/operator/staking-pool-operations.md) for the correct sequence of commands to run for the below flow.
 :::
 
-1. Owner initializes the stake pool with `aptos stake initialize-stake-owner`.
+1. Owner initializes the stake pool with `aptos stake create-staking-contract`.
 2. When the owner is ready to deposit the stake (or have funds assigned by a staking service in exchange for ownership capability), owner calls `aptos stake add-stake`.
 3. When the validator node is ready, the operator can call `aptos node join-validator-set` to join the active validator set. Changes will be effective in the next epoch.
 4. Validator validates (proposes blocks as a leader-validator) and gains rewards. The stake will automatically be locked up for a fixed duration (set by governance) and automatically renewed at expiration.
@@ -179,7 +179,7 @@ For step-by-step instructions on how to join the validator set, see: [Joining Va
 
 ### Minimum and maximum stake
 
-You must stake the required minimum amount to join the validator set. Moreover, you can only stake up to the maximum stake amount. The current required minimum for staking is 1M APT tokens.
+You must stake the required minimum amount to join the validator set. Moreover, you can only stake up to the maximum stake amount. The current required minimum for staking is 1M APT tokens and the maximum is 50M APT tokens.
 
 If at any time after joining the validator set, your current staked amount exceeds the maximum allowed stake (for example as the rewards are added to your staked amount), then your voting power and the rewards will be calculated only using the maximum allowed stake amount, and not your current staked amount. 
 
