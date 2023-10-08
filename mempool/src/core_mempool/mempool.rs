@@ -173,7 +173,7 @@ impl Mempool {
 
     /// Used to add a transaction to the Mempool.
     /// Performs basic validation: checks account's sequence number.
-    pub(crate) fn add_txn(
+    pub fn add_txn(
         &mut self,
         txn: SignedTransaction,
         ranking_score: u64,
@@ -228,7 +228,7 @@ impl Mempool {
     /// `exclude_transactions` - transactions that were sent to Consensus but were not committed yet
     ///  mempool should filter out such transactions.
     #[allow(clippy::explicit_counter_loop)]
-    pub(crate) fn get_batch(
+    pub fn get_batch(
         &self,
         max_txns: u64,
         max_bytes: u64,

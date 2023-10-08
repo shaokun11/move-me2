@@ -45,6 +45,7 @@ use aptos_storage_interface::state_view::DbStateViewAtVersion;
 use aptos_types::account_address::AccountAddress;
 use aptos_types::account_config::aptos_test_root_address;
 use aptos_types::account_view::AccountView;
+use aptos_types::block_executor::partitioner::{ExecutableBlock, ExecutableTransactions};
 use aptos_types::block_info::BlockInfo;
 use aptos_types::block_metadata::BlockMetadata;
 use aptos_types::chain_id::ChainId;
@@ -132,7 +133,7 @@ pub struct Vm {
 
     pub signer: Option<ValidatorSigner>,
 
-    pub executor: Option<Arc<RwLock<BlockExecutor<AptosVM, Transaction>>>>,
+    pub executor: Option<Arc<RwLock<BlockExecutor<AptosVM>>>>,
 
     pub build_status: Arc<RwLock<u8>>,
     // 0 done 1 building
@@ -979,7 +980,7 @@ impl Vm {
         core_pool.add_txn(signed_transaction.clone(),
                           0,
                           signed_transaction.clone().sequence_number(),
-                          TimelineState::NonQualified);
+                          TimelineState::NonQualified, true);
         drop(core_pool);
     }
     async fn get_pending_tx(&self, count: u64) -> Vec<SignedTransaction> {
@@ -1153,7 +1154,7 @@ impl Vm {
     pub async fn facet_apt(&self, acc: Vec<u8>, accept: AcceptType) -> RpcRes {
         let to = AccountAddress::from_bytes(acc).unwrap();
         let db = self.db.as_ref().unwrap().read().await;
-        let mut core_account = self.get_core_account(&db).await;
+        let core_account = self.get_core_account(&db).await;
         let tx_factory = TransactionFactory::new(ChainId::test());
         let tx_acc_mint = core_account
             .sign_with_transaction_builder(
@@ -1165,7 +1166,7 @@ impl Vm {
     pub async fn create_account(&self, key: &str, accept: AcceptType) -> RpcRes {
         let to = Ed25519PublicKey::from_encoded_string(key).unwrap();
         let db = self.db.as_ref().unwrap().read().await;
-        let mut core_account = self.get_core_account(&db).await;
+        let  core_account = self.get_core_account(&db).await;
         let tx_factory = TransactionFactory::new(ChainId::test());
         let tx_acc_create = core_account
             .sign_with_transaction_builder(
@@ -1268,7 +1269,9 @@ impl Vm {
         let next_epoch = aptos_data.3;
         let ts = aptos_data.4;
         match executor
-            .execute_block((block_id, block_tx.clone()), parent_block_id) {
+            .execute_block(ExecutableBlock::new(block_id,
+                                                ExecutableTransactions::Unsharded(block_tx.clone()),
+            ), parent_block_id, None) {
             Ok(output) => {
                 let ledger_info = LedgerInfo::new(
                     BlockInfo::new(
