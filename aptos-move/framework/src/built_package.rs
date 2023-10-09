@@ -210,7 +210,7 @@ impl BuiltPackage {
             } else {
                 DocgenOptions::default()
             };
-            let dep_paths = package
+            let _dep_paths = package
                 .deps_compiled_units
                 .iter()
                 .map(|(_, u)| {
@@ -225,7 +225,7 @@ impl BuiltPackage {
                 })
                 .unique()
                 .collect::<Vec<_>>();
-            docgen.run(package_path.display().to_string(), dep_paths, model)?
+            //docgen.run(package_path.display().to_string(), dep_paths, model)?
         }
 
         Ok(Self {
