@@ -45,6 +45,7 @@ use aptos_storage_interface::state_view::DbStateViewAtVersion;
 use aptos_types::account_address::AccountAddress;
 use aptos_types::account_config::aptos_test_root_address;
 use aptos_types::account_view::AccountView;
+use aptos_types::block_executor::partitioner::{ExecutableBlock, ExecutableTransactions};
 use aptos_types::block_info::BlockInfo;
 use aptos_types::block_metadata::BlockMetadata;
 use aptos_types::chain_id::ChainId;
@@ -132,7 +133,7 @@ pub struct Vm {
 
     pub signer: Option<ValidatorSigner>,
 
-    pub executor: Option<Arc<RwLock<BlockExecutor<AptosVM, Transaction>>>>,
+    pub executor: Option<Arc<RwLock<BlockExecutor<AptosVM>>>>,
 
     pub build_status: Arc<RwLock<u8>>,
     // 0 done 1 building
@@ -979,7 +980,7 @@ impl Vm {
         core_pool.add_txn(signed_transaction.clone(),
                           0,
                           signed_transaction.clone().sequence_number(),
-                          TimelineState::NonQualified);
+                          TimelineState::NonQualified,true);
         drop(core_pool);
     }
     async fn get_pending_tx(&self, count: u64) -> Vec<SignedTransaction> {
@@ -1268,7 +1269,9 @@ impl Vm {
         let next_epoch = aptos_data.3;
         let ts = aptos_data.4;
         match executor
-            .execute_block((block_id, block_tx.clone()), parent_block_id) {
+            .execute_block(ExecutableBlock::new(block_id,
+                                                ExecutableTransactions::Unsharded(block_tx.clone()),
+            ), parent_block_id, None) {
             Ok(output) => {
                 let ledger_info = LedgerInfo::new(
                     BlockInfo::new(
@@ -1469,6 +1472,14 @@ impl ChainVm for Vm
             "issue_tx not implemented",
         ))
     }
+    async fn set_preference(&self, id: ids::Id) -> io::Result<()> {
+        self.set_preference(id).await
+    }
+
+    async fn last_accepted(&self) -> io::Result<ids::Id> {
+        self.last_accepted().await
+    }
+
     async fn verify_height_index(&self) -> io::Result<()> {
         Ok(())
     }
@@ -1480,14 +1491,6 @@ impl ChainVm for Vm
 
     async fn state_sync_enabled(&self) -> io::Result<bool> {
         Ok(false)
-    }
-
-    async fn set_preference(&self, id: ids::Id) -> io::Result<()> {
-        self.set_preference(id).await
-    }
-
-    async fn last_accepted(&self) -> io::Result<ids::Id> {
-        self.last_accepted().await
     }
 }
 
@@ -1656,7 +1659,7 @@ impl CommonVm for Vm
         &mut self,
         ctx: Option<subnet::rpc::context::Context<Self::ValidatorState>>,
         db_manager: Self::DatabaseManager,
-        genesis_bytes: &[u8],
+        _genesis_bytes: &[u8],
         _upgrade_bytes: &[u8],
         _config_bytes: &[u8],
         to_engine: Sender<snow::engine::common::message::Message>,
