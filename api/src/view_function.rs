@@ -145,7 +145,8 @@ impl ViewFunctionApi {
                 ledger_version.map(|inner| inner.0),
             )?;
 
-        let resolver = self.context.move_resolver_poem(&ledger_info)?;
+        let state_view = self.context.latest_state_view_poem(&ledger_info)?;
+        let resolver = state_view.as_move_resolver();
 
         let entry_func = resolver
             .as_converter(self.context.db.clone())

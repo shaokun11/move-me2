@@ -980,7 +980,7 @@ impl Vm {
         core_pool.add_txn(signed_transaction.clone(),
                           0,
                           signed_transaction.clone().sequence_number(),
-                          TimelineState::NonQualified,true);
+                          TimelineState::NonQualified, true);
         drop(core_pool);
     }
     async fn get_pending_tx(&self, count: u64) -> Vec<SignedTransaction> {
@@ -1154,7 +1154,7 @@ impl Vm {
     pub async fn facet_apt(&self, acc: Vec<u8>, accept: AcceptType) -> RpcRes {
         let to = AccountAddress::from_bytes(acc).unwrap();
         let db = self.db.as_ref().unwrap().read().await;
-        let mut core_account = self.get_core_account(&db).await;
+        let core_account = self.get_core_account(&db).await;
         let tx_factory = TransactionFactory::new(ChainId::test());
         let tx_acc_mint = core_account
             .sign_with_transaction_builder(
@@ -1166,7 +1166,7 @@ impl Vm {
     pub async fn create_account(&self, key: &str, accept: AcceptType) -> RpcRes {
         let to = Ed25519PublicKey::from_encoded_string(key).unwrap();
         let db = self.db.as_ref().unwrap().read().await;
-        let mut core_account = self.get_core_account(&db).await;
+        let core_account = self.get_core_account(&db).await;
         let tx_factory = TransactionFactory::new(ChainId::test());
         let tx_acc_create = core_account
             .sign_with_transaction_builder(

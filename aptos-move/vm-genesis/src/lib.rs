@@ -762,6 +762,28 @@ impl TestValidator {
         let network_address = [0u8; 0].to_vec();
         let full_node_network_address = [0u8; 0].to_vec();
 
+        let stake_amount = if let Some(amount) = initial_stake {
+            amount
+        } else {
+            1
+        };
+        let data = Validator {
+            owner_address,
+            consensus_pubkey,
+            proof_of_possession,
+            operator_address: owner_address,
+            voter_address: owner_address,
+            network_addresses: network_address,
+            full_node_network_addresses: full_node_network_address,
+            stake_amount,
+        };
+        Self {
+            key,
+            consensus_key,
+            data,
+        }
+    }
+
     fn gen(rng: &mut StdRng, initial_stake: Option<u64>) -> TestValidator {
         let key = Ed25519PrivateKey::generate(rng);
         let auth_key = AuthenticationKey::ed25519(&key.public_key());

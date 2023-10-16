@@ -665,11 +665,11 @@ impl TransactionsApi {
                 )
             })?;
         fail_point_poem("endpoint_simulate_transaction")?;
-        self.context
-            .check_api_output_enabled("Simulate transaction", &accept_type)?;
         if !self.context.node_config.api.transaction_simulation_enabled {
             return Err(api_disabled("Simulate transaction"));
         }
+        self.context
+            .check_api_output_enabled("Simulate transaction", &accept_type)?;
         let ledger_info = self.context.get_latest_ledger_info()?;
         let mut signed_transaction = self.get_signed_transaction(&ledger_info, data)?;
 
@@ -694,9 +694,9 @@ impl TransactionsApi {
         let estimated_max_gas_amount = if estimate_max_gas_amount.unwrap_or_default() {
             // Retrieve max possible gas units
             let (_, gas_params) = self.context.get_gas_schedule(&ledger_info)?;
-            let min_number_of_gas_units = u64::from(gas_params.txn.min_transaction_gas_units)
-                / u64::from(gas_params.txn.gas_unit_scaling_factor);
-            let max_number_of_gas_units = u64::from(gas_params.txn.maximum_number_of_gas_units);
+            let min_number_of_gas_units = u64::from(gas_params.vm.txn.min_transaction_gas_units)
+                / u64::from(gas_params.vm.txn.gas_unit_scaling_factor);
+            let max_number_of_gas_units = u64::from(gas_params.vm.txn.maximum_number_of_gas_units);
 
             // Retrieve account balance to determine max gas available
             let account_state = self
