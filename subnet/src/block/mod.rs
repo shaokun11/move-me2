@@ -106,6 +106,7 @@ impl Block {
     }
 
     /// Returns the parent block Id.
+    #[allow(dead_code)]
     pub fn parent_id(&self) -> ids::Id {
         self.parent_id
     }
@@ -116,11 +117,13 @@ impl Block {
     }
 
     /// Returns the timestamp of this block.
+    #[allow(dead_code)]
     pub fn timestamp(&self) -> u64 {
         self.timestamp
     }
 
     /// Returns the data of this block.
+    #[allow(dead_code)]
     pub fn data(&self) -> &[u8] {
         &self.data
     }
@@ -136,6 +139,7 @@ impl Block {
     }
 
     /// Returns the byte representation of this block.
+    #[allow(dead_code)]
     pub fn bytes(&self) -> &[u8] {
         &self.bytes
     }

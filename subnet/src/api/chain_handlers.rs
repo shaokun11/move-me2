@@ -455,7 +455,7 @@ impl<T: Rpc> ChainHandler<T> {
     }
 }
 
-
+#[allow(dead_code)]
 fn create_jsonrpc_error(e: std::io::Error) -> Error {
     let mut error = Error::new(ErrorCode::InternalError);
     error.message = format!("{}", e);

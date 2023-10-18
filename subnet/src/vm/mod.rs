@@ -166,7 +166,7 @@ impl Vm {
             has_pending_tx: Arc::new(RwLock::new(false)),
         }
     }
-
+    #[allow(dead_code)]
     pub async fn is_bootstrapped(&self) -> bool {
         let vm_state = self.state.read().await;
         vm_state.bootstrapped

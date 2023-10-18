@@ -138,6 +138,7 @@ impl State {
     }
 
     /// Returns "true" if the block Id has been already verified.
+    #[allow(dead_code)]
     pub async fn has_verified(&self, blk_id: &ids::Id) -> bool {
         let verified_blocks = self.verified_blocks.read().await;
         verified_blocks.contains_key(blk_id)
