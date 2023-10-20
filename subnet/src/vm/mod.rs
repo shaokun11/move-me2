@@ -1260,13 +1260,12 @@ impl Vm {
         }
         let parent_block_id = aptos_data.2;
         let parent_block_id_now = executor.committed_block_id();
-        let v = executor.db.reader.get_latest_version().unwrap();
-        // if parent_block_id.ne(&parent_block_id_now) {
-        //     return Err(Error::new(
-        //         ErrorKind::Interrupted,
-        //         "block error,maybe not sync ",
-        //     ));
-        // }
+        if parent_block_id.ne(&parent_block_id_now) {
+            return Err(Error::new(
+                ErrorKind::Interrupted,
+                "block error,maybe not sync ",
+            ));
+        }
         let next_epoch = aptos_data.3;
         let ts = aptos_data.4;
         match executor
@@ -1405,7 +1404,7 @@ impl ChainVm for Vm
         if let Some(state_b) = vm_state.state.as_ref() {
             let prnt_blk = state_b.get_block(&vm_state.preferred).await.unwrap();
             let unix_now = Utc::now().timestamp() as u64;
-            let tx_arr = self.get_pending_tx(10000).await;
+            let tx_arr = self.get_pending_tx(500).await;
             let len = tx_arr.clone().len();
             log::info!("build_block pool tx count {}",len );
             // now we allow to build empty block
