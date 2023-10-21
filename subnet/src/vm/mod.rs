@@ -1249,29 +1249,14 @@ impl Vm {
         let aptos_data = serde_json::from_slice::<AptosData>(&data).unwrap();
         let block_tx = serde_json::from_slice::<Vec<Transaction>>(&aptos_data.0).unwrap();
         let block_meta = block_tx.get(0).unwrap().try_as_block_metadata().unwrap();
-        let block_id_now = block_meta.id();
-        // let block_id = aptos_data.1;
-
-        // if block_id_now.ne(&block_id) {
-        //     return Err(Error::new(
-        //         ErrorKind::Interrupted,
-        //         "block format error",
-        //     ));
-        // }
-        // let parent_block_id = aptos_data.2;
-        let parent_block_id_now = executor.committed_block_id();
-        // if parent_block_id.ne(&parent_block_id_now) {
-        //     return Err(Error::new(
-        //         ErrorKind::Interrupted,
-        //         "block error,maybe not sync ",
-        //     ));
-        // }
+        let block_id = block_meta.id();
+        let parent_block_id = executor.committed_block_id();
         let next_epoch = aptos_data.3;
         let ts = aptos_data.4;
         match executor
             .execute_block(ExecutableBlock::new(block_id,
                                                 ExecutableTransactions::Unsharded(block_tx.clone()),
-            ), parent_block_id_now, None) {
+            ), parent_block_id, None) {
             Ok(output) => {
                 let ledger_info = LedgerInfo::new(
                     BlockInfo::new(
