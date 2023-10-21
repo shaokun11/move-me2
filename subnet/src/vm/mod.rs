@@ -1258,14 +1258,14 @@ impl Vm {
                 "block format error",
             ));
         }
-        let parent_block_id = aptos_data.2;
+        // let parent_block_id = aptos_data.2;
         let parent_block_id_now = executor.committed_block_id();
-        if parent_block_id.ne(&parent_block_id_now) {
-            return Err(Error::new(
-                ErrorKind::Interrupted,
-                "block error,maybe not sync ",
-            ));
-        }
+        // if parent_block_id.ne(&parent_block_id_now) {
+        //     return Err(Error::new(
+        //         ErrorKind::Interrupted,
+        //         "block error,maybe not sync ",
+        //     ));
+        // }
         let next_epoch = aptos_data.3;
         let ts = aptos_data.4;
         match executor
