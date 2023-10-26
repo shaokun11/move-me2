@@ -27,8 +27,7 @@ use aptos_api::{Context, get_raw_api_service, RawApi};
 use aptos_api::accept_type::AcceptType;
 use aptos_api::response::{AptosResponseContent, BasicResponse};
 use aptos_api::transactions::{SubmitTransactionPost, SubmitTransactionResponse, SubmitTransactionsBatchPost, SubmitTransactionsBatchResponse};
-use aptos_api_types::{Address, EncodeSubmissionRequest, IdentifierWrapper, MoveStructTag, RawTableItemRequest, StateKeyWrapper, TableItemRequest, ViewRequest};
-use aptos_api_types::MoveType::U64;
+use aptos_api_types::{Address, U64, EncodeSubmissionRequest, IdentifierWrapper, MoveStructTag, RawTableItemRequest, StateKeyWrapper, TableItemRequest, ViewRequest};
 use aptos_config::config::NodeConfig;
 use aptos_crypto::{HashValue, ValidCryptoMaterialStringExt};
 use aptos_crypto::ed25519::Ed25519PublicKey;
@@ -38,8 +37,10 @@ use aptos_executor::db_bootstrapper::{generate_waypoint, maybe_bootstrap};
 use aptos_executor_types::BlockExecutorTrait;
 use aptos_mempool::{MempoolClientRequest, MempoolClientSender, SubmissionStatus};
 use aptos_mempool::core_mempool::{CoreMempool, TimelineState};
+use aptos_sdk::move_types::ident_str;
+use aptos_sdk::move_types::language_storage::ModuleId;
 use aptos_sdk::rest_client::aptos_api_types::MAX_RECURSIVE_TYPES_ALLOWED;
-use aptos_sdk::transaction_builder::TransactionFactory;
+use aptos_sdk::transaction_builder::{TransactionFactory};
 use aptos_sdk::types::{AccountKey, LocalAccount};
 use aptos_state_view::account_with_state_view::AsAccountWithStateView;
 use aptos_storage_interface::DbReaderWriter;
@@ -53,15 +54,16 @@ use aptos_types::block_metadata::BlockMetadata;
 use aptos_types::chain_id::ChainId;
 use aptos_types::ledger_info::{generate_ledger_info_with_sig, LedgerInfo};
 use aptos_types::mempool_status::{MempoolStatus, MempoolStatusCode};
-use aptos_types::transaction::{SignedTransaction, Transaction, WriteSetPayload};
+use aptos_types::transaction::{EntryFunction, SignedTransaction, Transaction, WriteSetPayload};
 use aptos_types::transaction::Transaction::UserTransaction;
 use aptos_types::validator_signer::ValidatorSigner;
 use aptos_vm::AptosVM;
 use aptos_vm_genesis::{GENESIS_KEYPAIR, test_genesis_change_set_and_validators};
 
 use crate::{block::Block, state};
-use crate::api::chain_handlers::{AccountStateArgs, BlockArgs, ChainHandler, ChainService, GetTransactionByVersionArgs, ImportMessageArgs, PageArgs, RpcEventHandleReq, RpcEventNumReq, RpcReq, RpcRes, RpcTableReq};
+use crate::api::chain_handlers::{AccountStateArgs, AwmMessageArgs, BlockArgs, ChainHandler, ChainService, GetTransactionByVersionArgs, ImportMessageArgs, PageArgs, RpcEventHandleReq, RpcEventNumReq, RpcReq, RpcRes, RpcTableReq};
 use crate::api::static_handlers::{StaticHandler, StaticService};
+use crate::awm::{AwmClient, Message, SignedMessage};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const MOVE_DB_DIR: &str = ".move-chain-data";
@@ -287,10 +289,6 @@ impl Vm {
         };
         let account = args.data.as_str();
         let api = self.api_service.as_ref().unwrap();
-        let start = match args.start {
-            None => None,
-            Some(_) => Some(StateKeyWrapper::from_str(args.start.unwrap().as_str()).unwrap())
-        };
         let mut start = None;
         if let Some(s_) = args.start {
             let s: Result<u64, _> = s_.parse();
@@ -599,9 +597,9 @@ impl Vm {
         };
         RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
-    pub async fn get_awm_message(&self, args: RpcReq) -> RpcRes {
+    pub async fn get_awm_message(&self, args: AwmMessageArgs) -> RpcRes {
         let accept = AcceptType::Json;
-        let h = args.data.as_str();
+        let h = args.tx_hash.as_str();
         let h1 = HashValue::from_hex(h).unwrap();
         let hash = aptos_api_types::hash::HashValue::from(h1);
         let api = self.api_service.as_ref().unwrap();
@@ -616,12 +614,20 @@ impl Vm {
                         let msg = v["events"][0]["data"].as_object().unwrap();
                         // todo verify to chain id
                         // todo make signature for this message
-                        json!({
-                            "message":serde_json::to_string(msg),
-                            "signature":"this is signature"
-                        }).to_string()
+                        let ret = SignedMessage {
+                            message: Message {
+                                from: msg.get("from").unwrap().to_string(),
+                                to: msg.get("to").unwrap().to_string(),
+                                nonce: msg.get("nonce").unwrap().to_string().parse::<u64>().unwrap(),
+                                payload: msg.get("payload").unwrap().to_string().into_bytes(),
+                            },
+                            signature: "this is signature".to_string(),
+                        };
+                        serde_json::to_string(&ret).unwrap()
                     }
-                    _ => {}
+                    _ => {
+                        "".to_string()
+                    }
                 }
             }
         };
@@ -629,18 +635,48 @@ impl Vm {
     }
 
     pub async fn import_awm_message(&self, args: ImportMessageArgs) -> RpcRes {
-        //
+        let mut message = None;
+        let mut bls_check_pass = false;
+        for u in args.source_uris {
+            let node_client = AwmClient::new(AwmClient::get_node_url(u.as_str()).as_str());
+            let chain_client = AwmClient::new(AwmClient::get_rpc_url(u.as_str(),
+                                                                     args.chain_id.as_str()).as_str());
+            let chain_msg = chain_client.get_message(args.tx_hash.as_str()).await.unwrap();
+            if message.is_none() {
+                message = Some(chain_msg);
+            }
+            // this should use avalanchego BLS to verify
+            let _node_info = node_client.get_node().await.unwrap();
+            bls_check_pass = true;
+        }
 
-
-        let to = AccountAddress::from_bytes(acc).unwrap();
+        if !bls_check_pass {
+            // todo throw something
+        }
+        let message = message.unwrap().message;
+        // send a transaction to the aws message to this chain
         let db = self.db.as_ref().unwrap().read().await;
         let core_account = self.get_core_account(&db).await;
         let tx_factory = TransactionFactory::new(ChainId::test());
-        let tx_acc_mint = core_account
+        let aws_acc = AccountAddress::from_bytes("0xdadc5af2c6c7e67025b2accca21e11a331a2d6f17a39234aaa891a281e69aafe".as_bytes().to_vec()).unwrap();
+        let tx = core_account
             .sign_with_transaction_builder(
-                tx_factory.mint(to, 10 * 100_000_000)
+                tx_factory.payload(aptos_types::transaction::TransactionPayload::EntryFunction(EntryFunction::new(
+                    ModuleId::new(
+                        aws_acc,
+                        ident_str!("awm_channel").to_owned(),
+                    ),
+                    ident_str!("import").to_owned(),
+                    vec![],
+                    vec![
+                        bcs::to_bytes(&message.from).unwrap(),
+                        bcs::to_bytes(&message.to).unwrap(),
+                        bcs::to_bytes(&message.nonce).unwrap(),
+                        bcs::to_bytes(&message.payload).unwrap(),
+                    ],
+                )))
             );
-        return self.submit_transaction(bcs::to_bytes(&tx_acc_mint).unwrap(), accept).await;
+        return self.submit_transaction(bcs::to_bytes(&tx).unwrap(), AcceptType::Json).await;
     }
 
     pub async fn get_transaction_by_hash(&self, args: RpcReq) -> RpcRes {

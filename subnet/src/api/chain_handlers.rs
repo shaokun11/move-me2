@@ -117,7 +117,7 @@ pub struct AwmMessageArgs {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct ImportMessageArgs {
     pub source_uris: Vec<String>,
-    pub chain_id: Vec<String>,
+    pub chain_id: String,
     pub tx_hash: String,
 }
 
@@ -436,7 +436,7 @@ impl Rpc for ChainService {
         })
     }
 
-    fn get_awm_message(&self, req: RpcReq) -> BoxFuture<Result<RpcRes>> {
+    fn get_awm_message(&self, req: AwmMessageArgs) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
             let ret = vm.get_awm_message(req).await;
