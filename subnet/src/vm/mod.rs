@@ -28,6 +28,7 @@ use aptos_api::accept_type::AcceptType;
 use aptos_api::response::{AptosResponseContent, BasicResponse};
 use aptos_api::transactions::{SubmitTransactionPost, SubmitTransactionResponse, SubmitTransactionsBatchPost, SubmitTransactionsBatchResponse};
 use aptos_api_types::{Address, EncodeSubmissionRequest, IdentifierWrapper, MoveStructTag, RawTableItemRequest, StateKeyWrapper, TableItemRequest, ViewRequest};
+use aptos_api_types::MoveType::U64;
 use aptos_config::config::NodeConfig;
 use aptos_crypto::{HashValue, ValidCryptoMaterialStringExt};
 use aptos_crypto::ed25519::Ed25519PublicKey;
@@ -290,10 +291,14 @@ impl Vm {
             None => None,
             Some(_) => Some(StateKeyWrapper::from_str(args.start.unwrap().as_str()).unwrap())
         };
-        let ret = api.3.get_account_resources_raw(
+        let mut start = None;
+        if let Some(s_) = args.start {
+            let s: Result<u64, _> = s_.parse();
+            start = Some(U64::from(s.unwrap()))
+        }
+        let ret = api.0.get_accounts_transactions_raw(
             accept,
             Address::from_str(account).unwrap(),
-            args.ledger_version,
             start,
             args.limit,
         ).await.unwrap();
