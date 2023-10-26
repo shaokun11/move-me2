@@ -26,7 +26,7 @@ use aptos_api::{Context, get_raw_api_service, RawApi};
 use aptos_api::accept_type::AcceptType;
 use aptos_api::response::{AptosResponseContent, BasicResponse};
 use aptos_api::transactions::{SubmitTransactionPost, SubmitTransactionResponse, SubmitTransactionsBatchPost, SubmitTransactionsBatchResponse};
-use aptos_api_types::{Address, EncodeSubmissionRequest, IdentifierWrapper, MoveStructTag, RawTableItemRequest, StateKeyWrapper, TableItemRequest, ViewRequest};
+use aptos_api_types::{Address, EncodeSubmissionRequest, IdentifierWrapper, MoveStructTag, RawTableItemRequest, StateKeyWrapper, TableItemRequest, U64, ViewRequest};
 use aptos_config::config::NodeConfig;
 use aptos_crypto::{HashValue, ValidCryptoMaterialStringExt};
 use aptos_crypto::ed25519::Ed25519PublicKey;
@@ -284,14 +284,15 @@ impl Vm {
         };
         let account = args.data.as_str();
         let api = self.api_service.as_ref().unwrap();
-        let start = match args.start {
-            None => None,
-            Some(_) => Some(StateKeyWrapper::from_str(args.start.unwrap().as_str()).unwrap())
+        let start = if Some(args.start) {
+            let s: Result<u64, _> = args.start.unwrap().parse();
+            Some(U64::from(s.unwrap()))
+        } else {
+            None
         };
-        let ret = api.3.get_account_resources_raw(
+        let ret = api.0.get_accounts_transactions_raw(
             accept,
             Address::from_str(account).unwrap(),
-            args.ledger_version,
             start,
             args.limit,
         ).await.unwrap();
