@@ -99,8 +99,27 @@ pub trait Rpc {
 
     #[rpc(name = "getLedgerInfo", alias("aptosvm.getLedgerInfo"))]
     fn get_ledger_info(&self) -> BoxFuture<Result<RpcRes>>;
+
+
+    /***************avalanche AWM************************/
+    #[rpc(name = "getMessage")]
+    fn get_awm_message(&self, args: AwmMessageArgs) -> BoxFuture<Result<RpcRes>>;
+
+    #[rpc(name = "importMessage")]
+    fn import_awm_message(&self, args: ImportMessageArgs) -> BoxFuture<Result<RpcRes>>;
 }
 
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct AwmMessageArgs {
+    pub tx_hash: String,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct ImportMessageArgs {
+    pub source_uris: Vec<String>,
+    pub chain_id: Vec<String>,
+    pub tx_hash: String,
+}
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct GetTableItemArgs {
@@ -413,6 +432,22 @@ impl Rpc for ChainService {
         let vm = self.vm.clone();
         Box::pin(async move {
             let ret = vm.get_ledger_info().await;
+            return Ok(ret);
+        })
+    }
+
+    fn get_awm_message(&self, req: RpcReq) -> BoxFuture<Result<RpcRes>> {
+        let vm = self.vm.clone();
+        Box::pin(async move {
+            let ret = vm.get_awm_message(req).await;
+            return Ok(ret);
+        })
+    }
+
+    fn import_awm_message(&self, args: ImportMessageArgs) -> BoxFuture<Result<RpcRes>> {
+        let vm = self.vm.clone();
+        Box::pin(async move {
+            let ret = vm.import_awm_message(args).await;
             return Ok(ret);
         })
     }

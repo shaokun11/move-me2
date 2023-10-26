@@ -20,6 +20,7 @@ use chrono::{DateTime, Utc};
 use futures::{channel::mpsc as futures_mpsc, StreamExt};
 use hex;
 use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
 use tokio::sync::{mpsc::Sender, RwLock};
 
 use aptos_api::{Context, get_raw_api_service, RawApi};
@@ -58,7 +59,7 @@ use aptos_vm::AptosVM;
 use aptos_vm_genesis::{GENESIS_KEYPAIR, test_genesis_change_set_and_validators};
 
 use crate::{block::Block, state};
-use crate::api::chain_handlers::{AccountStateArgs, BlockArgs, ChainHandler, ChainService, GetTransactionByVersionArgs, PageArgs, RpcEventHandleReq, RpcEventNumReq, RpcReq, RpcRes, RpcTableReq};
+use crate::api::chain_handlers::{AccountStateArgs, BlockArgs, ChainHandler, ChainService, GetTransactionByVersionArgs, ImportMessageArgs, PageArgs, RpcEventHandleReq, RpcEventNumReq, RpcReq, RpcRes, RpcTableReq};
 use crate::api::static_handlers::{StaticHandler, StaticService};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -592,6 +593,49 @@ impl Vm {
             }
         };
         RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
+    }
+    pub async fn get_awm_message(&self, args: RpcReq) -> RpcRes {
+        let accept = AcceptType::Json;
+        let h = args.data.as_str();
+        let h1 = HashValue::from_hex(h).unwrap();
+        let hash = aptos_api_types::hash::HashValue::from(h1);
+        let api = self.api_service.as_ref().unwrap();
+        let ret = api.0.get_transaction_by_hash_raw(accept,
+                                                    hash).await;
+        let ret = ret.unwrap();
+        let ret = match ret {
+            BasicResponse::Ok(c, ..) => {
+                match c {
+                    AptosResponseContent::Json(json) => {
+                        let v: Value = json!(serde_json::to_string(&json.0).unwrap());
+                        let msg = v["events"][0]["data"].as_object().unwrap();
+                        // todo verify to chain id
+                        // todo make signature for this message
+                        json!({
+                            "message":serde_json::to_string(msg),
+                            "signature":"this is signature"
+                        }).to_string()
+                    }
+                    _ => {}
+                }
+            }
+        };
+        RpcRes { data: ret, header: "".to_owned() }
+    }
+
+    pub async fn import_awm_message(&self, args: ImportMessageArgs) -> RpcRes {
+        //
+
+
+        let to = AccountAddress::from_bytes(acc).unwrap();
+        let db = self.db.as_ref().unwrap().read().await;
+        let core_account = self.get_core_account(&db).await;
+        let tx_factory = TransactionFactory::new(ChainId::test());
+        let tx_acc_mint = core_account
+            .sign_with_transaction_builder(
+                tx_factory.mint(to, 10 * 100_000_000)
+            );
+        return self.submit_transaction(bcs::to_bytes(&tx_acc_mint).unwrap(), accept).await;
     }
 
     pub async fn get_transaction_by_hash(&self, args: RpcReq) -> RpcRes {

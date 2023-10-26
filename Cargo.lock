@@ -4465,8 +4465,7 @@ checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 [[package]]
 name = "avalanche-types"
 version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "768d08fdaf7a9fcd16062f00af5985a729357bbdedb83eb5a8f196424c0186fe"
+source = "git+https://github.com/ava-labs/avalanche-rs?rev=eee26d756b4e39c42d68b314c08028da11435e2d#eee26d756b4e39c42d68b314c08028da11435e2d"
 dependencies = [
  "async-trait",
  "base64 0.21.2",
@@ -6453,7 +6452,7 @@ dependencies = [
  "digest 0.10.7",
  "elliptic-curve",
  "rfc6979",
- "signature 2.1.0",
+ "signature",
  "spki 0.7.2",
 ]
 
@@ -6464,7 +6463,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1e9c280362032ea4203659fc489832d0204ef09f247a0506f170dafcac08c369"
 dependencies = [
  "serde 1.0.189",
- "signature 1.6.0",
+ "signature",
 ]
 
 [[package]]
@@ -8589,7 +8588,7 @@ dependencies = [
  "elliptic-curve",
  "once_cell",
  "sha2 0.10.6",
- "signature 2.1.0",
+ "signature",
 ]
 
 [[package]]
@@ -12573,7 +12572,7 @@ dependencies = [
  "pkcs1 0.7.5",
  "pkcs8 0.10.2",
  "rand_core 0.6.4",
- "signature 2.1.0",
+ "signature",
  "spki 0.7.2",
  "subtle",
  "zeroize",
@@ -13411,12 +13410,6 @@ dependencies = [
 
 [[package]]
 name = "signature"
-version = "1.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0ea32af43239f0d353a7dd75a22d94c329c8cdaafdcb4c1c1335aa10c298a4a"
-
-[[package]]
-name = "signature"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e1788eed21689f9cf370582dfc467ef36ed9c707f073528ddafa8d83e3b8500"
@@ -13844,6 +13837,7 @@ dependencies = [
  "jsonrpc-derive",
  "log",
  "rand 0.7.3",
+ "reqwest",
  "serde 1.0.189",
  "serde_json",
  "serde_with 2.3.3",
