@@ -284,12 +284,11 @@ impl Vm {
         };
         let account = args.data.as_str();
         let api = self.api_service.as_ref().unwrap();
-        let start = if Some(args.start) {
-            let s: Result<u64, _> = args.start.unwrap().parse();
-            Some(U64::from(s.unwrap()))
-        } else {
-            None
-        };
+        let mut start = None;
+        if let Some(s_) = args.start {
+            let s: Result<u64, _> = s_.parse();
+            start = Some(U64::from(s.unwrap()))
+        }
         let ret = api.0.get_accounts_transactions_raw(
             accept,
             Address::from_str(account).unwrap(),
