@@ -6452,7 +6452,7 @@ dependencies = [
  "digest 0.10.7",
  "elliptic-curve",
  "rfc6979",
- "signature",
+ "signature 2.1.0",
  "spki 0.7.2",
 ]
 
@@ -6463,7 +6463,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1e9c280362032ea4203659fc489832d0204ef09f247a0506f170dafcac08c369"
 dependencies = [
  "serde 1.0.189",
- "signature",
+ "signature 1.6.0",
 ]
 
 [[package]]
@@ -8588,7 +8588,7 @@ dependencies = [
  "elliptic-curve",
  "once_cell",
  "sha2 0.10.6",
- "signature",
+ "signature 2.1.0",
 ]
 
 [[package]]
@@ -12572,7 +12572,7 @@ dependencies = [
  "pkcs1 0.7.5",
  "pkcs8 0.10.2",
  "rand_core 0.6.4",
- "signature",
+ "signature 2.1.0",
  "spki 0.7.2",
  "subtle",
  "zeroize",
@@ -13407,6 +13407,12 @@ checksum = "e51e73328dc4ac0c7ccbda3a494dfa03df1de2f46018127f60c693f2648455b0"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "signature"
+version = "1.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f0ea32af43239f0d353a7dd75a22d94c329c8cdaafdcb4c1c1335aa10c298a4a"
 
 [[package]]
 name = "signature"
