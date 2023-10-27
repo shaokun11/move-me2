@@ -1,4 +1,5 @@
 use std::io;
+use std::time::Duration;
 use serde_json::{json, Value};
 use reqwest::{Client, header};
 use serde::{Deserialize, Serialize};
@@ -8,15 +9,15 @@ pub struct AwmClient {
     url: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Message {
     pub(crate) from: String,
     pub(crate) to: String,
-    pub(crate) nonce: u64,
-    pub(crate) payload: Vec<u8>,
+    pub(crate) nonce: String,
+    pub(crate) payload: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SignedMessage {
     pub message: Message,
     pub(crate) signature: String,
@@ -39,15 +40,16 @@ impl AwmClient {
             "jsonrpc": "2.0",
             "method": "getMessage",
             "id": 1,
-            "params":[json!({"data":hash})]
+            "params":[json!({"tx_hash":hash})]
         });
         let response = self.c.post(self.url.as_str())
             .header(header::CONTENT_TYPE, "application/json")
             .header(header::ACCEPT, "application/json")
             .json(&request_body)
+            .timeout(Duration::from_secs(5))
             .send().await.unwrap();
         let json_data = response.json::<Value>().await.unwrap();
-        let data = serde_json::from_str::<SignedMessage>(&json_data["data"].to_string()).unwrap();
+        let data = serde_json::from_str::<SignedMessage>(&json_data["result"]["data"].as_str().unwrap()).unwrap();
         Ok(data)
     }
     pub async fn get_node(&self) -> io::Result<String> {
@@ -61,9 +63,10 @@ impl AwmClient {
             .header(header::CONTENT_TYPE, "application/json")
             .header(header::ACCEPT, "application/json")
             .json(&request_body)
+            .timeout(Duration::from_secs(5))
             .send().await.unwrap();
         let json_data = response.json::<Value>().await.unwrap();
-        let key = json_data["result"]["nodePOP"]["publicKey"].as_str().unwrap();
-        return Ok(key.to_string());
+        let key = json_data["result"]["nodePOP"]["publicKey"].to_string();
+        return Ok(key);
     }
 }

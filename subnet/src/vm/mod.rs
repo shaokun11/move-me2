@@ -20,7 +20,7 @@ use chrono::{DateTime, Utc};
 use futures::{channel::mpsc as futures_mpsc, StreamExt};
 use hex;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value};
 use tokio::sync::{mpsc::Sender, RwLock};
 
 use aptos_api::{Context, get_raw_api_service, RawApi};
@@ -610,7 +610,7 @@ impl Vm {
             BasicResponse::Ok(c, ..) => {
                 match c {
                     AptosResponseContent::Json(json) => {
-                        let v: Value = json!(serde_json::to_string(&json.0).unwrap());
+                        let v = serde_json::from_str::<Value>(&serde_json::to_string(&json.0).unwrap()).unwrap();
                         let msg = v["events"][0]["data"].as_object().unwrap();
                         // todo verify to chain id
                         // todo make signature for this message
@@ -618,8 +618,8 @@ impl Vm {
                             message: Message {
                                 from: msg.get("from").unwrap().to_string(),
                                 to: msg.get("to").unwrap().to_string(),
-                                nonce: msg.get("nonce").unwrap().to_string().parse::<u64>().unwrap(),
-                                payload: msg.get("payload").unwrap().to_string().into_bytes(),
+                                nonce: msg.get("nonce").unwrap().to_string(),
+                                payload: msg.get("payload").unwrap().to_string(),
                             },
                             signature: "this is signature".to_string(),
                         };
@@ -636,20 +636,21 @@ impl Vm {
 
     pub async fn import_awm_message(&self, args: ImportMessageArgs) -> RpcRes {
         let mut message = None;
-        let mut bls_check_pass = false;
+        let mut bls_check_pass = true;
         for u in args.source_uris {
-            let node_client = AwmClient::new(AwmClient::get_node_url(u.as_str()).as_str());
-            let chain_client = AwmClient::new(AwmClient::get_rpc_url(u.as_str(),
-                                                                     args.chain_id.as_str()).as_str());
+            let chain_client = AwmClient::new(
+                AwmClient::get_rpc_url(
+                    u.as_str(), args.chain_id.as_str()).as_str());
             let chain_msg = chain_client.get_message(args.tx_hash.as_str()).await.unwrap();
             if message.is_none() {
                 message = Some(chain_msg);
             }
-            // this should use avalanchego BLS to verify
-            let _node_info = node_client.get_node().await.unwrap();
-            bls_check_pass = true;
+            println!("get chain message: {:?}", message);
+            let node_client = AwmClient::new(AwmClient::get_node_url(u.as_str()).as_str());
+            // TODO this should use avalanchego BLS to verify
+            let node_pub_key = node_client.get_node().await.unwrap();
+            println!("get chain _node_pub_key : {}", node_pub_key);
         }
-
         if !bls_check_pass {
             // todo throw something
         }
