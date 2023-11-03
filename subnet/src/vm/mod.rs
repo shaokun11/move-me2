@@ -1401,7 +1401,8 @@ impl ChainVm for Vm
         if let Some(state_b) = vm_state.state.as_ref() {
             let prnt_blk = state_b.get_block(&vm_state.preferred).await.unwrap();
             let unix_now = Utc::now().timestamp() as u64;
-            let tx_arr = self.get_pending_tx(10000).await;
+            let unix_micro = Utc::now().timestamp_micros() as u64;
+            let tx_arr = self.get_pending_tx(1000).await;
             let len = tx_arr.clone().len();
             log::info!("build_block pool tx count {}",len );
             // now we allow to build empty block
@@ -1426,7 +1427,7 @@ impl ChainVm for Vm
                 signer.author(),
                 vec![],
                 vec![],
-                unix_now,
+                unix_micro,
             ));
             let mut txs = vec![];
             for tx in tx_arr.iter() {
@@ -1442,7 +1443,7 @@ impl ChainVm for Vm
                                  block_id.clone(),
                                  parent_block_id,
                                  next_epoch,
-                                 unix_now);
+                                 unix_micro);
 
             let mut block_ = Block::new(
                 prnt_blk.id(),
