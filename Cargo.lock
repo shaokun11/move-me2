@@ -4465,7 +4465,7 @@ checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 [[package]]
 name = "avalanche-types"
 version = "0.1.4"
-source = "git+https://github.com/ava-labs/avalanche-rs?rev=eee26d756b4e39c42d68b314c08028da11435e2d#eee26d756b4e39c42d68b314c08028da11435e2d"
+source = "git+https://github.com/shaokun11/avalanche-rs.git?rev=d5def59ac1e2c727a27d31637a2e5612a6b21c18#d5def59ac1e2c727a27d31637a2e5612a6b21c18"
 dependencies = [
  "async-trait",
  "base64 0.21.2",
@@ -6210,7 +6210,7 @@ dependencies = [
  "chrono",
  "diesel_derives",
  "itoa",
- "num-bigint 0.4.3",
+ "num-bigint 0.2.6",
  "num-integer",
  "num-traits 0.2.15",
  "pq-sys",
@@ -15742,9 +15742,9 @@ dependencies = [
 
 [[package]]
 name = "zerocopy"
-version = "0.6.4"
+version = "0.6.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "20707b61725734c595e840fb3704378a0cd2b9c74cc9e6e20724838fc6a1e2f9"
+checksum = "96f8f25c15a0edc9b07eb66e7e6e97d124c0505435c382fde1ab7ceb188aa956"
 dependencies = [
  "byteorder",
  "zerocopy-derive",
@@ -15752,9 +15752,9 @@ dependencies = [
 
 [[package]]
 name = "zerocopy-derive"
-version = "0.6.4"
+version = "0.6.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56097d5b91d711293a42be9289403896b68654625021732067eac7a4ca388a1f"
+checksum = "855e0f6af9cd72b87d8a6c586f3cb583f5cdcc62c2c80869d8cd7e96fdf7ee20"
 dependencies = [
  "proc-macro2 1.0.64",
  "quote 1.0.29",

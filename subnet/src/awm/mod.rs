@@ -13,7 +13,6 @@ pub struct AwmClient {
 pub struct Message {
     pub(crate) from: String,
     pub(crate) to: String,
-    pub(crate) nonce: String,
     pub(crate) payload: String,
 }
 

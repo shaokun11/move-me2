@@ -3,7 +3,7 @@ use std::str::FromStr;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use avalanche_types::{
     choices, ids,
-    subnet::{self, rpc::snow},
+    subnet::{self, rpc::snow}, proto::warp::SignRequest, warp::{client::WarpSignerClient, WarpSignerClient_},
 };
 use avalanche_types::subnet::rpc::database::manager::{DatabaseManager, Manager};
 use avalanche_types::subnet::rpc::health::Checkable;
@@ -20,7 +20,7 @@ use chrono::{DateTime, Utc};
 use futures::{channel::mpsc as futures_mpsc, StreamExt};
 use hex;
 use serde::{Deserialize, Serialize};
-use serde_json::{Value};
+use serde_json::Value;
 use tokio::sync::{mpsc::Sender, RwLock};
 
 use aptos_api::{Context, get_raw_api_service, RawApi};
@@ -40,7 +40,7 @@ use aptos_mempool::core_mempool::{CoreMempool, TimelineState};
 use aptos_sdk::move_types::ident_str;
 use aptos_sdk::move_types::language_storage::ModuleId;
 use aptos_sdk::rest_client::aptos_api_types::MAX_RECURSIVE_TYPES_ALLOWED;
-use aptos_sdk::transaction_builder::{TransactionFactory};
+use aptos_sdk::transaction_builder::TransactionFactory;
 use aptos_sdk::types::{AccountKey, LocalAccount};
 use aptos_state_view::account_with_state_view::AsAccountWithStateView;
 use aptos_storage_interface::DbReaderWriter;
@@ -143,6 +143,8 @@ pub struct Vm {
     // 0 done 1 building
     pub has_pending_tx: Arc<RwLock<bool>>,
 
+    pub warp_signer: Option<WarpSignerClient>,
+
 }
 
 
@@ -165,6 +167,7 @@ impl Vm {
             to_engine: None,
             signer: None,
             executor: None,
+            warp_signer: None,
             db: None,
             build_status: Arc::new(RwLock::new(0)),
             has_pending_tx: Arc::new(RwLock::new(false)),
@@ -597,7 +600,8 @@ impl Vm {
         };
         RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
-    pub async fn get_awm_message(&self, args: AwmMessageArgs) -> RpcRes {
+    pub async fn get_message(&self, args: AwmMessageArgs) -> RpcRes {
+        let  ctx = self.state.as_ref().read().await.ctx.clone().unwrap();
         let accept = AcceptType::Json;
         let h = args.tx_hash.as_str();
         let h1 = HashValue::from_hex(h).unwrap();
@@ -606,78 +610,39 @@ impl Vm {
         let ret = api.0.get_transaction_by_hash_raw(accept,
                                                     hash).await;
         let ret = ret.unwrap();
-        let ret = match ret {
+        let tx_info = match ret {
             BasicResponse::Ok(c, ..) => {
                 match c {
                     AptosResponseContent::Json(json) => {
                         let v = serde_json::from_str::<Value>(&serde_json::to_string(&json.0).unwrap()).unwrap();
                         let msg = v["events"][0]["data"].as_object().unwrap();
-                        // todo verify to chain id
-                        // todo make signature for this message
                         let ret = SignedMessage {
                             message: Message {
                                 from: msg.get("from").unwrap().to_string(),
                                 to: msg.get("to").unwrap().to_string(),
-                                nonce: msg.get("nonce").unwrap().to_string(),
                                 payload: msg.get("payload").unwrap().to_string(),
                             },
-                            signature: "this is signature".to_string(),
+                            signature: "".to_string(),
                         };
-                        serde_json::to_string(&ret).unwrap()
+                        Some(ret)
                     }
                     _ => {
-                        "".to_string()
+                        None
                     }
                 }
             }
         };
-        RpcRes { data: ret, header: "".to_owned() }
-    }
-
-    pub async fn import_awm_message(&self, args: ImportMessageArgs) -> RpcRes {
-        let mut message = None;
-        let mut bls_check_pass = true;
-        for u in args.source_uris {
-            let chain_client = AwmClient::new(
-                AwmClient::get_rpc_url(
-                    u.as_str(), args.chain_id.as_str()).as_str());
-            let chain_msg = chain_client.get_message(args.tx_hash.as_str()).await.unwrap();
-            if message.is_none() {
-                message = Some(chain_msg);
-            }
-            println!("get chain message: {:?}", message);
-            let node_client = AwmClient::new(AwmClient::get_node_url(u.as_str()).as_str());
-            // TODO this should use avalanchego BLS to verify
-            let node_pub_key = node_client.get_node().await.unwrap();
-            println!("get chain _node_pub_key : {}", node_pub_key);
+        let tx_info =tx_info.unwrap();
+        let chain_id = ctx.chain_id;
+        if tx_info.message.from != chain_id.to_string() {
+            panic!("chain id error");
         }
-        if !bls_check_pass {
-            // todo throw something
-        }
-        let message = message.unwrap().message;
-        // send a transaction to the aws message to this chain
-        let db = self.db.as_ref().unwrap().read().await;
-        let core_account = self.get_core_account(&db).await;
-        let tx_factory = TransactionFactory::new(ChainId::test());
-        let aws_acc = AccountAddress::from_bytes("0xdadc5af2c6c7e67025b2accca21e11a331a2d6f17a39234aaa891a281e69aafe".as_bytes().to_vec()).unwrap();
-        let tx = core_account
-            .sign_with_transaction_builder(
-                tx_factory.payload(aptos_types::transaction::TransactionPayload::EntryFunction(EntryFunction::new(
-                    ModuleId::new(
-                        aws_acc,
-                        ident_str!("awm_channel").to_owned(),
-                    ),
-                    ident_str!("import").to_owned(),
-                    vec![],
-                    vec![
-                        bcs::to_bytes(&message.from).unwrap(),
-                        bcs::to_bytes(&message.to).unwrap(),
-                        bcs::to_bytes(&message.nonce).unwrap(),
-                        bcs::to_bytes(&message.payload).unwrap(),
-                    ],
-                )))
-            );
-        return self.submit_transaction(bcs::to_bytes(&tx).unwrap(), AcceptType::Json).await;
+        let signer =  self.warp_signer.as_ref().unwrap();
+        let signature = signer.sign(ctx.network_id,
+             ctx.chain_id.to_string().as_str(), 
+             tx_info.message.payload.as_bytes()).await.unwrap().signature;
+        tx_info.signature = hex::encode(signature);
+        RpcRes { data: serde_json::to_string(&tx_info), header: "".to_owned() }
     }
 
     pub async fn get_transaction_by_hash(&self, args: RpcReq) -> RpcRes {
@@ -1475,6 +1440,7 @@ impl ChainVm for Vm
         if let Some(state_b) = vm_state.state.as_ref() {
             let prnt_blk = state_b.get_block(&vm_state.preferred).await.unwrap();
             let unix_now = Utc::now().timestamp() as u64;
+            let unix_now_micro= Utc::now().timestamp_micros() as u64;
             let tx_arr = self.get_pending_tx(500).await;
             let len = tx_arr.clone().len();
             log::info!("build_block pool tx count {}",len );
@@ -1500,7 +1466,7 @@ impl ChainVm for Vm
                 signer.author(),
                 vec![],
                 vec![],
-                unix_now,
+                unix_now_micro,
             ));
             let mut txs = vec![];
             for tx in tx_arr.iter() {
@@ -1516,7 +1482,7 @@ impl ChainVm for Vm
                                  block_id.clone(),
                                  parent_block_id,
                                  next_epoch,
-                                 unix_now);
+                                 unix_now_micro);
 
             let mut block_ = Block::new(
                 prnt_blk.id(),
@@ -1725,7 +1691,7 @@ impl CommonVm for Vm
     type ChainHandler = ChainHandler<ChainService>;
     type StaticHandler = StaticHandler;
     type ValidatorState = ValidatorStateClient;
-
+    type WarpSigner = WarpSignerClient;
     async fn initialize(
         &mut self,
         ctx: Option<subnet::rpc::context::Context<Self::ValidatorState>>,
@@ -1736,6 +1702,7 @@ impl CommonVm for Vm
         to_engine: Sender<snow::engine::common::message::Message>,
         _fxs: &[snow::engine::common::vm::Fx],
         app_sender: Self::AppSender,
+        warp_signer: Self::WarpSigner,
     ) -> io::Result<()> {
         let mut vm_state = self.state.write().await;
         vm_state.ctx = ctx.clone();
@@ -1747,6 +1714,7 @@ impl CommonVm for Vm
         };
         vm_state.state = Some(state.clone());
         self.to_engine = Some(Arc::new(RwLock::new(to_engine)));
+        self.warp_signer = Some(warp_signer);
         self.app_sender = Some(app_sender);
         drop(vm_state);
 
