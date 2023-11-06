@@ -9,6 +9,7 @@ use jsonrpc_derive::rpc;
 use serde::{Deserialize, Serialize};
 use aptos_api::accept_type::AcceptType;
 use aptos_api_types::U64;
+use serde_with::serde_as;
 
 use crate::api::de_request;
 use crate::vm::Vm;
@@ -102,14 +103,15 @@ pub trait Rpc {
 
 
     /***************avalanche AWM************************/
-    #[rpc(name = "getMessage")]
-    fn get_message(&self, args: AwmMessageArgs) -> BoxFuture<Result<RpcRes>>;
+    #[rpc(name = "makeSignature")]
+    fn make_signature(&self, args: MakeSignatureArgs) -> BoxFuture<Result<RpcRes>>;
 
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct AwmMessageArgs {
-    pub tx_hash: String,
+pub struct MakeSignatureArgs {
+    #[serde(with = "hex")]
+    pub data: Vec<u8>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -427,10 +429,10 @@ impl Rpc for ChainService {
         })
     }
 
-    fn get_message(&self, req: AwmMessageArgs) -> BoxFuture<Result<RpcRes>> {
+    fn make_signature(&self, req: MakeSignatureArgs) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let ret = vm.get_message(req).await;
+            let ret = vm.make_signature(req).await;
             return Ok(ret);
         })
     }

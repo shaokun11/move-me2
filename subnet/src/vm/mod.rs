@@ -61,7 +61,7 @@ use aptos_vm::AptosVM;
 use aptos_vm_genesis::{GENESIS_KEYPAIR, test_genesis_change_set_and_validators};
 
 use crate::{block::Block, state};
-use crate::api::chain_handlers::{AccountStateArgs, AwmMessageArgs, BlockArgs, ChainHandler, ChainService, GetTransactionByVersionArgs, ImportMessageArgs, PageArgs, RpcEventHandleReq, RpcEventNumReq, RpcReq, RpcRes, RpcTableReq};
+use crate::api::chain_handlers::{AccountStateArgs, MakeSignatureArgs, BlockArgs, ChainHandler, ChainService, GetTransactionByVersionArgs, PageArgs, RpcEventHandleReq, RpcEventNumReq, RpcReq, RpcRes, RpcTableReq};
 use crate::api::static_handlers::{StaticHandler, StaticService};
 use crate::awm::{AwmClient, Message, SignedMessage};
 
@@ -600,49 +600,15 @@ impl Vm {
         };
         RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
-    pub async fn get_message(&self, args: AwmMessageArgs) -> RpcRes {
+    pub async fn make_signature(&self, args: MakeSignatureArgs) -> RpcRes {
+    
         let  ctx = self.state.as_ref().read().await.ctx.clone().unwrap();
-        let accept = AcceptType::Json;
-        let h = args.tx_hash.as_str();
-        let h1 = HashValue::from_hex(h).unwrap();
-        let hash = aptos_api_types::hash::HashValue::from(h1);
-        let api = self.api_service.as_ref().unwrap();
-        let ret = api.0.get_transaction_by_hash_raw(accept,
-                                                    hash).await;
-        let ret = ret.unwrap();
-        let tx_info = match ret {
-            BasicResponse::Ok(c, ..) => {
-                match c {
-                    AptosResponseContent::Json(json) => {
-                        let v = serde_json::from_str::<Value>(&serde_json::to_string(&json.0).unwrap()).unwrap();
-                        let msg = v["events"][0]["data"].as_object().unwrap();
-                        let ret = SignedMessage {
-                            message: Message {
-                                from: msg.get("from").unwrap().to_string(),
-                                to: msg.get("to").unwrap().to_string(),
-                                payload: msg.get("payload").unwrap().to_string(),
-                            },
-                            signature: "".to_string(),
-                        };
-                        Some(ret)
-                    }
-                    _ => {
-                        None
-                    }
-                }
-            }
-        };
-        let tx_info =tx_info.unwrap();
-        let chain_id = ctx.chain_id;
-        if tx_info.message.from != chain_id.to_string() {
-            panic!("chain id error");
-        }
+        println!("msg to signature {} {}", ctx.network_id,ctx.chain_id.to_string());
         let signer =  self.warp_signer.as_ref().unwrap();
         let signature = signer.sign(ctx.network_id,
              ctx.chain_id.to_string().as_str(), 
-             tx_info.message.payload.as_bytes()).await.unwrap().signature;
-        tx_info.signature = hex::encode(signature);
-        RpcRes { data: serde_json::to_string(&tx_info), header: "".to_owned() }
+             &args.data).await.unwrap().signature;
+        RpcRes { data: hex::encode(signature), header: "".to_owned() }
     }
 
     pub async fn get_transaction_by_hash(&self, args: RpcReq) -> RpcRes {
