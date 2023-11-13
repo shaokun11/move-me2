@@ -142,9 +142,6 @@ pub struct Vm {
     pub build_status: Arc<RwLock<u8>>,
     // 0 done 1 building
     pub has_pending_tx: Arc<RwLock<bool>>,
-
-    pub warp_signer: Option<WarpSignerClient>,
-
 }
 
 
@@ -167,7 +164,6 @@ impl Vm {
             to_engine: None,
             signer: None,
             executor: None,
-            warp_signer: None,
             db: None,
             build_status: Arc::new(RwLock::new(0)),
             has_pending_tx: Arc::new(RwLock::new(false)),
@@ -1647,7 +1643,6 @@ impl CommonVm for Vm
     type ChainHandler = ChainHandler<ChainService>;
     type StaticHandler = StaticHandler;
     type ValidatorState = ValidatorStateClient;
-    type WarpSigner = WarpSignerClient;
     async fn initialize(
         &mut self,
         ctx: Option<subnet::rpc::context::Context<Self::ValidatorState>>,
@@ -1658,7 +1653,6 @@ impl CommonVm for Vm
         to_engine: Sender<snow::engine::common::message::Message>,
         _fxs: &[snow::engine::common::vm::Fx],
         app_sender: Self::AppSender,
-        warp_signer: Self::WarpSigner,
     ) -> io::Result<()> {
         let mut vm_state = self.state.write().await;
         vm_state.ctx = ctx.clone();
@@ -1670,7 +1664,6 @@ impl CommonVm for Vm
         };
         vm_state.state = Some(state.clone());
         self.to_engine = Some(Arc::new(RwLock::new(to_engine)));
-        self.warp_signer = Some(warp_signer);
         self.app_sender = Some(app_sender);
         drop(vm_state);
 
