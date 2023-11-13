@@ -7,7 +7,6 @@ mod vm;
 mod state;
 mod block;
 mod api;
-mod awm;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
