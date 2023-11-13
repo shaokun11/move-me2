@@ -83,12 +83,16 @@ impl Features {
     }
 
     pub fn is_module_event_enabled(&self) -> bool {
-        self.is_enabled(FeatureFlag::MODULE_EVENT)
+        // for movementdev chain we think is always enabled
+        // self.is_enabled(FeatureFlag::MODULE_EVENT);
+        return true;
     }
 
     pub fn is_emit_fee_statement_enabled(&self) -> bool {
         // requires module events
-        self.is_module_event_enabled() && self.is_enabled(FeatureFlag::EMIT_FEE_STATEMENT)
+        // self.is_module_event_enabled() && self.is_enabled(FeatureFlag::EMIT_FEE_STATEMENT);
+        // for movementdev chain we think is always enabled
+        return true;
     }
 
     pub fn is_storage_deletion_refund_enabled(&self) -> bool {

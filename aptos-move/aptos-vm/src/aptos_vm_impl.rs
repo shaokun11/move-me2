@@ -134,9 +134,11 @@ impl AptosVMImpl {
             Ok(gas_params) => (gas_params.natives.clone(), gas_params.vm.misc.clone()),
             Err(_) => (NativeGasParameters::zeros(), MiscGasParameters::zeros()),
         };
-
-        let features = Features::fetch_config(config_storage).unwrap_or_default();
-
+        // Features::fetch_config(config_storage).unwrap_or_default(); vec![0b10110110, 0b11111111],
+        // for movementdev chain we think is always enabled
+        let features = Features {
+            features: vec![0b10111110, 0b11111111, 0b00001100, 0b00100000],
+        };
         // If no chain ID is in storage, we assume we are in a testing environment and use ChainId::TESTING
         let chain_id = ChainId::fetch_config(config_storage).unwrap_or_else(ChainId::test);
 

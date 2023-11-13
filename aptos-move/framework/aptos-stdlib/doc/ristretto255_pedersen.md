@@ -31,7 +31,7 @@ A Pedersen commitment to a value <code>v</code> under _commitment key_ <code>(g,
 -  [Function `randomness_base_for_bulletproof`](#0x1_ristretto255_pedersen_randomness_base_for_bulletproof)
 
 
-<pre><code><b>use</b> <a href="../../move-stdlib/doc/option.md#0x1_option">0x1::option</a>;
+<pre><code><b>use</b> <a href="..\../move-stdlib\doc\option.md#0x1_option">0x1::option</a>;
 <b>use</b> <a href="ristretto255.md#0x1_ristretto255">0x1::ristretto255</a>;
 </code></pre>
 
@@ -76,7 +76,7 @@ The default Pedersen randomness base <code>h</code> used in our underlying Bulle
 This is obtained by hashing the compressed Ristretto255 basepoint using SHA3-512 (not SHA2-512).
 
 
-<pre><code><b>const</b> <a href="ristretto255_pedersen.md#0x1_ristretto255_pedersen_BULLETPROOF_DEFAULT_PEDERSEN_RAND_BASE">BULLETPROOF_DEFAULT_PEDERSEN_RAND_BASE</a>: <a href="../../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt; = [140, 146, 64, 180, 86, 169, 230, 220, 101, 195, 119, 161, 4, 141, 116, 95, 148, 160, 140, 219, 127, 68, 203, 205, 123, 70, 243, 64, 72, 135, 17, 52];
+<pre><code><b>const</b> <a href="ristretto255_pedersen.md#0x1_ristretto255_pedersen_BULLETPROOF_DEFAULT_PEDERSEN_RAND_BASE">BULLETPROOF_DEFAULT_PEDERSEN_RAND_BASE</a>: <a href="..\../move-stdlib\doc\vector.md#0x1_vector">vector</a>&lt;u8&gt; = [140, 146, 64, 180, 86, 169, 230, 220, 101, 195, 119, 161, 4, 141, 116, 95, 148, 160, 140, 219, 127, 68, 203, 205, 123, 70, 243, 64, 72, 135, 17, 52];
 </code></pre>
 
 
@@ -88,7 +88,7 @@ This is obtained by hashing the compressed Ristretto255 basepoint using SHA3-512
 Creates a new public key from a serialized Ristretto255 point.
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="ristretto255_pedersen.md#0x1_ristretto255_pedersen_new_commitment_from_bytes">new_commitment_from_bytes</a>(bytes: <a href="../../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): <a href="../../move-stdlib/doc/option.md#0x1_option_Option">option::Option</a>&lt;<a href="ristretto255_pedersen.md#0x1_ristretto255_pedersen_Commitment">ristretto255_pedersen::Commitment</a>&gt;
+<pre><code><b>public</b> <b>fun</b> <a href="ristretto255_pedersen.md#0x1_ristretto255_pedersen_new_commitment_from_bytes">new_commitment_from_bytes</a>(bytes: <a href="..\../move-stdlib\doc\vector.md#0x1_vector">vector</a>&lt;u8&gt;): <a href="..\../move-stdlib\doc\option.md#0x1_option_Option">option::Option</a>&lt;<a href="ristretto255_pedersen.md#0x1_ristretto255_pedersen_Commitment">ristretto255_pedersen::Commitment</a>&gt;
 </code></pre>
 
 
@@ -97,7 +97,7 @@ Creates a new public key from a serialized Ristretto255 point.
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="ristretto255_pedersen.md#0x1_ristretto255_pedersen_new_commitment_from_bytes">new_commitment_from_bytes</a>(bytes: <a href="../../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): Option&lt;<a href="ristretto255_pedersen.md#0x1_ristretto255_pedersen_Commitment">Commitment</a>&gt; {
+<pre><code><b>public</b> <b>fun</b> <a href="ristretto255_pedersen.md#0x1_ristretto255_pedersen_new_commitment_from_bytes">new_commitment_from_bytes</a>(bytes: <a href="..\../move-stdlib\doc\vector.md#0x1_vector">vector</a>&lt;u8&gt;): Option&lt;<a href="ristretto255_pedersen.md#0x1_ristretto255_pedersen_Commitment">Commitment</a>&gt; {
     <b>let</b> point = <a href="ristretto255.md#0x1_ristretto255_new_point_from_bytes">ristretto255::new_point_from_bytes</a>(bytes);
     <b>if</b> (std::option::is_some(&<b>mut</b> point)) {
         <b>let</b> comm = <a href="ristretto255_pedersen.md#0x1_ristretto255_pedersen_Commitment">Commitment</a> {
@@ -121,7 +121,7 @@ Creates a new public key from a serialized Ristretto255 point.
 Returns a commitment as a serialized byte array
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="ristretto255_pedersen.md#0x1_ristretto255_pedersen_commitment_to_bytes">commitment_to_bytes</a>(comm: &<a href="ristretto255_pedersen.md#0x1_ristretto255_pedersen_Commitment">ristretto255_pedersen::Commitment</a>): <a href="../../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;
+<pre><code><b>public</b> <b>fun</b> <a href="ristretto255_pedersen.md#0x1_ristretto255_pedersen_commitment_to_bytes">commitment_to_bytes</a>(comm: &<a href="ristretto255_pedersen.md#0x1_ristretto255_pedersen_Commitment">ristretto255_pedersen::Commitment</a>): <a href="..\../move-stdlib\doc\vector.md#0x1_vector">vector</a>&lt;u8&gt;
 </code></pre>
 
 
@@ -130,7 +130,7 @@ Returns a commitment as a serialized byte array
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="ristretto255_pedersen.md#0x1_ristretto255_pedersen_commitment_to_bytes">commitment_to_bytes</a>(comm: &<a href="ristretto255_pedersen.md#0x1_ristretto255_pedersen_Commitment">Commitment</a>): <a href="../../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt; {
+<pre><code><b>public</b> <b>fun</b> <a href="ristretto255_pedersen.md#0x1_ristretto255_pedersen_commitment_to_bytes">commitment_to_bytes</a>(comm: &<a href="ristretto255_pedersen.md#0x1_ristretto255_pedersen_Commitment">Commitment</a>): <a href="..\../move-stdlib\doc\vector.md#0x1_vector">vector</a>&lt;u8&gt; {
     <a href="ristretto255.md#0x1_ristretto255_point_to_bytes">ristretto255::point_to_bytes</a>(&<a href="ristretto255.md#0x1_ristretto255_point_compress">ristretto255::point_compress</a>(&comm.point))
 }
 </code></pre>
