@@ -23,7 +23,6 @@ derivative = "2.2.0"
 jsonrpc-core = "18.0.0"
 jsonrpc-core-client = { version = "18.0.0" }
 jsonrpc-derive = "18.0.0"
-reqwest = { version = "0.11", features = ["json","blocking"] }
 
 anyhow = { workspace = true }
 aptos-config = { workspace = true }

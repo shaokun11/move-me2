@@ -9,7 +9,6 @@ use jsonrpc_derive::rpc;
 use serde::{Deserialize, Serialize};
 use aptos_api::accept_type::AcceptType;
 use aptos_api_types::U64;
-use serde_with::serde_as;
 
 use crate::api::de_request;
 use crate::vm::Vm;
