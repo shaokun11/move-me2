@@ -6,8 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-avalanche-types = {git="https://github.com/shaokun11/avalanche-rs.git", package="avalanche-types", rev= "d5def59ac1e2c727a27d31637a2e5612a6b21c18",features = ["subnet","proto" ,"codec_base64"] }
-# avalanche-types = {git="https://github.com/ava-labs/avalanche-rs",package="avalanche-types", rev= "eee26d756b4e39c42d68b314c08028da11435e2d", features = ["subnet", "codec_base64"] }
+avalanche-types = {git="https://github.com/ava-labs/avalanche-rs",package="avalanche-types", rev= "eee26d756b4e39c42d68b314c08028da11435e2d", features = ["subnet", "codec_base64"] }
 tokio = { version = "1.25.0", features = ["fs", "rt-multi-thread"] }
 tonic = { version = "0.8.3", features = ["gzip"] }
 serde = { version = "1.0.152", features = ["derive"] }

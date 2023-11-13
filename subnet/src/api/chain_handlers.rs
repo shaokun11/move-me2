@@ -101,17 +101,6 @@ pub trait Rpc {
     #[rpc(name = "getLedgerInfo", alias("aptosvm.getLedgerInfo"))]
     fn get_ledger_info(&self) -> BoxFuture<Result<RpcRes>>;
 
-
-    /***************avalanche AWM************************/
-    #[rpc(name = "makeSignature")]
-    fn make_signature(&self, args: MakeSignatureArgs) -> BoxFuture<Result<RpcRes>>;
-
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct MakeSignatureArgs {
-    #[serde(with = "hex")]
-    pub data: Vec<u8>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -425,14 +414,6 @@ impl Rpc for ChainService {
         let vm = self.vm.clone();
         Box::pin(async move {
             let ret = vm.get_ledger_info().await;
-            return Ok(ret);
-        })
-    }
-
-    fn make_signature(&self, req: MakeSignatureArgs) -> BoxFuture<Result<RpcRes>> {
-        let vm = self.vm.clone();
-        Box::pin(async move {
-            let ret = vm.make_signature(req).await;
             return Ok(ret);
         })
     }

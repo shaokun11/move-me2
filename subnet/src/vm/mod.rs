@@ -600,16 +600,6 @@ impl Vm {
         };
         RpcRes { data: ret, header: serde_json::to_string(&header).unwrap() }
     }
-    pub async fn make_signature(&self, args: MakeSignatureArgs) -> RpcRes {
-    
-        let  ctx = self.state.as_ref().read().await.ctx.clone().unwrap();
-        println!("msg to signature {} {}", ctx.network_id,ctx.chain_id.to_string());
-        let signer =  self.warp_signer.as_ref().unwrap();
-        let signature = signer.sign(ctx.network_id,
-             ctx.chain_id.to_string().as_str(), 
-             &args.data).await.unwrap().signature;
-        RpcRes { data: hex::encode(signature), header: "".to_owned() }
-    }
 
     pub async fn get_transaction_by_hash(&self, args: RpcReq) -> RpcRes {
         let accept = if args.is_bsc_format.unwrap_or(false) {
