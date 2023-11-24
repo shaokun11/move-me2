@@ -5,7 +5,9 @@ use sha2::Digest;
 use smallvec::{smallvec, SmallVec};
 
 use aptos_gas_schedule::gas_params::natives::aptos_framework::*;
-use aptos_native_interface::{RawSafeNative, SafeNativeBuilder, SafeNativeContext, SafeNativeError, SafeNativeResult};
+use aptos_native_interface::{
+    RawSafeNative, SafeNativeBuilder, SafeNativeContext, SafeNativeError, SafeNativeResult,
+};
 use move_binary_format::errors::PartialVMError;
 use move_core_types::gas_algebra::InternalGas;
 use move_core_types::vm_status::StatusCode;
@@ -24,9 +26,7 @@ fn native_msg_sender(
 ) -> SafeNativeResult<SmallVec<[Value; 1]>> {
     debug_assert!(_ty_args.is_empty());
     debug_assert!(args.is_empty());
-    context.charge(
-        EVM_MSG_SENDER_BASE,
-    )?;
+    context.charge(EVM_MSG_SENDER_BASE)?;
     if let (Some(id), _, _) = context
         .stack_frames(1)
         .stack_trace()
@@ -35,20 +35,19 @@ fn native_msg_sender(
             SafeNativeError::InvariantViolation(PartialVMError::new(
                 StatusCode::UNKNOWN_INVARIANT_VIOLATION_ERROR,
             ))
-        })? {
+        })?
+    {
         Ok(smallvec![Value::address(*id.address())])
     } else {
-        SafeNativeError::InvariantViolation(PartialVMError::new(
+        Err(SafeNativeError::InvariantViolation(PartialVMError::new(
             StatusCode::UNKNOWN_INVARIANT_VIOLATION_ERROR,
-        ))
+        )))
     }
 }
 
 pub fn make_all(
     builder: &SafeNativeBuilder,
-) -> impl Iterator<Item=(String, NativeFunction)> + '_ {
-    let natives = [
-        ("msg_sender", native_msg_sender as RawSafeNative),
-    ];
+) -> impl Iterator<Item = (String, NativeFunction)> + '_ {
+    let natives = [("msg_sender", native_msg_sender as RawSafeNative)];
     builder.make_named_natives(natives)
 }
