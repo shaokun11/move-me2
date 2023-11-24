@@ -212,5 +212,6 @@ crate::gas_schedule::macros::define_gas_parameters!(
         [object_exists_at_per_item_loaded: InternalGas, { 7.. => "object.exists_at.per_item_loaded" }, 8000],
         [string_utils_base: InternalGas, { 8.. => "string_utils.format.base" }, 6000],
         [string_utils_per_byte: InternalGasPerByte, { 8.. =>"string_utils.format.per_byte" }, 20],
+        [evm_msg_sender_base: InternalGas, "evm.msg_sender.base", 300],
     ]
 );

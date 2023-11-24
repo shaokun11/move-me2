@@ -18,6 +18,7 @@ pub mod string_utils;
 pub mod transaction_context;
 pub mod type_info;
 pub mod util;
+mod evm;
 
 use crate::natives::cryptography::multi_ed25519;
 use aggregator_natives::{aggregator, aggregator_factory, aggregator_v2};
@@ -73,6 +74,7 @@ pub fn all_natives(
     );
     add_natives_from_module!("code", code::make_all(builder));
     add_natives_from_module!("event", event::make_all(builder));
+    add_natives_from_module!("evm", evm::make_all(builder));
     add_natives_from_module!("state_storage", state_storage::make_all(builder));
     add_natives_from_module!("aggregator", aggregator::make_all(builder));
     add_natives_from_module!("aggregator_factory", aggregator_factory::make_all(builder));
