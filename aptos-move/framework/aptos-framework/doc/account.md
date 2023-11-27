@@ -2129,7 +2129,7 @@ OriginatingAddress does not exist under <code>@aptos_framework</code> before the
 Ensure that the account exists at the end of the call.
 
 
-<pre><code><b>let</b> authentication_key = <a href="../../aptos-stdlib/../move-stdlib/doc/bcs.md#0x1_bcs_to_bytes">bcs::to_bytes</a>(account_address);
+<pre><code><b>let</b> authentication_key = <a href="..\../aptos-stdlib\../move-stdlib\doc\bcs.md#0x1_bcs_to_bytes">bcs::to_bytes</a>(account_address);
 <b>aborts_if</b> !<b>exists</b>&lt;<a href="account.md#0x1_account_Account">Account</a>&gt;(account_address) && (
     account_address == @vm_reserved
     || account_address == @aptos_framework
