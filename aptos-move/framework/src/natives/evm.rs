@@ -9,10 +9,7 @@ use aptos_native_interface::{
     RawSafeNative, SafeNativeBuilder, SafeNativeContext, SafeNativeError, SafeNativeResult,
 };
 use move_binary_format::errors::PartialVMError;
-use move_binary_format::file_format::{CodeOffset, FunctionDefinitionIndex};
-use move_core_types::account_address::AccountAddress;
 use move_core_types::gas_algebra::InternalGas;
-use move_core_types::language_storage::ModuleId;
 use move_core_types::vm_status::StatusCode;
 use move_vm_runtime::native_functions::NativeFunction;
 use move_vm_types::{loaded_data::runtime_types::Type, values::Value};
@@ -30,19 +27,22 @@ fn native_msg_sender(
     debug_assert!(_ty_args.is_empty());
     debug_assert!(args.is_empty());
     context.charge(EVM_MSG_SENDER_BASE)?;
-
-    println!("--------1------");
-    let mut address = AccountAddress::ONE;
-    match context.stack_frames(1).stack_trace().first() {
-        None => {
-            println!("--------2------");
-        },
-        Some(model_id) => {
-            println!("--------3------");
-            address = *model_id.to_owned().0.unwrap().address();
-        },
+    if let (Some(id), _, _) = context
+        .stack_frames(1)
+        .stack_trace()
+        .first()
+        .ok_or_else(|| {
+            SafeNativeError::InvariantViolation(PartialVMError::new(
+                StatusCode::UNKNOWN_INVARIANT_VIOLATION_ERROR,
+            ))
+        })?
+    {
+        Ok(smallvec![Value::address(*id.address())])
+    } else {
+        Err(SafeNativeError::InvariantViolation(PartialVMError::new(
+            StatusCode::UNKNOWN_INVARIANT_VIOLATION_ERROR,
+        )))
     }
-    Ok(smallvec![Value::address(address)])
 }
 
 pub fn make_all(
