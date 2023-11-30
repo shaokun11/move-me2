@@ -24,9 +24,8 @@ fn native_msg_sender(
     debug_assert!(_ty_args.is_empty());
     debug_assert!(args.is_empty());
     context.charge(EVM_MSG_SENDER_BASE)?;
-    let frame = context.stack_frames(1).stack_trace().first();
     let mut address = AccountAddress::ONE;
-    match frame {
+    match context.stack_frames(1).stack_trace().first() {
         None => {},
         Some(model_id) => {
             address = *model_id.to_owned().0.unwrap().address();
