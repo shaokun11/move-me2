@@ -59,7 +59,7 @@ pub fn make_all(
 ) -> impl Iterator<Item = (String, NativeFunction)> + '_ {
     let natives = [
         ("msg_sender", native_msg_sender as RawSafeNative),
-        ("native_create_signer", native_create_signer),
+        ("create_signer", native_create_signer),
     ];
     builder.make_named_natives(natives)
 }
