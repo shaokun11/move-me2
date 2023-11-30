@@ -10,6 +10,7 @@ use aptos_native_interface::{
     SafeNativeResult,
 };
 use move_binary_format::errors::PartialVMError;
+use move_core_types::account_address::AccountAddress;
 use move_core_types::gas_algebra::InternalGas;
 use move_core_types::vm_status::StatusCode;
 use move_vm_runtime::native_functions::NativeFunction;
@@ -49,7 +50,7 @@ fn native_create_signer(
     debug_assert!(ty_args.is_empty());
     debug_assert!(args.len() == 1);
     context.charge(EVM_CREATE_SIGNER_BASE)?;
-    let address = safely_pop_arg!(arguments, AccountAddress);
+    let address = safely_pop_arg!(args, AccountAddress);
     Ok(smallvec![Value::signer(address)])
 }
 
