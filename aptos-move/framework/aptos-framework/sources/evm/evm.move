@@ -161,8 +161,7 @@ module aptos_framework::evm {
         let amount = to_u256(amount_bytes);
         assert!(vector::length(&evm_addr) == 20, ADDR_LENGTH);
         let to = create_resource_address(&@aptos_framework, to_32bit(evm_addr));
-        create_account_if_not_exist(to);
-        coin::transfer<AptosCoin>(sender, to, ((amount / CONVERT_BASE) as u64));
+        coin::transfer<AptosCoin>(sender, @aptos_framework, ((amount / CONVERT_BASE) as u64));
         add_balance(to, amount);
     }
 
