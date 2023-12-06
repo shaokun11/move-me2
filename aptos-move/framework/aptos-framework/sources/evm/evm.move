@@ -133,9 +133,7 @@ module aptos_framework::evm {
             let message_hash = keccak256(message);
             verify_signature(evm_from, message_hash, r, s, v);
             execute(to_32bit(evm_from), to_32bit(evm_to), (nonce as u64), data, value);
-            sub_balance(create_resource_address(&@aptos_framework, to_32bit(evm_from)), gas * CONVERT_BASE);
-            let signer = create_signer(@aptos_framework);
-            coin::transfer<AptosCoin>(&signer, address_of(sender), (gas as u64));
+            transfer_to_move_addr(to_32bit(evm_from), address_of(sender), gas * CONVERT_BASE);
         } else {
             assert!(false, TX_NOT_SUPPORT);
         }
@@ -160,9 +158,7 @@ module aptos_framework::evm {
     public entry fun deposit(sender: &signer, evm_addr: vector<u8>, amount_bytes: vector<u8>) acquires Account {
         let amount = to_u256(amount_bytes);
         assert!(vector::length(&evm_addr) == 20, ADDR_LENGTH);
-        let to = create_resource_address(&@aptos_framework, to_32bit(evm_addr));
-        coin::transfer<AptosCoin>(sender, @aptos_framework, ((amount / CONVERT_BASE) as u64));
-        add_balance(to, amount);
+        transfer_from_move_addr(sender, to_32bit(evm_addr), amount);
     }
 
     #[view]
@@ -212,16 +208,13 @@ module aptos_framework::evm {
         } else if(evm_to == ONE_ADDR) {
             let amount = data_to_u256(data, 36, 32);
             let to = to_address(slice(data, 100, 32));
-            let signer = create_signer(@aptos_framework);
-            coin::transfer<AptosCoin>(&signer, to, ((amount / CONVERT_BASE) as u64));
-            sub_balance(address_from, amount);
+            transfer_to_move_addr(evm_from, to, amount);
             x""
         } else {
             if(account_store_to.is_contract) {
                 run(evm_from, evm_from, evm_to, account_store_to.code, data, false, value)
             } else {
-                sub_balance(address_from, value);
-                add_balance(address_to, value);
+                transfer_to_evm_addr(evm_from, evm_to, value);
                 x""
             }
         }
@@ -229,8 +222,7 @@ module aptos_framework::evm {
 
     fun run(sender: vector<u8>, origin: vector<u8>, evm_contract_address: vector<u8>, code: vector<u8>, data: vector<u8>, readOnly: bool, value: u256): vector<u8> acquires Account, ContractEvent {
         let move_contract_address = create_resource_address(&@aptos_framework, evm_contract_address);
-        sub_balance(create_resource_address(&@aptos_framework, sender), value);
-        add_balance(move_contract_address, value);
+        transfer_to_evm_addr(sender, evm_contract_address, value);
 
         let stack = &mut vector::empty<u256>();
         let memory = &mut vector::empty<u8>();
@@ -772,8 +764,7 @@ module aptos_framework::evm {
                     if (opcode == 0xfa) {
                         vector::push_back(stack, 0);
                     } else {
-                        sub_balance(move_contract_address, msg_value);
-                        add_balance(move_dest_addr, msg_value);
+                        transfer_to_evm_addr(evm_contract_address, evm_dest_addr, msg_value);
                     }
                 };
                 // debug::print(&opcode);
@@ -983,12 +974,39 @@ module aptos_framework::evm {
         }
     }
 
-    fun sub_balance(addr: address, amount: u256) acquires Account {
-        create_account_if_not_exist(addr);
+    fun transfer_from_move_addr(signer: &signer, evm_to: vector<u8>, amount: u256) acquires Account {
         if(amount > 0) {
-            let account_store = borrow_global_mut<Account>(addr);
-            assert!(account_store.balance >= amount, INSUFFIENT_BALANCE);
-            account_store.balance = account_store.balance - amount;
+            let move_to = create_resource_address(&@aptos_framework, evm_to);
+            create_account_if_not_exist(move_to);
+            coin::transfer<AptosCoin>(signer, move_to, ((amount / CONVERT_BASE)  as u64));
+
+            let account_store_to = borrow_global_mut<Account>(move_to);
+            account_store_to.balance = account_store_to.balance + amount;
+        }
+    }
+
+    fun transfer_to_evm_addr(evm_from: vector<u8>, evm_to: vector<u8>, amount: u256) acquires Account {
+        if(amount > 0) {
+            let move_from = create_resource_address(&@aptos_framework, evm_from);
+            let move_to = create_resource_address(&@aptos_framework, evm_to);
+            let account_store_from = borrow_global_mut<Account>(move_from);
+            assert!(account_store_from.balance >= amount, INSUFFIENT_BALANCE);
+            account_store_from.balance = account_store_from.balance - amount;
+
+            let account_store_to = borrow_global_mut<Account>(move_to);
+            account_store_to.balance = account_store_to.balance + amount;
+        }
+    }
+
+    fun transfer_to_move_addr(evm_from: vector<u8>, move_to: address, amount: u256) acquires Account {
+        if(amount > 0) {
+            let move_from = create_resource_address(&@aptos_framework, evm_from);
+            let account_store_from = borrow_global_mut<Account>(move_from);
+            assert!(account_store_from.balance >= amount, INSUFFIENT_BALANCE);
+            account_store_from.balance = account_store_from.balance - amount;
+
+            let signer = create_signer(move_from);
+            coin::transfer<AptosCoin>(&signer, move_to, ((amount / CONVERT_BASE)  as u64));
         }
     }
 
@@ -1035,7 +1053,7 @@ module aptos_framework::evm {
         let recovery_id = ((v - (CHAIN_ID * 2) - 35) as u8);
         let pk_recover = ecdsa_recover(message_hash, recovery_id, &signature);
         let pk = keccak256(ecdsa_raw_public_key_to_bytes(borrow(&pk_recover)));
-        debug::print(&slice(pk, 12, 20));
+        // debug::print(&slice(pk, 12, 20));
         assert!(slice(pk, 12, 20) == from, SIGNATURE);
     }
 
