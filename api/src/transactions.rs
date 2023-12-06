@@ -417,6 +417,23 @@ impl TransactionsApi {
         }
         let ledger_info = self.context.get_latest_ledger_info()?;
         let signed_transaction = self.get_signed_transaction(&ledger_info, data)?;
+        
+        // failed the tx evm use for estimate tx gas
+        let payload = signed_transaction.payload();
+        match payload {
+            TransactionPayload::EntryFunction(entry_function) => {
+                let module = entry_function.module();
+                if module.address().to_standard_string() == "0x1" && 
+                    module.name().as_str() == "evm" && 
+                    entry_function.function().as_str() == "estimate_tx_gas" {
+                    return Err(api_disabled("Submit transaction"));
+                }
+            },
+            _ => {
+                
+            }
+        }
+
         self.create(&accept_type, &ledger_info, signed_transaction)
             .await
     }
