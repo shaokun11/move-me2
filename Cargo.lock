@@ -3806,6 +3806,7 @@ dependencies = [
  "dashmap",
  "fail 0.5.1",
  "futures 0.3.29",
+ "hex",
  "move-binary-format",
  "move-bytecode-utils",
  "move-bytecode-verifier",

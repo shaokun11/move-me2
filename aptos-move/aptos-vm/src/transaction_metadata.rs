@@ -25,7 +25,7 @@ pub struct TransactionMetadata {
     pub expiration_timestamp_secs: u64,
     pub chain_id: ChainId,
     pub script_hash: Vec<u8>,
-    pub script_size: NumBytes,
+    pub script_size: NumBytes
 }
 
 impl TransactionMetadata {
@@ -140,7 +140,7 @@ impl Default for TransactionMetadata {
             expiration_timestamp_secs: 0,
             chain_id: ChainId::test(),
             script_hash: vec![],
-            script_size: NumBytes::zero(),
+            script_size: NumBytes::zero()
         }
     }
 }

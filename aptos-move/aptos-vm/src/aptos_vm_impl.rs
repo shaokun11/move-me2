@@ -47,6 +47,7 @@ use move_core_types::{
 use move_vm_runtime::logging::expect_no_verification_errors;
 use move_vm_types::gas::UnmeteredGasMeter;
 use std::sync::Arc;
+use hex::encode;
 
 pub const MAXIMUM_APPROVED_TRANSACTION_SIZE: u64 = 1024 * 1024;
 
@@ -555,6 +556,10 @@ impl AptosVMImpl {
         }
         .map(|_return_vals| ())
         .map_err(expect_no_verification_errors)?;
+
+        // println!("run_epilogue");
+        // session.
+        // println!("evm_form: {}", encode(&txn_data.evm_from));
 
         // Emit the FeeStatement event
         if self.features.is_emit_fee_statement_enabled() {

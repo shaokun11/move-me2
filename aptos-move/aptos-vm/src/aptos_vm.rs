@@ -389,6 +389,7 @@ impl AptosVM {
         gas_meter: &mut impl AptosGasMeter,
         senders: Vec<AccountAddress>,
         script_fn: &EntryFunction,
+        is_simulation: bool
     ) -> Result<SerializedReturnValues, VMStatus> {
         let function = session.load_function(
             script_fn.module(),
@@ -406,13 +407,25 @@ impl AptosVM {
             &function,
             struct_constructors,
         )?;
-        Ok(session.execute_entry_function(
-            script_fn.module(),
-            script_fn.function(),
-            script_fn.ty_args().to_vec(),
-            args,
-            gas_meter,
-        )?)
+        // println!("is_simulation: {}", is_simulation);
+        if is_simulation {
+            Ok(session.execute_function_bypass_visibility(
+                script_fn.module(),
+                script_fn.function(),
+                script_fn.ty_args().to_vec(),
+                args,
+                gas_meter,
+            )?)
+        } else {
+            Ok(session.execute_entry_function(
+                script_fn.module(),
+                script_fn.function(),
+                script_fn.ty_args().to_vec(),
+                args,
+                gas_meter,
+            )?)
+        }
+        
     }
 
     fn execute_script_or_entry_function(
@@ -425,6 +438,7 @@ impl AptosVM {
         log_context: &AdapterLogSchema,
         new_published_modules_loaded: &mut bool,
         change_set_configs: &ChangeSetConfigs,
+        is_simulation: bool
     ) -> Result<(VMStatus, VMOutput), VMStatus> {
         fail_point!("move_adapter::execute_script_or_entry_function", |_| {
             Err(VMStatus::Error {
@@ -471,6 +485,7 @@ impl AptosVM {
                         gas_meter,
                         txn_data.senders(),
                         script_fn,
+                        is_simulation
                     )?;
                 },
 
@@ -675,7 +690,7 @@ impl AptosVM {
         gas_meter: &mut impl AptosGasMeter,
         multisig_address: AccountAddress,
         payload: &EntryFunction,
-        new_published_modules_loaded: &mut bool,
+        new_published_modules_loaded: &mut bool
     ) -> Result<(), VMStatus> {
         // If txn args are not valid, we'd still consider the transaction as executed but
         // failed. This is primarily because it's unrecoverable at this point.
@@ -684,6 +699,7 @@ impl AptosVM {
             gas_meter,
             vec![multisig_address],
             payload,
+            false,
         )?;
 
         // Resolve any pending module publishes in case the multisig transaction is deploying
@@ -1145,6 +1161,7 @@ impl AptosVM {
                     log_context,
                     &mut new_published_modules_loaded,
                     &storage_gas_params.change_set_configs,
+                    false
                 ),
             TransactionPayload::Multisig(payload) => self.execute_multisig_transaction(
                 resolver,
@@ -1922,6 +1939,7 @@ impl AptosSimulationVM {
                     log_context,
                     &mut new_published_modules_loaded,
                     &storage_gas_params.change_set_configs,
+                    true
                 )
             },
             TransactionPayload::Multisig(multisig) => {

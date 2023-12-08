@@ -119,6 +119,8 @@ module aptos_framework::evm {
             let r = *vector::borrow(&decoded, 7);
             let s = *vector::borrow(&decoded, 8);
 
+            assert!(vector::length(&evm_to) == 20, ADDR_LENGTH);
+
             let message = encode_bytes_list(vector[
                 u256_to_trimed_data(nonce),
                 u256_to_trimed_data(gas_price),
@@ -139,7 +141,7 @@ module aptos_framework::evm {
         }
     }
 
-    public entry fun estimate_tx_gas(
+    fun estimate_tx_gas(
         evm_from: vector<u8>,
         evm_to: vector<u8>,
         data: vector<u8>,
@@ -1040,10 +1042,16 @@ module aptos_framework::evm {
         };
     }
 
+    fun add_nonce(evm_from: vector<u8>) acquires Account {
+        let move_from = create_resource_address(&@aptos_framework, to_32bit(evm_from));
+        create_account_if_not_exist(move_from);
+        let coin_store_from = borrow_global_mut<Account>(move_from);
+        coin_store_from.nonce = coin_store_from.nonce + 1;
+    }
+
     fun verify_nonce(addr: address, nonce: u64) acquires Account {
         let coin_store_from = borrow_global_mut<Account>(addr);
         assert!(coin_store_from.nonce == nonce, NONCE);
-        coin_store_from.nonce = coin_store_from.nonce + 1;
     }
 
     fun verify_signature(from: vector<u8>, message_hash: vector<u8>, r: vector<u8>, s: vector<u8>, v: u64) {

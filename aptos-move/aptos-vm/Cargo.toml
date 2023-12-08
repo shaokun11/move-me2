@@ -58,11 +58,13 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 smallvec = { workspace = true }
 tracing = { workspace = true }
+hex = "0.4"
 
 [dev-dependencies]
 aptos-language-e2e-tests = { workspace = true }
 aptos-types = { workspace = true }
 proptest = { workspace = true }
+
 
 [features]
 default = []
