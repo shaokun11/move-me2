@@ -192,10 +192,10 @@ module aptos_framework::evm {
 
     fun execute(evm_from: vector<u8>, evm_to: vector<u8>, nonce: u64, data: vector<u8>, value: u256): vector<u8> acquires Account, ContractEvent {
         let address_from = create_resource_address(&@aptos_framework, evm_from);
-        verify_nonce(address_from, nonce);
         let address_to = create_resource_address(&@aptos_framework, evm_to);
         create_account_if_not_exist(address_from);
         create_account_if_not_exist(address_to);
+        verify_nonce(address_from, nonce);
         let account_store_to = borrow_global_mut<Account>(address_to);
         if(evm_to == ZERO_ADDR) {
             let evm_contract = get_contract_address(evm_from, nonce);
