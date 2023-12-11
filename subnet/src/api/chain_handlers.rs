@@ -1,14 +1,14 @@
 use std::io;
 use std::marker::PhantomData;
 
+use aptos_api::accept_type::AcceptType;
+use aptos_api_types::U64;
 use avalanche_types::proto::http::Element;
 use avalanche_types::subnet::rpc::http::handle::Handle;
 use bytes::Bytes;
 use jsonrpc_core::{BoxFuture, Error, ErrorCode, IoHandler, Result};
 use jsonrpc_derive::rpc;
 use serde::{Deserialize, Serialize};
-use aptos_api::accept_type::AcceptType;
-use aptos_api_types::U64;
 
 use crate::api::de_request;
 use crate::vm::Vm;
@@ -22,16 +22,28 @@ pub trait Rpc {
     #[rpc(name = "submitTransaction", alias("aptosvm.submitTransaction"))]
     fn submit_transaction(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>>;
 
-    #[rpc(name = "submitTransactionBatch", alias("aptosvm.submitTransactionBatch"))]
+    #[rpc(
+        name = "submitTransactionBatch",
+        alias("aptosvm.submitTransactionBatch")
+    )]
     fn submit_transaction_batch(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>>;
 
     #[rpc(name = "getTransactionByHash", alias("aptosvm.getTransactionByHash"))]
     fn get_transaction_by_hash(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>>;
 
-    #[rpc(name = "getTransactionByVersion", alias("aptosvm.getTransactionByVersion"))]
-    fn get_transaction_by_version(&self, args: GetTransactionByVersionArgs) -> BoxFuture<Result<RpcRes>>;
+    #[rpc(
+        name = "getTransactionByVersion",
+        alias("aptosvm.getTransactionByVersion")
+    )]
+    fn get_transaction_by_version(
+        &self,
+        args: GetTransactionByVersionArgs,
+    ) -> BoxFuture<Result<RpcRes>>;
 
-    #[rpc(name = "getAccountsTransactions", alias("aptosvm.getAccountsTransactions"))]
+    #[rpc(
+        name = "getAccountsTransactions",
+        alias("aptosvm.getAccountsTransactions")
+    )]
     fn get_accounts_transactions(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>>;
 
     #[rpc(name = "simulateTransaction", alias("aptosvm.simulateTransaction"))]
@@ -44,7 +56,6 @@ pub trait Rpc {
     fn estimate_gas_price(&self) -> BoxFuture<Result<RpcRes>>;
     /*******************************TRANSACTION END***************************************/
 
-
     /*******************************HELPER API START***************************************/
     #[rpc(name = "faucet", alias("aptosvm.faucet"))]
     fn facet_apt(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>>;
@@ -53,7 +64,6 @@ pub trait Rpc {
     fn create_account(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>>;
 
     /*******************************HELPER API END***************************************/
-
 
     /******************************* ACCOUNT START ***************************************/
 
@@ -66,13 +76,18 @@ pub trait Rpc {
     #[rpc(name = "getAccountModules", alias("aptosvm.getAccountModules"))]
     fn get_account_modules(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>>;
 
-    #[rpc(name = "getAccountResourcesState", alias("aptosvm.getAccountResourcesState"))]
+    #[rpc(
+        name = "getAccountResourcesState",
+        alias("aptosvm.getAccountResourcesState")
+    )]
     fn get_account_resources_state(&self, args: AccountStateArgs) -> BoxFuture<Result<RpcRes>>;
 
-    #[rpc(name = "getAccountModulesState", alias("aptosvm.getAccountModulesState"))]
+    #[rpc(
+        name = "getAccountModulesState",
+        alias("aptosvm.getAccountModulesState")
+    )]
     fn get_account_modules_state(&self, args: AccountStateArgs) -> BoxFuture<Result<RpcRes>>;
     /******************************* ACCOUNT END ***************************************/
-
 
     /*******************************BLOCK START***************************************/
     #[rpc(name = "getBlockByHeight", alias("aptosvm.getBlockByHeight"))]
@@ -91,15 +106,20 @@ pub trait Rpc {
     #[rpc(name = "getRawTableItem", alias("aptosvm.getRawTableItem"))]
     fn get_raw_table_item(&self, args: RpcTableReq) -> BoxFuture<Result<RpcRes>>;
 
-    #[rpc(name = "getEventsByCreationNumber", alias("aptosvm.getEventsByCreationNumber"))]
+    #[rpc(
+        name = "getEventsByCreationNumber",
+        alias("aptosvm.getEventsByCreationNumber")
+    )]
     fn get_events_by_creation_number(&self, args: RpcEventNumReq) -> BoxFuture<Result<RpcRes>>;
 
-    #[rpc(name = "getEventsByEventHandle", alias("aptosvm.getEventsByEventHandle"))]
+    #[rpc(
+        name = "getEventsByEventHandle",
+        alias("aptosvm.getEventsByEventHandle")
+    )]
     fn get_events_by_event_handle(&self, args: RpcEventHandleReq) -> BoxFuture<Result<RpcRes>>;
 
     #[rpc(name = "getLedgerInfo", alias("aptosvm.getLedgerInfo"))]
     fn get_ledger_info(&self) -> BoxFuture<Result<RpcRes>>;
-
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -125,7 +145,6 @@ pub struct RpcRes {
     pub data: String,
     pub header: String,
 }
-
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct RpcTableReq {
@@ -182,7 +201,6 @@ pub struct PageArgs {
     pub is_bsc_format: Option<bool>,
 }
 
-
 #[derive(Clone)]
 pub struct ChainService {
     pub vm: Vm,
@@ -193,7 +211,6 @@ impl ChainService {
         Self { vm }
     }
 }
-
 
 impl Rpc for ChainService {
     fn get_transactions(&self, args: PageArgs) -> BoxFuture<Result<RpcRes>> {
@@ -213,7 +230,9 @@ impl Rpc for ChainService {
             } else {
                 AcceptType::Json
             };
-            let r = vm.submit_transaction(hex::decode(args.data).unwrap(), accept).await;
+            let r = vm
+                .submit_transaction(hex::decode(args.data).unwrap(), accept)
+                .await;
             Ok(r)
         })
     }
@@ -226,7 +245,9 @@ impl Rpc for ChainService {
             } else {
                 AcceptType::Json
             };
-            let r = vm.submit_transaction_batch(hex::decode(args.data).unwrap(), accept).await;
+            let r = vm
+                .submit_transaction_batch(hex::decode(args.data).unwrap(), accept)
+                .await;
             Ok(r)
         })
     }
@@ -239,7 +260,10 @@ impl Rpc for ChainService {
         })
     }
 
-    fn get_transaction_by_version(&self, args: GetTransactionByVersionArgs) -> BoxFuture<Result<RpcRes>> {
+    fn get_transaction_by_version(
+        &self,
+        args: GetTransactionByVersionArgs,
+    ) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
             let ret = vm.get_transaction_by_version(args).await;
@@ -307,7 +331,8 @@ impl Rpc for ChainService {
             } else {
                 AcceptType::Json
             };
-            let ret = vm.create_account(args.data.as_str(), accept).await;
+            let acc = hex::decode(args.data).unwrap();
+            let ret = vm.create_account(acc, accept).await;
             Ok(ret)
         })
     }
@@ -371,7 +396,7 @@ impl Rpc for ChainService {
     fn view_function(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            log::info!("view_function called {}",args.data.clone());
+            log::info!("view_function called {}", args.data.clone());
             let ret = vm.view_function(args).await;
             return Ok(ret);
         })
@@ -416,7 +441,6 @@ impl Rpc for ChainService {
             return Ok(ret);
         })
     }
-
 }
 
 #[derive(Clone, Debug)]
@@ -427,8 +451,8 @@ pub struct ChainHandler<T> {
 
 #[tonic::async_trait]
 impl<T> Handle for ChainHandler<T>
-    where
-        T: Rpc + Send + Sync + Clone + 'static,
+where
+    T: Rpc + Send + Sync + Clone + 'static,
 {
     async fn request(
         &self,
