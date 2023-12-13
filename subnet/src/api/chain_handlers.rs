@@ -11,6 +11,7 @@ use jsonrpc_derive::rpc;
 use serde::{Deserialize, Serialize};
 
 use crate::api::de_request;
+use crate::util::HexParser;
 use crate::vm::Vm;
 
 #[rpc]
@@ -58,7 +59,7 @@ pub trait Rpc {
 
     /*******************************HELPER API START***************************************/
     #[rpc(name = "faucet", alias("aptosvm.faucet"))]
-    fn facet_apt(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>>;
+    fn faucet_apt(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>>;
 
     #[rpc(name = "createAccount", alias("aptosvm.createAccount"))]
     fn create_account(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>>;
@@ -144,6 +145,7 @@ pub struct RpcReq {
 pub struct RpcRes {
     pub data: String,
     pub header: String,
+    pub error: Option<String>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -309,16 +311,17 @@ impl Rpc for ChainService {
         })
     }
 
-    fn facet_apt(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
+    fn faucet_apt(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let acc = hex::decode(args.data).unwrap();
+            let s = args.data.as_str();
+            let acc = HexParser::parse_hex_string(s).unwrap();
             let accept = if args.is_bcs_format.unwrap_or(false) {
                 AcceptType::Bcs
             } else {
                 AcceptType::Json
             };
-            let ret = vm.facet_apt(acc, accept).await;
+            let ret = vm.faucet_apt(acc, accept).await;
             Ok(ret)
         })
     }
@@ -331,7 +334,8 @@ impl Rpc for ChainService {
             } else {
                 AcceptType::Json
             };
-            let acc = hex::decode(args.data).unwrap();
+            let s = args.data.as_str();
+            let acc = HexParser::parse_hex_string(s).unwrap();
             let ret = vm.create_account(acc, accept).await;
             Ok(ret)
         })
@@ -396,7 +400,6 @@ impl Rpc for ChainService {
     fn view_function(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            log::info!("view_function called {}", args.data.clone());
             let ret = vm.view_function(args).await;
             return Ok(ret);
         })

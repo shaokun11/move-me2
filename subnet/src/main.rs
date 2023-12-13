@@ -6,6 +6,7 @@ use tokio::sync::broadcast::{self, Receiver, Sender};
 mod api;
 mod block;
 mod state;
+mod util;
 mod vm;
 
 #[tokio::main]
