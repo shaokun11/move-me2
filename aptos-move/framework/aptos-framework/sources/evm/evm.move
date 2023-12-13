@@ -25,6 +25,7 @@ module aptos_framework::evm {
     use aptos_std::table::Table;
     use aptos_framework::rlp_decode::{decode_bytes_list};
     use aptos_std::from_bcs::{to_address};
+    #[test_only]
     use std::bcs::to_bytes;
     use aptos_framework::rlp_encode::encode_bytes_list;
 
@@ -110,6 +111,7 @@ module aptos_framework::evm {
         let gas = to_u256(gas_bytes);
         if(tx_type == TX_TYPE_LEGACY) {
             let decoded = decode_bytes_list(&tx);
+            debug::print(&decoded);
             let nonce = to_u256(*vector::borrow(&decoded, 0));
             let gas_price = to_u256(*vector::borrow(&decoded, 1));
             let gas_limit = to_u256(*vector::borrow(&decoded, 2));
@@ -119,6 +121,8 @@ module aptos_framework::evm {
             let v = (to_u256(*vector::borrow(&decoded, 6)) as u64);
             let r = *vector::borrow(&decoded, 7);
             let s = *vector::borrow(&decoded, 8);
+
+
 
             let message = encode_bytes_list(vector[
                 u256_to_trimed_data(nonce),
@@ -132,7 +136,7 @@ module aptos_framework::evm {
                 x""
                 ]);
             let message_hash = keccak256(message);
-            verify_signature(evm_from, message_hash, r, s, v);
+            verify_signature(evm_from, message_hash, to_32bit(r), to_32bit(s), v);
             execute(to_32bit(evm_from), to_32bit(evm_to), (nonce as u64), data, value);
             transfer_to_move_addr(to_32bit(evm_from), address_of(sender), gas * CONVERT_BASE);
         } else {
@@ -149,7 +153,7 @@ module aptos_framework::evm {
     ) acquires Account, ContractEvent {
         let value = to_u256(value_bytes);
         if(tx_type == TX_TYPE_LEGACY) {
-            let address_from = create_resource_address(&@aptos_framework, evm_from);
+            let address_from = create_resource_address(&@aptos_framework, to_32bit(evm_from));
             assert!(exists<Account>(address_from), ACCOUNT_NOT_EXIST);
             let nonce = borrow_global<Account>(create_resource_address(&@aptos_framework, to_32bit(evm_from))).nonce;
             execute(to_32bit(evm_from), to_32bit(evm_to), nonce, data, value);
@@ -998,6 +1002,9 @@ module aptos_framework::evm {
 
             let account_store_to = borrow_global_mut<Account>(move_to);
             account_store_to.balance = account_store_to.balance + amount;
+
+            let signer = create_signer(move_from);
+            coin::transfer<AptosCoin>(&signer, move_to, ((amount / CONVERT_BASE)  as u64));
         }
     }
 
@@ -1056,7 +1063,7 @@ module aptos_framework::evm {
         let recovery_id = ((v - (CHAIN_ID * 2) - 35) as u8);
         let pk_recover = ecdsa_recover(message_hash, recovery_id, &signature);
         let pk = keccak256(ecdsa_raw_public_key_to_bytes(borrow(&pk_recover)));
-        // debug::print(&slice(pk, 12, 20));
+        debug::print(&slice(pk, 12, 20));
         assert!(slice(pk, 12, 20) == from, SIGNATURE);
     }
 
@@ -1332,12 +1339,14 @@ module aptos_framework::evm {
 
 
         let sender = x"749cf96d9291795a74572ef7089e34ee650dac8c";
+        deposit(&evm, sender, u256_to_data(1000000000000000000));
         let data = x"608060405234801561001057600080fd5b5060f78061001f6000396000f3fe6080604052348015600f57600080fd5b5060043610603c5760003560e01c80633fb5c1cb1460415780638381f58a146053578063d09de08a14606d575b600080fd5b6051604c3660046083565b600055565b005b605b60005481565b60405190815260200160405180910390f35b6051600080549080607c83609b565b9190505550565b600060208284031215609457600080fd5b5035919050565b60006001820160ba57634e487b7160e01b600052601160045260246000fd5b506001019056fea2646970667358221220b7acd98dc008db06cadaea72991d3736d8dd08fbbf4bde9f69be2723a32b9be864736f6c63430008150033";
         estimate_tx_gas(sender, data, u256_to_data(21000), u256_to_data(0), 1);
         // deposit(&evm, sender, u256_to_data(1000000000000000000));
         // let coin_store_account = borrow_global<Account>(create_resource_address(&@aptos_framework, to_32bit(sender)));
         // debug::print(&coin_store_account.balance);
-        let tx = x"f9016c8086015d3ef7980083021dee8080b90116608060405234801561001057600080fd5b5060f78061001f6000396000f3fe6080604052348015600f57600080fd5b5060043610603c5760003560e01c80633fb5c1cb1460415780638381f58a146053578063d09de08a14606d575b600080fd5b6051604c3660046083565b600055565b005b605b60005481565b60405190815260200160405180910390f35b6051600080549080607c83609b565b9190505550565b600060208284031215609457600080fd5b5035919050565b60006001820160ba57634e487b7160e01b600052601160045260246000fd5b506001019056fea2646970667358221220b7acd98dc008db06cadaea72991d3736d8dd08fbbf4bde9f69be2723a32b9be864736f6c634300081500338202c3a0901a50497774e9cddacf26ba44b560f32b8b6fedab0539907ae19d4a75cb8848a027b4e864c0ea8c90453c2d1e3e033c69f5da550a08a62e3af9f193012bd29e3a";
+        // let sender = x"749cf96d9291795a74572ef7089e34ee650dac8c";
+        let tx = x"f86c818086015d3ef79800828dec94efbe9981e4bdc773bb438cec391a40efa5bbf33e8084d09de08a8202c4a02985250cd2dd7a4bcd079273cd2d33d3d864976ebb74ceea42390cbe151a7f50a0669c7fa379aa306c56dca4fd6619aa430e6f75068164b7d3adfa87bdba6e8eca";
         send_tx(&evm, sender, tx, u256_to_data(21000), 1);
 
 
