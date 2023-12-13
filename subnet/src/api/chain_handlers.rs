@@ -128,7 +128,7 @@ pub struct GetTableItemArgs {
     pub key_type: String,
     pub value_type: String,
     pub key: String,
-    pub is_bsc_format: Option<bool>,
+    pub is_bcs_format: Option<bool>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -137,7 +137,7 @@ pub struct RpcReq {
     pub ledger_version: Option<U64>,
     pub start: Option<String>,
     pub limit: Option<u16>,
-    pub is_bsc_format: Option<bool>,
+    pub is_bcs_format: Option<bool>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -151,7 +151,7 @@ pub struct RpcTableReq {
     pub query: String,
     pub body: String,
     pub ledger_version: Option<U64>,
-    pub is_bsc_format: Option<bool>,
+    pub is_bcs_format: Option<bool>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -160,7 +160,7 @@ pub struct RpcEventNumReq {
     pub creation_number: U64,
     pub start: Option<U64>,
     pub limit: Option<u16>,
-    pub is_bsc_format: Option<bool>,
+    pub is_bcs_format: Option<bool>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -170,20 +170,20 @@ pub struct RpcEventHandleReq {
     pub address: String,
     pub event_handle: String,
     pub field_name: String,
-    pub is_bsc_format: Option<bool>,
+    pub is_bcs_format: Option<bool>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct BlockArgs {
     pub height_or_version: u64,
     pub with_transactions: Option<bool>,
-    pub is_bsc_format: Option<bool>,
+    pub is_bcs_format: Option<bool>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct GetTransactionByVersionArgs {
     pub version: U64,
-    pub is_bsc_format: Option<bool>,
+    pub is_bcs_format: Option<bool>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -191,14 +191,14 @@ pub struct AccountStateArgs {
     pub account: String,
     pub resource: String,
     pub ledger_version: Option<U64>,
-    pub is_bsc_format: Option<bool>,
+    pub is_bcs_format: Option<bool>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct PageArgs {
     pub start: Option<U64>,
     pub limit: Option<u16>,
-    pub is_bsc_format: Option<bool>,
+    pub is_bcs_format: Option<bool>,
 }
 
 #[derive(Clone)]
@@ -225,7 +225,7 @@ impl Rpc for ChainService {
         log::debug!("submit_transaction called");
         let vm = self.vm.clone();
         Box::pin(async move {
-            let accept = if args.is_bsc_format.unwrap_or(false) {
+            let accept = if args.is_bcs_format.unwrap_or(false) {
                 AcceptType::Bcs
             } else {
                 AcceptType::Json
@@ -240,7 +240,7 @@ impl Rpc for ChainService {
     fn submit_transaction_batch(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let accept = if args.is_bsc_format.unwrap_or(false) {
+            let accept = if args.is_bcs_format.unwrap_or(false) {
                 AcceptType::Bcs
             } else {
                 AcceptType::Json
@@ -283,7 +283,7 @@ impl Rpc for ChainService {
         let vm = self.vm.clone();
         Box::pin(async move {
             let data = hex::decode(args.data).unwrap();
-            let accept = if args.is_bsc_format.unwrap_or(false) {
+            let accept = if args.is_bcs_format.unwrap_or(false) {
                 AcceptType::Bcs
             } else {
                 AcceptType::Json
@@ -313,7 +313,7 @@ impl Rpc for ChainService {
         let vm = self.vm.clone();
         Box::pin(async move {
             let acc = hex::decode(args.data).unwrap();
-            let accept = if args.is_bsc_format.unwrap_or(false) {
+            let accept = if args.is_bcs_format.unwrap_or(false) {
                 AcceptType::Bcs
             } else {
                 AcceptType::Json
@@ -326,7 +326,7 @@ impl Rpc for ChainService {
     fn create_account(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
-            let accept = if args.is_bsc_format.unwrap_or(false) {
+            let accept = if args.is_bcs_format.unwrap_or(false) {
                 AcceptType::Bcs
             } else {
                 AcceptType::Json

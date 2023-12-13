@@ -183,7 +183,7 @@ impl Vm {
     }
 
     pub async fn get_transactions(&self, args: PageArgs) -> RpcRes {
-        let accept = if args.is_bsc_format.unwrap_or(false) {
+        let accept = if args.is_bcs_format.unwrap_or(false) {
             AcceptType::Bcs
         } else {
             AcceptType::Json
@@ -222,7 +222,7 @@ impl Vm {
     }
 
     pub async fn get_block_by_height(&self, args: BlockArgs) -> RpcRes {
-        let accept = if args.is_bsc_format.unwrap_or(false) {
+        let accept = if args.is_bcs_format.unwrap_or(false) {
             AcceptType::Bcs
         } else {
             AcceptType::Json
@@ -261,7 +261,7 @@ impl Vm {
     }
 
     pub async fn get_block_by_version(&self, args: BlockArgs) -> RpcRes {
-        let accept = if args.is_bsc_format.unwrap_or(false) {
+        let accept = if args.is_bcs_format.unwrap_or(false) {
             AcceptType::Bcs
         } else {
             AcceptType::Json
@@ -300,7 +300,7 @@ impl Vm {
     }
 
     pub async fn get_accounts_transactions(&self, args: RpcReq) -> RpcRes {
-        let accept = if args.is_bsc_format.unwrap_or(false) {
+        let accept = if args.is_bcs_format.unwrap_or(false) {
             AcceptType::Bcs
         } else {
             AcceptType::Json
@@ -350,7 +350,7 @@ impl Vm {
     }
 
     pub async fn get_account_resources(&self, args: RpcReq) -> RpcRes {
-        let accept = if args.is_bsc_format.unwrap_or(false) {
+        let accept = if args.is_bcs_format.unwrap_or(false) {
             AcceptType::Bcs
         } else {
             AcceptType::Json
@@ -400,7 +400,7 @@ impl Vm {
     }
 
     pub async fn get_account(&self, args: RpcReq) -> RpcRes {
-        let accept = if args.is_bsc_format.unwrap_or(false) {
+        let accept = if args.is_bcs_format.unwrap_or(false) {
             AcceptType::Bcs
         } else {
             AcceptType::Json
@@ -443,7 +443,7 @@ impl Vm {
         }
     }
     pub async fn get_account_modules_state(&self, args: AccountStateArgs) -> RpcRes {
-        let accept = if args.is_bsc_format.unwrap_or(false) {
+        let accept = if args.is_bcs_format.unwrap_or(false) {
             AcceptType::Bcs
         } else {
             AcceptType::Json
@@ -490,7 +490,7 @@ impl Vm {
     }
 
     pub async fn get_account_resources_state(&self, args: AccountStateArgs) -> RpcRes {
-        let accept = if args.is_bsc_format.unwrap_or(false) {
+        let accept = if args.is_bcs_format.unwrap_or(false) {
             AcceptType::Bcs
         } else {
             AcceptType::Json
@@ -536,7 +536,7 @@ impl Vm {
     }
 
     pub async fn get_account_modules(&self, args: RpcReq) -> RpcRes {
-        let accept = if args.is_bsc_format.unwrap_or(false) {
+        let accept = if args.is_bcs_format.unwrap_or(false) {
             AcceptType::Bcs
         } else {
             AcceptType::Json
@@ -611,7 +611,7 @@ impl Vm {
     }
 
     pub async fn view_function(&self, args: RpcReq) -> RpcRes {
-        let accept = if args.is_bsc_format.unwrap_or(false) {
+        let accept = if args.is_bcs_format.unwrap_or(false) {
             AcceptType::Bcs
         } else {
             AcceptType::Json
@@ -651,7 +651,7 @@ impl Vm {
     }
 
     pub async fn get_transaction_by_hash(&self, args: RpcReq) -> RpcRes {
-        let accept = if args.is_bsc_format.unwrap_or(false) {
+        let accept = if args.is_bcs_format.unwrap_or(false) {
             AcceptType::Bcs
         } else {
             AcceptType::Json
@@ -690,7 +690,7 @@ impl Vm {
     }
 
     pub async fn get_transaction_by_version(&self, args: GetTransactionByVersionArgs) -> RpcRes {
-        let accept = if args.is_bsc_format.unwrap_or(false) {
+        let accept = if args.is_bcs_format.unwrap_or(false) {
             AcceptType::Bcs
         } else {
             AcceptType::Json
@@ -882,7 +882,7 @@ impl Vm {
         }
     }
     pub async fn get_table_item(&self, args: RpcTableReq) -> RpcRes {
-        let accept = if args.is_bsc_format.unwrap_or(false) {
+        let accept = if args.is_bcs_format.unwrap_or(false) {
             AcceptType::Bcs
         } else {
             AcceptType::Json
@@ -929,7 +929,7 @@ impl Vm {
     }
 
     pub async fn get_raw_table_item(&self, args: RpcTableReq) -> RpcRes {
-        let accept = if args.is_bsc_format.unwrap_or(false) {
+        let accept = if args.is_bcs_format.unwrap_or(false) {
             AcceptType::Bcs
         } else {
             AcceptType::Json
@@ -976,7 +976,7 @@ impl Vm {
     }
 
     pub async fn get_events_by_creation_number(&self, args: RpcEventNumReq) -> RpcRes {
-        let accept = if args.is_bsc_format.unwrap_or(false) {
+        let accept = if args.is_bcs_format.unwrap_or(false) {
             AcceptType::Bcs
         } else {
             AcceptType::Json
@@ -1020,7 +1020,7 @@ impl Vm {
         }
     }
     pub async fn get_events_by_event_handle(&self, args: RpcEventHandleReq) -> RpcRes {
-        let accept = if args.is_bsc_format.unwrap_or(false) {
+        let accept = if args.is_bcs_format.unwrap_or(false) {
             AcceptType::Bcs
         } else {
             AcceptType::Json
