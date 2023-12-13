@@ -1,41 +1,44 @@
-use avalanche_types::subnet::rpc::database::manager::{DatabaseManager, Manager};
-use avalanche_types::subnet::rpc::health::Checkable;
-use avalanche_types::subnet::rpc::snow::engine::common::appsender::client::AppSenderClient;
-use avalanche_types::subnet::rpc::snow::engine::common::appsender::AppSender;
-use avalanche_types::subnet::rpc::snow::engine::common::engine::{
-    AppHandler, CrossChainAppHandler, NetworkAppHandler,
-};
-use avalanche_types::subnet::rpc::snow::engine::common::http_handler::{HttpHandler, LockOptions};
-use avalanche_types::subnet::rpc::snow::engine::common::message::Message::PendingTxs;
-use avalanche_types::subnet::rpc::snow::engine::common::vm::{CommonVm, Connector};
-use avalanche_types::subnet::rpc::snow::validators::client::ValidatorStateClient;
-use avalanche_types::subnet::rpc::snowman::block::{BatchedChainVm, ChainVm, Getter, Parser};
-use avalanche_types::{
-    choices, ids,
-    subnet::{self, rpc::snow},
-};
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use futures::{channel::mpsc as futures_mpsc, StreamExt};
 use hex;
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{
     collections::HashMap,
     fs,
     io::{self, Error, ErrorKind},
+    str::FromStr,
     sync::Arc,
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use tokio::sync::{mpsc::Sender, RwLock};
 
-use aptos_api::accept_type::AcceptType;
-use aptos_api::response::{AptosResponseContent, BasicResponse};
-use aptos_api::transactions::{
-    SubmitTransactionPost, SubmitTransactionResponse, SubmitTransactionsBatchPost,
-    SubmitTransactionsBatchResponse,
+use avalanche_types::{
+    choices, ids,
+    subnet::rpc::database::manager::{DatabaseManager, Manager},
+    subnet::rpc::health::Checkable,
+    subnet::rpc::snow::engine::common::appsender::{client::AppSenderClient, AppSender},
+    subnet::rpc::snow::engine::common::engine::{
+        AppHandler, CrossChainAppHandler, NetworkAppHandler,
+    },
+    subnet::rpc::snow::engine::common::http_handler::{HttpHandler, LockOptions},
+    subnet::rpc::snow::engine::common::message::Message::PendingTxs,
+    subnet::rpc::snow::engine::common::vm::{CommonVm, Connector},
+    subnet::rpc::snow::validators::client::ValidatorStateClient,
+    subnet::rpc::snowman::block::{BatchedChainVm, ChainVm, Getter, Parser},
+    subnet::{self, rpc::snow},
 };
-use aptos_api::{get_raw_api_service, Context, RawApi};
+
+use aptos_api::{
+    accept_type::AcceptType,
+    get_raw_api_service,
+    response::{AptosResponseContent, BasicResponse},
+    transactions::{
+        SubmitTransactionPost, SubmitTransactionResponse, SubmitTransactionsBatchPost,
+        SubmitTransactionsBatchResponse,
+    },
+    Context, RawApi,
+};
 use aptos_api_types::{
     Address, EncodeSubmissionRequest, IdentifierWrapper, MoveStructTag, RawTableItemRequest,
     StateKeyWrapper, TableItemRequest, ViewRequest, U64,
@@ -43,29 +46,35 @@ use aptos_api_types::{
 use aptos_config::config::NodeConfig;
 use aptos_crypto::HashValue;
 use aptos_db::AptosDB;
-use aptos_executor::block_executor::BlockExecutor;
-use aptos_executor::db_bootstrapper::{generate_waypoint, maybe_bootstrap};
+use aptos_executor::{
+    block_executor::BlockExecutor,
+    db_bootstrapper::{generate_waypoint, maybe_bootstrap},
+};
 use aptos_executor_types::BlockExecutorTrait;
-use aptos_mempool::core_mempool::{CoreMempool, TimelineState};
-use aptos_mempool::{MempoolClientRequest, MempoolClientSender, SubmissionStatus};
-use aptos_sdk::rest_client::aptos_api_types::MAX_RECURSIVE_TYPES_ALLOWED;
-use aptos_sdk::transaction_builder::TransactionFactory;
-use aptos_sdk::types::{AccountKey, LocalAccount};
+use aptos_mempool::{
+    core_mempool::{CoreMempool, TimelineState},
+    MempoolClientRequest, MempoolClientSender, SubmissionStatus,
+};
+use aptos_sdk::{
+    rest_client::aptos_api_types::MAX_RECURSIVE_TYPES_ALLOWED,
+    transaction_builder::TransactionFactory,
+    types::{AccountKey, LocalAccount},
+};
 use aptos_state_view::account_with_state_view::AsAccountWithStateView;
-use aptos_storage_interface::state_view::DbStateViewAtVersion;
-use aptos_storage_interface::DbReaderWriter;
-use aptos_types::account_address::AccountAddress;
-use aptos_types::account_config::aptos_test_root_address;
-use aptos_types::account_view::AccountView;
-use aptos_types::block_executor::partitioner::{ExecutableBlock, ExecutableTransactions};
-use aptos_types::block_info::BlockInfo;
-use aptos_types::block_metadata::BlockMetadata;
-use aptos_types::chain_id::ChainId;
-use aptos_types::ledger_info::{generate_ledger_info_with_sig, LedgerInfo};
-use aptos_types::mempool_status::{MempoolStatus, MempoolStatusCode};
-use aptos_types::transaction::Transaction::UserTransaction;
-use aptos_types::transaction::{SignedTransaction, Transaction, WriteSetPayload};
-use aptos_types::validator_signer::ValidatorSigner;
+use aptos_storage_interface::{state_view::DbStateViewAtVersion, DbReaderWriter};
+use aptos_types::{
+    account_address::AccountAddress,
+    account_config::aptos_test_root_address,
+    account_view::AccountView,
+    block_executor::partitioner::{ExecutableBlock, ExecutableTransactions},
+    block_info::BlockInfo,
+    block_metadata::BlockMetadata,
+    chain_id::ChainId,
+    ledger_info::{generate_ledger_info_with_sig, LedgerInfo},
+    mempool_status::{MempoolStatus, MempoolStatusCode},
+    transaction::{SignedTransaction, Transaction, Transaction::UserTransaction, WriteSetPayload},
+    validator_signer::ValidatorSigner,
+};
 use aptos_vm::AptosVM;
 use aptos_vm_genesis::{test_genesis_change_set_and_validators, GENESIS_KEYPAIR};
 
@@ -193,31 +202,41 @@ impl Vm {
             .0
             .get_transactions_raw(accept, args.start, args.limit)
             .await;
-        let ret = ret.unwrap();
-        let header;
-        let ret = match ret {
-            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
-                header = AptosHeader {
-                    chain_id: a,
-                    ledger_version: b,
-                    ledger_oldest_version: d,
-                    ledger_timestamp_usec: e,
-                    epoch: f,
-                    block_height: g,
-                    oldest_block_height: h,
-                    cursor: k,
-                };
-                match c {
-                    AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
-                    AptosResponseContent::Bcs(bytes) => {
-                        format!("{}", hex::encode(bytes.0))
-                    },
-                }
-            },
-        };
+        let mut ret_str = "".to_string();
+        let mut error = None;
+        let mut header_str = "".to_string();
+        if ret.is_err() {
+            error = Some(ret.err().unwrap().to_string());
+        } else {
+            let ret = ret.unwrap();
+            let header;
+            ret_str = match ret {
+                BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                    header = AptosHeader {
+                        chain_id: a,
+                        ledger_version: b,
+                        ledger_oldest_version: d,
+                        ledger_timestamp_usec: e,
+                        epoch: f,
+                        block_height: g,
+                        oldest_block_height: h,
+                        cursor: k,
+                    };
+                    match c {
+                        AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
+                        AptosResponseContent::Bcs(bytes) => {
+                            format!("{}", hex::encode(bytes.0))
+                        },
+                    }
+                },
+            };
+            header_str = serde_json::to_string(&header).unwrap();
+        }
+
         RpcRes {
-            data: ret,
-            header: serde_json::to_string(&header).unwrap(),
+            data: ret_str,
+            header: header_str,
+            error,
         }
     }
 
@@ -232,31 +251,42 @@ impl Vm {
             .5
             .get_block_by_height_raw(accept, args.height_or_version, args.with_transactions)
             .await;
-        let ret = ret.unwrap();
-        let header;
-        let ret = match ret {
-            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
-                header = AptosHeader {
-                    chain_id: a,
-                    ledger_version: b,
-                    ledger_oldest_version: d,
-                    ledger_timestamp_usec: e,
-                    epoch: f,
-                    block_height: g,
-                    oldest_block_height: h,
-                    cursor: k,
-                };
-                match c {
-                    AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
-                    AptosResponseContent::Bcs(bytes) => {
-                        format!("{}", hex::encode(bytes.0))
-                    },
-                }
-            },
-        };
+
+        let mut ret_str = "".to_string();
+        let mut error = None;
+        let mut header_str = "".to_string();
+        if ret.is_err() {
+            error = Some(ret.err().unwrap().to_string());
+        } else {
+            let ret = ret.unwrap();
+            let header;
+            ret_str = match ret {
+                BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                    header = AptosHeader {
+                        chain_id: a,
+                        ledger_version: b,
+                        ledger_oldest_version: d,
+                        ledger_timestamp_usec: e,
+                        epoch: f,
+                        block_height: g,
+                        oldest_block_height: h,
+                        cursor: k,
+                    };
+                    match c {
+                        AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
+                        AptosResponseContent::Bcs(bytes) => {
+                            format!("{}", hex::encode(bytes.0))
+                        },
+                    }
+                },
+            };
+            header_str = serde_json::to_string(&header).unwrap();
+        }
+
         RpcRes {
-            data: ret,
-            header: serde_json::to_string(&header).unwrap(),
+            data: ret_str,
+            header: header_str,
+            error,
         }
     }
 
@@ -271,31 +301,40 @@ impl Vm {
             .5
             .get_block_by_version_raw(accept, args.height_or_version, args.with_transactions)
             .await;
-        let ret = ret.unwrap();
-        let header;
-        let ret = match ret {
-            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
-                header = AptosHeader {
-                    chain_id: a,
-                    ledger_version: b,
-                    ledger_oldest_version: d,
-                    ledger_timestamp_usec: e,
-                    epoch: f,
-                    block_height: g,
-                    oldest_block_height: h,
-                    cursor: k,
-                };
-                match c {
-                    AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
-                    AptosResponseContent::Bcs(bytes) => {
-                        format!("{}", hex::encode(bytes.0))
-                    },
-                }
-            },
-        };
+        let mut ret_str = "".to_string();
+        let mut error = None;
+        let mut header_str = "".to_string();
+        if ret.is_err() {
+            error = Some(ret.err().unwrap().to_string());
+        } else {
+            let ret = ret.unwrap();
+            let header;
+            ret_str = match ret {
+                BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                    header = AptosHeader {
+                        chain_id: a,
+                        ledger_version: b,
+                        ledger_oldest_version: d,
+                        ledger_timestamp_usec: e,
+                        epoch: f,
+                        block_height: g,
+                        oldest_block_height: h,
+                        cursor: k,
+                    };
+                    match c {
+                        AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
+                        AptosResponseContent::Bcs(bytes) => {
+                            format!("{}", hex::encode(bytes.0))
+                        },
+                    }
+                },
+            };
+            header_str = serde_json::to_string(&header).unwrap();
+        }
         RpcRes {
-            data: ret,
-            header: serde_json::to_string(&header).unwrap(),
+            data: ret_str,
+            header: header_str,
+            error,
         }
     }
 
@@ -320,32 +359,42 @@ impl Vm {
                 start,
                 args.limit,
             )
-            .await
-            .unwrap();
-        let header;
-        let ret = match ret {
-            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
-                header = AptosHeader {
-                    chain_id: a,
-                    ledger_version: b,
-                    ledger_oldest_version: d,
-                    ledger_timestamp_usec: e,
-                    epoch: f,
-                    block_height: g,
-                    oldest_block_height: h,
-                    cursor: k,
-                };
-                match c {
-                    AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
-                    AptosResponseContent::Bcs(bytes) => {
-                        format!("{}", hex::encode(bytes.0))
-                    },
-                }
-            },
-        };
+            .await;
+        let mut ret_str = "".to_string();
+        let mut error = None;
+        let mut header_str = "".to_string();
+        if ret.is_err() {
+            error = Some(ret.err().unwrap().to_string());
+        } else {
+            let ret = ret.unwrap();
+            let header;
+            ret_str = match ret {
+                BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                    header = AptosHeader {
+                        chain_id: a,
+                        ledger_version: b,
+                        ledger_oldest_version: d,
+                        ledger_timestamp_usec: e,
+                        epoch: f,
+                        block_height: g,
+                        oldest_block_height: h,
+                        cursor: k,
+                    };
+                    match c {
+                        AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
+                        AptosResponseContent::Bcs(bytes) => {
+                            format!("{}", hex::encode(bytes.0))
+                        },
+                    }
+                },
+            };
+            header_str = serde_json::to_string(&header).unwrap();
+        }
+
         RpcRes {
-            data: ret,
-            header: serde_json::to_string(&header).unwrap(),
+            data: ret_str,
+            header: header_str,
+            error,
         }
     }
 
@@ -370,32 +419,42 @@ impl Vm {
                 start,
                 args.limit,
             )
-            .await
-            .unwrap();
-        let header;
-        let ret = match ret {
-            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
-                header = AptosHeader {
-                    chain_id: a,
-                    ledger_version: b,
-                    ledger_oldest_version: d,
-                    ledger_timestamp_usec: e,
-                    epoch: f,
-                    block_height: g,
-                    oldest_block_height: h,
-                    cursor: k,
-                };
-                match c {
-                    AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
-                    AptosResponseContent::Bcs(bytes) => {
-                        format!("{}", hex::encode(bytes.0))
-                    },
-                }
-            },
-        };
+            .await;
+        let mut ret_str = "".to_string();
+        let mut error = None;
+        let mut header_str = "".to_string();
+        if ret.is_err() {
+            error = Some(ret.err().unwrap().to_string());
+        } else {
+            let ret = ret.unwrap();
+            let header;
+            ret_str = match ret {
+                BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                    header = AptosHeader {
+                        chain_id: a,
+                        ledger_version: b,
+                        ledger_oldest_version: d,
+                        ledger_timestamp_usec: e,
+                        epoch: f,
+                        block_height: g,
+                        oldest_block_height: h,
+                        cursor: k,
+                    };
+                    match c {
+                        AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
+                        AptosResponseContent::Bcs(bytes) => {
+                            format!("{}", hex::encode(bytes.0))
+                        },
+                    }
+                },
+            };
+            header_str = serde_json::to_string(&header).unwrap();
+        }
+
         RpcRes {
-            data: ret,
-            header: serde_json::to_string(&header).unwrap(),
+            data: ret_str,
+            header: header_str,
+            error,
         }
     }
 
@@ -414,34 +473,44 @@ impl Vm {
                 Address::from_str(account).unwrap(),
                 args.ledger_version,
             )
-            .await
-            .unwrap();
-        let header;
-        let ret = match ret {
-            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
-                header = AptosHeader {
-                    chain_id: a,
-                    ledger_version: b,
-                    ledger_oldest_version: d,
-                    ledger_timestamp_usec: e,
-                    epoch: f,
-                    block_height: g,
-                    oldest_block_height: h,
-                    cursor: k,
-                };
-                match c {
-                    AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
-                    AptosResponseContent::Bcs(bytes) => {
-                        format!("{}", hex::encode(bytes.0))
-                    },
-                }
-            },
-        };
+            .await;
+        let mut ret_str = "".to_string();
+        let mut error = None;
+        let mut header_str = "".to_string();
+        if ret.is_err() {
+            error = Some(ret.err().unwrap().to_string());
+        } else {
+            let ret = ret.unwrap();
+            let header;
+            ret_str = match ret {
+                BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                    header = AptosHeader {
+                        chain_id: a,
+                        ledger_version: b,
+                        ledger_oldest_version: d,
+                        ledger_timestamp_usec: e,
+                        epoch: f,
+                        block_height: g,
+                        oldest_block_height: h,
+                        cursor: k,
+                    };
+                    match c {
+                        AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
+                        AptosResponseContent::Bcs(bytes) => {
+                            format!("{}", hex::encode(bytes.0))
+                        },
+                    }
+                },
+            };
+            header_str = serde_json::to_string(&header).unwrap();
+        }
         RpcRes {
-            data: ret,
-            header: serde_json::to_string(&header).unwrap(),
+            data: ret_str,
+            header: header_str,
+            error,
         }
     }
+
     pub async fn get_account_modules_state(&self, args: AccountStateArgs) -> RpcRes {
         let accept = if args.is_bcs_format.unwrap_or(false) {
             AcceptType::Bcs
@@ -460,32 +529,42 @@ impl Vm {
                 module_name,
                 args.ledger_version,
             )
-            .await
-            .unwrap();
-        let header;
-        let ret = match ret {
-            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
-                header = AptosHeader {
-                    chain_id: a,
-                    ledger_version: b,
-                    ledger_oldest_version: d,
-                    ledger_timestamp_usec: e,
-                    epoch: f,
-                    block_height: g,
-                    oldest_block_height: h,
-                    cursor: k,
-                };
-                match c {
-                    AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
-                    AptosResponseContent::Bcs(bytes) => {
-                        format!("{}", hex::encode(bytes.0))
-                    },
-                }
-            },
-        };
+            .await;
+        let mut ret_str = "".to_string();
+        let mut error = None;
+        let mut header_str = "".to_string();
+
+        if ret.is_err() {
+            error = Some(ret.err().unwrap().to_string());
+        } else {
+            let ret = ret.unwrap();
+            let header;
+            ret_str = match ret {
+                BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                    header = AptosHeader {
+                        chain_id: a,
+                        ledger_version: b,
+                        ledger_oldest_version: d,
+                        ledger_timestamp_usec: e,
+                        epoch: f,
+                        block_height: g,
+                        oldest_block_height: h,
+                        cursor: k,
+                    };
+                    match c {
+                        AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
+                        AptosResponseContent::Bcs(bytes) => {
+                            format!("{}", hex::encode(bytes.0))
+                        },
+                    }
+                },
+            };
+            header_str = serde_json::to_string(&header).unwrap();
+        }
         RpcRes {
-            data: ret,
-            header: serde_json::to_string(&header).unwrap(),
+            data: ret_str,
+            header: header_str,
+            error,
         }
     }
 
@@ -506,32 +585,42 @@ impl Vm {
                 MoveStructTag::from_str(resource).unwrap(),
                 args.ledger_version,
             )
-            .await
-            .unwrap();
-        let header;
-        let ret = match ret {
-            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
-                header = AptosHeader {
-                    chain_id: a,
-                    ledger_version: b,
-                    ledger_oldest_version: d,
-                    ledger_timestamp_usec: e,
-                    epoch: f,
-                    block_height: g,
-                    oldest_block_height: h,
-                    cursor: k,
-                };
-                match c {
-                    AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
-                    AptosResponseContent::Bcs(bytes) => {
-                        format!("{}", hex::encode(bytes.0))
-                    },
-                }
-            },
-        };
+            .await;
+        let mut ret_str = "".to_string();
+        let mut error = None;
+        let mut header_str = "".to_string();
+        if ret.is_err() {
+            error = Some(ret.err().unwrap().to_string());
+        } else {
+            let ret = ret.unwrap();
+            let header;
+            ret_str = match ret {
+                BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                    header = AptosHeader {
+                        chain_id: a,
+                        ledger_version: b,
+                        ledger_oldest_version: d,
+                        ledger_timestamp_usec: e,
+                        epoch: f,
+                        block_height: g,
+                        oldest_block_height: h,
+                        cursor: k,
+                    };
+                    match c {
+                        AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
+                        AptosResponseContent::Bcs(bytes) => {
+                            format!("{}", hex::encode(bytes.0))
+                        },
+                    }
+                },
+            };
+            header_str = serde_json::to_string(&header).unwrap();
+        }
+
         RpcRes {
-            data: ret,
-            header: serde_json::to_string(&header).unwrap(),
+            data: ret_str,
+            header: header_str,
+            error,
         }
     }
 
@@ -551,62 +640,83 @@ impl Vm {
         let ret = api
             .3
             .get_account_modules_raw(accept, address, args.ledger_version, start, args.limit)
-            .await
-            .unwrap();
-        let header;
-        let ret = match ret {
-            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
-                header = AptosHeader {
-                    chain_id: a,
-                    ledger_version: b,
-                    ledger_oldest_version: d,
-                    ledger_timestamp_usec: e,
-                    epoch: f,
-                    block_height: g,
-                    oldest_block_height: h,
-                    cursor: k,
-                };
-                match c {
-                    AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
-                    AptosResponseContent::Bcs(bytes) => {
-                        format!("{}", hex::encode(bytes.0))
-                    },
-                }
-            },
-        };
+            .await;
+
+        let mut ret_str = "".to_string();
+        let mut error = None;
+        let mut header_str = "".to_string();
+        if ret.is_err() {
+            error = Some(ret.err().unwrap().to_string());
+        } else {
+            let ret = ret.unwrap();
+            let header;
+            ret_str = match ret {
+                BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                    header = AptosHeader {
+                        chain_id: a,
+                        ledger_version: b,
+                        ledger_oldest_version: d,
+                        ledger_timestamp_usec: e,
+                        epoch: f,
+                        block_height: g,
+                        oldest_block_height: h,
+                        cursor: k,
+                    };
+                    match c {
+                        AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
+                        AptosResponseContent::Bcs(bytes) => {
+                            format!("{}", hex::encode(bytes.0))
+                        },
+                    }
+                },
+            };
+            header_str = serde_json::to_string(&header).unwrap();
+        }
+
         RpcRes {
-            data: ret,
-            header: serde_json::to_string(&header).unwrap(),
+            data: ret_str,
+            header: header_str,
+            error,
         }
     }
 
     pub async fn get_ledger_info(&self) -> RpcRes {
         let api = self.api_service.as_ref().unwrap();
-        let ret = api.2.get_ledger_info_raw(AcceptType::Json).await.unwrap();
-        let header;
-        let ret = match ret {
-            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
-                header = AptosHeader {
-                    chain_id: a,
-                    ledger_version: b,
-                    ledger_oldest_version: d,
-                    ledger_timestamp_usec: e,
-                    epoch: f,
-                    block_height: g,
-                    oldest_block_height: h,
-                    cursor: k,
-                };
-                match c {
-                    AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
-                    AptosResponseContent::Bcs(bytes) => {
-                        format!("{}", hex::encode(bytes.0))
-                    },
-                }
-            },
-        };
+        let ret = api.2.get_ledger_info_raw(AcceptType::Json).await;
+        let mut ret_str = "".to_string();
+        let mut error = None;
+        let mut header_str = "".to_string();
+        if ret.is_err() {
+            error = Some(ret.err().unwrap().to_string());
+        } else {
+            let ret = ret.unwrap();
+            let header;
+            ret_str = match ret {
+                BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                    header = AptosHeader {
+                        chain_id: a,
+                        ledger_version: b,
+                        ledger_oldest_version: d,
+                        ledger_timestamp_usec: e,
+                        epoch: f,
+                        block_height: g,
+                        oldest_block_height: h,
+                        cursor: k,
+                    };
+                    match c {
+                        AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
+                        AptosResponseContent::Bcs(bytes) => {
+                            format!("{}", hex::encode(bytes.0))
+                        },
+                    }
+                },
+            };
+            header_str = serde_json::to_string(&header).unwrap();
+        }
         RpcRes {
-            data: ret,
-            header: serde_json::to_string(&header).unwrap(),
+            data: ret_str,
+            header: header_str,
+            error,
         }
     }
 
@@ -622,31 +732,41 @@ impl Vm {
             .1
             .view_function_raw(accept, req, args.ledger_version)
             .await;
-        let ret = ret.unwrap();
-        let header;
-        let ret = match ret {
-            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
-                header = AptosHeader {
-                    chain_id: a,
-                    ledger_version: b,
-                    ledger_oldest_version: d,
-                    ledger_timestamp_usec: e,
-                    epoch: f,
-                    block_height: g,
-                    oldest_block_height: h,
-                    cursor: k,
-                };
-                match c {
-                    AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
-                    AptosResponseContent::Bcs(bytes) => {
-                        format!("{}", hex::encode(bytes.0))
-                    },
-                }
-            },
-        };
+
+        let mut ret_str = "".to_string();
+        let mut error = None;
+        let mut header_str = "".to_string();
+        if ret.is_err() {
+            error = Some(ret.err().unwrap().to_string());
+        } else {
+            let ret = ret.unwrap();
+            let header;
+            ret_str = match ret {
+                BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                    header = AptosHeader {
+                        chain_id: a,
+                        ledger_version: b,
+                        ledger_oldest_version: d,
+                        ledger_timestamp_usec: e,
+                        epoch: f,
+                        block_height: g,
+                        oldest_block_height: h,
+                        cursor: k,
+                    };
+                    match c {
+                        AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
+                        AptosResponseContent::Bcs(bytes) => {
+                            format!("{}", hex::encode(bytes.0))
+                        },
+                    }
+                },
+            };
+            header_str = serde_json::to_string(&header).unwrap();
+        }
         RpcRes {
-            data: ret,
-            header: serde_json::to_string(&header).unwrap(),
+            data: ret_str,
+            header: header_str,
+            error,
         }
     }
 
@@ -656,36 +776,49 @@ impl Vm {
         } else {
             AcceptType::Json
         };
-        let h = args.data.as_str();
+        let mut h = args.data.as_str();
+        if h.starts_with("0x") {
+            h = &h[2..];
+        }
         let h1 = HashValue::from_hex(h).unwrap();
         let hash = aptos_api_types::hash::HashValue::from(h1);
         let api = self.api_service.as_ref().unwrap();
         let ret = api.0.get_transaction_by_hash_raw(accept, hash).await;
-        let ret = ret.unwrap();
-        let header;
-        let ret = match ret {
-            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
-                header = AptosHeader {
-                    chain_id: a,
-                    ledger_version: b,
-                    ledger_oldest_version: d,
-                    ledger_timestamp_usec: e,
-                    epoch: f,
-                    block_height: g,
-                    oldest_block_height: h,
-                    cursor: k,
-                };
-                match c {
-                    AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
-                    AptosResponseContent::Bcs(bytes) => {
-                        format!("{}", hex::encode(bytes.0))
-                    },
-                }
-            },
-        };
+        let mut ret_str = "".to_string();
+        let mut error = None;
+        let mut header_str = "".to_string();
+
+        if ret.is_err() {
+            error = Some(ret.err().unwrap().to_string());
+        } else {
+            let ret = ret.unwrap();
+            let header;
+            ret_str = match ret {
+                BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                    header = AptosHeader {
+                        chain_id: a,
+                        ledger_version: b,
+                        ledger_oldest_version: d,
+                        ledger_timestamp_usec: e,
+                        epoch: f,
+                        block_height: g,
+                        oldest_block_height: h,
+                        cursor: k,
+                    };
+                    match c {
+                        AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
+                        AptosResponseContent::Bcs(bytes) => {
+                            format!("{}", hex::encode(bytes.0))
+                        },
+                    }
+                },
+            };
+            header_str = serde_json::to_string(&header).unwrap();
+        }
         RpcRes {
-            data: ret,
-            header: serde_json::to_string(&header).unwrap(),
+            data: ret_str,
+            header: header_str,
+            error,
         }
     }
 
@@ -700,31 +833,40 @@ impl Vm {
             .0
             .get_transaction_by_version_raw(accept, args.version)
             .await;
-        let ret = ret.unwrap();
-        let header;
-        let ret = match ret {
-            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
-                header = AptosHeader {
-                    chain_id: a,
-                    ledger_version: b,
-                    ledger_oldest_version: d,
-                    ledger_timestamp_usec: e,
-                    epoch: f,
-                    block_height: g,
-                    oldest_block_height: h,
-                    cursor: k,
-                };
-                match c {
-                    AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
-                    AptosResponseContent::Bcs(bytes) => {
-                        format!("{}", hex::encode(bytes.0))
-                    },
-                }
-            },
-        };
+        let mut ret_str = "".to_string();
+        let mut error = None;
+        let mut header_str = "".to_string();
+        if ret.is_err() {
+            error = Some(ret.err().unwrap().to_string());
+        } else {
+            let ret = ret.unwrap();
+            let header;
+            ret_str = match ret {
+                BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                    header = AptosHeader {
+                        chain_id: a,
+                        ledger_version: b,
+                        ledger_oldest_version: d,
+                        ledger_timestamp_usec: e,
+                        epoch: f,
+                        block_height: g,
+                        oldest_block_height: h,
+                        cursor: k,
+                    };
+                    match c {
+                        AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
+                        AptosResponseContent::Bcs(bytes) => {
+                            format!("{}", hex::encode(bytes.0))
+                        },
+                    }
+                },
+            };
+            header_str = serde_json::to_string(&header).unwrap();
+        }
         RpcRes {
-            data: ret,
-            header: serde_json::to_string(&header).unwrap(),
+            data: ret_str,
+            header: header_str,
+            error,
         }
     }
 
@@ -735,31 +877,40 @@ impl Vm {
             .0
             .encode_submission_raw(AcceptType::Json, payload)
             .await;
-        let ret = ret.unwrap();
-        let header;
-        let ret = match ret {
-            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
-                header = AptosHeader {
-                    chain_id: a,
-                    ledger_version: b,
-                    ledger_oldest_version: d,
-                    ledger_timestamp_usec: e,
-                    epoch: f,
-                    block_height: g,
-                    oldest_block_height: h,
-                    cursor: k,
-                };
-                match c {
-                    AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
-                    AptosResponseContent::Bcs(bytes) => {
-                        format!("{}", hex::encode(bytes.0))
-                    },
-                }
-            },
-        };
+        let mut ret_str = "".to_string();
+        let mut error = None;
+        let mut header_str = "".to_string();
+        if ret.is_err() {
+            error = Some(ret.err().unwrap().to_string());
+        } else {
+            let ret = ret.unwrap();
+            let header;
+            ret_str = match ret {
+                BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                    header = AptosHeader {
+                        chain_id: a,
+                        ledger_version: b,
+                        ledger_oldest_version: d,
+                        ledger_timestamp_usec: e,
+                        epoch: f,
+                        block_height: g,
+                        oldest_block_height: h,
+                        cursor: k,
+                    };
+                    match c {
+                        AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
+                        AptosResponseContent::Bcs(bytes) => {
+                            format!("{}", hex::encode(bytes.0))
+                        },
+                    }
+                },
+            };
+            header_str = serde_json::to_string(&header).unwrap();
+        }
         RpcRes {
-            data: ret,
-            header: serde_json::to_string(&header).unwrap(),
+            data: ret_str,
+            header: header_str,
+            error,
         }
     }
 
@@ -768,40 +919,49 @@ impl Vm {
         let service = self.api_service.as_ref().unwrap();
         let payload = SubmitTransactionPost::Bcs(aptos_api::bcs_payload::Bcs(data.clone()));
         let ret = service.0.submit_transaction_raw(accept, payload).await;
-        let ret = ret.unwrap();
-        let header;
-        let ret = match ret {
-            SubmitTransactionResponse::Accepted(c, a, b, d, e, f, g, h, k) => {
-                header = AptosHeader {
-                    chain_id: a,
-                    ledger_version: b,
-                    ledger_oldest_version: d,
-                    ledger_timestamp_usec: e,
-                    epoch: f,
-                    block_height: g,
-                    oldest_block_height: h,
-                    cursor: k,
-                };
-                match c {
-                    AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
-                    AptosResponseContent::Bcs(bytes) => {
-                        format!("{}", hex::encode(bytes.0))
-                    },
-                }
-            },
-        };
-        let signed_transaction: SignedTransaction =
-            bcs::from_bytes_with_limit(&data, MAX_RECURSIVE_TYPES_ALLOWED as usize).unwrap();
-        let sender = self.app_sender.as_ref().unwrap();
-        sender
-            .send_app_gossip(serde_json::to_vec(&signed_transaction.clone()).unwrap())
-            .await
-            .unwrap();
-        self.add_pool(signed_transaction).await;
-        self.notify_block_ready().await;
+        let mut ret_str = "".to_string();
+        let mut error = None;
+        let mut header_str = "".to_string();
+        if ret.is_err() {
+            error = Some(ret.err().unwrap().to_string());
+        } else {
+            let ret = ret.unwrap();
+            let header;
+            ret_str = match ret {
+                SubmitTransactionResponse::Accepted(c, a, b, d, e, f, g, h, k) => {
+                    header = AptosHeader {
+                        chain_id: a,
+                        ledger_version: b,
+                        ledger_oldest_version: d,
+                        ledger_timestamp_usec: e,
+                        epoch: f,
+                        block_height: g,
+                        oldest_block_height: h,
+                        cursor: k,
+                    };
+                    match c {
+                        AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
+                        AptosResponseContent::Bcs(bytes) => {
+                            format!("{}", hex::encode(bytes.0))
+                        },
+                    }
+                },
+            };
+            header_str = serde_json::to_string(&header).unwrap();
+            let signed_transaction: SignedTransaction =
+                bcs::from_bytes_with_limit(&data, MAX_RECURSIVE_TYPES_ALLOWED as usize).unwrap();
+            let sender = self.app_sender.as_ref().unwrap();
+            sender
+                .send_app_gossip(serde_json::to_vec(&signed_transaction.clone()).unwrap())
+                .await
+                .unwrap();
+            self.add_pool(signed_transaction).await;
+            self.notify_block_ready().await;
+        }
         RpcRes {
-            data: ret,
-            header: serde_json::to_string(&header).unwrap(),
+            data: ret_str,
+            header: header_str,
+            error,
         }
     }
 
@@ -813,74 +973,84 @@ impl Vm {
             .0
             .submit_transactions_batch_raw(accept, payload)
             .await;
-        let ret = ret.unwrap();
-        let mut failed_index = vec![];
-        let header;
-        let ret = match ret {
-            SubmitTransactionsBatchResponse::Accepted(c, a, b, d, e, f, g, h, k) => {
-                header = AptosHeader {
-                    chain_id: a,
-                    ledger_version: b,
-                    ledger_oldest_version: d,
-                    ledger_timestamp_usec: e,
-                    epoch: f,
-                    block_height: g,
-                    oldest_block_height: h,
-                    cursor: k,
-                };
-                match c {
-                    AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
-                    AptosResponseContent::Bcs(bytes) => {
-                        format!("{}", hex::encode(bytes.0))
-                    },
+        let mut ret_str = "".to_string();
+        let mut error = None;
+        let mut header_str = "".to_string();
+        if ret.is_err() {
+            error = Some(ret.err().unwrap().to_string());
+        } else {
+            let ret = ret.unwrap();
+            let mut failed_index = vec![];
+            let header;
+            ret_str = match ret {
+                SubmitTransactionsBatchResponse::Accepted(c, a, b, d, e, f, g, h, k) => {
+                    header = AptosHeader {
+                        chain_id: a,
+                        ledger_version: b,
+                        ledger_oldest_version: d,
+                        ledger_timestamp_usec: e,
+                        epoch: f,
+                        block_height: g,
+                        oldest_block_height: h,
+                        cursor: k,
+                    };
+                    match c {
+                        AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
+                        AptosResponseContent::Bcs(bytes) => {
+                            format!("{}", hex::encode(bytes.0))
+                        },
+                    }
+                },
+                SubmitTransactionsBatchResponse::AcceptedPartial(c, a, b, d, e, f, g, h, k) => {
+                    header = AptosHeader {
+                        chain_id: a,
+                        ledger_version: b,
+                        ledger_oldest_version: d,
+                        ledger_timestamp_usec: e,
+                        epoch: f,
+                        block_height: g,
+                        oldest_block_height: h,
+                        cursor: k,
+                    };
+                    match c {
+                        AptosResponseContent::Json(json) => {
+                            for x in &json.transaction_failures {
+                                failed_index.push(x.transaction_index.clone());
+                            }
+                            serde_json::to_string(&json.0).unwrap()
+                        },
+                        AptosResponseContent::Bcs(bytes) => {
+                            format!("{}", hex::encode(bytes.0))
+                        },
+                    }
+                },
+            };
+            header_str = serde_json::to_string(&header).unwrap();
+            let signed_transactions: Vec<SignedTransaction> = bcs::from_bytes(&data).unwrap();
+            let sender = self.app_sender.as_ref().unwrap();
+            let mut exist_count = 0;
+            for (i, signed_transaction) in signed_transactions.iter().enumerate() {
+                if !failed_index.contains(&i) {
+                    sender
+                        .send_app_gossip(serde_json::to_vec(signed_transaction).unwrap())
+                        .await
+                        .unwrap();
+                    self.add_pool(signed_transaction.clone()).await;
+                } else {
+                    exist_count += 1;
                 }
-            },
-            SubmitTransactionsBatchResponse::AcceptedPartial(c, a, b, d, e, f, g, h, k) => {
-                header = AptosHeader {
-                    chain_id: a,
-                    ledger_version: b,
-                    ledger_oldest_version: d,
-                    ledger_timestamp_usec: e,
-                    epoch: f,
-                    block_height: g,
-                    oldest_block_height: h,
-                    cursor: k,
-                };
-                match c {
-                    AptosResponseContent::Json(json) => {
-                        for x in &json.transaction_failures {
-                            failed_index.push(x.transaction_index.clone());
-                        }
-                        serde_json::to_string(&json.0).unwrap()
-                    },
-                    AptosResponseContent::Bcs(bytes) => {
-                        format!("{}", hex::encode(bytes.0))
-                    },
-                }
-            },
-        };
-        let signed_transactions: Vec<SignedTransaction> = bcs::from_bytes(&data).unwrap();
-        let sender = self.app_sender.as_ref().unwrap();
-        let mut exist_count = 0;
-        for (i, signed_transaction) in signed_transactions.iter().enumerate() {
-            if !failed_index.contains(&i) {
-                sender
-                    .send_app_gossip(serde_json::to_vec(signed_transaction).unwrap())
-                    .await
-                    .unwrap();
-                self.add_pool(signed_transaction.clone()).await;
-            } else {
-                exist_count += 1;
+            }
+            if exist_count > 0 {
+                self.notify_block_ready().await;
             }
         }
-        if exist_count > 0 {
-            self.notify_block_ready().await;
-        }
         RpcRes {
-            data: ret,
-            header: serde_json::to_string(&header).unwrap(),
+            data: ret_str,
+            header: header_str,
+            error,
         }
     }
+
     pub async fn get_table_item(&self, args: RpcTableReq) -> RpcRes {
         let accept = if args.is_bcs_format.unwrap_or(false) {
             AcceptType::Bcs
@@ -900,31 +1070,40 @@ impl Vm {
                 args.ledger_version,
             )
             .await;
-        let ret = ret.unwrap();
-        let header;
-        let ret = match ret {
-            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
-                header = AptosHeader {
-                    chain_id: a,
-                    ledger_version: b,
-                    ledger_oldest_version: d,
-                    ledger_timestamp_usec: e,
-                    epoch: f,
-                    block_height: g,
-                    oldest_block_height: h,
-                    cursor: k,
-                };
-                match c {
-                    AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
-                    AptosResponseContent::Bcs(bytes) => {
-                        format!("{}", hex::encode(bytes.0))
-                    },
-                }
-            },
-        };
+        let mut ret_str = "".to_string();
+        let mut error = None;
+        let mut header_str = "".to_string();
+        if ret.is_err() {
+            error = Some(ret.err().unwrap().to_string());
+        } else {
+            let ret = ret.unwrap();
+            let header;
+            ret_str = match ret {
+                BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                    header = AptosHeader {
+                        chain_id: a,
+                        ledger_version: b,
+                        ledger_oldest_version: d,
+                        ledger_timestamp_usec: e,
+                        epoch: f,
+                        block_height: g,
+                        oldest_block_height: h,
+                        cursor: k,
+                    };
+                    match c {
+                        AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
+                        AptosResponseContent::Bcs(bytes) => {
+                            format!("{}", hex::encode(bytes.0))
+                        },
+                    }
+                },
+            };
+            header_str = serde_json::to_string(&header).unwrap();
+        }
         RpcRes {
-            data: ret,
-            header: serde_json::to_string(&header).unwrap(),
+            data: ret_str,
+            header: header_str,
+            error,
         }
     }
 
@@ -947,31 +1126,41 @@ impl Vm {
                 args.ledger_version,
             )
             .await;
-        let ret = ret.unwrap();
-        let header;
-        let ret = match ret {
-            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
-                header = AptosHeader {
-                    chain_id: a,
-                    ledger_version: b,
-                    ledger_oldest_version: d,
-                    ledger_timestamp_usec: e,
-                    epoch: f,
-                    block_height: g,
-                    oldest_block_height: h,
-                    cursor: k,
-                };
-                match c {
-                    AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
-                    AptosResponseContent::Bcs(bytes) => {
-                        format!("{}", hex::encode(bytes.0))
-                    },
-                }
-            },
-        };
+        let mut ret_str = "".to_string();
+        let mut error = None;
+        let mut header_str = "".to_string();
+        if ret.is_err() {
+            let err = ret.err().unwrap();
+            error = Some(format!("{:?}", err));
+        } else {
+            let ret = ret.unwrap();
+            let header;
+            ret_str = match ret {
+                BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                    header = AptosHeader {
+                        chain_id: a,
+                        ledger_version: b,
+                        ledger_oldest_version: d,
+                        ledger_timestamp_usec: e,
+                        epoch: f,
+                        block_height: g,
+                        oldest_block_height: h,
+                        cursor: k,
+                    };
+                    match c {
+                        AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
+                        AptosResponseContent::Bcs(bytes) => {
+                            format!("{}", hex::encode(bytes.0))
+                        },
+                    }
+                },
+            };
+            header_str = serde_json::to_string(&header).unwrap();
+        }
         RpcRes {
-            data: ret,
-            header: serde_json::to_string(&header).unwrap(),
+            data: ret_str,
+            header: header_str,
+            error,
         }
     }
 
@@ -992,33 +1181,43 @@ impl Vm {
                 args.limit,
             )
             .await;
-        let ret = ret.unwrap();
-        let header;
-        let ret = match ret {
-            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
-                header = AptosHeader {
-                    chain_id: a,
-                    ledger_version: b,
-                    ledger_oldest_version: d,
-                    ledger_timestamp_usec: e,
-                    epoch: f,
-                    block_height: g,
-                    oldest_block_height: h,
-                    cursor: k,
-                };
-                match c {
-                    AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
-                    AptosResponseContent::Bcs(bytes) => {
-                        format!("{}", hex::encode(bytes.0))
-                    },
-                }
-            },
-        };
+        let mut ret_str = "".to_string();
+        let mut error = None;
+        let mut header_str = "".to_string();
+        if ret.is_err() {
+            error = Some(ret.err().unwrap().to_string());
+        } else {
+            let ret = ret.unwrap();
+            let header;
+            ret_str = match ret {
+                BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                    header = AptosHeader {
+                        chain_id: a,
+                        ledger_version: b,
+                        ledger_oldest_version: d,
+                        ledger_timestamp_usec: e,
+                        epoch: f,
+                        block_height: g,
+                        oldest_block_height: h,
+                        cursor: k,
+                    };
+                    match c {
+                        AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
+                        AptosResponseContent::Bcs(bytes) => {
+                            format!("{}", hex::encode(bytes.0))
+                        },
+                    }
+                },
+            };
+            header_str = serde_json::to_string(&header).unwrap()
+        }
         RpcRes {
-            data: ret,
-            header: serde_json::to_string(&header).unwrap(),
+            data: ret_str,
+            header: header_str,
+            error,
         }
     }
+
     pub async fn get_events_by_event_handle(&self, args: RpcEventHandleReq) -> RpcRes {
         let accept = if args.is_bcs_format.unwrap_or(false) {
             AcceptType::Bcs
@@ -1039,31 +1238,129 @@ impl Vm {
                 args.limit,
             )
             .await;
-        let ret = ret.unwrap();
-        let header;
-        let ret = match ret {
-            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
-                header = AptosHeader {
-                    chain_id: a,
-                    ledger_version: b,
-                    ledger_oldest_version: d,
-                    ledger_timestamp_usec: e,
-                    epoch: f,
-                    block_height: g,
-                    oldest_block_height: h,
-                    cursor: k,
-                };
-                match c {
-                    AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
-                    AptosResponseContent::Bcs(bytes) => {
-                        format!("{}", hex::encode(bytes.0))
-                    },
-                }
-            },
-        };
+        let mut ret_str = "".to_string();
+        let mut error = None;
+        let mut header_str = "".to_string();
+        if ret.is_err() {
+            error = Some(ret.err().unwrap().to_string());
+        } else {
+            let ret = ret.unwrap();
+            let header;
+            ret_str = match ret {
+                BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                    header = AptosHeader {
+                        chain_id: a,
+                        ledger_version: b,
+                        ledger_oldest_version: d,
+                        ledger_timestamp_usec: e,
+                        epoch: f,
+                        block_height: g,
+                        oldest_block_height: h,
+                        cursor: k,
+                    };
+                    match c {
+                        AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
+                        AptosResponseContent::Bcs(bytes) => {
+                            format!("{}", hex::encode(bytes.0))
+                        },
+                    }
+                },
+            };
+            header_str = serde_json::to_string(&header).unwrap()
+        }
         RpcRes {
-            data: ret,
-            header: serde_json::to_string(&header).unwrap(),
+            data: ret_str,
+            header: header_str,
+            error,
+        }
+    }
+
+    pub async fn simulate_transaction(&self, data: Vec<u8>, accept: AcceptType) -> RpcRes {
+        let service = self.api_service.as_ref().unwrap();
+        let ret = service
+            .0
+            .simulate_transaction_raw(
+                accept,
+                Some(true),
+                Some(false),
+                Some(true),
+                SubmitTransactionPost::Bcs(aptos_api::bcs_payload::Bcs(data)),
+            )
+            .await;
+        let mut ret_str = "".to_string();
+        let mut error = None;
+        let mut header_str = "".to_string();
+        if ret.is_err() {
+            error = Some(ret.err().unwrap().to_string());
+        } else {
+            let ret = ret.unwrap();
+            let header;
+            ret_str = match ret {
+                BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                    header = AptosHeader {
+                        chain_id: a,
+                        ledger_version: b,
+                        ledger_oldest_version: d,
+                        ledger_timestamp_usec: e,
+                        epoch: f,
+                        block_height: g,
+                        oldest_block_height: h,
+                        cursor: k,
+                    };
+                    match c {
+                        AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
+                        AptosResponseContent::Bcs(bytes) => {
+                            format!("{}", hex::encode(bytes.0))
+                        },
+                    }
+                },
+            };
+            header_str = serde_json::to_string(&header).unwrap()
+        }
+        RpcRes {
+            data: ret_str,
+            header: header_str,
+            error,
+        }
+    }
+
+    pub async fn estimate_gas_price(&self) -> RpcRes {
+        let service = self.api_service.as_ref().unwrap();
+        let ret = service.0.estimate_gas_price_raw(AcceptType::Json).await;
+        let mut ret_str = "".to_string();
+        let mut error = None;
+        let mut header_str = "".to_string();
+        if ret.is_err() {
+            error = Some(ret.err().unwrap().to_string());
+        } else {
+            let ret = ret.unwrap();
+            let header;
+            ret_str = match ret {
+                BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
+                    header = AptosHeader {
+                        chain_id: a,
+                        ledger_version: b,
+                        ledger_oldest_version: d,
+                        ledger_timestamp_usec: e,
+                        epoch: f,
+                        block_height: g,
+                        oldest_block_height: h,
+                        cursor: k,
+                    };
+                    match c {
+                        AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
+                        AptosResponseContent::Bcs(bytes) => {
+                            format!("{}", hex::encode(bytes.0))
+                        },
+                    }
+                },
+            };
+            header_str = serde_json::to_string(&header).unwrap()
+        }
+        RpcRes {
+            data: ret_str,
+            header: header_str,
+            error,
         }
     }
 
@@ -1078,6 +1375,7 @@ impl Vm {
         );
         drop(core_pool);
     }
+
     async fn get_pending_tx(&self, count: u64) -> Vec<SignedTransaction> {
         let core_pool = self.core_mempool.as_ref().unwrap().read().await;
         core_pool.get_batch(count, 1024 * 5 * 1000, true, true, vec![])
@@ -1183,78 +1481,7 @@ impl Vm {
         }
     }
 
-    pub async fn simulate_transaction(&self, data: Vec<u8>, accept: AcceptType) -> RpcRes {
-        let service = self.api_service.as_ref().unwrap();
-        let ret = service
-            .0
-            .simulate_transaction_raw(
-                accept,
-                Some(true),
-                Some(false),
-                Some(true),
-                SubmitTransactionPost::Bcs(aptos_api::bcs_payload::Bcs(data)),
-            )
-            .await;
-        let ret = ret.unwrap();
-        let header;
-        let ret = match ret {
-            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
-                header = AptosHeader {
-                    chain_id: a,
-                    ledger_version: b,
-                    ledger_oldest_version: d,
-                    ledger_timestamp_usec: e,
-                    epoch: f,
-                    block_height: g,
-                    oldest_block_height: h,
-                    cursor: k,
-                };
-                match c {
-                    AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
-                    AptosResponseContent::Bcs(bytes) => {
-                        format!("{}", hex::encode(bytes.0))
-                    },
-                }
-            },
-        };
-        RpcRes {
-            data: ret,
-            header: serde_json::to_string(&header).unwrap(),
-        }
-    }
-
-    pub async fn estimate_gas_price(&self) -> RpcRes {
-        let service = self.api_service.as_ref().unwrap();
-        let ret = service.0.estimate_gas_price_raw(AcceptType::Json).await;
-        let ret = ret.unwrap();
-        let header;
-        let ret = match ret {
-            BasicResponse::Ok(c, a, b, d, e, f, g, h, k) => {
-                header = AptosHeader {
-                    chain_id: a,
-                    ledger_version: b,
-                    ledger_oldest_version: d,
-                    ledger_timestamp_usec: e,
-                    epoch: f,
-                    block_height: g,
-                    oldest_block_height: h,
-                    cursor: k,
-                };
-                match c {
-                    AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
-                    AptosResponseContent::Bcs(bytes) => {
-                        format!("{}", hex::encode(bytes.0))
-                    },
-                }
-            },
-        };
-        RpcRes {
-            data: ret,
-            header: serde_json::to_string(&header).unwrap(),
-        }
-    }
-
-    pub async fn facet_apt(&self, acc: Vec<u8>, accept: AcceptType) -> RpcRes {
+    pub async fn faucet_apt(&self, acc: Vec<u8>, accept: AcceptType) -> RpcRes {
         let to = AccountAddress::from_bytes(acc).unwrap();
         let db = self.db.as_ref().unwrap().read().await;
         let core_account = self.get_core_account(&db).await;
