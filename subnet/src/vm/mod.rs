@@ -798,7 +798,12 @@ impl Vm {
             .await
             .unwrap();
         self.add_pool(signed_transaction).await;
-        self.notify_block_ready().await;
+        if data.len() >= 50 * 1024 {
+            self.inner_build_block(self.build_block_data().await.unwrap())
+                .await.unwrap();
+        } else {
+            self.notify_block_ready().await;
+        }
         RpcRes {
             data: ret,
             header: serde_json::to_string(&header).unwrap(),
@@ -1463,6 +1468,46 @@ impl Vm {
             }
         });
     }
+
+    async fn build_block_data(&self) -> Result<Vec<u8>, Error> {
+        let unix_now_micro = Utc::now().timestamp_micros() as u64;
+        let tx_arr = self.get_pending_tx(500).await;
+        let len = tx_arr.clone().len();
+        log::info!("build_block pool tx count {}", len);
+        let executor = self.executor.as_ref().unwrap().read().await;
+        let signer = self.signer.as_ref().unwrap();
+        let db = self.db.as_ref().unwrap().read().await;
+        let latest_ledger_info = db.reader.get_latest_ledger_info().unwrap();
+        let next_epoch = latest_ledger_info.ledger_info().next_block_epoch();
+        let block_id = HashValue::random();
+        let block_meta = Transaction::BlockMetadata(BlockMetadata::new(
+            block_id,
+            next_epoch,
+            0,
+            signer.author(),
+            vec![],
+            vec![],
+            unix_now_micro,
+        ));
+        let mut txs = vec![];
+        for tx in tx_arr.iter() {
+            txs.push(UserTransaction(tx.clone()));
+        }
+        let mut block_tx: Vec<_> = vec![];
+        block_tx.push(block_meta);
+        block_tx.append(&mut txs);
+        block_tx.push(Transaction::StateCheckpoint(HashValue::random()));
+        let parent_block_id = executor.committed_block_id();
+        let block_tx_bytes = serde_json::to_vec(&block_tx).unwrap();
+        let data = AptosData(
+            block_tx_bytes,
+            block_id.clone(),
+            parent_block_id,
+            next_epoch,
+            unix_now_micro,
+        );
+        Ok(serde_json::to_vec(&data).unwrap())
+    }
 }
 
 #[tonic::async_trait]
@@ -1499,10 +1544,6 @@ impl ChainVm for Vm {
         if let Some(state_b) = vm_state.state.as_ref() {
             let prnt_blk = state_b.get_block(&vm_state.preferred).await.unwrap();
             let unix_now = Utc::now().timestamp() as u64;
-            let unix_now_micro = Utc::now().timestamp_micros() as u64;
-            let tx_arr = self.get_pending_tx(500).await;
-            let len = tx_arr.clone().len();
-            log::info!("build_block pool tx count {}", len);
             // now we allow to build empty block
             // if len == 0 {
             //     self.update_build_block_status(0).await;
@@ -1512,44 +1553,12 @@ impl ChainVm for Vm {
             //         "no pending transaction found",
             //     ));
             // }
-            let executor = self.executor.as_ref().unwrap().read().await;
-            let signer = self.signer.as_ref().unwrap();
-            let db = self.db.as_ref().unwrap().read().await;
-            let latest_ledger_info = db.reader.get_latest_ledger_info().unwrap();
-            let next_epoch = latest_ledger_info.ledger_info().next_block_epoch();
-            let block_id = HashValue::random();
-            let block_meta = Transaction::BlockMetadata(BlockMetadata::new(
-                block_id,
-                next_epoch,
-                0,
-                signer.author(),
-                vec![],
-                vec![],
-                unix_now_micro,
-            ));
-            let mut txs = vec![];
-            for tx in tx_arr.iter() {
-                txs.push(UserTransaction(tx.clone()));
-            }
-            let mut block_tx: Vec<_> = vec![];
-            block_tx.push(block_meta);
-            block_tx.append(&mut txs);
-            block_tx.push(Transaction::StateCheckpoint(HashValue::random()));
-            let parent_block_id = executor.committed_block_id();
-            let block_tx_bytes = serde_json::to_vec(&block_tx).unwrap();
-            let data = AptosData(
-                block_tx_bytes,
-                block_id.clone(),
-                parent_block_id,
-                next_epoch,
-                unix_now_micro,
-            );
-
+            let data = self.build_block_data().await.unwrap();
             let mut block_ = Block::new(
                 prnt_blk.id(),
                 prnt_blk.height() + 1,
                 unix_now,
-                serde_json::to_vec(&data).unwrap(),
+                data,
                 choices::status::Status::Processing,
             )
             .unwrap();

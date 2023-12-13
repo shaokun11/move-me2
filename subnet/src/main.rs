@@ -3,10 +3,10 @@ use std::io;
 use avalanche_types::subnet;
 use tokio::sync::broadcast::{self, Receiver, Sender};
 
-mod vm;
-mod state;
-mod block;
 mod api;
+mod block;
+mod state;
+mod vm;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
