@@ -204,29 +204,29 @@ impl BuiltPackage {
         )?;
 
         // If enabled generate docs.
-        if options.with_docs {
-            let docgen = if let Some(opts) = options.docgen_options.clone() {
-                opts
-            } else {
-                DocgenOptions::default()
-            };
-            let dep_paths = package
-                .deps_compiled_units
-                .iter()
-                .map(|(_, u)| {
-                    u.source_path
-                        .parent()
-                        .unwrap()
-                        .parent()
-                        .unwrap()
-                        .join("doc")
-                        .display()
-                        .to_string()
-                })
-                .unique()
-                .collect::<Vec<_>>();
-            docgen.run(package_path.display().to_string(), dep_paths, model)?
-        }
+        // if options.with_docs {
+        //     let docgen = if let Some(opts) = options.docgen_options.clone() {
+        //         opts
+        //     } else {
+        //         DocgenOptions::default()
+        //     };
+        //     let dep_paths = package
+        //         .deps_compiled_units
+        //         .iter()
+        //         .map(|(_, u)| {
+        //             u.source_path
+        //                 .parent()
+        //                 .unwrap()
+        //                 .parent()
+        //                 .unwrap()
+        //                 .join("doc")
+        //                 .display()
+        //                 .to_string()
+        //         })
+        //         .unique()
+        //         .collect::<Vec<_>>();
+        //     docgen.run(package_path.display().to_string(), dep_paths, model)?
+        // }
 
         Ok(Self {
             options,
