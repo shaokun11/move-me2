@@ -909,28 +909,6 @@ impl Vm {
         let service = self.api_service.as_ref().unwrap();
         let payload = SubmitTransactionPost::Bcs(aptos_api::bcs_payload::Bcs(data.clone()));
         let ret = service.0.submit_transaction_raw(accept, payload).await;
-        let ret = ret.unwrap();
-        let header;
-        let ret = match ret {
-            SubmitTransactionResponse::Accepted(c, a, b, d, e, f, g, h, k) => {
-                header = AptosHeader {
-                    chain_id: a,
-                    ledger_version: b,
-                    ledger_oldest_version: d,
-                    ledger_timestamp_usec: e,
-                    epoch: f,
-                    block_height: g,
-                    oldest_block_height: h,
-                    cursor: k,
-                };
-                match c {
-                    AptosResponseContent::Json(json) => serde_json::to_string(&json.0).unwrap(),
-                    AptosResponseContent::Bcs(bytes) => {
-                        format!("{}", hex::encode(bytes.0))
-                    },
-                }
-            },
-        };
         let mut ret_str = "".to_string();
         let mut error = None;
         let mut header_str = "".to_string();
