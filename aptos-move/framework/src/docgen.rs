@@ -1,7 +1,7 @@
 // Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
-use anyhow::{anyhow, Context};
+use anyhow::{anyhow, Context, Ok};
 use codespan_reporting::{
     diagnostic::Severity,
     term::termcolor::{ColorChoice, StandardStream},
@@ -57,6 +57,7 @@ impl DocgenOptions {
         doc_path: Vec<String>,
         model: &GlobalEnv,
     ) -> anyhow::Result<()> {
+        return Ok(());
         // To get relative paths right, we need to run docgen with relative paths. To this
         // end we need to set the current directory of the process. This in turn is not thread
         // safe, so we need to make a critical section out of the entire generation process.
