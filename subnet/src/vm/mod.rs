@@ -1489,6 +1489,21 @@ impl Vm {
             .await;
     }
 
+    pub async fn faucet_with_cli(&self, acc: Vec<u8>) -> RpcRes {
+        let to = AccountAddress::from_bytes(acc).unwrap();
+        let db = self.db.as_ref().unwrap().read().await;
+        let core_account = self.get_core_account(&db).await;
+        let tx_factory = TransactionFactory::new(ChainId::test());
+        let tx_acc_mint =
+            core_account.sign_with_transaction_builder(tx_factory.mint(to, 10 * 100_000_000));
+        let mut res: RpcRes = self
+            .submit_transaction(bcs::to_bytes(&tx_acc_mint.clone()).unwrap(),  AcceptType::Bcs)
+            .await;
+        let txs = vec![tx_acc_mint];
+        res.data = hex::encode(aptos_sdk::bcs::to_bytes(&txs).unwrap());
+        res
+    }
+
     pub async fn create_account(&self, acc: Vec<u8>, accept: AcceptType) -> RpcRes {
         let to = AccountAddress::from_bytes(acc).unwrap();
         let db = self.db.as_ref().unwrap().read().await;

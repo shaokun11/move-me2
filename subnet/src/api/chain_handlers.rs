@@ -61,6 +61,9 @@ pub trait Rpc {
     #[rpc(name = "faucet", alias("aptosvm.faucet"))]
     fn faucet_apt(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>>;
 
+    #[rpc(name = "faucetWithCli")]
+    fn faucet_with_cli(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>>;
+
     #[rpc(name = "createAccount", alias("aptosvm.createAccount"))]
     fn create_account(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>>;
 
@@ -442,6 +445,16 @@ impl Rpc for ChainService {
         Box::pin(async move {
             let ret = vm.get_ledger_info().await;
             return Ok(ret);
+        })
+    }
+
+    fn faucet_with_cli(&self,args:RpcReq) -> BoxFuture<Result<RpcRes> >  {
+        let vm = self.vm.clone();
+        Box::pin(async move {
+            let s = args.data.as_str();
+            let acc = HexParser::parse_hex_string(s).unwrap();
+            let ret = vm.faucet_with_cli(acc).await;
+            Ok(ret)
         })
     }
 }
