@@ -448,7 +448,7 @@ impl Rpc for ChainService {
         })
     }
 
-    fn faucet_with_cli(&self,args:RpcReq) -> BoxFuture<Result<RpcRes> >  {
+    fn faucet_with_cli(&self, args: RpcReq) -> BoxFuture<Result<RpcRes>> {
         let vm = self.vm.clone();
         Box::pin(async move {
             let s = args.data.as_str();
