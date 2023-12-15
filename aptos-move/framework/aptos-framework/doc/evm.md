@@ -397,6 +397,15 @@
 
 
 
+<a name="0x1_evm_ACCOUNT_NOT_EXIST"></a>
+
+
+
+<pre><code><b>const</b> <a href="evm.md#0x1_evm_ACCOUNT_NOT_EXIST">ACCOUNT_NOT_EXIST</a>: u64 = 10008;
+</code></pre>
+
+
+
 <a name="0x1_evm_ADDR_LENGTH"></a>
 
 
@@ -539,6 +548,7 @@
     <b>let</b> gas = to_u256(gas_bytes);
     <b>if</b>(tx_type == <a href="evm.md#0x1_evm_TX_TYPE_LEGACY">TX_TYPE_LEGACY</a>) {
         <b>let</b> decoded = decode_bytes_list(&tx);
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&decoded);
         <b>let</b> nonce = to_u256(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&decoded, 0));
         <b>let</b> gas_price = to_u256(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&decoded, 1));
         <b>let</b> gas_limit = to_u256(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&decoded, 2));
@@ -548,6 +558,8 @@
         <b>let</b> v = (to_u256(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&decoded, 6)) <b>as</b> u64);
         <b>let</b> r = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&decoded, 7);
         <b>let</b> s = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&decoded, 8);
+
+
 
         <b>let</b> message = encode_bytes_list(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>[
             u256_to_trimed_data(nonce),
@@ -561,7 +573,7 @@
             x""
             ]);
         <b>let</b> message_hash = keccak256(message);
-        <a href="evm.md#0x1_evm_verify_signature">verify_signature</a>(evm_from, message_hash, r, s, v);
+        <a href="evm.md#0x1_evm_verify_signature">verify_signature</a>(evm_from, message_hash, to_32bit(r), to_32bit(s), v);
         <a href="evm.md#0x1_evm_execute">execute</a>(to_32bit(evm_from), to_32bit(evm_to), (nonce <b>as</b> u64), data, value);
         <a href="evm.md#0x1_evm_transfer_to_move_addr">transfer_to_move_addr</a>(to_32bit(evm_from), address_of(sender), gas * <a href="evm.md#0x1_evm_CONVERT_BASE">CONVERT_BASE</a>);
     } <b>else</b> {
@@ -598,6 +610,8 @@
 ) <b>acquires</b> <a href="evm.md#0x1_evm_Account">Account</a>, <a href="evm.md#0x1_evm_ContractEvent">ContractEvent</a> {
     <b>let</b> value = to_u256(value_bytes);
     <b>if</b>(tx_type == <a href="evm.md#0x1_evm_TX_TYPE_LEGACY">TX_TYPE_LEGACY</a>) {
+        <b>let</b> address_from = create_resource_address(&@aptos_framework, to_32bit(evm_from));
+        <b>assert</b>!(<b>exists</b>&lt;<a href="evm.md#0x1_evm_Account">Account</a>&gt;(address_from), <a href="evm.md#0x1_evm_ACCOUNT_NOT_EXIST">ACCOUNT_NOT_EXIST</a>);
         <b>let</b> nonce = <b>borrow_global</b>&lt;<a href="evm.md#0x1_evm_Account">Account</a>&gt;(create_resource_address(&@aptos_framework, to_32bit(evm_from))).nonce;
         <a href="evm.md#0x1_evm_execute">execute</a>(to_32bit(evm_from), to_32bit(evm_to), nonce, data, value);
     } <b>else</b> {
@@ -1645,6 +1659,9 @@
 
         <b>let</b> account_store_to = <b>borrow_global_mut</b>&lt;<a href="evm.md#0x1_evm_Account">Account</a>&gt;(<b>move_to</b>);
         account_store_to.balance = account_store_to.balance + amount;
+
+        <b>let</b> <a href="../../aptos-stdlib/../move-stdlib/doc/signer.md#0x1_signer">signer</a> = <a href="create_signer.md#0x1_create_signer">create_signer</a>(<b>move_from</b>);
+        <a href="coin.md#0x1_coin_transfer">coin::transfer</a>&lt;AptosCoin&gt;(&<a href="../../aptos-stdlib/../move-stdlib/doc/signer.md#0x1_signer">signer</a>, <b>move_to</b>, ((amount / <a href="evm.md#0x1_evm_CONVERT_BASE">CONVERT_BASE</a>)  <b>as</b> u64));
     }
 }
 </code></pre>
@@ -1803,7 +1820,7 @@
     <b>let</b> recovery_id = ((v - (<a href="evm.md#0x1_evm_CHAIN_ID">CHAIN_ID</a> * 2) - 35) <b>as</b> u8);
     <b>let</b> pk_recover = ecdsa_recover(message_hash, recovery_id, &signature);
     <b>let</b> pk = keccak256(ecdsa_raw_public_key_to_bytes(borrow(&pk_recover)));
-    // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&slice(pk, 12, 20));
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&slice(pk, 12, 20));
     <b>assert</b>!(slice(pk, 12, 20) == from, <a href="evm.md#0x1_evm_SIGNATURE">SIGNATURE</a>);
 }
 </code></pre>
