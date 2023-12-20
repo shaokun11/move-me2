@@ -411,6 +411,18 @@ module aptos_framework::evm {
                 vector::push_back(stack, U256_MAX - n);
                 i = i + 1;
             }
+                //byte
+            else if(opcode == 0x1a) {
+                let ith = vector::pop_back(stack);
+                let x = vector::pop_back(stack);
+                if(x >= 32) {
+                    vector::push_back(stack, 0);
+                } else {
+                    vector::push_back(stack, (x >> ((248 - ith * 8) as u8)) & 0xFF);
+                };
+
+                i = i + 1;
+            }
                 //shl
             else if(opcode == 0x1b) {
                 let b = vector::pop_back(stack);
