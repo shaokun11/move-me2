@@ -588,3 +588,687 @@ Completed generating configuration:
 
 Aptos is running, press ctrl-c to exit
 
+warning: unused imports: `Context`, `anyhow`
+ --> aptos-move/framework/src/docgen.rs:4:14
+  |
+4 | use anyhow::{anyhow, Context, Ok};
+  |              ^^^^^^  ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused imports: `ColorChoice`, `StandardStream`, `diagnostic::Severity`
+ --> aptos-move/framework/src/docgen.rs:6:5
+  |
+6 |     diagnostic::Severity,
+  |     ^^^^^^^^^^^^^^^^^^^^
+7 |     term::termcolor::{ColorChoice, StandardStream},
+  |                       ^^^^^^^^^^^  ^^^^^^^^^^^^^^
+
+warning: unused imports: `path::PathBuf`, `sync::Mutex`
+  --> aptos-move/framework/src/docgen.rs:10:11
+   |
+10 | use std::{path::PathBuf, sync::Mutex};
+   |           ^^^^^^^^^^^^^  ^^^^^^^^^^^
+
+warning: `aptos-framework` (lib) generated 3 warnings (run `cargo fix --lib -p aptos-framework` to apply 3 suggestions)
+warning: unused variable: `error_type`
+  --> aptos-move/aptos-vm/src/testing.rs:11:42
+   |
+11 | pub(crate) fn maybe_raise_injected_error(error_type: InjectedError) -> VMResult<()> {
+   |                                          ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_error_type`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+warning: `aptos-vm` (lib) generated 1 warning (run `cargo fix --lib -p aptos-vm` to apply 1 suggestion)
+warning: `aptos-framework` (lib) generated 3 warnings (3 duplicates)
+    Finished dev [unoptimized + debuginfo] target(s) in 2.94s
+     Running `target/debug/aptos-node --test --test-dir /tmp/e5f51696be31fdb76a3092cb93af1a78 --config /tmp/e5f51696be31fdb76a3092cb93af1a78/0/node.yaml`
+WARNING: Entering test mode! This should never be used in production!
+Identified node type (Validator) and chain ID (testing) from node config!
+Completed generating configuration:
+	Used user-provided config from path: "/tmp/e5f51696be31fdb76a3092cb93af1a78/0/node.yaml"
+	Log file: "/tmp/e5f51696be31fdb76a3092cb93af1a78/validator.log"
+	Test dir: "/tmp/e5f51696be31fdb76a3092cb93af1a78"
+	Aptos root key path: "/tmp/e5f51696be31fdb76a3092cb93af1a78/mint.key"
+	Waypoint: 0:0fe18df76c901fa4b62a6f6edfad5d8eba21f94c73f9deee8f80a1839b055434
+	ChainId: testing
+	REST API endpoint: http://0.0.0.0:8080
+	Metrics endpoint: http://0.0.0.0:9101/metrics
+	Aptosnet fullnode network endpoint: /ip4/0.0.0.0/tcp/6181
+
+Aptos is running, press ctrl-c to exit
+
+warning: unused imports: `Context`, `anyhow`
+ --> aptos-move/framework/src/docgen.rs:4:14
+  |
+4 | use anyhow::{anyhow, Context, Ok};
+  |              ^^^^^^  ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused imports: `ColorChoice`, `StandardStream`, `diagnostic::Severity`
+ --> aptos-move/framework/src/docgen.rs:6:5
+  |
+6 |     diagnostic::Severity,
+  |     ^^^^^^^^^^^^^^^^^^^^
+7 |     term::termcolor::{ColorChoice, StandardStream},
+  |                       ^^^^^^^^^^^  ^^^^^^^^^^^^^^
+
+warning: unused imports: `path::PathBuf`, `sync::Mutex`
+  --> aptos-move/framework/src/docgen.rs:10:11
+   |
+10 | use std::{path::PathBuf, sync::Mutex};
+   |           ^^^^^^^^^^^^^  ^^^^^^^^^^^
+
+warning: `aptos-framework` (lib) generated 3 warnings (run `cargo fix --lib -p aptos-framework` to apply 3 suggestions)
+warning: unused variable: `error_type`
+  --> aptos-move/aptos-vm/src/testing.rs:11:42
+   |
+11 | pub(crate) fn maybe_raise_injected_error(error_type: InjectedError) -> VMResult<()> {
+   |                                          ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_error_type`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+warning: `aptos-vm` (lib) generated 1 warning (run `cargo fix --lib -p aptos-vm` to apply 1 suggestion)
+warning: `aptos-framework` (lib) generated 3 warnings (3 duplicates)
+    Finished dev [unoptimized + debuginfo] target(s) in 0.91s
+     Running `target/debug/aptos-node --test --test-dir /tmp/0a6188f5fb0c41b3d95001a02517e652 --config /tmp/0a6188f5fb0c41b3d95001a02517e652/0/node.yaml`
+WARNING: Entering test mode! This should never be used in production!
+Identified node type (Validator) and chain ID (testing) from node config!
+Completed generating configuration:
+	Used user-provided config from path: "/tmp/0a6188f5fb0c41b3d95001a02517e652/0/node.yaml"
+	Log file: "/tmp/0a6188f5fb0c41b3d95001a02517e652/validator.log"
+	Test dir: "/tmp/0a6188f5fb0c41b3d95001a02517e652"
+	Aptos root key path: "/tmp/0a6188f5fb0c41b3d95001a02517e652/mint.key"
+	Waypoint: 0:48840488cbc9ee450a0eae820149aaf4d12e545f0d703a7835468c1799f2c430
+	ChainId: testing
+	REST API endpoint: http://0.0.0.0:8080
+	Metrics endpoint: http://0.0.0.0:9101/metrics
+	Aptosnet fullnode network endpoint: /ip4/0.0.0.0/tcp/6181
+
+Aptos is running, press ctrl-c to exit
+
+warning: unused imports: `Context`, `anyhow`
+ --> aptos-move/framework/src/docgen.rs:4:14
+  |
+4 | use anyhow::{anyhow, Context, Ok};
+  |              ^^^^^^  ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused imports: `ColorChoice`, `StandardStream`, `diagnostic::Severity`
+ --> aptos-move/framework/src/docgen.rs:6:5
+  |
+6 |     diagnostic::Severity,
+  |     ^^^^^^^^^^^^^^^^^^^^
+7 |     term::termcolor::{ColorChoice, StandardStream},
+  |                       ^^^^^^^^^^^  ^^^^^^^^^^^^^^
+
+warning: unused imports: `path::PathBuf`, `sync::Mutex`
+  --> aptos-move/framework/src/docgen.rs:10:11
+   |
+10 | use std::{path::PathBuf, sync::Mutex};
+   |           ^^^^^^^^^^^^^  ^^^^^^^^^^^
+
+   Compiling aptos-gas-meter v0.1.0 (/home/ubuntu/winless/move-me2/aptos-move/aptos-gas-meter)
+warning: `aptos-framework` (lib) generated 3 warnings (run `cargo fix --lib -p aptos-framework` to apply 3 suggestions)
+warning: `aptos-framework` (lib) generated 3 warnings (3 duplicates)
+   Compiling aptos-memory-usage-tracker v0.1.0 (/home/ubuntu/winless/move-me2/aptos-move/aptos-memory-usage-tracker)
+   Compiling aptos-vm v0.1.0 (/home/ubuntu/winless/move-me2/aptos-move/aptos-vm)
+warning: unused variable: `error_type`
+  --> aptos-move/aptos-vm/src/testing.rs:11:42
+   |
+11 | pub(crate) fn maybe_raise_injected_error(error_type: InjectedError) -> VMResult<()> {
+   |                                          ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_error_type`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+   Compiling aptos-storage-interface v0.1.0 (/home/ubuntu/winless/move-me2/storage/storage-interface)
+   Compiling aptos-vm-genesis v0.1.0 (/home/ubuntu/winless/move-me2/aptos-move/vm-genesis)
+   Compiling aptos-executor-types v0.1.0 (/home/ubuntu/winless/move-me2/execution/executor-types)
+   Compiling aptos-event-notifications v0.1.0 (/home/ubuntu/winless/move-me2/state-sync/inter-component/event-notifications)
+   Compiling aptos-api-types v0.0.1 (/home/ubuntu/winless/move-me2/api/types)
+   Compiling aptos-data-client v0.1.0 (/home/ubuntu/winless/move-me2/state-sync/aptos-data-client)
+   Compiling aptos-jellyfish-merkle v0.1.0 (/home/ubuntu/winless/move-me2/storage/jellyfish-merkle)
+   Compiling aptos-db-indexer v0.1.0 (/home/ubuntu/winless/move-me2/storage/indexer)
+warning: `aptos-vm` (lib) generated 1 warning (run `cargo fix --lib -p aptos-vm` to apply 1 suggestion)
+   Compiling aptos-peer-monitoring-service-server v0.1.0 (/home/ubuntu/winless/move-me2/network/peer-monitoring-service/server)
+   Compiling aptos-storage-service-server v0.1.0 (/home/ubuntu/winless/move-me2/state-sync/storage-service/server)
+   Compiling aptos-vm-validator v0.1.0 (/home/ubuntu/winless/move-me2/vm-validator)
+   Compiling aptos-consensus-types v0.1.0 (/home/ubuntu/winless/move-me2/consensus/consensus-types)
+   Compiling aptos-db v0.1.0 (/home/ubuntu/winless/move-me2/storage/aptosdb)
+   Compiling aptos-data-streaming-service v0.1.0 (/home/ubuntu/winless/move-me2/state-sync/state-sync-v2/data-streaming-service)
+   Compiling aptos-mempool v0.1.0 (/home/ubuntu/winless/move-me2/mempool)
+   Compiling aptos-executor v0.1.0 (/home/ubuntu/winless/move-me2/execution/executor)
+   Compiling aptos-safety-rules v0.1.0 (/home/ubuntu/winless/move-me2/consensus/safety-rules)
+   Compiling aptos-reliable-broadcast v0.1.0 (/home/ubuntu/winless/move-me2/crates/reliable-broadcast)
+   Compiling aptos-rest-client v0.0.0 (/home/ubuntu/winless/move-me2/crates/aptos-rest-client)
+   Compiling aptos-state-sync-driver v0.1.0 (/home/ubuntu/winless/move-me2/state-sync/state-sync-v2/state-sync-driver)
+   Compiling aptos-backup-service v0.1.0 (/home/ubuntu/winless/move-me2/storage/backup/backup-service)
+   Compiling aptos-genesis v0.1.0 (/home/ubuntu/winless/move-me2/crates/aptos-genesis)
+   Compiling aptos-telemetry-service v0.1.0 (/home/ubuntu/winless/move-me2/crates/aptos-telemetry-service)
+   Compiling aptos-api v0.2.0 (/home/ubuntu/winless/move-me2/api)
+   Compiling aptos-consensus v0.1.0 (/home/ubuntu/winless/move-me2/consensus)
+   Compiling aptos-network-discovery v0.1.0 (/home/ubuntu/winless/move-me2/network/discovery)
+   Compiling aptos-network-builder v0.1.0 (/home/ubuntu/winless/move-me2/network/builder)
+   Compiling aptos-indexer-grpc-fullnode v1.0.0 (/home/ubuntu/winless/move-me2/ecosystem/indexer-grpc/indexer-grpc-fullnode)
+   Compiling aptos-telemetry v0.1.0 (/home/ubuntu/winless/move-me2/crates/aptos-telemetry)
+   Compiling aptos-inspection-service v0.1.0 (/home/ubuntu/winless/move-me2/crates/aptos-inspection-service)
+   Compiling aptos-node v1.8.0 (/home/ubuntu/winless/move-me2/aptos-node)
+    Finished dev [unoptimized + debuginfo] target(s) in 33.58s
+     Running `target/debug/aptos-node --test --test-dir /tmp/0a6188f5fb0c41b3d95001a02517e652 --config /tmp/0a6188f5fb0c41b3d95001a02517e652/0/node.yaml`
+WARNING: Entering test mode! This should never be used in production!
+Identified node type (Validator) and chain ID (testing) from node config!
+Completed generating configuration:
+	Used user-provided config from path: "/tmp/0a6188f5fb0c41b3d95001a02517e652/0/node.yaml"
+	Log file: "/tmp/0a6188f5fb0c41b3d95001a02517e652/validator.log"
+	Test dir: "/tmp/0a6188f5fb0c41b3d95001a02517e652"
+	Aptos root key path: "/tmp/0a6188f5fb0c41b3d95001a02517e652/mint.key"
+	Waypoint: 0:48840488cbc9ee450a0eae820149aaf4d12e545f0d703a7835468c1799f2c430
+	ChainId: testing
+	REST API endpoint: http://0.0.0.0:8080
+	Metrics endpoint: http://0.0.0.0:9101/metrics
+	Aptosnet fullnode network endpoint: /ip4/0.0.0.0/tcp/6181
+
+Aptos is running, press ctrl-c to exit
+
+warning: unused imports: `Context`, `anyhow`
+ --> aptos-move/framework/src/docgen.rs:4:14
+  |
+4 | use anyhow::{anyhow, Context, Ok};
+  |              ^^^^^^  ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused imports: `ColorChoice`, `StandardStream`, `diagnostic::Severity`
+ --> aptos-move/framework/src/docgen.rs:6:5
+  |
+6 |     diagnostic::Severity,
+  |     ^^^^^^^^^^^^^^^^^^^^
+7 |     term::termcolor::{ColorChoice, StandardStream},
+  |                       ^^^^^^^^^^^  ^^^^^^^^^^^^^^
+
+warning: unused imports: `path::PathBuf`, `sync::Mutex`
+  --> aptos-move/framework/src/docgen.rs:10:11
+   |
+10 | use std::{path::PathBuf, sync::Mutex};
+   |           ^^^^^^^^^^^^^  ^^^^^^^^^^^
+
+warning: `aptos-framework` (lib) generated 3 warnings (run `cargo fix --lib -p aptos-framework` to apply 3 suggestions)
+warning: unused variable: `error_type`
+  --> aptos-move/aptos-vm/src/testing.rs:11:42
+   |
+11 | pub(crate) fn maybe_raise_injected_error(error_type: InjectedError) -> VMResult<()> {
+   |                                          ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_error_type`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+warning: `aptos-vm` (lib) generated 1 warning (run `cargo fix --lib -p aptos-vm` to apply 1 suggestion)
+warning: `aptos-framework` (lib) generated 3 warnings (3 duplicates)
+    Finished dev [unoptimized + debuginfo] target(s) in 0.85s
+     Running `target/debug/aptos-node --test --test-dir /tmp/63847a0b86faaa853e3fe74a0d957d0f --config /tmp/63847a0b86faaa853e3fe74a0d957d0f/0/node.yaml`
+WARNING: Entering test mode! This should never be used in production!
+Identified node type (Validator) and chain ID (testing) from node config!
+Completed generating configuration:
+	Used user-provided config from path: "/tmp/63847a0b86faaa853e3fe74a0d957d0f/0/node.yaml"
+	Log file: "/tmp/63847a0b86faaa853e3fe74a0d957d0f/validator.log"
+	Test dir: "/tmp/63847a0b86faaa853e3fe74a0d957d0f"
+	Aptos root key path: "/tmp/63847a0b86faaa853e3fe74a0d957d0f/mint.key"
+	Waypoint: 0:e6bb29215104440ef8ce1129f7abced3c6b32b130710047ef21526b5b8674e41
+	ChainId: testing
+	REST API endpoint: http://0.0.0.0:8080
+	Metrics endpoint: http://0.0.0.0:9101/metrics
+	Aptosnet fullnode network endpoint: /ip4/0.0.0.0/tcp/6181
+
+Aptos is running, press ctrl-c to exit
+
+warning: unused imports: `Context`, `anyhow`
+ --> aptos-move/framework/src/docgen.rs:4:14
+  |
+4 | use anyhow::{anyhow, Context, Ok};
+  |              ^^^^^^  ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused imports: `ColorChoice`, `StandardStream`, `diagnostic::Severity`
+ --> aptos-move/framework/src/docgen.rs:6:5
+  |
+6 |     diagnostic::Severity,
+  |     ^^^^^^^^^^^^^^^^^^^^
+7 |     term::termcolor::{ColorChoice, StandardStream},
+  |                       ^^^^^^^^^^^  ^^^^^^^^^^^^^^
+
+warning: unused imports: `path::PathBuf`, `sync::Mutex`
+  --> aptos-move/framework/src/docgen.rs:10:11
+   |
+10 | use std::{path::PathBuf, sync::Mutex};
+   |           ^^^^^^^^^^^^^  ^^^^^^^^^^^
+
+warning: `aptos-framework` (lib) generated 3 warnings (run `cargo fix --lib -p aptos-framework` to apply 3 suggestions)
+warning: unused variable: `error_type`
+  --> aptos-move/aptos-vm/src/testing.rs:11:42
+   |
+11 | pub(crate) fn maybe_raise_injected_error(error_type: InjectedError) -> VMResult<()> {
+   |                                          ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_error_type`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+warning: `aptos-vm` (lib) generated 1 warning (run `cargo fix --lib -p aptos-vm` to apply 1 suggestion)
+warning: `aptos-framework` (lib) generated 3 warnings (3 duplicates)
+    Finished dev [unoptimized + debuginfo] target(s) in 0.86s
+     Running `target/debug/aptos-node --test --test-dir /tmp/9e77c9a5e8db6be19c6dbbeeb5d037c7 --config /tmp/9e77c9a5e8db6be19c6dbbeeb5d037c7/0/node.yaml`
+WARNING: Entering test mode! This should never be used in production!
+Identified node type (Validator) and chain ID (testing) from node config!
+Completed generating configuration:
+	Used user-provided config from path: "/tmp/9e77c9a5e8db6be19c6dbbeeb5d037c7/0/node.yaml"
+	Log file: "/tmp/9e77c9a5e8db6be19c6dbbeeb5d037c7/validator.log"
+	Test dir: "/tmp/9e77c9a5e8db6be19c6dbbeeb5d037c7"
+	Aptos root key path: "/tmp/9e77c9a5e8db6be19c6dbbeeb5d037c7/mint.key"
+	Waypoint: 0:ae6fcde44401a054b13071a3b80ba788512bf96c39d6a757db05fade61a9cdcb
+	ChainId: testing
+	REST API endpoint: http://0.0.0.0:8080
+	Metrics endpoint: http://0.0.0.0:9101/metrics
+	Aptosnet fullnode network endpoint: /ip4/0.0.0.0/tcp/6181
+
+Aptos is running, press ctrl-c to exit
+
+warning: unused imports: `Context`, `anyhow`
+ --> aptos-move/framework/src/docgen.rs:4:14
+  |
+4 | use anyhow::{anyhow, Context, Ok};
+  |              ^^^^^^  ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused imports: `ColorChoice`, `StandardStream`, `diagnostic::Severity`
+ --> aptos-move/framework/src/docgen.rs:6:5
+  |
+6 |     diagnostic::Severity,
+  |     ^^^^^^^^^^^^^^^^^^^^
+7 |     term::termcolor::{ColorChoice, StandardStream},
+  |                       ^^^^^^^^^^^  ^^^^^^^^^^^^^^
+
+warning: unused imports: `path::PathBuf`, `sync::Mutex`
+  --> aptos-move/framework/src/docgen.rs:10:11
+   |
+10 | use std::{path::PathBuf, sync::Mutex};
+   |           ^^^^^^^^^^^^^  ^^^^^^^^^^^
+
+warning: `aptos-framework` (lib) generated 3 warnings (run `cargo fix --lib -p aptos-framework` to apply 3 suggestions)
+warning: unused variable: `error_type`
+  --> aptos-move/aptos-vm/src/testing.rs:11:42
+   |
+11 | pub(crate) fn maybe_raise_injected_error(error_type: InjectedError) -> VMResult<()> {
+   |                                          ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_error_type`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+warning: `aptos-vm` (lib) generated 1 warning (run `cargo fix --lib -p aptos-vm` to apply 1 suggestion)
+warning: `aptos-framework` (lib) generated 3 warnings (3 duplicates)
+    Finished dev [unoptimized + debuginfo] target(s) in 0.93s
+     Running `target/debug/aptos-node --test --test-dir /tmp/d02d92e509a0d8df5ee55f56ed0ed7b1 --config /tmp/d02d92e509a0d8df5ee55f56ed0ed7b1/0/node.yaml`
+WARNING: Entering test mode! This should never be used in production!
+Identified node type (Validator) and chain ID (testing) from node config!
+Completed generating configuration:
+	Used user-provided config from path: "/tmp/d02d92e509a0d8df5ee55f56ed0ed7b1/0/node.yaml"
+	Log file: "/tmp/d02d92e509a0d8df5ee55f56ed0ed7b1/validator.log"
+	Test dir: "/tmp/d02d92e509a0d8df5ee55f56ed0ed7b1"
+	Aptos root key path: "/tmp/d02d92e509a0d8df5ee55f56ed0ed7b1/mint.key"
+	Waypoint: 0:be11ad5b24fa6050dcd63bd7bbb34be8411f489bbbd8248d86749cade51f1643
+	ChainId: testing
+	REST API endpoint: http://0.0.0.0:8080
+	Metrics endpoint: http://0.0.0.0:9101/metrics
+	Aptosnet fullnode network endpoint: /ip4/0.0.0.0/tcp/6181
+
+Aptos is running, press ctrl-c to exit
+
+warning: unused imports: `Context`, `anyhow`
+ --> aptos-move/framework/src/docgen.rs:4:14
+  |
+4 | use anyhow::{anyhow, Context, Ok};
+  |              ^^^^^^  ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused imports: `ColorChoice`, `StandardStream`, `diagnostic::Severity`
+ --> aptos-move/framework/src/docgen.rs:6:5
+  |
+6 |     diagnostic::Severity,
+  |     ^^^^^^^^^^^^^^^^^^^^
+7 |     term::termcolor::{ColorChoice, StandardStream},
+  |                       ^^^^^^^^^^^  ^^^^^^^^^^^^^^
+
+warning: unused imports: `path::PathBuf`, `sync::Mutex`
+  --> aptos-move/framework/src/docgen.rs:10:11
+   |
+10 | use std::{path::PathBuf, sync::Mutex};
+   |           ^^^^^^^^^^^^^  ^^^^^^^^^^^
+
+warning: `aptos-framework` (lib) generated 3 warnings (run `cargo fix --lib -p aptos-framework` to apply 3 suggestions)
+warning: unused variable: `error_type`
+  --> aptos-move/aptos-vm/src/testing.rs:11:42
+   |
+11 | pub(crate) fn maybe_raise_injected_error(error_type: InjectedError) -> VMResult<()> {
+   |                                          ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_error_type`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+warning: `aptos-vm` (lib) generated 1 warning (run `cargo fix --lib -p aptos-vm` to apply 1 suggestion)
+warning: `aptos-framework` (lib) generated 3 warnings (3 duplicates)
+    Finished dev [unoptimized + debuginfo] target(s) in 0.92s
+     Running `target/debug/aptos-node --test --test-dir /tmp/18d187e070e9da7e234bfbed28a63064 --config /tmp/18d187e070e9da7e234bfbed28a63064/0/node.yaml`
+WARNING: Entering test mode! This should never be used in production!
+Identified node type (Validator) and chain ID (testing) from node config!
+Completed generating configuration:
+	Used user-provided config from path: "/tmp/18d187e070e9da7e234bfbed28a63064/0/node.yaml"
+	Log file: "/tmp/18d187e070e9da7e234bfbed28a63064/validator.log"
+	Test dir: "/tmp/18d187e070e9da7e234bfbed28a63064"
+	Aptos root key path: "/tmp/18d187e070e9da7e234bfbed28a63064/mint.key"
+	Waypoint: 0:63856ed5413ff40a1d9c6ced0aeecbbdd14b889e8c96971dd2349a3a0e830b7a
+	ChainId: testing
+	REST API endpoint: http://0.0.0.0:8080
+	Metrics endpoint: http://0.0.0.0:9101/metrics
+	Aptosnet fullnode network endpoint: /ip4/0.0.0.0/tcp/6181
+
+Aptos is running, press ctrl-c to exit
+
+warning: unused imports: `Context`, `anyhow`
+ --> aptos-move/framework/src/docgen.rs:4:14
+  |
+4 | use anyhow::{anyhow, Context, Ok};
+  |              ^^^^^^  ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused imports: `ColorChoice`, `StandardStream`, `diagnostic::Severity`
+ --> aptos-move/framework/src/docgen.rs:6:5
+  |
+6 |     diagnostic::Severity,
+  |     ^^^^^^^^^^^^^^^^^^^^
+7 |     term::termcolor::{ColorChoice, StandardStream},
+  |                       ^^^^^^^^^^^  ^^^^^^^^^^^^^^
+
+warning: unused imports: `path::PathBuf`, `sync::Mutex`
+  --> aptos-move/framework/src/docgen.rs:10:11
+   |
+10 | use std::{path::PathBuf, sync::Mutex};
+   |           ^^^^^^^^^^^^^  ^^^^^^^^^^^
+
+warning: `aptos-framework` (lib) generated 3 warnings (run `cargo fix --lib -p aptos-framework` to apply 3 suggestions)
+warning: unused variable: `error_type`
+  --> aptos-move/aptos-vm/src/testing.rs:11:42
+   |
+11 | pub(crate) fn maybe_raise_injected_error(error_type: InjectedError) -> VMResult<()> {
+   |                                          ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_error_type`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+warning: `aptos-vm` (lib) generated 1 warning (run `cargo fix --lib -p aptos-vm` to apply 1 suggestion)
+warning: `aptos-framework` (lib) generated 3 warnings (3 duplicates)
+    Finished dev [unoptimized + debuginfo] target(s) in 2.55s
+     Running `target/debug/aptos-node --test --test-dir /tmp/b2e87fc2b2dcc766e7847f2e31efec20 --config /tmp/b2e87fc2b2dcc766e7847f2e31efec20/0/node.yaml`
+WARNING: Entering test mode! This should never be used in production!
+Identified node type (Validator) and chain ID (testing) from node config!
+Completed generating configuration:
+	Used user-provided config from path: "/tmp/b2e87fc2b2dcc766e7847f2e31efec20/0/node.yaml"
+	Log file: "/tmp/b2e87fc2b2dcc766e7847f2e31efec20/validator.log"
+	Test dir: "/tmp/b2e87fc2b2dcc766e7847f2e31efec20"
+	Aptos root key path: "/tmp/b2e87fc2b2dcc766e7847f2e31efec20/mint.key"
+	Waypoint: 0:26e46920ca1a5c02b3ef1e1b61812acb61243ceec7812a9eeae428b39fb008b1
+	ChainId: testing
+	REST API endpoint: http://0.0.0.0:8080
+	Metrics endpoint: http://0.0.0.0:9101/metrics
+	Aptosnet fullnode network endpoint: /ip4/0.0.0.0/tcp/6181
+
+Aptos is running, press ctrl-c to exit
+
+warning: unused imports: `Context`, `anyhow`
+ --> aptos-move/framework/src/docgen.rs:4:14
+  |
+4 | use anyhow::{anyhow, Context, Ok};
+  |              ^^^^^^  ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused imports: `ColorChoice`, `StandardStream`, `diagnostic::Severity`
+ --> aptos-move/framework/src/docgen.rs:6:5
+  |
+6 |     diagnostic::Severity,
+  |     ^^^^^^^^^^^^^^^^^^^^
+7 |     term::termcolor::{ColorChoice, StandardStream},
+  |                       ^^^^^^^^^^^  ^^^^^^^^^^^^^^
+
+warning: unused imports: `path::PathBuf`, `sync::Mutex`
+  --> aptos-move/framework/src/docgen.rs:10:11
+   |
+10 | use std::{path::PathBuf, sync::Mutex};
+   |           ^^^^^^^^^^^^^  ^^^^^^^^^^^
+
+warning: `aptos-framework` (lib) generated 3 warnings (run `cargo fix --lib -p aptos-framework` to apply 3 suggestions)
+warning: unused variable: `error_type`
+  --> aptos-move/aptos-vm/src/testing.rs:11:42
+   |
+11 | pub(crate) fn maybe_raise_injected_error(error_type: InjectedError) -> VMResult<()> {
+   |                                          ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_error_type`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+warning: `aptos-vm` (lib) generated 1 warning (run `cargo fix --lib -p aptos-vm` to apply 1 suggestion)
+warning: `aptos-framework` (lib) generated 3 warnings (3 duplicates)
+    Finished dev [unoptimized + debuginfo] target(s) in 1.81s
+     Running `target/debug/aptos-node --test --test-dir /tmp/91052cf73babb97e93ccce8cc2c88b61 --config /tmp/91052cf73babb97e93ccce8cc2c88b61/0/node.yaml`
+WARNING: Entering test mode! This should never be used in production!
+Identified node type (Validator) and chain ID (testing) from node config!
+Completed generating configuration:
+	Used user-provided config from path: "/tmp/91052cf73babb97e93ccce8cc2c88b61/0/node.yaml"
+	Log file: "/tmp/91052cf73babb97e93ccce8cc2c88b61/validator.log"
+	Test dir: "/tmp/91052cf73babb97e93ccce8cc2c88b61"
+	Aptos root key path: "/tmp/91052cf73babb97e93ccce8cc2c88b61/mint.key"
+	Waypoint: 0:c1a9633c042ef2ad6e462920401ebc181fbfa0ff07099ae3fc6bd3339269ff0b
+	ChainId: testing
+	REST API endpoint: http://0.0.0.0:8080
+	Metrics endpoint: http://0.0.0.0:9101/metrics
+	Aptosnet fullnode network endpoint: /ip4/0.0.0.0/tcp/6181
+
+Aptos is running, press ctrl-c to exit
+
+warning: unused imports: `Context`, `anyhow`
+ --> aptos-move/framework/src/docgen.rs:4:14
+  |
+4 | use anyhow::{anyhow, Context, Ok};
+  |              ^^^^^^  ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused imports: `ColorChoice`, `StandardStream`, `diagnostic::Severity`
+ --> aptos-move/framework/src/docgen.rs:6:5
+  |
+6 |     diagnostic::Severity,
+  |     ^^^^^^^^^^^^^^^^^^^^
+7 |     term::termcolor::{ColorChoice, StandardStream},
+  |                       ^^^^^^^^^^^  ^^^^^^^^^^^^^^
+
+warning: unused imports: `path::PathBuf`, `sync::Mutex`
+  --> aptos-move/framework/src/docgen.rs:10:11
+   |
+10 | use std::{path::PathBuf, sync::Mutex};
+   |           ^^^^^^^^^^^^^  ^^^^^^^^^^^
+
+warning: `aptos-framework` (lib) generated 3 warnings (run `cargo fix --lib -p aptos-framework` to apply 3 suggestions)
+warning: unused variable: `error_type`
+  --> aptos-move/aptos-vm/src/testing.rs:11:42
+   |
+11 | pub(crate) fn maybe_raise_injected_error(error_type: InjectedError) -> VMResult<()> {
+   |                                          ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_error_type`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+warning: `aptos-vm` (lib) generated 1 warning (run `cargo fix --lib -p aptos-vm` to apply 1 suggestion)
+warning: `aptos-framework` (lib) generated 3 warnings (3 duplicates)
+    Finished dev [unoptimized + debuginfo] target(s) in 2.39s
+     Running `target/debug/aptos-node --test --test-dir /tmp/13041ba6bdcf0ee8e1b14d1dc5a665f0 --config /tmp/13041ba6bdcf0ee8e1b14d1dc5a665f0/0/node.yaml`
+WARNING: Entering test mode! This should never be used in production!
+Identified node type (Validator) and chain ID (testing) from node config!
+Completed generating configuration:
+	Used user-provided config from path: "/tmp/13041ba6bdcf0ee8e1b14d1dc5a665f0/0/node.yaml"
+	Log file: "/tmp/13041ba6bdcf0ee8e1b14d1dc5a665f0/validator.log"
+	Test dir: "/tmp/13041ba6bdcf0ee8e1b14d1dc5a665f0"
+	Aptos root key path: "/tmp/13041ba6bdcf0ee8e1b14d1dc5a665f0/mint.key"
+	Waypoint: 0:d84da8a906e7364f1625de0c7fec2e08ead682d255948bedec1b6ae21d4cc5c2
+	ChainId: testing
+	REST API endpoint: http://0.0.0.0:8080
+	Metrics endpoint: http://0.0.0.0:9101/metrics
+	Aptosnet fullnode network endpoint: /ip4/0.0.0.0/tcp/6181
+
+Aptos is running, press ctrl-c to exit
+
+warning: unused imports: `Context`, `anyhow`
+ --> aptos-move/framework/src/docgen.rs:4:14
+  |
+4 | use anyhow::{anyhow, Context, Ok};
+  |              ^^^^^^  ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused imports: `ColorChoice`, `StandardStream`, `diagnostic::Severity`
+ --> aptos-move/framework/src/docgen.rs:6:5
+  |
+6 |     diagnostic::Severity,
+  |     ^^^^^^^^^^^^^^^^^^^^
+7 |     term::termcolor::{ColorChoice, StandardStream},
+  |                       ^^^^^^^^^^^  ^^^^^^^^^^^^^^
+
+warning: unused imports: `path::PathBuf`, `sync::Mutex`
+  --> aptos-move/framework/src/docgen.rs:10:11
+   |
+10 | use std::{path::PathBuf, sync::Mutex};
+   |           ^^^^^^^^^^^^^  ^^^^^^^^^^^
+
+warning: `aptos-framework` (lib) generated 3 warnings (run `cargo fix --lib -p aptos-framework` to apply 3 suggestions)
+warning: unused variable: `error_type`
+  --> aptos-move/aptos-vm/src/testing.rs:11:42
+   |
+11 | pub(crate) fn maybe_raise_injected_error(error_type: InjectedError) -> VMResult<()> {
+   |                                          ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_error_type`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+warning: `aptos-vm` (lib) generated 1 warning (run `cargo fix --lib -p aptos-vm` to apply 1 suggestion)
+warning: `aptos-framework` (lib) generated 3 warnings (3 duplicates)
+    Finished dev [unoptimized + debuginfo] target(s) in 1.66s
+     Running `target/debug/aptos-node --test --test-dir /tmp/fcd3180022cbbcf2f340ce88eb759972 --config /tmp/fcd3180022cbbcf2f340ce88eb759972/0/node.yaml`
+WARNING: Entering test mode! This should never be used in production!
+Identified node type (Validator) and chain ID (testing) from node config!
+Completed generating configuration:
+	Used user-provided config from path: "/tmp/fcd3180022cbbcf2f340ce88eb759972/0/node.yaml"
+	Log file: "/tmp/fcd3180022cbbcf2f340ce88eb759972/validator.log"
+	Test dir: "/tmp/fcd3180022cbbcf2f340ce88eb759972"
+	Aptos root key path: "/tmp/fcd3180022cbbcf2f340ce88eb759972/mint.key"
+	Waypoint: 0:3f7d25223a26dd5b43227464da9e5ba69d6e57cc3c89c176c8ce06444ac223ca
+	ChainId: testing
+	REST API endpoint: http://0.0.0.0:8080
+	Metrics endpoint: http://0.0.0.0:9101/metrics
+	Aptosnet fullnode network endpoint: /ip4/0.0.0.0/tcp/6181
+
+Aptos is running, press ctrl-c to exit
+
+warning: unused imports: `Context`, `anyhow`
+ --> aptos-move/framework/src/docgen.rs:4:14
+  |
+4 | use anyhow::{anyhow, Context, Ok};
+  |              ^^^^^^  ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused imports: `ColorChoice`, `StandardStream`, `diagnostic::Severity`
+ --> aptos-move/framework/src/docgen.rs:6:5
+  |
+6 |     diagnostic::Severity,
+  |     ^^^^^^^^^^^^^^^^^^^^
+7 |     term::termcolor::{ColorChoice, StandardStream},
+  |                       ^^^^^^^^^^^  ^^^^^^^^^^^^^^
+
+warning: unused imports: `path::PathBuf`, `sync::Mutex`
+  --> aptos-move/framework/src/docgen.rs:10:11
+   |
+10 | use std::{path::PathBuf, sync::Mutex};
+   |           ^^^^^^^^^^^^^  ^^^^^^^^^^^
+
+warning: `aptos-framework` (lib) generated 3 warnings (run `cargo fix --lib -p aptos-framework` to apply 3 suggestions)
+warning: unused variable: `error_type`
+  --> aptos-move/aptos-vm/src/testing.rs:11:42
+   |
+11 | pub(crate) fn maybe_raise_injected_error(error_type: InjectedError) -> VMResult<()> {
+   |                                          ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_error_type`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+warning: `aptos-vm` (lib) generated 1 warning (run `cargo fix --lib -p aptos-vm` to apply 1 suggestion)
+warning: `aptos-framework` (lib) generated 3 warnings (3 duplicates)
+    Finished dev [unoptimized + debuginfo] target(s) in 1.45s
+     Running `target/debug/aptos-node --test --test-dir /tmp/8299154ca52854e20683eac817af3c35 --config /tmp/8299154ca52854e20683eac817af3c35/0/node.yaml`
+WARNING: Entering test mode! This should never be used in production!
+Identified node type (Validator) and chain ID (testing) from node config!
+Completed generating configuration:
+	Used user-provided config from path: "/tmp/8299154ca52854e20683eac817af3c35/0/node.yaml"
+	Log file: "/tmp/8299154ca52854e20683eac817af3c35/validator.log"
+	Test dir: "/tmp/8299154ca52854e20683eac817af3c35"
+	Aptos root key path: "/tmp/8299154ca52854e20683eac817af3c35/mint.key"
+	Waypoint: 0:54cddfaf5e2cdeecd87a879e8c7276ef2774f306290065e92bb22a1c35c6db9a
+	ChainId: testing
+	REST API endpoint: http://0.0.0.0:8080
+	Metrics endpoint: http://0.0.0.0:9101/metrics
+	Aptosnet fullnode network endpoint: /ip4/0.0.0.0/tcp/6181
+
+Aptos is running, press ctrl-c to exit
+
+warning: unused imports: `Context`, `anyhow`
+ --> aptos-move/framework/src/docgen.rs:4:14
+  |
+4 | use anyhow::{anyhow, Context, Ok};
+  |              ^^^^^^  ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused imports: `ColorChoice`, `StandardStream`, `diagnostic::Severity`
+ --> aptos-move/framework/src/docgen.rs:6:5
+  |
+6 |     diagnostic::Severity,
+  |     ^^^^^^^^^^^^^^^^^^^^
+7 |     term::termcolor::{ColorChoice, StandardStream},
+  |                       ^^^^^^^^^^^  ^^^^^^^^^^^^^^
+
+warning: unused imports: `path::PathBuf`, `sync::Mutex`
+  --> aptos-move/framework/src/docgen.rs:10:11
+   |
+10 | use std::{path::PathBuf, sync::Mutex};
+   |           ^^^^^^^^^^^^^  ^^^^^^^^^^^
+
+warning: `aptos-framework` (lib) generated 3 warnings (run `cargo fix --lib -p aptos-framework` to apply 3 suggestions)
+warning: unused variable: `error_type`
+  --> aptos-move/aptos-vm/src/testing.rs:11:42
+   |
+11 | pub(crate) fn maybe_raise_injected_error(error_type: InjectedError) -> VMResult<()> {
+   |                                          ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_error_type`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+warning: `aptos-vm` (lib) generated 1 warning (run `cargo fix --lib -p aptos-vm` to apply 1 suggestion)
+warning: `aptos-framework` (lib) generated 3 warnings (3 duplicates)
+    Finished dev [unoptimized + debuginfo] target(s) in 2.49s
+     Running `target/debug/aptos-node --test --test-dir /tmp/212f116a246912d0c8ff292c69634b56 --config /tmp/212f116a246912d0c8ff292c69634b56/0/node.yaml`
+WARNING: Entering test mode! This should never be used in production!
+Identified node type (Validator) and chain ID (testing) from node config!
+Completed generating configuration:
+	Used user-provided config from path: "/tmp/212f116a246912d0c8ff292c69634b56/0/node.yaml"
+	Log file: "/tmp/212f116a246912d0c8ff292c69634b56/validator.log"
+	Test dir: "/tmp/212f116a246912d0c8ff292c69634b56"
+	Aptos root key path: "/tmp/212f116a246912d0c8ff292c69634b56/mint.key"
+	Waypoint: 0:9c2ea5780ef061e9944de6c889d43a663e0cc041601c895eb9163b45debe90d4
+	ChainId: testing
+	REST API endpoint: http://0.0.0.0:8080
+	Metrics endpoint: http://0.0.0.0:9101/metrics
+	Aptosnet fullnode network endpoint: /ip4/0.0.0.0/tcp/6181
+
+Aptos is running, press ctrl-c to exit
+
