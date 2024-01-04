@@ -800,14 +800,13 @@ module aptos_framework::evm {
                 let m_len = vector::pop_back(stack);
                 let ret_pos = vector::pop_back(stack);
                 let ret_len = vector::pop_back(stack);
-
+                let ret_end = ret_len + ret_pos;
+                let params = slice(*memory, m_pos, m_len);
 
                 // debug::print(&utf8(b"call 222"));
                 // debug::print(&opcode);
                 // debug::print(&dest_addr);
                 if (exist_contract(move_dest_addr)) {
-                    let ret_end = ret_len + ret_pos;
-                    let params = slice(*memory, m_pos, m_len);
                     let account_store_dest = borrow_global_mut<Account>(move_dest_addr);
 
                     let target = if (opcode == 0xf4) evm_contract_address else evm_dest_addr;
@@ -840,7 +839,11 @@ module aptos_framework::evm {
                     if (opcode == 0xfa) {
                         vector::push_back(stack, 0);
                     } else {
-                        transfer_to_evm_addr(evm_contract_address, evm_dest_addr, msg_value);
+                        if(vector::length(&params) > 0) {
+                            revert(x"");
+                        } else {
+                            transfer_to_evm_addr(evm_contract_address, evm_dest_addr, msg_value);
+                        }
                     }
                 };
                 // debug::print(&opcode);
