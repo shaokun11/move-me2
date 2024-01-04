@@ -522,9 +522,14 @@ module aptos_framework::evm {
             }
                 //balance
             else if(opcode == 0x31) {
-                let addr = u256_to_data(vector::pop_back(stack));
-                let account_store = borrow_global<Account>(create_resource_address(&@aptos_framework, addr));
-                vector::push_back(stack, account_store.balance);
+                let evm_addr = u256_to_data(vector::pop_back(stack));
+                let target_address = create_resource_address(&@aptos_framework, evm_addr);
+                if(exists<Account>(target_address)) {
+                    let account_store = borrow_global<Account>(target_address);
+                    vector::push_back(stack, account_store.balance);
+                } else {
+                    vector::push_back(stack, 0)
+                };
                 i = i + 1;
             }
                 //origin
@@ -608,7 +613,7 @@ module aptos_framework::evm {
                 let bytes = u256_to_data(vector::pop_back(stack));
                 let target_evm = to_32bit(slice(bytes, 12, 20));
                 let target_address = create_resource_address(&@aptos_framework, target_evm);
-                if(exists<Account>(target_address)) {
+                if(exist_contract(target_address)) {
                     let code = borrow_global<Account>(target_address).code;
                     vector::push_back(stack, (vector::length(&code) as u256));
                 } else {
@@ -800,7 +805,7 @@ module aptos_framework::evm {
                 // debug::print(&utf8(b"call 222"));
                 // debug::print(&opcode);
                 // debug::print(&dest_addr);
-                if (exists<Account>(move_dest_addr)) {
+                if (exist_contract(move_dest_addr)) {
                     let ret_end = ret_len + ret_pos;
                     let params = slice(*memory, m_pos, m_len);
                     let account_store_dest = borrow_global_mut<Account>(move_dest_addr);
