@@ -839,11 +839,10 @@ module aptos_framework::evm {
                     if (opcode == 0xfa) {
                         vector::push_back(stack, 0);
                     } else {
-                        if(vector::length(&params) > 0) {
+                        if(opcode == 0xf1 && vector::length(&params) > 0) {
                             revert(x"");
-                        } else {
-                            transfer_to_evm_addr(evm_contract_address, evm_dest_addr, msg_value);
-                        }
+                        };
+                        transfer_to_evm_addr(evm_contract_address, evm_dest_addr, msg_value);
                     }
                 };
                 // debug::print(&opcode);
