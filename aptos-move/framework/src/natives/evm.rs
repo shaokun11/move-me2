@@ -12,15 +12,13 @@ use std::collections::VecDeque;
 use smallvec::{smallvec, SmallVec};
 
 fn native_revert(
-    context: &mut SafeNativeContext,
+    _context: &mut SafeNativeContext,
     _ty_args: Vec<Type>,
     mut args: VecDeque<Value>,
 ) -> SafeNativeResult<SmallVec<[Value; 1]>> {
 	let message_bytes = safely_pop_arg!(args, Vec<u8>);
 	let message_string = String::from_utf8(message_bytes).unwrap();
-	println!("native_revert:${:?}", message_string);
 	return Err(SafeNativeError::InvariantViolation(PartialVMError::new(StatusCode::EVM_CONTRACT_ERROR).with_message(message_string)));
-	Ok(smallvec![])
 }
 
 
