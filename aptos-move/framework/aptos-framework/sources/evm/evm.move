@@ -103,6 +103,10 @@ module aptos_framework::evm {
         log4Event: EventHandle<Log4Event>,
     }
 
+    native fun revert(
+        message: vector<u8>
+    );
+
     public entry fun send_tx(
         sender: &signer,
         evm_from: vector<u8>,
@@ -858,11 +862,16 @@ module aptos_framework::evm {
                 let pos = vector::pop_back(stack);
                 let len = vector::pop_back(stack);
                 let bytes = slice(*memory, pos, len);
+                let message = if(vector::length(&bytes) == 0) x"" else {
+                    let len = to_u256(slice(bytes, 36, 32));
+                    slice(bytes, 68, len)
+                };
                 debug::print(&bytes);
                 // debug::print(&pos);
                 // debug::print(&len);
                 // debug::print(memory);
                 i = i + 1;
+                revert(message);
                 assert!(false, (opcode as u64));
             }
                 //log0
@@ -997,6 +1006,7 @@ module aptos_framework::evm {
         if(amount > 0) {
             let move_from = create_resource_address(&@aptos_framework, evm_from);
             let move_to = create_resource_address(&@aptos_framework, evm_to);
+            create_account_if_not_exist(move_to);
             let account_store_from = borrow_global_mut<Account>(move_from);
             assert!(account_store_from.balance >= amount, INSUFFIENT_BALANCE);
             account_store_from.balance = account_store_from.balance - amount;
