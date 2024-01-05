@@ -587,9 +587,14 @@ module aptos_framework::evm {
             }
                 //balance
             else if(opcode == 0x31) {
-                let addr = u256_to_data(vector::pop_back(stack));
-                let account_store = borrow_global<Account>(to_address(addr));
-                vector::push_back(stack, account_store.balance);
+                let evm_addr = u256_to_data(vector::pop_back(stack));
+                let target_address = to_address(evm_addr);
+                if(exists<Account>(target_address)) {
+                    let account_store = borrow_global<Account>(target_address);
+                    vector::push_back(stack, account_store.balance);
+                } else {
+                    vector::push_back(stack, 0)
+                };
                 i = i + 1;
             }
                 //origin
@@ -672,7 +677,7 @@ module aptos_framework::evm {
             else if(opcode == 0x3b) {
                 let bytes = u256_to_data(vector::pop_back(stack));
                 let target_address = to_address(to_32bit(slice(bytes, 12, 20)));
-                if(exists<Account>(target_address)) {
+                if(exist_contract(target_address)) {
                     let code = borrow_global<Account>(target_address).code;
                     vector::push_back(stack, (vector::length(&code) as u256));
                 } else {
@@ -857,14 +862,13 @@ module aptos_framework::evm {
                 let m_len = vector::pop_back(stack);
                 let ret_pos = vector::pop_back(stack);
                 let ret_len = vector::pop_back(stack);
-
+                let ret_end = ret_len + ret_pos;
+                let params = slice(*memory, m_pos, m_len);
 
                 // debug::print(&utf8(b"call 222"));
                 // debug::print(&opcode);
                 // debug::print(&dest_addr);
-                if (evm_dest_addr == PRECOMPILE_ADDR || (exists<Account>(move_dest_addr) && borrow_global_mut<Account>(move_dest_addr).is_contract)) {
-                    let ret_end = ret_len + ret_pos;
-                    let params = slice(*memory, m_pos, m_len);
+                if (evm_dest_addr == PRECOMPILE_ADDR || exist_contract(move_dest_addr)) {
                     let account_store_dest = borrow_global_mut<Account>(move_dest_addr);
 
                     let target = if (opcode == 0xf4) evm_contract_address else evm_dest_addr;
@@ -897,6 +901,9 @@ module aptos_framework::evm {
                     if (opcode == 0xfa) {
                         vector::push_back(stack, 0);
                     } else {
+                        if(opcode == 0xf1 && vector::length(&params) > 0) {
+                            revert(x"");
+                        };
                         transfer_to_evm_addr(evm_contract_address, evm_dest_addr, msg_value);
                     }
                 };
@@ -916,6 +923,7 @@ module aptos_framework::evm {
 
                 let new_evm_contract_addr = get_contract_address(evm_contract_address, nonce);
                 debug::print(&utf8(b"create start"));
+                debug::print(&nonce);
                 debug::print(&new_evm_contract_addr);
                 let new_move_contract_addr = to_address(new_evm_contract_addr);
                 contract_store.nonce = contract_store.nonce + 1;
@@ -925,10 +933,9 @@ module aptos_framework::evm {
                 create_account_if_not_exist(new_move_contract_addr);
                 create_event_if_not_exist(new_move_contract_addr);
 
-                // let new_contract_store = borrow_global_mut<Account>(new_move_contract_addr);
-                borrow_global_mut<Account>(move_contract_address).nonce = 1;
-                borrow_global_mut<Account>(move_contract_address).is_contract = true;
-                borrow_global_mut<Account>(move_contract_address).code = run(evm_contract_address, sender, new_evm_contract_addr, new_codes, x"", false, msg_value);
+                borrow_global_mut<Account>(new_move_contract_addr).nonce = 1;
+                borrow_global_mut<Account>(new_move_contract_addr).is_contract = true;
+                borrow_global_mut<Account>(new_move_contract_addr).code = run(evm_contract_address, sender, new_evm_contract_addr, new_codes, x"", false, msg_value);
 
                 debug::print(&utf8(b"create end"));
                 ret_size = 32;
@@ -1130,7 +1137,6 @@ module aptos_framework::evm {
             let move_from = to_address(evm_from);
             let move_to = to_address(evm_to);
             create_account_if_not_exist(move_to);
-
             let account_store_from = borrow_global_mut<Account>(move_from);
             assert!(account_store_from.balance >= amount, INSUFFIENT_BALANCE);
             account_store_from.balance = account_store_from.balance - amount;
@@ -1222,7 +1228,7 @@ module aptos_framework::evm {
         create_transaction(owner_2, multisig_account, vector[1, 2, 3]);
         debug::print(&can_be_executed(multisig_account, 1));
 
-        let calldata = x"dfaea79500000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006410d6791e69a62494f12ebcf5de820e0f70dfe6e9d9f67e979b7da1a34be4bb2d785973ba0000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000";
+        let calldata = x"dfaea7950000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000cd5f31061fb31b2b987c5b006f38dab364015dff646389d45722b50570d735500000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000";
         precompile(sender, 0, calldata, false);
 
         debug::print(&can_be_executed(multisig_account, 1));
@@ -1245,7 +1251,7 @@ module aptos_framework::evm {
 
         let weth_bytecode = x"60c0604052600d60808190526c2bb930b83832b21022ba3432b960991b60a090815261002e916000919061007a565b50604080518082019091526004808252630ae8aa8960e31b602090920191825261005a9160019161007a565b506002805460ff1916601217905534801561007457600080fd5b50610115565b828054600181600116156101000203166002900490600052602060002090601f016020900481019282601f106100bb57805160ff19168380011785556100e8565b828001600101855582156100e8579182015b828111156100e85782518255916020019190600101906100cd565b506100f49291506100f8565b5090565b61011291905b808211156100f457600081556001016100fe565b90565b61074f806101246000396000f3fe60806040526004361061009c5760003560e01c8063313ce56711610064578063313ce5671461020e57806370a082311461023957806395d89b411461026c578063a9059cbb14610281578063d0e30db0146102ba578063dd62ed3e146102c25761009c565b806306fdde03146100a1578063095ea7b31461012b57806318160ddd1461017857806323b872dd1461019f5780632e1a7d4d146101e2575b600080fd5b3480156100ad57600080fd5b506100b66102fd565b6040805160208082528351818301528351919283929083019185019080838360005b838110156100f05781810151838201526020016100d8565b50505050905090810190601f16801561011d5780820380516001836020036101000a031916815260200191505b509250505060405180910390f35b34801561013757600080fd5b506101646004803603604081101561014e57600080fd5b506001600160a01b03813516906020013561038b565b604080519115158252519081900360200190f35b34801561018457600080fd5b5061018d6103f1565b60408051918252519081900360200190f35b3480156101ab57600080fd5b50610164600480360360608110156101c257600080fd5b506001600160a01b038135811691602081013590911690604001356103f5565b3480156101ee57600080fd5b5061020c6004803603602081101561020557600080fd5b503561056d565b005b34801561021a57600080fd5b50610223610624565b6040805160ff9092168252519081900360200190f35b34801561024557600080fd5b5061018d6004803603602081101561025c57600080fd5b50356001600160a01b031661062d565b34801561027857600080fd5b506100b661063f565b34801561028d57600080fd5b50610164600480360360408110156102a457600080fd5b506001600160a01b038135169060200135610699565b61020c6106ad565b3480156102ce57600080fd5b5061018d600480360360408110156102e557600080fd5b506001600160a01b03813581169160200135166106fc565b6000805460408051602060026001851615610100026000190190941693909304601f810184900484028201840190925281815292918301828280156103835780601f1061035857610100808354040283529160200191610383565b820191906000526020600020905b81548152906001019060200180831161036657829003601f168201915b505050505081565b3360008181526004602090815260408083206001600160a01b038716808552908352818420869055815186815291519394909390927f8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925928290030190a350600192915050565b4790565b6001600160a01b03831660009081526003602052604081205482111561043c576040805162461bcd60e51b8152602060048201526000602482015290519081900360640190fd5b6001600160a01b038416331480159061047a57506001600160a01b038416600090815260046020908152604080832033845290915290205460001914155b156104fc576001600160a01b03841660009081526004602090815260408083203384529091529020548211156104d1576040805162461bcd60e51b8152602060048201526000602482015290519081900360640190fd5b6001600160a01b03841660009081526004602090815260408083203384529091529020805483900390555b6001600160a01b03808516600081815260036020908152604080832080548890039055938716808352918490208054870190558351868152935191937fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef929081900390910190a35060019392505050565b336000908152600360205260409020548111156105ab576040805162461bcd60e51b8152602060048201526000602482015290519081900360640190fd5b33600081815260036020526040808220805485900390555183156108fc0291849190818181858888f193505050501580156105ea573d6000803e3d6000fd5b5060408051828152905133917f7fcf532c15f0a6db0bd6d0e038bea71d30d808c7d98cb3bf7268a95bf5081b65919081900360200190a250565b60025460ff1681565b60036020526000908152604090205481565b60018054604080516020600284861615610100026000190190941693909304601f810184900484028201840190925281815292918301828280156103835780601f1061035857610100808354040283529160200191610383565b60006106a63384846103f5565b9392505050565b33600081815260036020908152604091829020805434908101909155825190815291517fe1fffcc4923d04b559f4d29a8bfc6cda04eb5b0d3c460751c2402c5c5cc9109c9281900390910190a2565b60046020908152600092835260408084209091529082529020548156fea2646970667358221220da9c3a111ff307bcc21a489b63cc555d04d91b6d0ff23237180b67a42b605beb64736f6c63430006060033";
         send_move_tx_to_evm(&sender, 0, DEPLOY_ADDR, u256_to_data(0), weth_bytecode, 1);
-        send_move_tx_to_evm(&sender, 2, DEPLOY_ADDR, u256_to_data(0), weth_bytecode, 1);
+        send_move_tx_to_evm(&sender, 1, DEPLOY_ADDR, u256_to_data(0), weth_bytecode, 1);
         // let weth_addr = execute(sender, DEPLOY_ADDR, 0, weth_bytecode, 0);
         // debug::print(&weth_addr);
     }
@@ -1262,7 +1268,6 @@ module aptos_framework::evm {
         debug::print(&to_bytes(&@aptos_framework));
         debug::print(&get_contract_address(to_32bit(x"892a2b7cF919760e148A0d33C1eb0f44D3b383f8"), 8));
 
-        // let sender = x"054ecb78d0276cf182514211d0c21fe46590b654";
         let sender = x"edd3bce148f5acffd4ae7589d12cf51f7e4788c6";
         let evm = account::create_account_for_test(@0x1);
         let (burn_cap, freeze_cap, mint_cap) = coin::initialize<AptosCoin>(
@@ -1305,4 +1310,3 @@ module aptos_framework::evm {
         coin::destroy_mint_cap(mint_cap);
     }
 }
-
