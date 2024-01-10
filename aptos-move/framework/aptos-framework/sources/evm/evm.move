@@ -1163,7 +1163,7 @@ module aptos_framework::evm {
         let addr1 = execute(sender, ZERO_ADDR, 0, contract1, 0);
         let addr2 = execute(sender, ZERO_ADDR, 17, contract2, 0);
 
-        let call_1_1 = x"9423f0720000000000000000000000003991ce7e803867f9e72f19cd7c6c570a40a597e1"
+        let call_1_1 = x"9423f0720000000000000000000000003991ce7e803867f9e72f19cd7c6c570a40a597e1";
         execute(sender, addr1, 6, call_1_1, 0);
 
         // let amount = 10500000000000000000;
