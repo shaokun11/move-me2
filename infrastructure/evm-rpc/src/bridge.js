@@ -85,10 +85,10 @@ export async function getBlockByNumber(block) {
     block = BigNumber(block).toNumber();
     let info = await client.getBlockByHeight(block, true);
     let parentHash = ZERO_HASH;
-    try {
+    if(block > 2) {
         let info = await client.getBlockByHeight(block - 1);
         parentHash = info.block_hash;
-    } catch (error) {}
+    }
     let transactions = info.transactions || [];
     let evm_tx = [];
     transactions.forEach(it => {
