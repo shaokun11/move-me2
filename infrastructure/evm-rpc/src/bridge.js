@@ -86,7 +86,11 @@ export async function getBlockByNumber(block) {
     block = BigNumber(block).toNumber();
     let info = await client.getBlockByHeight(block, true);
     let transactions = info.transactions || [];
-    transactions = transactions.filter(it => it.type === "user_transaction").map(it => it.hash);
+    transactions = transactions
+        .filter(it => {
+            return it.type === 'user_transaction' && it.payload.function.startsWith('0x1::evm::');
+        })
+        .map(it => it.hash);
     return {
         difficulty: '0x0',
         extraData: ZERO_HASH,
