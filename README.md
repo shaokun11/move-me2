@@ -130,5 +130,5 @@ async function getTransactionReceipt() {
 }
 ```
 
-### example with MOVE-EVM
+### MOVE-EVM Example 
 > Locate at `examples/uniswap-v2`
