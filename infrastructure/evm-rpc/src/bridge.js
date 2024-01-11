@@ -15,7 +15,6 @@ import { TxEvents, getMoveHash, saveMoveEvmTxHash, saveTx } from './db.js';
 import { ZeroAddress, ethers, isHexString, toBeHex } from 'ethers';
 import BigNumber from 'bignumber.js';
 import Lock from 'async-lock';
-import { it } from 'node:test';
 const LOCKER_MAX_PENDING = 20;
 const locker = new Lock({
     maxExecutionTime: 30 * 1000,
