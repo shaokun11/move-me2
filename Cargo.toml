@@ -607,6 +607,7 @@ strum = "0.24.1"
 strum_macros = "0.24.2"
 syn = { version = "1.0.92", features = ["derive", "extra-traits"] }
 sysinfo = "0.28.4"
+substrate-bn = { git = "https://github.com/paritytech/bn", default-features = false }
 tempfile = "3.3.0"
 termcolor = "1.1.2"
 textwrap = "0.15.0"

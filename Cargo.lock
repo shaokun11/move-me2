@@ -1617,6 +1617,7 @@ dependencies = [
  "sha3 0.9.1",
  "siphasher",
  "smallvec",
+ "substrate-bn",
  "tempfile",
  "thiserror",
  "tiny-keccak",
@@ -14021,6 +14022,18 @@ dependencies = [
  "serde_with 2.3.3",
  "tokio",
  "tonic 0.8.3",
+]
+
+[[package]]
+name = "substrate-bn"
+version = "0.6.0"
+source = "git+https://github.com/paritytech/bn#63f8c587356a67b33c7396af98e065b66fca5dda"
+dependencies = [
+ "byteorder",
+ "crunchy",
+ "lazy_static 1.4.0",
+ "rand 0.8.5",
+ "rustc-hex",
 ]
 
 [[package]]

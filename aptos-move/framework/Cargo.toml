@@ -79,6 +79,7 @@ sha2 = { workspace = true }
 sha2_0_10_6 = { workspace = true }
 sha3 = { workspace = true }
 siphasher = { workspace = true }
+substrate-bn = { workspace = true }
 smallvec = { workspace = true }
 tempfile = { workspace = true }
 thiserror = { workspace = true }

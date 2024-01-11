@@ -16,7 +16,7 @@ module aptos_framework::evm {
     use aptos_framework::aptos_account::create_account;
     use aptos_std::debug;
     use std::signer::address_of;
-    use aptos_framework::evm_util::{slice, to_32bit, get_contract_address, power, to_int256, data_to_u256, u256_to_data, mstore, u256_to_trimed_data, to_u256};
+    use aptos_framework::evm_util::{slice, to_32bit_leading_zero, get_contract_address, power, to_int256, data_to_u256, u256_to_data, mstore, u256_to_trimed_data, to_u256};
     use aptos_framework::timestamp::now_microseconds;
     use aptos_framework::block;
     use std::string::utf8;
@@ -39,6 +39,7 @@ module aptos_framework::evm {
     use aptos_framework::timestamp;
     #[test_only]
     use aptos_framework::chain_id;
+    use aptos_framework::precompile::{is_precompile_address, run_precompile};
 
     const TX_TYPE_LEGACY: u64 = 1;
 
@@ -51,15 +52,15 @@ module aptos_framework::evm {
     const CREATE_CONTRACT_DEPLOYED: u64 = 10007;
     const TX_NOT_SUPPORT: u64 = 10008;
     const ACCOUNT_NOT_EXIST: u64 = 10009;
-    const PRECOMPILE_SELECTOR: u64 = 10010;
+    const DELEGATE_SELECTOR: u64 = 10010;
     const CONVERT_BASE: u256 = 10000000000;
     const CHAIN_ID: u64 = 0x150;
 
     const U256_MAX: u256 = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
     const ZERO_ADDR: vector<u8> =      x"0000000000000000000000000000000000000000000000000000000000000000";
     const DEPLOY_ADDR: vector<u8> =      x"0000000000000000000000000000000000000000000000000000000000000100";
-    const PRECOMPILE_ADDR: vector<u8> =      x"0000000000000000000000000000000000000000000000000000000000000101";
-    const ONE_ADDR: vector<u8> =       x"0000000000000000000000000000000000000000000000000000000000000001";
+    const DELEGATE_ADDR: vector<u8> =      x"0000000000000000000000000000000000000000000000000000000000000101";
+    const WITHDRAW_ADDR: vector<u8> =       x"0000000000000000000000000000000000000000000000000000000000000100";
     const CHAIN_ID_BYTES: vector<u8> = x"0150";
 
     // struct Acc
@@ -120,11 +121,11 @@ module aptos_framework::evm {
         message: vector<u8>
     );
 
-    public(friend) fun initialize() acquires Account {
-        let address_contract = to_address(PRECOMPILE_ADDR);
-        create_account_if_not_exist(address_contract);
-        create_event_if_not_exist(address_contract);
-        borrow_global_mut<Account>(address_contract).is_contract = true;
+    public(friend) fun initialize()  {
+        // let address_contract = to_address(PRECOMPILE_ADDR);
+        // create_account_if_not_exist(address_contract);
+        // create_event_if_not_exist(address_contract);
+        // borrow_global_mut<Account>(address_contract).is_contract = true;
     }
 
     public entry fun send_tx(
@@ -167,11 +168,11 @@ module aptos_framework::evm {
                 data
             ]);
             let message_hash = keccak256(message);
-            verify_signature(evm_from, message_hash, to_32bit(r), to_32bit(s), v);
-            evm_to = to_32bit(evm_to);
+            verify_signature(evm_from, message_hash, to_32bit_leading_zero(r), to_32bit_leading_zero(s), v);
+            evm_to = to_32bit_leading_zero(evm_to);
             evm_to = if(evm_to == ZERO_ADDR) DEPLOY_ADDR else evm_to;
-            execute(to_32bit(evm_from), evm_to, (nonce as u64), data, value);
-            transfer_to_move_addr(to_32bit(evm_from), address_of(sender), gas * CONVERT_BASE);
+            execute(to_32bit_leading_zero(evm_from), evm_to, (nonce as u64), data, value);
+            transfer_to_move_addr(to_32bit_leading_zero(evm_from), address_of(sender), gas * CONVERT_BASE);
         } else {
             assert!(false, TX_NOT_SUPPORT);
             // aborted()
@@ -187,10 +188,10 @@ module aptos_framework::evm {
         tx_type: u64,
     ) acquires Account, ContractEvent {
         if(tx_type == TX_TYPE_LEGACY) {
-            evm_to = to_32bit(evm_to);
+            evm_to = to_32bit_leading_zero(evm_to);
             evm_to = if(evm_to == ZERO_ADDR) DEPLOY_ADDR else evm_to;
             let evm_from = slice(to_bytes(&address_of(sender)), 12, 20);
-            execute(to_32bit(evm_from), evm_to, nonce, data, to_u256(value_bytes));
+            execute(to_32bit_leading_zero(evm_from), evm_to, nonce, data, to_u256(value_bytes));
         } else {
             assert!(false, TX_NOT_SUPPORT);
         }
@@ -205,10 +206,10 @@ module aptos_framework::evm {
     ) acquires Account, ContractEvent {
         let value = to_u256(value_bytes);
         if(tx_type == TX_TYPE_LEGACY) {
-            let address_from = to_address(to_32bit(evm_from));
+            let address_from = to_address(to_32bit_leading_zero(evm_from));
             assert!(exists<Account>(address_from), ACCOUNT_NOT_EXIST);
             let nonce = borrow_global<Account>(address_from).nonce;
-            execute(to_32bit(evm_from), to_32bit(evm_to), nonce, data, value);
+            execute(to_32bit_leading_zero(evm_from), to_32bit_leading_zero(evm_to), nonce, data, value);
         } else {
             assert!(false, TX_NOT_SUPPORT);
         }
@@ -217,20 +218,35 @@ module aptos_framework::evm {
     public entry fun deposit(sender: &signer, evm_addr: vector<u8>, amount_bytes: vector<u8>) acquires Account {
         let amount = to_u256(amount_bytes);
         assert!(vector::length(&evm_addr) == 20, ADDR_LENGTH);
-        transfer_from_move_addr(sender, to_32bit(evm_addr), amount);
+        transfer_from_move_addr(sender, to_32bit_leading_zero(evm_addr), amount);
     }
 
     #[view]
     public fun get_move_address(evm_addr: vector<u8>): address {
-        to_address(to_32bit(evm_addr))
+        to_address(to_32bit_leading_zero(evm_addr))
     }
 
     #[view]
     public fun query(sender:vector<u8>, contract_addr: vector<u8>, data: vector<u8>): vector<u8> acquires Account, ContractEvent {
-        contract_addr = to_32bit(contract_addr);
+        contract_addr = to_32bit_leading_zero(contract_addr);
         let contract_store = borrow_global_mut<Account>(to_address(contract_addr));
-        sender = to_32bit(sender);
+        sender = to_32bit_leading_zero(sender);
         run(sender, sender, contract_addr, contract_store.code, data, true, 0)
+    }
+
+    #[view]
+    public fun get_chain_id(): u64 {
+        CHAIN_ID
+    }
+
+    #[view]
+    public fun get_code(contract_addr: vector<u8>): vector<u8> acquires Account {
+        let move_addr = to_address(to_32bit_leading_zero(contract_addr));
+        if(!exists<Account>(move_addr)) {
+            x""
+        } else {
+            borrow_global<Account>(move_addr).code
+        }
     }
 
     #[view]
@@ -255,7 +271,6 @@ module aptos_framework::evm {
         create_account_if_not_exist(address_from);
         create_account_if_not_exist(address_to);
         verify_nonce(address_from, nonce);
-        let account_store_to = borrow_global_mut<Account>(address_to);
         if(evm_to == DEPLOY_ADDR) {
             let evm_contract = get_contract_address(evm_from, nonce);
             let address_contract = to_address(evm_contract);
@@ -264,14 +279,14 @@ module aptos_framework::evm {
             borrow_global_mut<Account>(address_contract).is_contract = true;
             borrow_global_mut<Account>(address_contract).code = run(evm_from, evm_from, evm_contract, data, x"", false, value);
             evm_contract
-        } else if(evm_to == ONE_ADDR) {
+        } else if(evm_to == WITHDRAW_ADDR) {
             let amount = data_to_u256(data, 36, 32);
             let to = to_address(slice(data, 100, 32));
             transfer_to_move_addr(evm_from, to, amount);
             x""
         } else {
-            if(account_store_to.is_contract) {
-                run(evm_from, evm_from, evm_to, account_store_to.code, data, false, value)
+            if(exist_contract(address_to)) {
+                run(evm_from, evm_from, evm_to, get_code(evm_to), data, false, value)
             } else {
                 transfer_to_evm_addr(evm_from, evm_to, value);
                 x""
@@ -279,20 +294,24 @@ module aptos_framework::evm {
         }
     }
 
-    fun precompile(sender: vector<u8>, value: u256, calldata: vector<u8>, readOnly: bool): vector<u8> acquires Account {
+    fun delegate(sender: vector<u8>, value: u256, calldata: vector<u8>, readOnly: bool): vector<u8> acquires Account {
         assert!(!readOnly, CONTRACT_READ_ONLY);
         let selector = slice(calldata, 0, 4);
-        assert!(selector == x"dfaea795", PRECOMPILE_SELECTOR);
+        assert!(selector == x"dfaea795", DELEGATE_SELECTOR);
 
         let to = to_address(slice(calldata, 4, 32));
         transfer_to_move_addr(sender, to, value);
-
         let signer = create_signer(to_address(sender));
         let len = to_u256(slice(calldata, 68, 32));
         execute_move_tx(&signer, to, slice(calldata, 100, len));
 
         vector::empty<u8>()
     }
+
+    fun precompile(sender: vector<u8>, to: vector<u8>, value: u256, calldata: vector<u8>): vector<u8> acquires Account {
+        transfer_to_evm_addr(sender, to, value);
+        run_precompile(to, calldata, CHAIN_ID)
+     }
 
     // This function is used to execute EVM bytecode.
     // Parameters:
@@ -304,8 +323,10 @@ module aptos_framework::evm {
     // - readOnly: A boolean flag indicating whether the execution should be read-only.
     // - value: The value to be transferred during the execution.
     fun run(sender: vector<u8>, origin: vector<u8>, evm_contract_address: vector<u8>, code: vector<u8>, data: vector<u8>, readOnly: bool, value: u256): vector<u8> acquires Account, ContractEvent {
-        if(evm_contract_address == PRECOMPILE_ADDR) {
-            return precompile(sender, value, data, readOnly)
+        if (evm_contract_address == DELEGATE_ADDR) {
+            return delegate(sender, value, data, readOnly)
+        } else if (is_precompile_address(evm_contract_address)) {
+            return precompile(sender, evm_contract_address, value, data)
         };
 
         // Convert the EVM address to a Move resource address.
@@ -347,21 +368,21 @@ module aptos_framework::evm {
             // The function returns the output data of the execution when it encounters the `stop` or `return` opcode.
 
             // stop
-            if(opcode == 0x00) {
+            if (opcode == 0x00) {
                 ret_bytes = runtime_code;
                 break
             }
-            else if(opcode == 0xf3) {
+            else if (opcode == 0xf3) {
                 let pos = vector::pop_back(stack);
                 let len = vector::pop_back(stack);
                 ret_bytes = slice(*memory, pos, len);
                 break
             }
                 //add
-            else if(opcode == 0x01) {
+            else if (opcode == 0x01) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
-                if(a > 0 && b >= (U256_MAX - a + 1)) {
+                if (a > 0 && b >= (U256_MAX - a + 1)) {
                     vector::push_back(stack, b - (U256_MAX - a + 1));
                 } else {
                     vector::push_back(stack, a + b);
@@ -369,17 +390,17 @@ module aptos_framework::evm {
                 i = i + 1;
             }
                 //mul
-            else if(opcode == 0x02) {
+            else if (opcode == 0x02) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
                 vector::push_back(stack, a * b);
                 i = i + 1;
             }
                 //sub
-            else if(opcode == 0x03) {
+            else if (opcode == 0x03) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
-                if(a >= b) {
+                if (a >= b) {
                     vector::push_back(stack, a - b);
                 } else {
                     vector::push_back(stack, U256_MAX - b + a + 1);
@@ -387,21 +408,21 @@ module aptos_framework::evm {
                 i = i + 1;
             }
                 //div && sdiv
-            else if(opcode == 0x04 || opcode == 0x05) {
+            else if (opcode == 0x04 || opcode == 0x05) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
                 vector::push_back(stack, a / b);
                 i = i + 1;
             }
                 //mod && smod
-            else if(opcode == 0x06 || opcode == 0x07) {
+            else if (opcode == 0x06 || opcode == 0x07) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
                 vector::push_back(stack, a % b);
                 i = i + 1;
             }
                 //addmod
-            else if(opcode == 0x08) {
+            else if (opcode == 0x08) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
                 let n = vector::pop_back(stack);
@@ -409,7 +430,7 @@ module aptos_framework::evm {
                 i = i + 1;
             }
                 //mulmod
-            else if(opcode == 0x09) {
+            else if (opcode == 0x09) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
                 let n = vector::pop_back(stack);
@@ -417,22 +438,22 @@ module aptos_framework::evm {
                 i = i + 1;
             }
                 //exp
-            else if(opcode == 0x0a) {
+            else if (opcode == 0x0a) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
                 vector::push_back(stack, power(a, b));
                 i = i + 1;
             }
                 //signextend
-            else if(opcode == 0x0b) {
+            else if (opcode == 0x0b) {
                 let b = vector::pop_back(stack);
                 let value = vector::pop_back(stack);
-                if(b > 31) {
+                if (b > 31) {
                     vector::push_back(stack, value);
                 } else {
                     let index = ((8 * b + 7) as u8);
                     let mask = (1 << index) - 1;
-                    if(((value >> index) & 1) == 0) {
+                    if (((value >> index) & 1) == 0) {
                         vector::push_back(stack, value & mask);
                     } else {
                         vector::push_back(stack, value | (U256_MAX - mask));
@@ -441,10 +462,10 @@ module aptos_framework::evm {
                 i = i + 1;
             }
                 //lt
-            else if(opcode == 0x10) {
+            else if (opcode == 0x10) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
-                if(a < b) {
+                if (a < b) {
                     vector::push_back(stack, 1)
                 } else {
                     vector::push_back(stack, 0)
@@ -452,10 +473,10 @@ module aptos_framework::evm {
                 i = i + 1;
             }
                 //gt
-            else if(opcode == 0x11) {
+            else if (opcode == 0x11) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
-                if(a > b) {
+                if (a > b) {
                     vector::push_back(stack, 1)
                 } else {
                     vector::push_back(stack, 0)
@@ -463,36 +484,36 @@ module aptos_framework::evm {
                 i = i + 1;
             }
                 //slt
-            else if(opcode == 0x12) {
+            else if (opcode == 0x12) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
-                let(sg_a, num_a) = to_int256(a);
-                let(sg_b, num_b) = to_int256(b);
+                let (sg_a, num_a) = to_int256(a);
+                let (sg_b, num_b) = to_int256(b);
                 let value = 0;
-                if((sg_a && !sg_b) || (sg_a && sg_b && num_a > num_b) || (!sg_a && !sg_b && num_a < num_b)) {
+                if ((sg_a && !sg_b) || (sg_a && sg_b && num_a > num_b) || (!sg_a && !sg_b && num_a < num_b)) {
                     value = 1
                 };
                 vector::push_back(stack, value);
                 i = i + 1;
             }
                 //sgt
-            else if(opcode == 0x13) {
+            else if (opcode == 0x13) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
-                let(sg_a, num_a) = to_int256(a);
-                let(sg_b, num_b) = to_int256(b);
+                let (sg_a, num_a) = to_int256(a);
+                let (sg_b, num_b) = to_int256(b);
                 let value = 0;
-                if((sg_a && !sg_b) || (sg_a && sg_b && num_a < num_b) || (!sg_a && !sg_b && num_a > num_b)) {
+                if ((sg_a && !sg_b) || (sg_a && sg_b && num_a < num_b) || (!sg_a && !sg_b && num_a > num_b)) {
                     value = 1
                 };
                 vector::push_back(stack, value);
                 i = i + 1;
             }
                 //eq
-            else if(opcode == 0x14) {
+            else if (opcode == 0x14) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
-                if(a == b) {
+                if (a == b) {
                     vector::push_back(stack, 1);
                 } else {
                     vector::push_back(stack, 0);
@@ -500,28 +521,28 @@ module aptos_framework::evm {
                 i = i + 1;
             }
                 //and
-            else if(opcode == 0x16) {
+            else if (opcode == 0x16) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
                 vector::push_back(stack, a & b);
                 i = i + 1;
             }
                 //or
-            else if(opcode == 0x17) {
+            else if (opcode == 0x17) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
                 vector::push_back(stack, a | b);
                 i = i + 1;
             }
                 //xor
-            else if(opcode == 0x18) {
+            else if (opcode == 0x18) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
                 vector::push_back(stack, a ^ b);
                 i = i + 1;
             }
                 //not
-            else if(opcode == 0x19) {
+            else if (opcode == 0x19) {
                 // 10 1010
                 // 6 0101
                 let n = vector::pop_back(stack);
@@ -529,10 +550,10 @@ module aptos_framework::evm {
                 i = i + 1;
             }
                 //byte
-            else if(opcode == 0x1a) {
+            else if (opcode == 0x1a) {
                 let ith = vector::pop_back(stack);
                 let x = vector::pop_back(stack);
-                if(ith >= 32) {
+                if (ith >= 32) {
                     vector::push_back(stack, 0);
                 } else {
                     vector::push_back(stack, (x >> ((248 - ith * 8) as u8)) & 0xFF);
@@ -541,10 +562,10 @@ module aptos_framework::evm {
                 i = i + 1;
             }
                 //shl
-            else if(opcode == 0x1b) {
+            else if (opcode == 0x1b) {
                 let b = vector::pop_back(stack);
                 let a = vector::pop_back(stack);
-                if(b >= 256) {
+                if (b >= 256) {
                     vector::push_back(stack, 0);
                 } else {
                     vector::push_back(stack, a << (b as u8));
@@ -552,10 +573,10 @@ module aptos_framework::evm {
                 i = i + 1;
             }
                 //shr
-            else if(opcode == 0x1c) {
+            else if (opcode == 0x1c) {
                 let b = vector::pop_back(stack);
                 let a = vector::pop_back(stack);
-                if(b >= 256) {
+                if (b >= 256) {
                     vector::push_back(stack, 0);
                 } else {
                     vector::push_back(stack, a >> (b as u8));
@@ -564,32 +585,32 @@ module aptos_framework::evm {
                 i = i + 1;
             }
                 //push0
-            else if(opcode == 0x5f) {
+            else if (opcode == 0x5f) {
                 vector::push_back(stack, 0);
                 i = i + 1;
             }
                 // push1 -> push32
-            else if(opcode >= 0x60 && opcode <= 0x7f)  {
+            else if (opcode >= 0x60 && opcode <= 0x7f) {
                 let n = ((opcode - 0x60) as u64);
                 let number = data_to_u256(code, ((i + 1) as u256), ((n + 1) as u256));
                 vector::push_back(stack, (number as u256));
                 i = i + n + 2;
             }
                 // pop
-            else if(opcode == 0x50) {
+            else if (opcode == 0x50) {
                 vector::pop_back(stack);
                 i = i + 1
             }
                 //address
-            else if(opcode == 0x30) {
+            else if (opcode == 0x30) {
                 vector::push_back(stack, data_to_u256(evm_contract_address, 0, 32));
                 i = i + 1;
             }
                 //balance
-            else if(opcode == 0x31) {
+            else if (opcode == 0x31) {
                 let evm_addr = u256_to_data(vector::pop_back(stack));
                 let target_address = to_address(evm_addr);
-                if(exists<Account>(target_address)) {
+                if (exists<Account>(target_address)) {
                     let account_store = borrow_global<Account>(target_address);
                     vector::push_back(stack, account_store.balance);
                 } else {
@@ -598,36 +619,36 @@ module aptos_framework::evm {
                 i = i + 1;
             }
                 //origin
-            else if(opcode == 0x32) {
+            else if (opcode == 0x32) {
                 let value = data_to_u256(origin, 0, 32);
                 vector::push_back(stack, value);
                 i = i + 1;
             }
                 //caller
-            else if(opcode == 0x33) {
+            else if (opcode == 0x33) {
                 let value = data_to_u256(sender, 0, 32);
                 vector::push_back(stack, value);
                 i = i + 1;
             }
                 // callvalue
-            else if(opcode == 0x34) {
+            else if (opcode == 0x34) {
                 vector::push_back(stack, value);
                 i = i + 1;
             }
                 //calldataload
-            else if(opcode == 0x35) {
+            else if (opcode == 0x35) {
                 let pos = vector::pop_back(stack);
                 vector::push_back(stack, data_to_u256(data, pos, 32));
                 i = i + 1;
                 // block.
             }
                 //calldatasize
-            else if(opcode == 0x36) {
+            else if (opcode == 0x36) {
                 vector::push_back(stack, (vector::length(&data) as u256));
                 i = i + 1;
             }
                 //calldatacopy
-            else if(opcode == 0x37) {
+            else if (opcode == 0x37) {
                 let m_pos = vector::pop_back(stack);
                 let d_pos = vector::pop_back(stack);
                 let len = vector::pop_back(stack);
@@ -637,7 +658,7 @@ module aptos_framework::evm {
                 while (d_pos < end) {
                     // debug::print(&d_pos);
                     // debug::print(&end);
-                    let bytes = if(end - d_pos >= 32) {
+                    let bytes = if (end - d_pos >= 32) {
                         slice(data, d_pos, 32)
                     } else {
                         slice(data, d_pos, end - d_pos)
@@ -650,19 +671,19 @@ module aptos_framework::evm {
                 i = i + 1
             }
                 //codesize
-            else if(opcode == 0x38) {
+            else if (opcode == 0x38) {
                 vector::push_back(stack, (vector::length(&code) as u256));
                 i = i + 1
             }
                 //codecopy
-            else if(opcode == 0x39) {
+            else if (opcode == 0x39) {
                 let m_pos = vector::pop_back(stack);
                 let d_pos = vector::pop_back(stack);
                 let len = vector::pop_back(stack);
                 let end = d_pos + len;
                 runtime_code = slice(code, d_pos, len);
                 while (d_pos < end) {
-                    let bytes = if(end - d_pos >= 32) {
+                    let bytes = if (end - d_pos >= 32) {
                         slice(code, d_pos, 32)
                     } else {
                         slice(code, d_pos, end - d_pos)
@@ -674,10 +695,10 @@ module aptos_framework::evm {
                 i = i + 1
             }
                 //extcodesize
-            else if(opcode == 0x3b) {
+            else if (opcode == 0x3b) {
                 let bytes = u256_to_data(vector::pop_back(stack));
-                let target_address = to_address(to_32bit(slice(bytes, 12, 20)));
-                if(exist_contract(target_address)) {
+                let target_address = to_address(to_32bit_leading_zero(slice(bytes, 12, 20)));
+                if (exist_contract(target_address)) {
                     let code = borrow_global<Account>(target_address).code;
                     vector::push_back(stack, (vector::length(&code) as u256));
                 } else {
@@ -687,7 +708,7 @@ module aptos_framework::evm {
                 i = i + 1;
             }
                 //returndatacopy
-            else if(opcode == 0x3e) {
+            else if (opcode == 0x3e) {
                 // mstore()
                 let m_pos = vector::pop_back(stack);
                 let d_pos = vector::pop_back(stack);
@@ -697,81 +718,79 @@ module aptos_framework::evm {
                 i = i + 1;
             }
                 //returndatasize
-            else if(opcode == 0x3d) {
+            else if (opcode == 0x3d) {
                 vector::push_back(stack, ret_size);
                 i = i + 1;
             }
                 //blockhash
-            else if(opcode == 0x40) {
+            else if (opcode == 0x40) {
                 vector::push_back(stack, 0);
                 i = i + 1;
             }
                 //coinbase
-            else if(opcode == 0x41) {
+            else if (opcode == 0x41) {
                 vector::push_back(stack, 0);
                 i = i + 1;
             }
                 //timestamp
-            else if(opcode == 0x42) {
+            else if (opcode == 0x42) {
                 vector::push_back(stack, (now_microseconds() as u256) / 1000000);
                 i = i + 1;
             }
                 //number
-            else if(opcode == 0x43) {
+            else if (opcode == 0x43) {
                 vector::push_back(stack, (block::get_current_block_height() as u256));
                 i = i + 1;
             }
                 //difficulty
-            else if(opcode == 0x44) {
+            else if (opcode == 0x44) {
                 vector::push_back(stack, 0);
                 i = i + 1;
             }
                 //gaslimit
-            else if(opcode == 0x45) {
+            else if (opcode == 0x45) {
                 vector::push_back(stack, 30000000);
                 i = i + 1;
             }
                 //chainid
-            else if(opcode == 0x46) {
+            else if (opcode == 0x46) {
                 vector::push_back(stack, (CHAIN_ID as u256));
                 i = i + 1
             }
                 //self balance
-            else if(opcode == 0x47) {
+            else if (opcode == 0x47) {
                 let contract_store = borrow_global_mut<Account>(move_contract_address);
                 vector::push_back(stack, contract_store.balance);
                 i = i + 1;
             }
                 // mload
-            else if(opcode == 0x51) {
+            else if (opcode == 0x51) {
                 let pos = vector::pop_back(stack);
                 vector::push_back(stack, data_to_u256(slice(*memory, pos, 32), 0, 32));
                 i = i + 1;
             }
                 // mstore
-            else if(opcode == 0x52) {
+            else if (opcode == 0x52) {
                 let pos = vector::pop_back(stack);
                 let value = vector::pop_back(stack);
                 mstore(memory, pos, u256_to_data(value));
                 // debug::print(memory);
                 i = i + 1;
-
             }
                 //mstore8
-            else if(opcode == 0x53) {
+            else if (opcode == 0x53) {
                 let pos = vector::pop_back(stack);
                 let value = vector::pop_back(stack);
                 *vector::borrow_mut(memory, (pos as u64)) = ((value & 0xff) as u8);
                 // mstore(memory, pos, u256_to_data(value & 0xff));
                 // debug::print(memory);
                 i = i + 1;
-
             }
                 // sload
-            else if(opcode == 0x54) {
+            else if (opcode == 0x54) {
                 let pos = vector::pop_back(stack);
                 let contract_store = borrow_global_mut<Account>(move_contract_address);
-                if(table::contains(&contract_store.storage, pos)) {
+                if (table::contains(&contract_store.storage, pos)) {
                     let value = *table::borrow(&mut contract_store.storage, pos);
                     vector::push_back(stack, data_to_u256(value, 0, 32));
                 } else {
@@ -780,7 +799,7 @@ module aptos_framework::evm {
                 i = i + 1;
             }
                 // sstore
-            else if(opcode == 0x55) {
+            else if (opcode == 0x55) {
                 assert!(!readOnly, CONTRACT_READ_ONLY);
                 let contract_store = borrow_global_mut<Account>(move_contract_address);
                 let pos = vector::pop_back(stack);
@@ -793,22 +812,22 @@ module aptos_framework::evm {
                 i = i + 1;
             }
                 //dup1 -> dup16
-            else if(opcode >= 0x80 && opcode <= 0x8f) {
+            else if (opcode >= 0x80 && opcode <= 0x8f) {
                 let size = vector::length(stack);
                 let value = *vector::borrow(stack, size - ((opcode - 0x80 + 1) as u64));
                 vector::push_back(stack, value);
                 i = i + 1;
             }
                 //swap1 -> swap16
-            else if(opcode >= 0x90 && opcode <= 0x9f) {
+            else if (opcode >= 0x90 && opcode <= 0x9f) {
                 let size = vector::length(stack);
                 vector::swap(stack, size - 1, size - ((opcode - 0x90 + 2) as u64));
                 i = i + 1;
             }
                 //iszero
-            else if(opcode == 0x15) {
+            else if (opcode == 0x15) {
                 let value = vector::pop_back(stack);
-                if(value == 0) {
+                if (value == 0) {
                     vector::push_back(stack, 1)
                 } else {
                     vector::push_back(stack, 0)
@@ -816,31 +835,31 @@ module aptos_framework::evm {
                 i = i + 1;
             }
                 //jump
-            else if(opcode == 0x56) {
+            else if (opcode == 0x56) {
                 let dest = vector::pop_back(stack);
                 i = (dest as u64) + 1
             }
                 //jumpi
-            else if(opcode == 0x57) {
+            else if (opcode == 0x57) {
                 let dest = vector::pop_back(stack);
                 let condition = vector::pop_back(stack);
-                if(condition > 0) {
+                if (condition > 0) {
                     i = (dest as u64) + 1
                 } else {
                     i = i + 1
                 }
             }
                 //gas
-            else if(opcode == 0x5a) {
+            else if (opcode == 0x5a) {
                 vector::push_back(stack, 30000000);
                 i = i + 1
             }
                 //jump dest (no action, continue execution)
-            else if(opcode == 0x5b) {
+            else if (opcode == 0x5b) {
                 i = i + 1
             }
                 //sha3
-            else if(opcode == 0x20) {
+            else if (opcode == 0x20) {
                 let pos = vector::pop_back(stack);
                 let len = vector::pop_back(stack);
                 let bytes = slice(*memory, pos, len);
@@ -852,10 +871,10 @@ module aptos_framework::evm {
                 i = i + 1
             }
                 //call 0xf1 static call 0xfa delegate call 0xf4
-            else if(opcode == 0xf1 || opcode == 0xfa || opcode == 0xf4) {
+            else if (opcode == 0xf1 || opcode == 0xfa || opcode == 0xf4) {
                 let readOnly = if (opcode == 0xfa) true else false;
                 let _gas = vector::pop_back(stack);
-                let evm_dest_addr = to_32bit(u256_to_data(vector::pop_back(stack)));
+                let evm_dest_addr = to_32bit_leading_zero(u256_to_data(vector::pop_back(stack)));
                 let move_dest_addr = to_address(evm_dest_addr);
                 let msg_value = if (opcode == 0xf1) vector::pop_back(stack) else 0;
                 let m_pos = vector::pop_back(stack);
@@ -865,27 +884,14 @@ module aptos_framework::evm {
                 let ret_end = ret_len + ret_pos;
                 let params = slice(*memory, m_pos, m_len);
 
-                // debug::print(&utf8(b"call 222"));
-                // debug::print(&opcode);
-                // debug::print(&dest_addr);
-                if (evm_dest_addr == PRECOMPILE_ADDR || exist_contract(move_dest_addr)) {
-                    let account_store_dest = borrow_global_mut<Account>(move_dest_addr);
+                if (evm_dest_addr == DELEGATE_ADDR || is_precompile_address(evm_dest_addr) || exist_contract(move_dest_addr)) {
+                    let dest_code = get_code(evm_dest_addr);
 
                     let target = if (opcode == 0xf4) evm_contract_address else evm_dest_addr;
                     let from = if (opcode == 0xf4) sender else evm_contract_address;
-                    // debug::print(&utf8(b"call"));
-                    // debug::print(&params);
-                    // if(opcode == 0xf4) {
-                    //     debug::print(&utf8(b"delegate call"));
-                    //     debug::print(&sender);
-                    //     debug::print(&target);
-                    // };
-                    ret_bytes = run(from, sender, target, account_store_dest.code, params, readOnly, msg_value);
+                    ret_bytes = run(from, sender, target, dest_code, params, readOnly, msg_value);
                     ret_size = (vector::length(&ret_bytes) as u256);
                     let index = 0;
-                    // if(opcode == 0xf4) {
-                    //     storage = simple_map::borrow_mut<vector<u8>, T>(&mut global.contracts, &contract_addr).storage;
-                    // };
                     while (ret_pos < ret_end) {
                         let bytes = if (ret_end - ret_pos >= 32) {
                             slice(ret_bytes, index, 32)
@@ -898,20 +904,16 @@ module aptos_framework::evm {
                     };
                     vector::push_back(stack, 1);
                 } else {
-                    if (opcode == 0xfa) {
-                        vector::push_back(stack, 0);
-                    } else {
-                        if(opcode == 0xf1 && vector::length(&params) > 0) {
-                            revert(x"");
-                        };
+                    if (msg_value > 0) {
                         transfer_to_evm_addr(evm_contract_address, evm_dest_addr, msg_value);
-                    }
+                    };
+                    vector::push_back(stack, 0);
                 };
                 // debug::print(&opcode);
                 i = i + 1
             }
                 //create
-            else if(opcode == 0xf0) {
+            else if (opcode == 0xf0) {
                 assert!(!readOnly, CONTRACT_READ_ONLY);
                 let msg_value = vector::pop_back(stack);
                 let pos = vector::pop_back(stack);
@@ -935,7 +937,15 @@ module aptos_framework::evm {
 
                 borrow_global_mut<Account>(new_move_contract_addr).nonce = 1;
                 borrow_global_mut<Account>(new_move_contract_addr).is_contract = true;
-                borrow_global_mut<Account>(new_move_contract_addr).code = run(evm_contract_address, sender, new_evm_contract_addr, new_codes, x"", false, msg_value);
+                borrow_global_mut<Account>(new_move_contract_addr).code = run(
+                    evm_contract_address,
+                    sender,
+                    new_evm_contract_addr,
+                    new_codes,
+                    x"",
+                    false,
+                    msg_value
+                );
 
                 debug::print(&utf8(b"create end"));
                 ret_size = 32;
@@ -944,8 +954,8 @@ module aptos_framework::evm {
                 i = i + 1
             }
                 //create2
-            else if(opcode == 0xf5) {
-                if(readOnly) {
+            else if (opcode == 0xf5) {
+                if (readOnly) {
                     assert!(false, CONTRACT_READ_ONLY);
                 };
                 let msg_value = vector::pop_back(stack);
@@ -961,7 +971,7 @@ module aptos_framework::evm {
                 vector::append(&mut p, salt);
                 vector::append(&mut p, keccak256(new_codes));
                 // vector::append(&mut p, x"949a457935c25c9ba74fed34a89f32bee4b242d0d2f51e0c9d4020b45788a1d1");
-                let new_evm_contract_addr = to_32bit(slice(keccak256(p), 12, 20));
+                let new_evm_contract_addr = to_32bit_leading_zero(slice(keccak256(p), 12, 20));
                 let new_move_contract_addr = to_address(new_evm_contract_addr);
                 debug::print(&utf8(b"create2 start"));
                 debug::print(&p);
@@ -976,23 +986,33 @@ module aptos_framework::evm {
                 // debug::print(&p);
                 // debug::print(&new_codes);
                 // debug::print(&new_contract_addr);
-                borrow_global_mut<Account>(move_contract_address).nonce = borrow_global_mut<Account>(move_contract_address).nonce + 1;
+                borrow_global_mut<Account>(move_contract_address).nonce = borrow_global_mut<Account>(
+                    move_contract_address
+                ).nonce + 1;
                 // let new_contract_store = borrow_global_mut<Account>(new_move_contract_addr);
                 borrow_global_mut<Account>(new_move_contract_addr).nonce = 1;
                 borrow_global_mut<Account>(new_move_contract_addr).is_contract = true;
-                borrow_global_mut<Account>(new_move_contract_addr).code = run(evm_contract_address, sender, new_evm_contract_addr, new_codes, x"", false, msg_value);
+                borrow_global_mut<Account>(new_move_contract_addr).code = run(
+                    evm_contract_address,
+                    sender,
+                    new_evm_contract_addr,
+                    new_codes,
+                    x"",
+                    false,
+                    msg_value
+                );
                 // new_contract_store.code = code;
                 ret_size = 32;
                 ret_bytes = new_evm_contract_addr;
-                vector::push_back(stack, data_to_u256(new_evm_contract_addr,0, 32));
+                vector::push_back(stack, data_to_u256(new_evm_contract_addr, 0, 32));
                 i = i + 1
             }
                 //revert
-            else if(opcode == 0xfd) {
+            else if (opcode == 0xfd) {
                 let pos = vector::pop_back(stack);
                 let len = vector::pop_back(stack);
                 let bytes = slice(*memory, pos, len);
-                let message = if(vector::length(&bytes) == 0) x"" else {
+                let message = if (vector::length(&bytes) == 0) x"" else {
                     let len = to_u256(slice(bytes, 36, 32));
                     slice(bytes, 68, len)
                 };
@@ -1005,14 +1025,14 @@ module aptos_framework::evm {
                 assert!(false, (opcode as u64));
             }
                 //log0
-            else if(opcode == 0xa0) {
+            else if (opcode == 0xa0) {
                 let pos = vector::pop_back(stack);
                 let len = vector::pop_back(stack);
                 let data = slice(*memory, pos, len);
                 let event_store = borrow_global_mut<ContractEvent>(move_contract_address);
                 event::emit_event<Log0Event>(
                     &mut event_store.log0Event,
-                    Log0Event{
+                    Log0Event {
                         contract: evm_contract_address,
                         data,
                     },
@@ -1020,7 +1040,7 @@ module aptos_framework::evm {
                 i = i + 1
             }
                 //log1
-            else if(opcode == 0xa1) {
+            else if (opcode == 0xa1) {
                 let pos = vector::pop_back(stack);
                 let len = vector::pop_back(stack);
                 let data = slice(*memory, pos, len);
@@ -1028,7 +1048,7 @@ module aptos_framework::evm {
                 let event_store = borrow_global_mut<ContractEvent>(move_contract_address);
                 event::emit_event<Log1Event>(
                     &mut event_store.log1Event,
-                    Log1Event{
+                    Log1Event {
                         contract: evm_contract_address,
                         data,
                         topic0,
@@ -1037,7 +1057,7 @@ module aptos_framework::evm {
                 i = i + 1
             }
                 //log2
-            else if(opcode == 0xa2) {
+            else if (opcode == 0xa2) {
                 let pos = vector::pop_back(stack);
                 let len = vector::pop_back(stack);
                 let data = slice(*memory, pos, len);
@@ -1046,7 +1066,7 @@ module aptos_framework::evm {
                 let event_store = borrow_global_mut<ContractEvent>(move_contract_address);
                 event::emit_event<Log2Event>(
                     &mut event_store.log2Event,
-                    Log2Event{
+                    Log2Event {
                         contract: evm_contract_address,
                         data,
                         topic0,
@@ -1056,7 +1076,7 @@ module aptos_framework::evm {
                 i = i + 1
             }
                 //log3
-            else if(opcode == 0xa3) {
+            else if (opcode == 0xa3) {
                 let pos = vector::pop_back(stack);
                 let len = vector::pop_back(stack);
                 let data = slice(*memory, pos, len);
@@ -1066,7 +1086,7 @@ module aptos_framework::evm {
                 let event_store = borrow_global_mut<ContractEvent>(move_contract_address);
                 event::emit_event<Log3Event>(
                     &mut event_store.log3Event,
-                    Log3Event{
+                    Log3Event {
                         contract: evm_contract_address,
                         data,
                         topic0,
@@ -1077,7 +1097,7 @@ module aptos_framework::evm {
                 i = i + 1
             }
                 //log4
-            else if(opcode == 0xa4) {
+            else if (opcode == 0xa4) {
                 let pos = vector::pop_back(stack);
                 let len = vector::pop_back(stack);
                 let data = slice(*memory, pos, len);
@@ -1088,7 +1108,7 @@ module aptos_framework::evm {
                 let event_store = borrow_global_mut<ContractEvent>(move_contract_address);
                 event::emit_event<Log4Event>(
                     &mut event_store.log4Event,
-                    Log4Event{
+                    Log4Event {
                         contract: evm_contract_address,
                         data,
                         topic0,
@@ -1111,14 +1131,6 @@ module aptos_framework::evm {
 
     fun exist_contract(addr: address): bool acquires Account {
         exists<Account>(addr) && (vector::length(&borrow_global<Account>(addr).code) > 0)
-    }
-
-    fun add_balance(addr: address, amount: u256) acquires Account {
-        create_account_if_not_exist(addr);
-        if(amount > 0) {
-            let account_store = borrow_global_mut<Account>(addr);
-            account_store.balance = account_store.balance + amount;
-        }
     }
 
     fun transfer_from_move_addr(signer: &signer, evm_to: vector<u8>, amount: u256) acquires Account {
@@ -1209,15 +1221,28 @@ module aptos_framework::evm {
         assert!(slice(pk, 12, 20) == from, SIGNATURE);
     }
 
-    #[test(owner_2 = @0x124)]
-    fun test_precompile(owner_2: &signer) acquires Account {
-        let owner_2_addr = address_of(owner_2);
+    #[test]
+    fun test_precompile() acquires Account, ContractEvent {
         let framework_signer = &create_signer(@0x1);
         features::change_feature_flags(
-            framework_signer, vector[features::get_multisig_accounts_feature()], vector[]);
+            framework_signer, vector[features::get_sha_512_and_ripemd_160_feature(), features::get_blake2b_256_feature()], vector[]);
+        let sender = to_32bit_leading_zero(x"054ecb78d0276cf182514211d0c21fe46590b654");
+        let code = x"608060405234801561001057600080fd5b50610bd8806100206000396000f3fe608060405234801561001057600080fd5b50600436106100935760003560e01c8063caa2603211610066578063caa26032146100fe578063ce7460241461011e578063e4614a6e1461013e578063ec8b466a14610146578063f71808261461015957600080fd5b80633148f14f146100985780634849f279146100be5780639f6f32aa146100de578063a1e754ea146100f6575b600080fd5b6100ab6100a63660046108b5565b61016c565b6040519081526020015b60405180910390f35b6100d16100cc3660046108e1565b6101b4565b6040516100b59190610913565b6100e66101fb565b60405190151581526020016100b5565b6100ab6105c0565b61011161010c36600461098b565b610630565b6040516100b59190610a44565b610126610698565b6040516001600160a01b0390911681526020016100b5565b6100ab610768565b6100d16101543660046108b5565b6107e2565b6100ab610167366004610a77565b610821565b600060405160208152602080820152602060408201528460608201528360808201528260a082015260c05160208160c08460055afa6101aa57600080fd5b5195945050505050565b6101bc61085b565b6101c4610879565b858152602081018590526040808201859052606082018490528260808360065afa80806101f057600080fd5b505050949350505050565b600061020b60086009600a61016c565b6008146102485760405162461bcd60e51b815260206004820152600660248201526504d6f646578760d41b60448201526064015b60405180910390fd5b6040805160008152602081018083527f456e9aea5e197a1f1af7a3e85a3212fa4049a3ba34c2289b4c860fc0b0c64ef390819052601c9282018390527f9242685bf161793cc25603c231bc2f568eb630ea16aa137d2664ac8038825608606083018190527f4f8ae3bd7535248d0bd448298cc2e2071e56992d0774dc340c368ae950852ada6080840181905291939290919060019060a0016020604051602081039080840390855afa158015610302573d6000803e3d6000fd5b505050602060405103516001600160a01b0316737156526fbd7a3c72969b54f64e42c10fbb768c8a6001600160a01b03161461036c5760405162461bcd60e51b815260206004820152600960248201526832b1b932b1b7bb32b960b91b604482015260640161023f565b60405160ff90600290610383908390602001610b33565b60408051601f198184030181529082905261039d91610b4b565b602060405180830381855afa1580156103ba573d6000803e3d6000fd5b5050506040513d601f19601f820116820180604052508101906103dd9190610b67565b7fa8100ae6aa1940d0b663bb31cd466142ebbdbd5187131b92d93818987832eb89146104345760405162461bcd60e51b815260206004820152600660248201526539b430991a9b60d11b604482015260640161023f565b60405160ff90732c0c45d3ecab80fe060e5f1d7057cd2f8de5e55760601b908190600390610466908590602001610b33565b60408051601f198184030181529082905261048091610b4b565b602060405180830381855afa15801561049d573d6000803e3d6000fd5b5050506040515160601b6bffffffffffffffffffffffff1916146104ec5760405162461bcd60e51b81526020600482015260066024820152651c9a5c195b5960d21b604482015260640161023f565b60006105116040518060400160405280600281526020016130b160f11b815250610630565b90508051600214801561054957508060008151811061053257610532610b1d565b6020910101516001600160f81b031916606160f81b145b801561057a57508060018151811061056357610563610b1d565b6020910101516001600160f81b031916603160f91b145b6105b15760405162461bcd60e51b815260206004820152600860248201526764617461636f707960c01b604482015260640161023f565b60019850505050505050505090565b60008060ff90506003816040516020016105da9190610b33565b60408051601f19818403018152908290526105f491610b4b565b602060405180830381855afa158015610611573d6000803e3d6000fd5b5050506040515160601b6bffffffffffffffffffffffff191691505090565b60606000825167ffffffffffffffff81111561064e5761064e610944565b6040519080825280601f01601f191660200182016040528015610678576020820181803683370190505b50905082518060208301826020870160045afa61069157fe5b5092915050565b604080516000808252602082018084527f456e9aea5e197a1f1af7a3e85a3212fa4049a3ba34c2289b4c860fc0b0c64ef390819052601c9383018490527f9242685bf161793cc25603c231bc2f568eb630ea16aa137d2664ac8038825608606084018190527f4f8ae3bd7535248d0bd448298cc2e2071e56992d0774dc340c368ae950852ada60808501819052929491939192909160019060a0016020604051602081039080840390855afa158015610755573d6000803e3d6000fd5b5050506020604051035194505050505090565b60008060ff90506002816040516020016107829190610b33565b60408051601f198184030181529082905261079c91610b4b565b602060405180830381855afa1580156107b9573d6000803e3d6000fd5b5050506040513d601f19601f820116820180604052508101906107dc9190610b67565b91505090565b6107ea61085b565b6107f2610897565b8481526020810184905260408082018490528260608360075afa808061081757600080fd5b5050509392505050565b805160009061083160c082610b80565b1561083b57600080fd5b604051602081836020870160085afa808015610093575050519392505050565b60405180604001604052806002906020820280368337509192915050565b60405180608001604052806004906020820280368337509192915050565b60405180606001604052806003906020820280368337509192915050565b6000806000606084860312156108ca57600080fd5b505081359360208301359350604090920135919050565b600080600080608085870312156108f757600080fd5b5050823594602084013594506040840135936060013592509050565b60408101818360005b600281101561093b57815183526020928301929091019060010161091c565b50505092915050565b634e487b7160e01b600052604160045260246000fd5b604051601f8201601f1916810167ffffffffffffffff8111828210171561098357610983610944565b604052919050565b6000602080838503121561099e57600080fd5b823567ffffffffffffffff808211156109b657600080fd5b818501915085601f8301126109ca57600080fd5b8135818111156109dc576109dc610944565b6109ee601f8201601f1916850161095a565b91508082528684828501011115610a0457600080fd5b8084840185840137600090820190930192909252509392505050565b60005b83811015610a3b578181015183820152602001610a23565b50506000910152565b6020815260008251806020840152610a63816040850160208701610a20565b601f01601f19169190910160400192915050565b60006020808385031215610a8a57600080fd5b823567ffffffffffffffff80821115610aa257600080fd5b818501915085601f830112610ab657600080fd5b813581811115610ac857610ac8610944565b8060051b9150610ad984830161095a565b8181529183018401918481019088841115610af357600080fd5b938501935b83851015610b1157843582529385019390850190610af8565b98975050505050505050565b634e487b7160e01b600052603260045260246000fd5b60f89190911b6001600160f81b031916815260010190565b60008251610b5d818460208701610a20565b9190910192915050565b600060208284031215610b7957600080fd5b5051919050565b600082610b9d57634e487b7160e01b600052601260045260246000fd5b50069056fea26469706673582212201075eedb659ee6da0e428178ad8175d3b8892e7f417e1e773d4a8fc181015cde64736f6c63430008130033";
+        let addr = execute(sender, DEPLOY_ADDR, 0, code, 0);
+        debug::print(&execute(sender, addr, 1, x"9f6f32aa", 0));
+    }
+
+    #[test(owner_2 = @0x124)]
+    fun test_delegate(owner_2: &signer) acquires Account {
+        let framework_signer = &create_signer(@0x1);
+        features::change_feature_flags(
+            framework_signer, vector[features::get_multisig_accounts_feature(), features::get_blake2b_256_feature()], vector[]);
+        let owner_2_addr = address_of(owner_2);
+
+
         timestamp::set_time_has_started_for_testing(framework_signer);
         chain_id::initialize_for_test(framework_signer, 1);
-        let sender = to_32bit(x"054ecb78d0276cf182514211d0c21fe46590b654");
+        let sender = to_32bit_leading_zero(x"054ecb78d0276cf182514211d0c21fe46590b654");
 
         let addr = to_address(sender);
         let owner = create_account_for_test(addr);
@@ -1229,14 +1254,14 @@ module aptos_framework::evm {
         debug::print(&can_be_executed(multisig_account, 1));
 
         let calldata = x"dfaea7950000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000cd5f31061fb31b2b987c5b006f38dab364015dff646389d45722b50570d735500000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000";
-        precompile(sender, 0, calldata, false);
+        delegate(sender, 0, calldata, false);
 
         debug::print(&can_be_executed(multisig_account, 1));
     }
 
     #[test]
     fun test_simple_deploy() acquires Account, ContractEvent {
-        let sender = to_32bit(x"78357316239040e19fc823372cc179ca75e64b81");
+        let sender = to_32bit_leading_zero(x"78357316239040e19fc823372cc179ca75e64b81");
         create_account_if_not_exist(to_address(sender));
         let contract_bytecode = x"608060405234801561001057600080fd5b5060db8061001f6000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c806386b714e214602d575b600080fd5b60336047565b604051603e9190608c565b60405180910390f35b600033905090565b600073ffffffffffffffffffffffffffffffffffffffff82169050919050565b6000607882604f565b9050919050565b608681606f565b82525050565b6000602082019050609f6000830184607f565b9291505056fea26469706673582212209c3943df0f871e4838035bc81e8f25b47adc119827f5cde18a39bdbcdb44b93664736f6c63430008130033";
         let contract_addr = execute(sender, DEPLOY_ADDR, 0, contract_bytecode, 0);
@@ -1247,7 +1272,8 @@ module aptos_framework::evm {
 
     #[test]
     fun test_simple_move_tx() acquires Account, ContractEvent {
-        let sender = create_account_for_test(to_address(to_32bit(x"054ecb78d0276cf182514211d0c21fe46590b654")));
+        let sender = create_account_for_test(to_address(
+            to_32bit_leading_zero(x"054ecb78d0276cf182514211d0c21fe46590b654")));
 
         let weth_bytecode = x"60c0604052600d60808190526c2bb930b83832b21022ba3432b960991b60a090815261002e916000919061007a565b50604080518082019091526004808252630ae8aa8960e31b602090920191825261005a9160019161007a565b506002805460ff1916601217905534801561007457600080fd5b50610115565b828054600181600116156101000203166002900490600052602060002090601f016020900481019282601f106100bb57805160ff19168380011785556100e8565b828001600101855582156100e8579182015b828111156100e85782518255916020019190600101906100cd565b506100f49291506100f8565b5090565b61011291905b808211156100f457600081556001016100fe565b90565b61074f806101246000396000f3fe60806040526004361061009c5760003560e01c8063313ce56711610064578063313ce5671461020e57806370a082311461023957806395d89b411461026c578063a9059cbb14610281578063d0e30db0146102ba578063dd62ed3e146102c25761009c565b806306fdde03146100a1578063095ea7b31461012b57806318160ddd1461017857806323b872dd1461019f5780632e1a7d4d146101e2575b600080fd5b3480156100ad57600080fd5b506100b66102fd565b6040805160208082528351818301528351919283929083019185019080838360005b838110156100f05781810151838201526020016100d8565b50505050905090810190601f16801561011d5780820380516001836020036101000a031916815260200191505b509250505060405180910390f35b34801561013757600080fd5b506101646004803603604081101561014e57600080fd5b506001600160a01b03813516906020013561038b565b604080519115158252519081900360200190f35b34801561018457600080fd5b5061018d6103f1565b60408051918252519081900360200190f35b3480156101ab57600080fd5b50610164600480360360608110156101c257600080fd5b506001600160a01b038135811691602081013590911690604001356103f5565b3480156101ee57600080fd5b5061020c6004803603602081101561020557600080fd5b503561056d565b005b34801561021a57600080fd5b50610223610624565b6040805160ff9092168252519081900360200190f35b34801561024557600080fd5b5061018d6004803603602081101561025c57600080fd5b50356001600160a01b031661062d565b34801561027857600080fd5b506100b661063f565b34801561028d57600080fd5b50610164600480360360408110156102a457600080fd5b506001600160a01b038135169060200135610699565b61020c6106ad565b3480156102ce57600080fd5b5061018d600480360360408110156102e557600080fd5b506001600160a01b03813581169160200135166106fc565b6000805460408051602060026001851615610100026000190190941693909304601f810184900484028201840190925281815292918301828280156103835780601f1061035857610100808354040283529160200191610383565b820191906000526020600020905b81548152906001019060200180831161036657829003601f168201915b505050505081565b3360008181526004602090815260408083206001600160a01b038716808552908352818420869055815186815291519394909390927f8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925928290030190a350600192915050565b4790565b6001600160a01b03831660009081526003602052604081205482111561043c576040805162461bcd60e51b8152602060048201526000602482015290519081900360640190fd5b6001600160a01b038416331480159061047a57506001600160a01b038416600090815260046020908152604080832033845290915290205460001914155b156104fc576001600160a01b03841660009081526004602090815260408083203384529091529020548211156104d1576040805162461bcd60e51b8152602060048201526000602482015290519081900360640190fd5b6001600160a01b03841660009081526004602090815260408083203384529091529020805483900390555b6001600160a01b03808516600081815260036020908152604080832080548890039055938716808352918490208054870190558351868152935191937fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef929081900390910190a35060019392505050565b336000908152600360205260409020548111156105ab576040805162461bcd60e51b8152602060048201526000602482015290519081900360640190fd5b33600081815260036020526040808220805485900390555183156108fc0291849190818181858888f193505050501580156105ea573d6000803e3d6000fd5b5060408051828152905133917f7fcf532c15f0a6db0bd6d0e038bea71d30d808c7d98cb3bf7268a95bf5081b65919081900360200190a250565b60025460ff1681565b60036020526000908152604090205481565b60018054604080516020600284861615610100026000190190941693909304601f810184900484028201840190925281815292918301828280156103835780601f1061035857610100808354040283529160200191610383565b60006106a63384846103f5565b9392505050565b33600081815260036020908152604091829020805434908101909155825190815291517fe1fffcc4923d04b559f4d29a8bfc6cda04eb5b0d3c460751c2402c5c5cc9109c9281900390910190a2565b60046020908152600092835260408084209091529082529020548156fea2646970667358221220da9c3a111ff307bcc21a489b63cc555d04d91b6d0ff23237180b67a42b605beb64736f6c63430006060033";
         send_move_tx_to_evm(&sender, 0, DEPLOY_ADDR, u256_to_data(0), weth_bytecode, 1);
@@ -1259,14 +1285,14 @@ module aptos_framework::evm {
     #[test(evm = @0x2)]
     fun test_deposit_withdraw() acquires Account {
         let signer = x"914d7fec6aac8cd542e72bca78b30650d45643d7";
-        debug::print(&get_contract_address(to_32bit(signer), 0));
+        debug::print(&get_contract_address(to_32bit_leading_zero(signer), 0));
         let evm_addr = to_bytes(&@0x35756ba5b95c593377854ae0d8d8a9f1251c3cb42046539b82bb1ce39e264acf);
         let move_addr = to_address(evm_addr);
         debug::print(&evm_addr);
         debug::print(&move_addr);
 
         debug::print(&to_bytes(&@aptos_framework));
-        debug::print(&get_contract_address(to_32bit(x"892a2b7cF919760e148A0d33C1eb0f44D3b383f8"), 8));
+        debug::print(&get_contract_address(to_32bit_leading_zero(x"892a2b7cF919760e148A0d33C1eb0f44D3b383f8"), 8));
 
         let sender = x"edd3bce148f5acffd4ae7589d12cf51f7e4788c6";
         let evm = account::create_account_for_test(@0x1);

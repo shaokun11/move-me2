@@ -524,7 +524,7 @@ module aptos_framework::coin {
 
     /// "Merges" the two given coins.  The coin passed in as `dst_coin` will have a value equal
     /// to the sum of the two tokens (`dst_coin` and `source_coin`).
-    public fun merge<CoinType>(dst_coin: &mut Coin<CoinType>, source_coin: Coin<CoinType>) {
+    public fun  merge<CoinType>(dst_coin: &mut Coin<CoinType>, source_coin: Coin<CoinType>) {
         spec {
             assume dst_coin.value + source_coin.value <= MAX_U64;
         };

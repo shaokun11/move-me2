@@ -26,7 +26,7 @@ module aptos_framework::evm_util {
         s
     }
 
-    public fun to_32bit(data: vector<u8>): vector<u8> {
+    public fun to_32bit_leading_zero(data: vector<u8>): vector<u8> {
         let bytes = vector::empty<u8>();
         let len = vector::length(&data);
         // debug::print(&len);
@@ -36,6 +36,16 @@ module aptos_framework::evm_util {
         };
         vector::append(&mut bytes, data);
         bytes
+    }
+
+    public fun to_32_bit_tail_zero(data: vector<u8>): vector<u8> {
+        let len = vector::length(&data);
+        // debug::print(&len);
+        while(len < 32) {
+            vector::push_back(&mut data, 0);
+            len = len + 1
+        };
+        data
     }
 
     public fun get_contract_address(addr: vector<u8>, nonce: u64): vector<u8> {
@@ -48,7 +58,7 @@ module aptos_framework::evm_util {
         };
         vector::reverse(&mut nonce_bytes);
         let salt = encode_bytes_list(vector[slice(addr, 12, 20), nonce_bytes]);
-        to_32bit(slice(keccak256(salt), 12, 20))
+        to_32bit_leading_zero(slice(keccak256(salt), 12, 20))
     }
 
     public fun power(base: u256, exponent: u256): u256 {
