@@ -21,12 +21,14 @@ The following RPC methods have been implemented to ensure interaction with Solid
 - `eth_getTransactionCount`: Get the transaction count for a specific address.
 - `eth_getTransactionByHash`: Get transaction information based on the transaction hash.
 - `eth_getTransactionReceipt`: Get the transaction receipt based on the transaction hash.
-- `eth_estimateGas`: Estimate the gas consumption for a transaction. For successful transactions, if the gas is less than 21,000, it will return 21,000, but the actual consumed gas will be used when sending the transaction. It returns 10,000,000 for failed transactions to achieve a warning effect.
+- `eth_estimateGas`: Estimate the gas consumption for a transaction. For successful transactions, if the gas is less than 21,000, it will return 21,000, but the actual consumed gas will be used when sending the transaction.
 - `eth_getBlockByNumber`: Get block information based on the block number.
 - `eth_getBlockByHash`: Get block information based on the block hash. Currently returns empty.
 - `eth_getBalance`: Get the balance of a specific address
 - `eth_getCode`: Get the code of a specific contract address.
 - `eth_getStorageAt`: Get the storage at a specific position in a specific address
+- `eth_getLogs`: Returns an array of all logs matching a given filter object. 
+- `web3_clientVersion`: Returns the current client version. 
 
 
 ### Start Your EVM RPC
