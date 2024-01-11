@@ -12,7 +12,7 @@ import {
 } from './const.js';
 import { parseRawTx, sleep, toHex, toNumber } from './helper.js';
 import { TxEvents, getMoveHash, saveMoveEvmTxHash, saveTx } from './db.js';
-import { ZeroAddress, ethers, isHexString, toBeHex } from 'ethers';
+import { ZeroAddress, ethers, isHexString, toBeHex, keccak256 } from 'ethers';
 import BigNumber from 'bignumber.js';
 import Lock from 'async-lock';
 const LOCKER_MAX_PENDING = 20;
@@ -84,6 +84,11 @@ export async function getBlockByNumber(block) {
     }
     block = BigNumber(block).toNumber();
     let info = await client.getBlockByHeight(block, true);
+    let parentHash = ZERO_HASH;
+    try {
+        let info = await client.getBlockByHeight(block - 1);
+        parentHash = info.block_hash;
+    } catch (error) {}
     let transactions = info.transactions || [];
     let evm_tx = [];
     transactions.forEach(it => {
@@ -91,26 +96,36 @@ export async function getBlockByNumber(block) {
             evm_tx.push(parseMoveTxPayload(it).hash);
         }
     });
+    const genHash = c => {
+        const seed = info.block_hash;
+        let hash = seed;
+        while (c > 0) {
+            c--;
+            hash = keccak256(hash);
+        }
+        return hash;
+    };
+
     return {
         difficulty: '0x0',
-        extraData: ZERO_HASH,
+        extraData: genHash(1),
         gasLimit: toHex(30_000_000),
         gasUsed: '0x0000000000000000',
         hash: info.block_hash,
         logsBloom: LOG_BLOOM,
         miner: ZeroAddress,
-        mixHash: ZERO_HASH,
+        mixHash: genHash(2),
         nonce: '0x0000000000000000',
         number: toHex(block),
-        parentHash: ZERO_HASH,
-        receiptsRoot: ZERO_HASH,
-        sha3Uncles: ZERO_HASH,
+        parentHash: parentHash,
+        receiptsRoot: genHash(3),
+        sha3Uncles: genHash(4),
         size: toHex(1000000),
-        stateRoot: ZERO_HASH,
+        stateRoot: genHash(5),
         timestamp: toHex(Math.trunc(info.block_timestamp / 1e6)),
         totalDifficulty: '0x0000000000000000',
         transactions: evm_tx,
-        transactionsRoot: ZERO_HASH,
+        transactionsRoot: genHash(6),
         uncles: [],
     };
 }
@@ -369,7 +384,7 @@ export async function getTransactionReceipt(evm_hash) {
         to: Boolean(contractAddress) ? null : to,
         logsBloom: LOG_BLOOM,
         status: info.success ? '0x1' : '0x0',
-        transactionHash: tx,
+        transactionHash: evm_hash,
         transactionIndex: '0x0',
         type: '0x0',
     };
