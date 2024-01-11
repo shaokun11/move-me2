@@ -86,11 +86,12 @@ export async function getBlockByNumber(block) {
     block = BigNumber(block).toNumber();
     let info = await client.getBlockByHeight(block, true);
     let transactions = info.transactions || [];
-    transactions = transactions
-        .filter(it => {
-            return it.type === 'user_transaction' && it.payload.function.startsWith('0x1::evm::');
-        })
-        .map(it => it.hash);
+    let evm_tx = [];
+    transactions.forEach(it => {
+        if (it.type === 'user_transaction' && it.payload.function.startsWith('0x1::evm::send_tx')) {
+            evm_tx.push(parseMoveTxPayload(it).hash);
+        }
+    });
     return {
         difficulty: '0x0',
         extraData: ZERO_HASH,
@@ -109,7 +110,7 @@ export async function getBlockByNumber(block) {
         stateRoot: ZERO_HASH,
         timestamp: toHex(Math.trunc(info.block_timestamp / 1e6)),
         totalDifficulty: '0x0000000000000000',
-        transactions: transactions,
+        transactions: evm_tx,
         transactionsRoot: ZERO_HASH,
         uncles: [],
     };

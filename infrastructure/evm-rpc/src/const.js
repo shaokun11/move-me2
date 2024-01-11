@@ -2,7 +2,6 @@ import { AptosClient, AptosAccount } from 'aptos';
 
 export const SERVER_PORT = process.env.SERVER_PORT || 3044;
 
-
 /**
  * NODE_URL is the URL of the node, fetched from environment variables
  */
