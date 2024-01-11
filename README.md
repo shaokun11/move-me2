@@ -1,23 +1,23 @@
 ## Movement Subnet
-> The source code location at `subnet/src`
+> Locate at `subnet/src`
 
 Currently deployed on the Avalanche Fuji network, you can access it through the following script
 
 ### Subnet and Move EVM Explorer
-> The source code location at `infrastructure/explorer` 
+> Locate at `infrastructure/explorer` 
 
 ```bash
 https://explorer.devnet.m1.movementlabs.xyz
 ```
 
 ### Subnet and Move EVM Native Token Bridge
-> The source code location at `infrastructure/bridge-faucet` 
+> Locate at `infrastructure/bridge-faucet` 
 ```
 https://evm-bridge.devnet.m1.movementlabs.xyz
 ```
 
 ### Subnet Native Token Faucet
-> The source code location at `infrastructure/bridge-faucet` 
+> Locate at `infrastructure/bridge-faucet` 
 ```
 1. Replace `<replace_with_move_address>` with your desired move address and execute the command in the command line:
 
@@ -59,7 +59,7 @@ curl -X POST --data '{
 ```
 
 ### Subnet Restful Endpoint
-> The source code location at `infrastructure/subnet-proxy` 
+> Locate at `infrastructure/subnet-proxy` 
 ```
 https://devnet.m1.movementlabs.xyz/v1
 ```
@@ -92,7 +92,7 @@ async function getLedgerInfo() {
 ```
 
 ### Move EVM JSON-RPC Endpoint
-> The source code location at `infrastructure/evm-rpc` 
+> Locate at `infrastructure/evm-rpc` 
 
 ```bash
 https://mevm.devnet.m1.movementlabs.xyz/v1
@@ -131,4 +131,4 @@ async function getTransactionReceipt() {
 ```
 
 ### example with MOVE-EVM
-> The source code location at `examples/uniswap-v2`
+> Locate at `examples/uniswap-v2`
