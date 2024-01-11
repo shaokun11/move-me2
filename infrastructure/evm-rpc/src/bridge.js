@@ -15,6 +15,7 @@ import { TxEvents, getMoveHash, saveMoveEvmTxHash, saveTx } from './db.js';
 import { ZeroAddress, ethers, isHexString, toBeHex } from 'ethers';
 import BigNumber from 'bignumber.js';
 import Lock from 'async-lock';
+import { it } from 'node:test';
 const LOCKER_MAX_PENDING = 20;
 const locker = new Lock({
     maxExecutionTime: 30 * 1000,
@@ -83,13 +84,15 @@ export async function getBlockByNumber(block) {
         block = info.block_height;
     }
     block = BigNumber(block).toNumber();
-    let info = await client.getBlockByHeight(block);
+    let info = await client.getBlockByHeight(block, true);
+    let transactions = info.transactions || [];
+    transactions = transactions.filter(it => it.type === "user_transaction").map(it => it.hash);
     return {
         difficulty: '0x0',
         extraData: ZERO_HASH,
         gasLimit: toHex(30_000_000),
         gasUsed: '0x0000000000000000',
-        hash: ZERO_HASH,
+        hash: info.block_hash,
         logsBloom: LOG_BLOOM,
         miner: ZeroAddress,
         mixHash: ZERO_HASH,
@@ -102,7 +105,7 @@ export async function getBlockByNumber(block) {
         stateRoot: ZERO_HASH,
         timestamp: toHex(Math.trunc(info.block_timestamp / 1e6)),
         totalDifficulty: '0x0000000000000000',
-        transactions: info.transactions || [],
+        transactions: transactions,
         transactionsRoot: ZERO_HASH,
         uncles: [],
     };
