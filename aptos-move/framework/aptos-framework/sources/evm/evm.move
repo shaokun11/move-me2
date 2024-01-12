@@ -1090,6 +1090,7 @@ module aptos_framework::evm {
         coin_store_from.nonce = coin_store_from.nonce + 1;
     }
 
+
     #[test]
     fun test_simple_deploy() acquires Account, ContractEvent {
         let sender = x"054ecb78d0276cf182514211d0c21fe46590b654";
