@@ -347,7 +347,6 @@ pub enum EntryFunctionCall {
         evm_to: Vec<u8>,
         data: Vec<u8>,
         value_bytes: Vec<u8>,
-        tx_type: u64,
     },
 
     EvmSendTx {
@@ -1087,8 +1086,7 @@ impl EntryFunctionCall {
                 evm_to,
                 data,
                 value_bytes,
-                tx_type,
-            } => evm_estimate_tx_gas(evm_from, evm_to, data, value_bytes, tx_type),
+            } => evm_estimate_tx_gas(evm_from, evm_to, data, value_bytes),
             EvmSendTx { tx, gas_bytes } => evm_send_tx(tx, gas_bytes),
             ManagedCoinBurn { coin_type, amount } => managed_coin_burn(coin_type, amount),
             ManagedCoinInitialize {
@@ -2300,7 +2298,6 @@ pub fn evm_estimate_tx_gas(
     evm_to: Vec<u8>,
     data: Vec<u8>,
     value_bytes: Vec<u8>,
-    tx_type: u64,
 ) -> TransactionPayload {
     TransactionPayload::EntryFunction(EntryFunction::new(
         ModuleId::new(
@@ -2317,7 +2314,6 @@ pub fn evm_estimate_tx_gas(
             bcs::to_bytes(&evm_to).unwrap(),
             bcs::to_bytes(&data).unwrap(),
             bcs::to_bytes(&value_bytes).unwrap(),
-            bcs::to_bytes(&tx_type).unwrap(),
         ],
     ))
 }
@@ -4494,7 +4490,6 @@ mod decoder {
                 evm_to: bcs::from_bytes(script.args().get(1)?).ok()?,
                 data: bcs::from_bytes(script.args().get(2)?).ok()?,
                 value_bytes: bcs::from_bytes(script.args().get(3)?).ok()?,
-                tx_type: bcs::from_bytes(script.args().get(4)?).ok()?,
             })
         } else {
             None
