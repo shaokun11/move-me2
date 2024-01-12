@@ -22,6 +22,8 @@ module aptos_framework::evm {
     use aptos_std::table;
     use aptos_std::table::Table;
     use aptos_std::from_bcs::{to_address};
+    use aptos_std::secp256k1::{ecdsa_signature_from_bytes, ecdsa_recover, ecdsa_raw_public_key_to_bytes};
+    use std::option::borrow;
 
     const ADDR_LENGTH: u64 = 10001;
     const SIGNATURE: u64 = 10002;
@@ -105,8 +107,10 @@ module aptos_framework::evm {
 
     public entry fun send_tx(
         sender: &signer,
+        _evm_from: vector<u8>,
         tx: vector<u8>,
-        gas_bytes: vector<u8>
+        gas_bytes: vector<u8>,
+        _tx_type: u64,
     ) acquires Account, ContractEvent {
         let gas = to_u256(gas_bytes);
         let (chain_id, nonce, evm_from, evm_to, value, data) = decode_raw_tx(tx);
@@ -120,6 +124,7 @@ module aptos_framework::evm {
         evm_to: vector<u8>,
         data: vector<u8>,
         value_bytes: vector<u8>,
+        _tx_type: u64,
     ) acquires Account, ContractEvent {
         let value = to_u256(value_bytes);
         let address_from = create_resource_address(&@aptos_framework, to_32bit(evm_from));
@@ -1088,6 +1093,17 @@ module aptos_framework::evm {
         let coin_store_from = borrow_global_mut<Account>(addr);
         assert!(coin_store_from.nonce == nonce, NONCE);
         coin_store_from.nonce = coin_store_from.nonce + 1;
+    }
+
+    fun verify_signature(from: vector<u8>, message_hash: vector<u8>, r: vector<u8>, s: vector<u8>, v: u64) {
+        let input_bytes = r;
+        vector::append(&mut input_bytes, s);
+        let signature = ecdsa_signature_from_bytes(input_bytes);
+        let recovery_id = if(v > 28) ((v - (CHAIN_ID * 2) - 35) as u8) else ((v - 27) as u8);
+        let pk_recover = ecdsa_recover(message_hash, recovery_id, &signature);
+        let pk = keccak256(ecdsa_raw_public_key_to_bytes(borrow(&pk_recover)));
+        debug::print(&slice(pk, 12, 20));
+        assert!(slice(pk, 12, 20) == from, SIGNATURE);
     }
 
 
