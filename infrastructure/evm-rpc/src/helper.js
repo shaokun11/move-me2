@@ -1,19 +1,25 @@
 import { ZeroAddress, Transaction } from 'ethers';
 import { BigNumber } from 'bignumber.js';
 import { randomBytes } from 'node:crypto';
-import { LegacyTransaction } from '@ethereumjs/tx';
+import { TransactionFactory } from '@ethereumjs/tx';
 export function parseRawTx(tx) {
     const tx_ = Transaction.from(tx);
-    tx_.signature;
     const txJson = tx_.toJSON();
+    const tx2 = TransactionFactory.fromSerializedData(Buffer.from(tx.slice(2), 'hex'));
     const from = tx_.from.toLowerCase();
-    const tx2 = LegacyTransaction.fromSerializedTx(tx);
+    let gasPrice = toHex(1500 * 10 ** 9);
+    if (txJson.type === 2) {
+        gasPrice = toHex(txJson.maxFeePerGas);
+    } else if (txJson.type === 0) {
+        gasPrice = toHex(txJson.gasPrice);
+    }
     return {
         hash: tx_.hash,
         nonce: txJson.nonce,
         from: from,
+        type: toHex(txJson.type || 0),
         messageHash: tx_.unsignedHash,
-        gasPrice: toHex(txJson.gasPrice),
+        gasPrice: gasPrice,
         limit: toHex(txJson.gasLimit),
         to: txJson.to?.toLowerCase() || ZeroAddress,
         value: toHex(txJson.value),
@@ -53,3 +59,7 @@ export function sleep(s) {
 export function randomHex(bytes = 32) {
     return '0x' + Buffer.from(randomBytes(bytes)).toString('hex');
 }
+
+let x =
+    '0x02f8d58201500486015d3ef7980086015d3ef79800825208946a9a394cb23b2c5b2e4290f75f80a8e049f3347e80b864c47f00270000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000668656c6c6f320000000000000000000000000000000000000000000000000000c001a038787b861c38d1ff1efaa187cba5f4939228d103e732eae0173d7078389e0af9a079d70b4d9453f35688d3930bbfd87827a274eec1a7ffd8034898d5a600c14811';
+parseRawTx(x);

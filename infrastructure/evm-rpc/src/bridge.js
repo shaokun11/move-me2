@@ -38,6 +38,22 @@ export async function faucet(addr) {
     return transactionRes.hash;
 }
 
+export async function eth_feeHistory() {
+    const block = await getBlock();
+    const baseFeePerGas = toHex(1500 * 10 ** 9);
+    return {
+        oldestBlock: toHex(toNumber(block) - 4),
+        reward: [
+            ['0x5f5e100', '0xd3cdba48'],
+            ['0x5f5e100', '0xb146453a'],
+            ['0xb8c63f00', '0xb8c63f00'],
+            ['0x5f5e100', '0x77359400'],
+        ],
+        baseFeePerGas: Array.from({ length: 4 }, () => baseFeePerGas),
+        gasUsedRatio: [0.5329073333333333, 0.3723229, 0.9996228333333333, 0.5487537333333333],
+    };
+}
+
 /**
  * Get the latest block. If the last block was fetched less than 2 seconds ago, return the cached block.
  * Otherwise, fetch the latest block from the client and update the cache.
@@ -85,7 +101,7 @@ export async function getBlockByNumber(block) {
     block = BigNumber(block).toNumber();
     let info = await client.getBlockByHeight(block, true);
     let parentHash = ZERO_HASH;
-    if(block > 2) {
+    if (block > 2) {
         let info = await client.getBlockByHeight(block - 1);
         parentHash = info.block_hash;
     }
@@ -107,6 +123,7 @@ export async function getBlockByNumber(block) {
     };
 
     return {
+        baseFeePerGas: '0xc', // eip1559
         difficulty: '0x0',
         extraData: genHash(1),
         gasLimit: toHex(30_000_000),
@@ -189,13 +206,13 @@ async function checkAddressNonce(info) {
 export async function sendRawTx(tx) {
     const info = parseRawTx(tx);
     console.log('raw tx info', info);
-    let v = info.v;
-    if (v === 27 || v === 28) {
-        throw 'only replay-protected (EIP-155) transactions allowed over RPC';
-    }
-    if (v !== 707 && v !== 708) {
-        throw 'chain id error';
-    }
+    // let v = info.v;
+    // if (v === 27 || v === 28) {
+    //     throw 'only replay-protected (EIP-155) transactions allowed over RPC';
+    // }
+    // if (v !== 707 && v !== 708) {
+    //     throw 'chain id error';
+    // }
     checkTxQueue();
     // this guarantee the nonce order for same from address
     await checkAddressNonce(info);
@@ -212,10 +229,10 @@ export async function sendRawTx(tx) {
             function: `${EVM_CONTRACT}::evm::send_tx`,
             type_arguments: [],
             arguments: [
-                toBuffer(info.from),
+                toBuffer(info.from), // // useless will remove at next version
                 toBuffer(tx),
                 toBuffer(fee),
-                1, // now fixed 1 TX_TYPE_LEGACY
+                1, // useless will remove at next version
             ],
         };
         let gasInfo;
@@ -346,15 +363,18 @@ export async function getTransactionByHash(evm_hash) {
     let tx = await getMoveHash(evm_hash);
     let info = await client.getTransactionByHash(tx);
     let block = await client.getBlockByVersion(info.version);
-    const { to, from, data, nonce, value, v, r, s, hash } = parseMoveTxPayload(info);
+    const { to, from, data, nonce, value, v, r, s, hash, type } = parseMoveTxPayload(info);
     return {
         blockHash: ZERO_HASH,
         blockNumber: toHex(block.block_height),
         from: from,
         gas: toHex(info.gas_used),
         gasPrice: toHex(+info.gas_unit_price * 1e10),
+        maxFeePerGas: toHex(info.max_fee_per_gas),
+        maxPriorityFeePerGas: toHex(info.max_priority_fee_per_gas),
         hash: hash,
         input: data,
+        type,
         nonce: toHex(nonce),
         to: to,
         transactionIndex: '0x0',
@@ -369,15 +389,15 @@ export async function getTransactionReceipt(evm_hash) {
     let tx = await getMoveHash(evm_hash);
     let info = await client.getTransactionByHash(tx);
     let block = await client.getBlockByVersion(info.version);
-    const { to, from } = parseMoveTxPayload(info);
+    const { to, from, type } = parseMoveTxPayload(info);
     let contractAddress = await getDeployedContract(info);
     const logs = parseLogs(info, block.block_height, block.block_hash, evm_hash);
     let recept = {
         blockHash: block.block_hash,
         blockNumber: toHex(block.block_height),
         contractAddress,
-        cumulativeGasUsed: toHex(0),
-        effectiveGasPrice: toHex(0),
+        cumulativeGasUsed: toHex(info.gas_used),
+        effectiveGasPrice: toHex(info.gas_unit_price * 1e10),
         from: from,
         gasUsed: toHex(info.gas_used),
         logs: logs,
@@ -386,7 +406,7 @@ export async function getTransactionReceipt(evm_hash) {
         status: info.success ? '0x1' : '0x0',
         transactionHash: evm_hash,
         transactionIndex: '0x0',
-        type: '0x0',
+        type,
     };
     return recept;
 }
@@ -459,6 +479,7 @@ async function sendTx(payload, wait = false, option = {}) {
         });
         const signedTxn = await client.signTransaction(SENDER_ACCOUNT, txnRequest);
         const transactionRes = await client.submitTransaction(signedTxn);
+        console.log('sendTx', transactionRes.hash);
         if (wait) await client.waitForTransaction(transactionRes.hash);
         return transactionRes.hash;
     } catch (error) {
@@ -504,6 +525,7 @@ function parseMoveTxPayload(info) {
         value: tx.value,
         from: tx.from,
         to: tx.to,
+        type: tx.type,
         nonce: tx.nonce,
         data: tx.data,
         fee: args[2],

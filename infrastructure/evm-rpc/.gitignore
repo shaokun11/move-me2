@@ -4,3 +4,4 @@ dist
 app.cjs
 move/build
 .vscode
+db

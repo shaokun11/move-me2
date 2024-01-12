@@ -16,10 +16,14 @@ import {
     sendRawTx,
     faucet,
     getLogs,
+    eth_feeHistory,
 } from './bridge.js';
 import JsonRpc from 'json-rpc-2.0';
 const { JSONRPCErrorException } = JsonRpc;
 export const rpc = {
+    eth_feeHistory: async function (args) {
+        return eth_feeHistory();
+    },
     eth_getLogs: async function (args) {
         return getLogs(args[0]);
     },
