@@ -6,7 +6,7 @@ module aptos_framework::rlp_encode {
 
     const ERR_TOO_LONG_BYTE_ARRAY: u64 = 0;
 
-    public fun encode_bytes_list(inputs: vector<vector<u8>>): vector<u8> {
+    public fun encode_bytes_list(inputs: vector<vector<u8>>, type: u8): vector<u8> {
         let output = vector::empty();
 
         let i = 0;
@@ -16,6 +16,9 @@ module aptos_framework::rlp_encode {
             let next = encode_bytes(*next);
             vector::append(&mut output, next);
             i = i + 1;
+        };
+        if(type == 1) {
+            vector::push_back(&mut output, 0xc0);
         };
 
         let left = encode_length(&output, 0xc0);

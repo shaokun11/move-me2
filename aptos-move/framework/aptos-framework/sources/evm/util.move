@@ -47,7 +47,7 @@ module aptos_framework::evm_util {
             nonce = nonce / 0x100;
         };
         vector::reverse(&mut nonce_bytes);
-        let salt = encode_bytes_list(vector[slice(addr, 12, 20), nonce_bytes]);
+        let salt = encode_bytes_list(vector[slice(addr, 12, 20), nonce_bytes], 0);
         to_32bit(slice(keccak256(salt), 12, 20))
     }
 
