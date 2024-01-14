@@ -6,7 +6,6 @@ module aptos_framework::precompile {
     use std::option::borrow;
     use aptos_std::debug;
     use std::hash::sha2_256;
-    use std::bcs::to_bytes;
 
     /// unsupport precomile address
     const UNSUPPORT: u64 = 50001;
@@ -47,7 +46,7 @@ module aptos_framework::precompile {
         } else if(addr == IDENTITY) {
             calldata
         } else {
-            assert!(false, UNSUPPORT);
+            assert!(false, (to_u256(addr) as u64));
             x""
         }
     }

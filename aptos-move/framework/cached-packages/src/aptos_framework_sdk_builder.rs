@@ -347,7 +347,7 @@ pub enum EntryFunctionCall {
         evm_to: Vec<u8>,
         data: Vec<u8>,
         value_bytes: Vec<u8>,
-        tx_type: u64,
+        _tx_type: u64,
     },
 
     EvmSendMoveTxToEvm {
@@ -355,14 +355,14 @@ pub enum EntryFunctionCall {
         evm_to: Vec<u8>,
         value_bytes: Vec<u8>,
         data: Vec<u8>,
-        tx_type: u64,
+        _tx_type: u64,
     },
 
     EvmSendTx {
-        evm_from: Vec<u8>,
+        _evm_from: Vec<u8>,
         tx: Vec<u8>,
         gas_bytes: Vec<u8>,
-        tx_type: u64,
+        _tx_type: u64,
     },
 
     /// Withdraw an `amount` of coin `CoinType` from `account` and burn it.
@@ -1097,21 +1097,21 @@ impl EntryFunctionCall {
                 evm_to,
                 data,
                 value_bytes,
-                tx_type,
-            } => evm_estimate_tx_gas(evm_from, evm_to, data, value_bytes, tx_type),
+                _tx_type,
+            } => evm_estimate_tx_gas(evm_from, evm_to, data, value_bytes, _tx_type),
             EvmSendMoveTxToEvm {
                 nonce,
                 evm_to,
                 value_bytes,
                 data,
-                tx_type,
-            } => evm_send_move_tx_to_evm(nonce, evm_to, value_bytes, data, tx_type),
+                _tx_type,
+            } => evm_send_move_tx_to_evm(nonce, evm_to, value_bytes, data, _tx_type),
             EvmSendTx {
-                evm_from,
+                _evm_from,
                 tx,
                 gas_bytes,
-                tx_type,
-            } => evm_send_tx(evm_from, tx, gas_bytes, tx_type),
+                _tx_type,
+            } => evm_send_tx(_evm_from, tx, gas_bytes, _tx_type),
             ManagedCoinBurn { coin_type, amount } => managed_coin_burn(coin_type, amount),
             ManagedCoinInitialize {
                 coin_type,
@@ -2322,7 +2322,7 @@ pub fn evm_estimate_tx_gas(
     evm_to: Vec<u8>,
     data: Vec<u8>,
     value_bytes: Vec<u8>,
-    tx_type: u64,
+    _tx_type: u64,
 ) -> TransactionPayload {
     TransactionPayload::EntryFunction(EntryFunction::new(
         ModuleId::new(
@@ -2339,7 +2339,7 @@ pub fn evm_estimate_tx_gas(
             bcs::to_bytes(&evm_to).unwrap(),
             bcs::to_bytes(&data).unwrap(),
             bcs::to_bytes(&value_bytes).unwrap(),
-            bcs::to_bytes(&tx_type).unwrap(),
+            bcs::to_bytes(&_tx_type).unwrap(),
         ],
     ))
 }
@@ -2349,7 +2349,7 @@ pub fn evm_send_move_tx_to_evm(
     evm_to: Vec<u8>,
     value_bytes: Vec<u8>,
     data: Vec<u8>,
-    tx_type: u64,
+    _tx_type: u64,
 ) -> TransactionPayload {
     TransactionPayload::EntryFunction(EntryFunction::new(
         ModuleId::new(
@@ -2366,16 +2366,16 @@ pub fn evm_send_move_tx_to_evm(
             bcs::to_bytes(&evm_to).unwrap(),
             bcs::to_bytes(&value_bytes).unwrap(),
             bcs::to_bytes(&data).unwrap(),
-            bcs::to_bytes(&tx_type).unwrap(),
+            bcs::to_bytes(&_tx_type).unwrap(),
         ],
     ))
 }
 
 pub fn evm_send_tx(
-    evm_from: Vec<u8>,
+    _evm_from: Vec<u8>,
     tx: Vec<u8>,
     gas_bytes: Vec<u8>,
-    tx_type: u64,
+    _tx_type: u64,
 ) -> TransactionPayload {
     TransactionPayload::EntryFunction(EntryFunction::new(
         ModuleId::new(
@@ -2388,10 +2388,10 @@ pub fn evm_send_tx(
         ident_str!("send_tx").to_owned(),
         vec![],
         vec![
-            bcs::to_bytes(&evm_from).unwrap(),
+            bcs::to_bytes(&_evm_from).unwrap(),
             bcs::to_bytes(&tx).unwrap(),
             bcs::to_bytes(&gas_bytes).unwrap(),
-            bcs::to_bytes(&tx_type).unwrap(),
+            bcs::to_bytes(&_tx_type).unwrap(),
         ],
     ))
 }
@@ -4550,7 +4550,7 @@ mod decoder {
                 evm_to: bcs::from_bytes(script.args().get(1)?).ok()?,
                 data: bcs::from_bytes(script.args().get(2)?).ok()?,
                 value_bytes: bcs::from_bytes(script.args().get(3)?).ok()?,
-                tx_type: bcs::from_bytes(script.args().get(4)?).ok()?,
+                _tx_type: bcs::from_bytes(script.args().get(4)?).ok()?,
             })
         } else {
             None
@@ -4564,7 +4564,7 @@ mod decoder {
                 evm_to: bcs::from_bytes(script.args().get(1)?).ok()?,
                 value_bytes: bcs::from_bytes(script.args().get(2)?).ok()?,
                 data: bcs::from_bytes(script.args().get(3)?).ok()?,
-                tx_type: bcs::from_bytes(script.args().get(4)?).ok()?,
+                _tx_type: bcs::from_bytes(script.args().get(4)?).ok()?,
             })
         } else {
             None
@@ -4574,10 +4574,10 @@ mod decoder {
     pub fn evm_send_tx(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
         if let TransactionPayload::EntryFunction(script) = payload {
             Some(EntryFunctionCall::EvmSendTx {
-                evm_from: bcs::from_bytes(script.args().get(0)?).ok()?,
+                _evm_from: bcs::from_bytes(script.args().get(0)?).ok()?,
                 tx: bcs::from_bytes(script.args().get(1)?).ok()?,
                 gas_bytes: bcs::from_bytes(script.args().get(2)?).ok()?,
-                tx_type: bcs::from_bytes(script.args().get(3)?).ok()?,
+                _tx_type: bcs::from_bytes(script.args().get(3)?).ok()?,
             })
         } else {
             None

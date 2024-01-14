@@ -7,16 +7,14 @@ module aptos_framework::evm {
     use std::vector;
     use aptos_framework::coin;
     use aptos_framework::aptos_coin::AptosCoin;
-    use aptos_std::secp256k1::{ecdsa_recover, ecdsa_signature_from_bytes, ecdsa_raw_public_key_to_bytes};
-    use std::option::borrow;
-    use aptos_std::aptos_hash::{keccak256};
+    use aptos_std::aptos_hash::keccak256;
     use aptos_framework::create_signer::create_signer;
     #[test_only]
     use std::string;
     use aptos_framework::aptos_account::create_account;
     use aptos_std::debug;
     use std::signer::address_of;
-    use aptos_framework::evm_util::{slice, to_32bit_leading_zero, get_contract_address, power, to_int256, data_to_u256, u256_to_data, mstore, u256_to_trimed_data, to_u256};
+    use aptos_framework::evm_util::{slice, get_contract_address, power, to_int256, data_to_u256, u256_to_data, mstore, to_u256, to_32bit_leading_zero};
     use aptos_framework::timestamp::now_microseconds;
     use aptos_framework::block;
     use std::string::utf8;
@@ -24,35 +22,36 @@ module aptos_framework::evm {
     use aptos_framework::event;
     use aptos_std::table;
     use aptos_std::table::Table;
-    use aptos_framework::rlp_decode::{decode_bytes_list};
     use aptos_std::from_bcs::{to_address};
+    use aptos_std::secp256k1::{ecdsa_signature_from_bytes, ecdsa_recover, ecdsa_raw_public_key_to_bytes};
+    use std::option::borrow;
     use std::bcs::to_bytes;
-    use aptos_framework::rlp_encode::encode_bytes_list;
     #[test_only]
     use aptos_framework::account::create_account_for_test;
-    use aptos_framework::delegate::execute_move_tx;
     #[test_only]
-    use aptos_framework::multisig_account::{get_next_multisig_account_address, create_with_owners, create_transaction, can_be_executed};
-    #[test_only]
-    use std::features;
+    use aptos_framework::multisig_account::{can_be_executed, get_next_multisig_account_address, create_with_owners, create_transaction};
     #[test_only]
     use aptos_framework::timestamp;
     #[test_only]
     use aptos_framework::chain_id;
-    use aptos_framework::precompile::{is_precompile_address, run_precompile};
-
-    const TX_TYPE_LEGACY: u64 = 1;
+    #[test_only]
+    use std::features;
+    use aptos_framework::precompile::{run_precompile, is_precompile_address};
+    use aptos_framework::delegate::execute_move_tx;
 
     const ADDR_LENGTH: u64 = 10001;
     const SIGNATURE: u64 = 10002;
     const INSUFFIENT_BALANCE: u64 = 10003;
     const NONCE: u64 = 10004;
     const CONTRACT_READ_ONLY: u64 = 10005;
-    const CREATE2_CONTRACT_DEPLOYED: u64 = 10006;
-    const CREATE_CONTRACT_DEPLOYED: u64 = 10007;
-    const TX_NOT_SUPPORT: u64 = 10008;
-    const ACCOUNT_NOT_EXIST: u64 = 10009;
-    const DELEGATE_SELECTOR: u64 = 10010;
+    const CONTRACT_DEPLOYED: u64 = 10006;
+    const TX_NOT_SUPPORT: u64 = 10007;
+    const ACCOUNT_NOT_EXIST: u64 = 10008;
+    /// invalid chain id in raw tx
+    const INVALID_CHAINID: u64 = 10009;
+    /// invalid delegate selector
+    const DELEGATE_SELECTOR: u64 = 20001;
+
     const CONVERT_BASE: u256 = 10000000000;
     const CHAIN_ID: u64 = 0x150;
 
@@ -128,55 +127,22 @@ module aptos_framework::evm {
         // borrow_global_mut<Account>(address_contract).is_contract = true;
     }
 
+    native fun decode_raw_tx(
+        raw_tx: vector<u8>
+    ): (u64, u64, vector<u8>, vector<u8>, u256, vector<u8>);
+
     public entry fun send_tx(
         sender: &signer,
-        evm_from: vector<u8>,
+        _evm_from: vector<u8>,
         tx: vector<u8>,
         gas_bytes: vector<u8>,
-        tx_type: u64,
+        _tx_type: u64,
     ) acquires Account, ContractEvent {
         let gas = to_u256(gas_bytes);
-        if(tx_type == TX_TYPE_LEGACY) {
-            let decoded = decode_bytes_list(&tx);
-            // debug::print(&decoded);
-            let nonce = to_u256(*vector::borrow(&decoded, 0));
-            let gas_price = to_u256(*vector::borrow(&decoded, 1));
-            let gas_limit = to_u256(*vector::borrow(&decoded, 2));
-            let evm_to = *vector::borrow(&decoded, 3);
-            let value = to_u256(*vector::borrow(&decoded, 4));
-            let data = *vector::borrow(&decoded, 5);
-            let v = (to_u256(*vector::borrow(&decoded, 6)) as u64);
-            let r = *vector::borrow(&decoded, 7);
-            let s = *vector::borrow(&decoded, 8);
-
-            let message = if(v > 28) encode_bytes_list(vector[
-                u256_to_trimed_data(nonce),
-                u256_to_trimed_data(gas_price),
-                u256_to_trimed_data(gas_limit),
-                evm_to,
-                u256_to_trimed_data(value),
-                data,
-                CHAIN_ID_BYTES,
-                x"",
-                x""
-            ]) else encode_bytes_list(vector[
-                u256_to_trimed_data(nonce),
-                u256_to_trimed_data(gas_price),
-                u256_to_trimed_data(gas_limit),
-                evm_to,
-                u256_to_trimed_data(value),
-                data
-            ]);
-            let message_hash = keccak256(message);
-            verify_signature(evm_from, message_hash, to_32bit_leading_zero(r), to_32bit_leading_zero(s), v);
-            evm_to = to_32bit_leading_zero(evm_to);
-            evm_to = if(evm_to == ZERO_ADDR) DEPLOY_ADDR else evm_to;
-            execute(to_32bit_leading_zero(evm_from), evm_to, (nonce as u64), data, value);
-            transfer_to_move_addr(to_32bit_leading_zero(evm_from), address_of(sender), gas * CONVERT_BASE);
-        } else {
-            assert!(false, TX_NOT_SUPPORT);
-            // aborted()
-        }
+        let (chain_id, nonce, evm_from, evm_to, value, data) = decode_raw_tx(tx);
+        assert!(chain_id == CHAIN_ID || chain_id == 0, INVALID_CHAINID);
+        execute(to_32bit_leading_zero(evm_from), to_32bit_leading_zero(evm_to), (nonce as u64), data, value);
+        transfer_to_move_addr(to_32bit_leading_zero(evm_from), address_of(sender), gas * CONVERT_BASE);
     }
 
     public entry fun send_move_tx_to_evm(
@@ -185,16 +151,12 @@ module aptos_framework::evm {
         evm_to: vector<u8>,
         value_bytes: vector<u8>,
         data: vector<u8>,
-        tx_type: u64,
+        _tx_type: u64,
     ) acquires Account, ContractEvent {
-        if(tx_type == TX_TYPE_LEGACY) {
-            evm_to = to_32bit_leading_zero(evm_to);
-            evm_to = if(evm_to == ZERO_ADDR) DEPLOY_ADDR else evm_to;
-            let evm_from = slice(to_bytes(&address_of(sender)), 12, 20);
-            execute(to_32bit_leading_zero(evm_from), evm_to, nonce, data, to_u256(value_bytes));
-        } else {
-            assert!(false, TX_NOT_SUPPORT);
-        }
+        evm_to = to_32bit_leading_zero(evm_to);
+        evm_to = if(evm_to == ZERO_ADDR) DEPLOY_ADDR else evm_to;
+        let evm_from = slice(to_bytes(&address_of(sender)), 12, 20);
+        execute(to_32bit_leading_zero(evm_from), evm_to, nonce, data, to_u256(value_bytes));
     }
 
     public entry fun estimate_tx_gas(
@@ -202,17 +164,13 @@ module aptos_framework::evm {
         evm_to: vector<u8>,
         data: vector<u8>,
         value_bytes: vector<u8>,
-        tx_type: u64,
+        _tx_type: u64,
     ) acquires Account, ContractEvent {
         let value = to_u256(value_bytes);
-        if(tx_type == TX_TYPE_LEGACY) {
-            let address_from = to_address(to_32bit_leading_zero(evm_from));
-            assert!(exists<Account>(address_from), ACCOUNT_NOT_EXIST);
-            let nonce = borrow_global<Account>(address_from).nonce;
-            execute(to_32bit_leading_zero(evm_from), to_32bit_leading_zero(evm_to), nonce, data, value);
-        } else {
-            assert!(false, TX_NOT_SUPPORT);
-        }
+        let address_from = to_address(to_32bit_leading_zero(evm_from));
+        assert!(exists<Account>(address_from), ACCOUNT_NOT_EXIST);
+        let nonce = borrow_global<Account>(address_from).nonce;
+        execute(to_32bit_leading_zero(evm_from), to_32bit_leading_zero(evm_to), nonce, data, value);
     }
 
     public entry fun deposit(sender: &signer, evm_addr: vector<u8>, amount_bytes: vector<u8>) acquires Account {
@@ -931,7 +889,7 @@ module aptos_framework::evm {
                 contract_store.nonce = contract_store.nonce + 1;
 
                 debug::print(&exists<Account>(new_move_contract_addr));
-                assert!(!exist_contract(new_move_contract_addr), CREATE_CONTRACT_DEPLOYED);
+                assert!(!exist_contract(new_move_contract_addr), CONTRACT_DEPLOYED);
                 create_account_if_not_exist(new_move_contract_addr);
                 create_event_if_not_exist(new_move_contract_addr);
 
@@ -979,7 +937,7 @@ module aptos_framework::evm {
                 debug::print(&keccak256(new_codes));
                 debug::print(&new_evm_contract_addr);
                 debug::print(&exists<Account>(new_move_contract_addr));
-                assert!(!exist_contract(new_move_contract_addr), CREATE2_CONTRACT_DEPLOYED);
+                assert!(!exist_contract(new_move_contract_addr), CONTRACT_DEPLOYED);
                 create_account_if_not_exist(new_move_contract_addr);
                 create_event_if_not_exist(new_move_contract_addr);
 
@@ -1208,17 +1166,6 @@ module aptos_framework::evm {
         let coin_store_from = borrow_global_mut<Account>(addr);
         assert!(coin_store_from.nonce == nonce, NONCE);
         coin_store_from.nonce = coin_store_from.nonce + 1;
-    }
-
-    fun verify_signature(from: vector<u8>, message_hash: vector<u8>, r: vector<u8>, s: vector<u8>, v: u64) {
-        let input_bytes = r;
-        vector::append(&mut input_bytes, s);
-        let signature = ecdsa_signature_from_bytes(input_bytes);
-        let recovery_id = if(v > 28) ((v - (CHAIN_ID * 2) - 35) as u8) else ((v - 27) as u8);
-        let pk_recover = ecdsa_recover(message_hash, recovery_id, &signature);
-        let pk = keccak256(ecdsa_raw_public_key_to_bytes(borrow(&pk_recover)));
-        debug::print(&slice(pk, 12, 20));
-        assert!(slice(pk, 12, 20) == from, SIGNATURE);
     }
 
     #[test]
