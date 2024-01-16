@@ -253,7 +253,12 @@ export async function sendRawTx(tx) {
                 error: error.message || 'sendTx error',
             };
         }
-        if (!gasInfo.success) return done(gasInfo.error);
+        if (!gasInfo.success) {
+            if (gasInfo.error.includes('0x2713')) {
+                return done('insufficient funds');
+            }
+            return done(gasInfo.error);
+        }
         fee = toBeHex(BigNumber(gasPrice).times(gasInfo.gas_used).decimalPlaces(0).toFixed(0));
         console.log('nonce %s,fee:%s', info.nonce, fee);
         payload.arguments[2] = toBuffer(fee);
