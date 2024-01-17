@@ -600,7 +600,7 @@ export async function getLogs(obj) {
 function parseLogs(info, blockNumber, blockHash, evm_hash) {
     let logs = [];
     let events = info.events || [];
-    let evmLogs = [1, 2, 3, 4].map(it => `${EVM_CONTRACT}::evm::Log${it}Event`);
+    let evmLogs = [0,1, 2, 3, 4].map(it => `${EVM_CONTRACT}::evm::Log${it}Event`);
     events = events.filter(it => evmLogs.includes(it.type));
     for (let i = 0; i < events.length; i++) {
         const event = events[i];
@@ -609,6 +609,7 @@ function parseLogs(info, blockNumber, blockHash, evm_hash) {
         if (event.data.topic1) topics.push(event.data.topic1);
         if (event.data.topic2) topics.push(event.data.topic2);
         if (event.data.topic3) topics.push(event.data.topic3);
+        if (event.data.topic4) topics.push(event.data.topic4);
         logs.push({
             address: move2ethAddress(event.data.contract),
             topics,
