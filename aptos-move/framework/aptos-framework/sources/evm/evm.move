@@ -63,7 +63,9 @@ module aptos_framework::evm {
     const CHAIN_ID_BYTES: vector<u8> = x"0150";
 
     // struct Acc
-
+    struct MoveContractCap has key {
+        to: address
+    }
 
     struct Account has key {
         balance: u256,
@@ -121,10 +123,6 @@ module aptos_framework::evm {
     );
 
     public(friend) fun initialize()  {
-        // let address_contract = to_address(PRECOMPILE_ADDR);
-        // create_account_if_not_exist(address_contract);
-        // create_event_if_not_exist(address_contract);
-        // borrow_global_mut<Account>(address_contract).is_contract = true;
     }
 
     native fun decode_raw_tx(
@@ -252,6 +250,7 @@ module aptos_framework::evm {
         }
     }
 
+    // This function is used to delegate a EVM function to an Move function
     fun delegate(sender: vector<u8>, value: u256, calldata: vector<u8>, readOnly: bool): vector<u8> acquires Account {
         assert!(!readOnly, CONTRACT_READ_ONLY);
         let selector = slice(calldata, 0, 4);
@@ -266,6 +265,7 @@ module aptos_framework::evm {
         vector::empty<u8>()
     }
 
+    // This function is used to execute precompile EVM contracts.
     fun precompile(sender: vector<u8>, to: vector<u8>, value: u256, calldata: vector<u8>): vector<u8> acquires Account {
         transfer_to_evm_addr(sender, to, value);
         run_precompile(to, calldata, CHAIN_ID)
@@ -1083,7 +1083,6 @@ module aptos_framework::evm {
             // debug::print(stack);
             // debug::print(&vector::length(stack));
         };
-        // simple_map::borrow_mut<vector<u8>, T>(&mut global.contracts, &contract_addr).storage = storage;
         ret_bytes
     }
 
