@@ -351,7 +351,6 @@ pub enum EntryFunctionCall {
     },
 
     EvmSendMoveTxToEvm {
-        nonce: u64,
         evm_to: Vec<u8>,
         value_bytes: Vec<u8>,
         data: Vec<u8>,
@@ -1100,12 +1099,11 @@ impl EntryFunctionCall {
                 _tx_type,
             } => evm_estimate_tx_gas(evm_from, evm_to, data, value_bytes, _tx_type),
             EvmSendMoveTxToEvm {
-                nonce,
                 evm_to,
                 value_bytes,
                 data,
                 _tx_type,
-            } => evm_send_move_tx_to_evm(nonce, evm_to, value_bytes, data, _tx_type),
+            } => evm_send_move_tx_to_evm(evm_to, value_bytes, data, _tx_type),
             EvmSendTx {
                 _evm_from,
                 tx,
@@ -2345,7 +2343,6 @@ pub fn evm_estimate_tx_gas(
 }
 
 pub fn evm_send_move_tx_to_evm(
-    nonce: u64,
     evm_to: Vec<u8>,
     value_bytes: Vec<u8>,
     data: Vec<u8>,
@@ -2362,7 +2359,6 @@ pub fn evm_send_move_tx_to_evm(
         ident_str!("send_move_tx_to_evm").to_owned(),
         vec![],
         vec![
-            bcs::to_bytes(&nonce).unwrap(),
             bcs::to_bytes(&evm_to).unwrap(),
             bcs::to_bytes(&value_bytes).unwrap(),
             bcs::to_bytes(&data).unwrap(),
@@ -4560,11 +4556,10 @@ mod decoder {
     pub fn evm_send_move_tx_to_evm(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
         if let TransactionPayload::EntryFunction(script) = payload {
             Some(EntryFunctionCall::EvmSendMoveTxToEvm {
-                nonce: bcs::from_bytes(script.args().get(0)?).ok()?,
-                evm_to: bcs::from_bytes(script.args().get(1)?).ok()?,
-                value_bytes: bcs::from_bytes(script.args().get(2)?).ok()?,
-                data: bcs::from_bytes(script.args().get(3)?).ok()?,
-                _tx_type: bcs::from_bytes(script.args().get(4)?).ok()?,
+                evm_to: bcs::from_bytes(script.args().get(0)?).ok()?,
+                value_bytes: bcs::from_bytes(script.args().get(1)?).ok()?,
+                data: bcs::from_bytes(script.args().get(2)?).ok()?,
+                _tx_type: bcs::from_bytes(script.args().get(3)?).ok()?,
             })
         } else {
             None
