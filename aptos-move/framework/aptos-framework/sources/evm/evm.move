@@ -136,8 +136,8 @@ module aptos_framework::evm {
         let gas = to_u256(gas_bytes);
         let (chain_id, nonce, evm_from, evm_to, value, data) = decode_raw_tx(tx);
         assert!(chain_id == CHAIN_ID || chain_id == 0, INVALID_CHAINID);
-        evm_to = if(evm_to == ZERO_ADDR) DEPLOY_ADDR else evm_to;
-        execute(to_32bit_leading_zero(evm_from), to_32bit_leading_zero(evm_to), nonce, data, value);
+        evm_to = if(to_32bit_leading_zero(evm_to) == ZERO_ADDR) DEPLOY_ADDR else to_32bit_leading_zero(evm_to);
+        execute(to_32bit_leading_zero(evm_from), evm_to, nonce, data, value);
         transfer_to_move_addr(to_32bit_leading_zero(evm_from), address_of(sender), gas * CONVERT_BASE);
     }
 
@@ -156,7 +156,7 @@ module aptos_framework::evm {
         _tx_type: u64,
     ) acquires Account, ContractEvent {
         evm_to = to_32bit_leading_zero(evm_to);
-        evm_to = if(evm_to == ZERO_ADDR) DEPLOY_ADDR else evm_to;
+        evm_to = if(to_32bit_leading_zero(evm_to) == ZERO_ADDR) DEPLOY_ADDR else to_32bit_leading_zero(evm_to);
         let evm_from = get_evm_address(cap.from);
         execute(to_32bit_leading_zero(evm_from), evm_to, nonce, data, to_u256(value_bytes));
     }
@@ -170,7 +170,7 @@ module aptos_framework::evm {
         _tx_type: u64,
     ) acquires Account, ContractEvent {
         evm_to = to_32bit_leading_zero(evm_to);
-        evm_to = if(evm_to == ZERO_ADDR) DEPLOY_ADDR else evm_to;
+        evm_to = if(to_32bit_leading_zero(evm_to) == ZERO_ADDR) DEPLOY_ADDR else to_32bit_leading_zero(evm_to);
         let evm_from = get_evm_address(address_of(sender));
         execute(to_32bit_leading_zero(evm_from), evm_to, nonce, data, to_u256(value_bytes));
     }
