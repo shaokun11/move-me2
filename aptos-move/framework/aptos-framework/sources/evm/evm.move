@@ -23,8 +23,6 @@ module aptos_framework::evm {
     use aptos_std::table;
     use aptos_std::table::Table;
     use aptos_std::from_bcs::{to_address};
-    use aptos_std::secp256k1::{ecdsa_signature_from_bytes, ecdsa_recover, ecdsa_raw_public_key_to_bytes};
-    use std::option::borrow;
     use std::bcs::to_bytes;
     #[test_only]
     use aptos_framework::account::create_account_for_test;
@@ -142,8 +140,10 @@ module aptos_framework::evm {
         transfer_to_move_addr(to_32bit_leading_zero(evm_from), address_of(sender), gas * CONVERT_BASE);
     }
 
-    public fun register_move_contract(from: &signer) {
-        move_to(from, MoveContractCap { from: address_of(from) });
+    public fun register_move_contract(from: &signer): MoveContractCap {
+        MoveContractCap {
+            from: address_of(from)
+        }
     }
 
     public fun call_evm_from_move(
