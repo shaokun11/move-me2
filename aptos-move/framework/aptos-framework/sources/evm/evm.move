@@ -136,7 +136,8 @@ module aptos_framework::evm {
         let gas = to_u256(gas_bytes);
         let (chain_id, nonce, evm_from, evm_to, value, data) = decode_raw_tx(tx);
         assert!(chain_id == CHAIN_ID || chain_id == 0, INVALID_CHAINID);
-        execute(to_32bit_leading_zero(evm_from), to_32bit_leading_zero(evm_to), (nonce as u64), data, value);
+        evm_to = if(evm_to == ZERO_ADDR) DEPLOY_ADDR else evm_to;
+        execute(to_32bit_leading_zero(evm_from), to_32bit_leading_zero(evm_to), nonce, data, value);
         transfer_to_move_addr(to_32bit_leading_zero(evm_from), address_of(sender), gas * CONVERT_BASE);
     }
 
