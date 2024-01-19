@@ -111,7 +111,7 @@ module aptos_framework::evm {
         log4Event: EventHandle<Log4Event>,
     }
 
-    struct MoveContractCap has key {
+    struct MoveContractCap has store {
         from: address
     }
 
