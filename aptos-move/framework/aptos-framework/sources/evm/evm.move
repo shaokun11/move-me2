@@ -163,7 +163,7 @@ module aptos_framework::evm {
 
     public entry fun send_move_tx_to_evm(
         sender: &signer,
-        nonde: u64,
+        nonce: u64,
         evm_to: vector<u8>,
         value_bytes: vector<u8>,
         data: vector<u8>,
@@ -172,7 +172,7 @@ module aptos_framework::evm {
         evm_to = to_32bit_leading_zero(evm_to);
         evm_to = if(evm_to == ZERO_ADDR) DEPLOY_ADDR else evm_to;
         let evm_from = get_evm_address(address_of(sender));
-        execute(to_32bit_leading_zero(evm_from), evm_to, get_nonce(evm_from), data, to_u256(value_bytes));
+        execute(to_32bit_leading_zero(evm_from), evm_to, nonce, data, to_u256(value_bytes));
     }
 
     public entry fun estimate_tx_gas(
