@@ -818,10 +818,8 @@ module aptos_framework::evm {
                     };
                     vector::push_back(stack, 1);
                 } else {
-                    if (msg_value > 0) {
-                        transfer_to_evm_addr(evm_contract_address, evm_dest_addr, msg_value);
-                    };
-                    vector::push_back(stack, 0);
+                    transfer_to_evm_addr(evm_contract_address, evm_dest_addr, msg_value);
+                    vector::push_back(stack, 1);
                 };
                 // debug::print(&opcode);
                 i = i + 1
