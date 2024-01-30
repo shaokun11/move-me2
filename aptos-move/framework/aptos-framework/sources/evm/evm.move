@@ -9,8 +9,6 @@ module aptos_framework::evm {
     use aptos_framework::aptos_coin::AptosCoin;
     use aptos_std::aptos_hash::keccak256;
     use aptos_framework::create_signer::create_signer;
-    #[test_only]
-    use std::string;
     use aptos_framework::aptos_account::create_account;
     use aptos_std::debug;
     use std::signer::address_of;
@@ -36,6 +34,8 @@ module aptos_framework::evm {
     use std::features;
     use aptos_framework::precompile::{run_precompile, is_precompile_address};
     use aptos_framework::delegate::execute_move_tx;
+    #[test_only]
+    use std::string;
 
     const ADDR_LENGTH: u64 = 10001;
     const SIGNATURE: u64 = 10002;
@@ -155,6 +155,7 @@ module aptos_framework::evm {
         value_bytes: vector<u8>,
         _tx_type: u64,
     ) acquires Account, ContractEvent {
+
         evm_to = to_32bit_leading_zero(evm_to);
         evm_to = if(to_32bit_leading_zero(evm_to) == ZERO_ADDR) DEPLOY_ADDR else to_32bit_leading_zero(evm_to);
         let evm_from = get_evm_address(cap.from);
@@ -1215,6 +1216,7 @@ module aptos_framework::evm {
 
     #[test(owner_2 = @0x124)]
     fun test_delegate(owner_2: &signer) acquires Account {
+
         let framework_signer = &create_signer(@0x1);
         features::change_feature_flags(
             framework_signer, vector[features::get_multisig_accounts_feature(), features::get_blake2b_256_feature()], vector[]);
