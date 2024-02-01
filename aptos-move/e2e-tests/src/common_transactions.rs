@@ -6,6 +6,7 @@
 
 use crate::account::Account;
 use aptos_cached_packages::aptos_stdlib;
+use aptos_cached_packages::aptos_framework_sdk_builder;
 use aptos_types::transaction::{Script, SignedTransaction};
 use move_ir_compiler::Compiler;
 use once_cell::sync::Lazy;
@@ -71,6 +72,29 @@ pub fn peer_to_peer_txn(
         .payload(aptos_stdlib::aptos_coin_transfer(
             *receiver.address(),
             transfer_amount,
+        ))
+        .sequence_number(seq_num)
+        .gas_unit_price(gas_unit_price)
+        .sign()
+}
+
+
+pub fn peer_to_peer_evm_deposit_txn(
+    sender: &Account,
+    receiver: &Account,
+    seq_num: u64,
+    amount: u64,
+    gas_unit_price: u64,
+) -> SignedTransaction {
+
+    let v = amount.to_be_bytes().to_vec();
+    let to =receiver.address().to_string().as_bytes().chunks(20).collect();
+    // get a SignedTransaction
+    sender
+        .transaction()
+        .payload(aptos_framework_sdk_builder::evm_deposit(
+            to,
+            v,
         ))
         .sequence_number(seq_num)
         .gas_unit_price(gas_unit_price)

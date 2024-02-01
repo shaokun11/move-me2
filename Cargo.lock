@@ -10884,6 +10884,60 @@ dependencies = [
 ]
 
 [[package]]
+name = "movement-benchmark"
+version = "0.1.0"
+dependencies = [
+ "aptos-bitvec",
+ "aptos-block-executor",
+ "aptos-block-partitioner",
+ "aptos-crypto",
+ "aptos-executor-service",
+ "aptos-gas-schedule",
+ "aptos-language-e2e-tests",
+ "aptos-logger",
+ "aptos-metrics-core",
+ "aptos-node-resource-metrics",
+ "aptos-push-metrics",
+ "aptos-types",
+ "aptos-vm",
+ "aptos-vm-logging",
+ "clap 4.4.8",
+ "criterion",
+ "criterion-cpu-time",
+ "num_cpus",
+ "once_cell",
+ "proptest",
+ "rayon",
+]
+
+[[package]]
+name = "movement-evm-benchmark"
+version = "0.1.0"
+dependencies = [
+ "aptos-bitvec",
+ "aptos-block-executor",
+ "aptos-block-partitioner",
+ "aptos-crypto",
+ "aptos-executor-service",
+ "aptos-gas-schedule",
+ "aptos-language-e2e-tests",
+ "aptos-logger",
+ "aptos-metrics-core",
+ "aptos-node-resource-metrics",
+ "aptos-push-metrics",
+ "aptos-types",
+ "aptos-vm",
+ "aptos-vm-logging",
+ "clap 4.4.8",
+ "criterion",
+ "criterion-cpu-time",
+ "num_cpus",
+ "once_cell",
+ "proptest",
+ "rayon",
+]
+
+[[package]]
 name = "multer"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
