@@ -41,7 +41,7 @@ impl AUTransactionGen for P2PTransferGen {
             ..
         } = self.sender_receiver.pick(universe);
 
-        let txn = peer_to_peer_evm_deposit_txn(
+        let txn = peer_to_peer_txn(
             sender.account(),
             receiver.account(),
             sender.sequence_number,
