@@ -108,7 +108,7 @@ export async function getBlockByNumber(block) {
     let transactions = info.transactions || [];
     let evm_tx = [];
     transactions.forEach(it => {
-        if (it.type === 'user_transaction' && it.payload.function.startsWith('0x1::evm::send_tx')) {
+        if (it.type === 'user_transaction' && it?.payload?.function?.startsWith('0x1::evm::send_tx')) {
             evm_tx.push(parseMoveTxPayload(it).hash);
         }
     });
@@ -600,7 +600,7 @@ export async function getLogs(obj) {
 function parseLogs(info, blockNumber, blockHash, evm_hash) {
     let logs = [];
     let events = info.events || [];
-    let evmLogs = [0,1, 2, 3, 4].map(it => `${EVM_CONTRACT}::evm::Log${it}Event`);
+    let evmLogs = [0, 1, 2, 3, 4].map(it => `${EVM_CONTRACT}::evm::Log${it}Event`);
     events = events.filter(it => evmLogs.includes(it.type));
     for (let i = 0; i < events.length; i++) {
         const event = events[i];
@@ -633,3 +633,4 @@ function checkTxQueue() {
         throw new Error('system busy');
     }
 }
+// Request
