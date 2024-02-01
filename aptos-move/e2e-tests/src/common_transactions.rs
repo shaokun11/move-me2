@@ -112,12 +112,12 @@ pub fn peer_to_peer_evm_deposit_txn(
 
 pub fn peer_to_peer_evm_send_txn(
     sender: &Account,
+    receiver: &Account,
     seq_num: u64,
     gas_unit_price: u64,
 ) -> SignedTransaction {
-    let anvil = Anvil::new().spawn();
-    let from: LocalWallet = anvil.keys()[0].clone().into();
-    let to: LocalWallet = anvil.keys()[1].clone().into();
+    let from = LocalWallet::from_bytes(&sender.privkey.to_bytes()).unwrap();
+    let to = LocalWallet::from_bytes(&receiver.privkey.to_bytes()).unwrap();
     let tx = TransactionRequest::new()
         .from(from.address())
         .to(to.address())
@@ -125,6 +125,7 @@ pub fn peer_to_peer_evm_send_txn(
         .gas_price(1000000000)
         .gas(1000000)
         .data(vec![])
+        .chain_id(336)
         .nonce(0);
     let tx = TypedTransaction::Legacy(tx);
     let signature = from.sign_transaction_sync(&tx).unwrap();

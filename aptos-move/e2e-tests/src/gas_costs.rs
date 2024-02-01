@@ -162,7 +162,7 @@ pub static PEER_TO_PEER_EVM_SEND_TX: Lazy<u64> = Lazy::new(|| {
     executor.add_account_data(&sender);
     executor.add_account_data(&receiver);
 
-    let txn = peer_to_peer_evm_send_txn(sender.account(),  10, 0);
+    let txn = peer_to_peer_evm_send_txn(sender.account(), receiver.account(), 10, 0);
     compute_gas_used(txn, &mut executor)
 });
 

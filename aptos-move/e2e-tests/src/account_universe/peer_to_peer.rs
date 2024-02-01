@@ -196,6 +196,7 @@ impl AUTransactionGen for P2PEvmSendTxGen {
 
         let txn = peer_to_peer_evm_send_txn(
             sender.account(),
+            receiver.account(),
             sender.sequence_number,
             1, // sets unit gas price, ensures an aggregator is used for total supply.
         );
