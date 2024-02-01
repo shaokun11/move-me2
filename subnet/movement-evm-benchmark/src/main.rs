@@ -5,7 +5,6 @@
 use aptos_crypto::_once_cell::sync::Lazy;
 use aptos_language_e2e_tests::account_universe::P2PEvmDepositGen;
 use aptos_metrics_core::{register_int_gauge, IntGauge};
-use aptos_push_metrics::MetricsPusher;
 use aptos_vm_logging::disable_speculative_logging;
 use clap::{Parser, Subcommand};
 use movement_evm_benchmark::transactions::TransactionBencher;
@@ -203,10 +202,10 @@ fn main() {
             .unwrap()
             .as_millis() as i64,
     );
-    aptos_node_resource_metrics::register_node_metrics_collector();
-    let _mp = MetricsPusher::start_for_local_run("block-stm-benchmark");
+    // aptos_node_resource_metrics::register_node_metrics_collector();
+    // let _mp = MetricsPusher::start_for_local_run("block-stm-benchmark");
     let args = Args::parse();
-    println!("Movement Subnet Transaction Stress Test...\n");
+    println!("--------------{}----------------","Movement Subnet Transaction Stress Test...");
     // TODO: Check if I need DisplayChain here in the error case.
     match args.command {
         BenchmarkCommand::ParamSweep(opt) => param_sweep(opt),
