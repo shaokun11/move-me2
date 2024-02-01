@@ -3,12 +3,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use aptos_crypto::_once_cell::sync::Lazy;
-use aptos_language_e2e_tests::account_universe::P2PTransferGen;
+use aptos_language_e2e_tests::account_universe::P2PEvmDepositGen;
 use aptos_metrics_core::{register_int_gauge, IntGauge};
 use aptos_push_metrics::MetricsPusher;
-use movement_evm_benchmark::transactions::TransactionBencher;
 use aptos_vm_logging::disable_speculative_logging;
 use clap::{Parser, Subcommand};
+use movement_evm_benchmark::transactions::TransactionBencher;
 use proptest::prelude::*;
 use std::{
     net::SocketAddr,
@@ -95,7 +95,7 @@ fn param_sweep(opt: ParamSweepOpt) {
     let block_sizes = opt.block_sizes.unwrap_or_else(|| vec![1000, 10000, 50000]);
     let concurrency_level = num_cpus::get();
 
-    let bencher = TransactionBencher::new(any_with::<P2PTransferGen>((1_000, 1_000_000)));
+    let bencher = TransactionBencher::new(any_with::<P2PEvmDepositGen>((1_000, 1_000_000)));
 
     let mut par_measurements: Vec<Vec<usize>> = Vec::new();
     let mut seq_measurements: Vec<Vec<usize>> = Vec::new();
@@ -133,9 +133,7 @@ fn param_sweep(opt: ParamSweepOpt) {
         }
     }
 
-
     println!("\nconcurrency_level = {}\n", concurrency_level);
-
 
     let mut i = 0;
     for block_size in &block_sizes {
@@ -176,7 +174,7 @@ fn param_sweep(opt: ParamSweepOpt) {
 
 fn execute(opt: ExecuteOpt) {
     disable_speculative_logging();
-    let bencher = TransactionBencher::new(any_with::<P2PTransferGen>((1_000, 1_000_000)));
+    let bencher = TransactionBencher::new(any_with::<P2PEvmDepositGen>((1_000, 1_000_000)));
 
     let (par_tps, _) = bencher.blockstm_benchmark(
         opt.num_accounts,
