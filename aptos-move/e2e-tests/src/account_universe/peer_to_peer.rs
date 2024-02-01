@@ -161,7 +161,7 @@ impl AUTransactionGen for P2PEvmDepositGen {
 
         // Now figure out whether the transaction will actually work.
         // This means that we'll get through the main part of the transaction.
-        let gas_amount = sender.peer_to_peer_gas_cost() * txn.gas_unit_price();
+        let gas_amount = sender.peer_to_peer_evm_deposit_gas_cost() * txn.gas_unit_price();
         let to_deduct = self.amount / 10 + gas_amount;
         // Expect a failure if the amount is greater than the current balance.
         // XXX return the failure somehow?
@@ -169,7 +169,7 @@ impl AUTransactionGen for P2PEvmDepositGen {
         sender.sent_events_count += 1;
         sender.balance -= to_deduct;
         let status = TransactionStatus::Keep(ExecutionStatus::Success);
-        let gas_used = sender.peer_to_peer_gas_cost();
+        let gas_used = sender.peer_to_peer_evm_deposit_gas_cost();
         (txn, (status, gas_used))
     }
 }

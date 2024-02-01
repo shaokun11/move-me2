@@ -202,6 +202,10 @@ impl AccountCurrent {
         *gas_costs::PEER_TO_PEER
     }
 
+    pub fn peer_to_peer_evm_deposit_gas_cost(&self) -> u64 {
+        *gas_costs::PEER_TO_PEER_EVM_DEPOSIT
+    }
+
     /// Returns the gas cost of a peer-to-peer transaction with an insufficient balance.
     pub fn peer_to_peer_too_low_gas_cost(&self) -> u64 {
         *gas_costs::PEER_TO_PEER_TOO_LOW
