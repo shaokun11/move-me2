@@ -8,9 +8,18 @@ use crate::account::Account;
 use aptos_cached_packages::aptos_framework_sdk_builder;
 use aptos_cached_packages::aptos_stdlib;
 use aptos_types::transaction::{Script, SignedTransaction};
+use ethers::{
+    core::{types::transaction, types::TransactionRequest, utils::Anvil},
+    middleware::SignerMiddleware,
+    providers::{Http, Middleware, Provider},
+    signers::{LocalWallet, Signer},
+    types::{
+        transaction::{eip2718::TypedTransaction, eip712::Eip712},
+        Address, Signature, H256, U256,
+    },
+};
 use move_ir_compiler::Compiler;
 use once_cell::sync::Lazy;
-
 pub static EMPTY_SCRIPT: Lazy<Vec<u8>> = Lazy::new(|| {
     let code = "
     main(account: signer) {
@@ -96,6 +105,40 @@ pub fn peer_to_peer_evm_deposit_txn(
     sender
         .transaction()
         .payload(aptos_framework_sdk_builder::evm_deposit(to, v))
+        .sequence_number(seq_num)
+        .gas_unit_price(gas_unit_price)
+        .sign()
+}
+
+pub fn peer_to_peer_evm_send_txn(
+    sender: &Account,
+    seq_num: u64,
+    gas_unit_price: u64,
+) -> SignedTransaction {
+    let anvil = Anvil::new().spawn();
+    let from: LocalWallet = anvil.keys()[0].clone().into();
+    let to: LocalWallet = anvil.keys()[1].clone().into();
+    let tx = TransactionRequest::new()
+        .from(from.address())
+        .to(to.address())
+        .value(1000000000)
+        .gas_price(1000000000)
+        .gas(1000000)
+        .data(vec![])
+        .nonce(0);
+    let tx = TypedTransaction::Legacy(tx);
+    let signature = from.sign_transaction_sync(&tx).unwrap();
+    let bytes = tx.rlp_signed(&signature).to_vec();
+    let evm_gas: u64 = 0;
+    // get a SignedTransaction
+    sender
+        .transaction()
+        .payload(aptos_framework_sdk_builder::evm_send_tx(
+            vec![],
+            bytes,
+            evm_gas.to_be_bytes().to_vec(),
+            1,
+        ))
         .sequence_number(seq_num)
         .gas_unit_price(gas_unit_price)
         .sign()
