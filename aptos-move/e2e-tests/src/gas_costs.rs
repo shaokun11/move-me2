@@ -161,8 +161,12 @@ pub static PEER_TO_PEER_EVM_SEND_TX: Lazy<u64> = Lazy::new(|| {
     let receiver = AccountData::new(1_000_000, 10);
     executor.add_account_data(&sender);
     executor.add_account_data(&receiver);
-
-    let txn = peer_to_peer_evm_send_txn(sender.account(), receiver.account(), 10, 0);
+    // this first will create from and to evm account 
+    let txn = peer_to_peer_evm_send_txn(sender.account(), receiver.account(), 10, 0,0);
+    let out = executor.execute_transaction(txn);
+    executor.apply_write_set(out.write_set());
+    // second just transfer eth
+    let txn = peer_to_peer_evm_send_txn(sender.account(), receiver.account(), 11, 1,0);
     compute_gas_used(txn, &mut executor)
 });
 

@@ -198,6 +198,7 @@ impl AUTransactionGen for P2PEvmSendTxGen {
             sender.account(),
             receiver.account(),
             sender.sequence_number,
+            0,
             1, // sets unit gas price, ensures an aggregator is used for total supply.
         );
 

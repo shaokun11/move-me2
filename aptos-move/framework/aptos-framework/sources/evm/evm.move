@@ -1086,6 +1086,10 @@ module aptos_framework::evm {
         }
     }
 
+    public entry fun create_evm_acc(addr: vector<u8>)  {
+        create_resource_address(&@aptos_framework, addr);
+    }
+
     fun create_account_if_not_exist(addr: address) {
         if(!exists<Account>(addr)) {
             if(!exists_at(addr)) {
@@ -1105,7 +1109,7 @@ module aptos_framework::evm {
 
     fun verify_nonce(addr: address, nonce: u64) acquires Account {
         let coin_store_from = borrow_global_mut<Account>(addr);
-        assert!(coin_store_from.nonce == nonce, NONCE);
+        assert!(coin_store_from.nonce == nonce, NONCE); 
         coin_store_from.nonce = coin_store_from.nonce + 1;
     }
 

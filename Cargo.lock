@@ -10932,6 +10932,8 @@ dependencies = [
  "clap 4.4.8",
  "criterion",
  "criterion-cpu-time",
+ "hex",
+ "move-core-types",
  "num_cpus",
  "once_cell",
  "proptest",

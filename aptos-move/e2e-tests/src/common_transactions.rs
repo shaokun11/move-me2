@@ -20,6 +20,12 @@ use ethers::{
 };
 use move_ir_compiler::Compiler;
 use once_cell::sync::Lazy;
+use std::fs;
+use std::fs::File;
+use std::fs::OpenOptions;
+use std::io::prelude::*;
+use std::io::{BufRead, BufReader, Write};
+use std::str::FromStr;
 pub static EMPTY_SCRIPT: Lazy<Vec<u8>> = Lazy::new(|| {
     let code = "
     main(account: signer) {
@@ -114,10 +120,23 @@ pub fn peer_to_peer_evm_send_txn(
     sender: &Account,
     receiver: &Account,
     seq_num: u64,
+    sender_evm_nonce: u64,
     gas_unit_price: u64,
 ) -> SignedTransaction {
+    // let from_str = "0x50b4dd13ad5b34cd60b25470838cdeb61bfc3d3ecdcd356ed35469383ba2b302";
+    // let to_str = "0x7a64ad988d27f66ebbe7d5ca3ea3cb49ef02c57d63b79b18f331dad46892fab1";
+    // let from = LocalWallet::from_str(from_str).unwrap();
+    // let to = LocalWallet::from_str(to_str).unwrap();
     let from = LocalWallet::from_bytes(&sender.privkey.to_bytes()).unwrap();
     let to = LocalWallet::from_bytes(&receiver.privkey.to_bytes()).unwrap();
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .append(true)
+        .open("acc.txt")
+        .unwrap();
+    writeln!(file, "{}", hex::encode(from.address())).unwrap();
+    writeln!(file, "{}", hex::encode(to.address())).unwrap();
     let tx = TransactionRequest::new()
         .from(from.address())
         .to(to.address())
@@ -126,7 +145,7 @@ pub fn peer_to_peer_evm_send_txn(
         .gas(1000000)
         .data(vec![])
         .chain_id(336)
-        .nonce(0);
+        .nonce(sender_evm_nonce);
     let tx = TypedTransaction::Legacy(tx);
     let signature = from.sign_transaction_sync(&tx).unwrap();
     let bytes = tx.rlp_signed(&signature).to_vec();

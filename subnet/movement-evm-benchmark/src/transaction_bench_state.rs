@@ -17,10 +17,11 @@ use aptos_types::{
     block_metadata::BlockMetadata,
     on_chain_config::{OnChainConfig, ValidatorSet},
     transaction::{
-        analyzed_transaction::AnalyzedTransaction, ExecutionStatus, Transaction, TransactionOutput,
-        TransactionStatus,
+        analyzed_transaction::AnalyzedTransaction, EntryFunction, ExecutionStatus, Transaction,
+        TransactionOutput, TransactionPayload, TransactionStatus,
     },
     vm_status::VMStatus,
+    write_set::WriteSet,
 };
 use aptos_vm::{
     block_executor::{AptosTransactionOutput, BlockAptosVM},
@@ -30,9 +31,12 @@ use aptos_vm::{
         ShardedBlockExecutor,
     },
 };
+use move_core_types::value::{serialize_values, MoveValue};
 use proptest::{collection::vec, prelude::Strategy, strategy::ValueTree, test_runner::TestRunner};
+use std::fs;
+use std::fs::OpenOptions;
+use std::io::{BufRead, BufReader, Write};
 use std::{net::SocketAddr, sync::Arc, time::Instant};
-
 pub struct TransactionBenchState<S> {
     num_transactions: usize,
     strategy: S,
@@ -42,6 +46,7 @@ pub struct TransactionBenchState<S> {
     block_partitioner: Option<Box<dyn BlockPartitioner>>,
     validator_set: ValidatorSet,
     state_view: Arc<FakeDataStore>,
+    executor: FakeExecutor,
 }
 
 impl<S> TransactionBenchState<S>
@@ -124,11 +129,14 @@ where
             block_partitioner,
             validator_set,
             state_view,
+            executor,
         }
     }
 
     pub fn gen_transaction(&mut self) -> Vec<Transaction> {
         let mut runner = TestRunner::default();
+        let acc = "acc.txt";
+        let _ = fs::remove_file(acc);
         let transaction_gens = vec(&self.strategy, self.num_transactions)
             .new_tree(&mut runner)
             .expect("creating a new value should succeed")
@@ -155,7 +163,18 @@ where
             vec![],
             1,
         );
-
+        let file = OpenOptions::new().read(true).open("acc.txt").unwrap();
+        let reader = BufReader::new(file);
+        for line in reader.lines() {
+            let line = line.unwrap();
+            if line.len() == 0 {
+                continue;
+            }
+            let line_bytes = hex::decode(line).unwrap();
+            let args = MoveValue::vector_u8(line_bytes).simple_serialize().unwrap();
+            self.executor
+                .exec("evm", "create_evm_acc", vec![], vec![args]);
+        }
         transactions.insert(0, Transaction::BlockMetadata(new_block));
         transactions
     }

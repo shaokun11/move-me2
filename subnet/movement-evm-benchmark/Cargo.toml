@@ -25,8 +25,10 @@ aptos-metrics-core = { workspace = true }
 aptos-node-resource-metrics = { workspace = true }
 aptos-push-metrics =  { workspace = true }
 aptos-types = { workspace = true }
+move-core-types = { workspace = true }
 aptos-vm = { workspace = true }
 aptos-vm-logging = { workspace = true }
+hex = { workspace = true }
 clap = { workspace = true }
 criterion = { workspace = true, features = ["html_reports"] }
 criterion-cpu-time = { workspace = true }
