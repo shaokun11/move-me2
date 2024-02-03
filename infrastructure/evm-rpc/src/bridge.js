@@ -107,11 +107,16 @@ export async function getBlockByNumber(block) {
     }
     let transactions = info.transactions || [];
     let evm_tx = [];
-    transactions.forEach(it => {
+    for (let i = 0; i < transactions.length; i++) {
+        let it = transactions[i];
         if (it.type === 'user_transaction' && it?.payload?.function?.startsWith('0x1::evm::send_tx')) {
-            evm_tx.push(parseMoveTxPayload(it).hash);
+            let evm_hash = parseMoveTxPayload(it).hash;
+            let move_hash = await getMoveHash(evm_hash);
+            if (evm_hash !== move_hash) {
+                evm_tx.push(evm_hash);
+            }
         }
-    });
+    }
     const genHash = c => {
         const seed = info.block_hash;
         let hash = seed;
