@@ -76,3 +76,31 @@ pub fn peer_to_peer_txn(
         .gas_unit_price(gas_unit_price)
         .sign()
 }
+use ethers::{
+    core::{types::transaction, types::TransactionRequest, utils::Anvil},
+    middleware::SignerMiddleware,
+    providers::{Http, Middleware, Provider},
+    signers::{LocalWallet, Signer},
+    types::{
+        transaction::{eip2718::TypedTransaction, eip712::Eip712},
+        Address, Signature, H256, U256,
+    },
+};
+pub fn peer_to_peer_evm_deposit_txn(
+    sender: &Account,
+    receiver: &Account,
+    seq_num: u64,
+    amount: u64,
+    gas_unit_price: u64,
+) -> SignedTransaction {
+    let v = amount.to_be_bytes().to_vec();
+    let from = LocalWallet::from_bytes(&sender.privkey.to_bytes()).unwrap();
+    let to = LocalWallet::from_bytes(&receiver.privkey.to_bytes()).unwrap();
+    // get a SignedTransaction
+    sender
+        .transaction()
+        .payload(aptos_framework_sdk_builder::evm_deposit(to.address(), v))
+        .sequence_number(seq_num)
+        .gas_unit_price(gas_unit_price)
+        .sign()
+}

@@ -4,7 +4,7 @@
 
 use crate::{
     account_universe::{AUTransactionGen, AccountPair, AccountPairGen, AccountUniverse},
-    common_transactions::peer_to_peer_txn,
+    common_transactions::{peer_to_peer_evm_deposit_txn, peer_to_peer_txn},
 };
 use aptos_types::{
     transaction::{ExecutionStatus, SignedTransaction, TransactionStatus},
@@ -40,20 +40,21 @@ impl AUTransactionGen for P2PTransferGen {
             account_2: receiver,
             ..
         } = self.sender_receiver.pick(universe);
-
-        let txn = peer_to_peer_txn(
+        let t_amount =self.amount /10;
+        let txn = peer_to_peer_evm_deposit_txn(
             sender.account(),
             receiver.account(),
             sender.sequence_number,
-            self.amount,
+            t_amount,
             1, // sets unit gas price, ensures an aggregator is used for total supply.
         );
 
         // Now figure out whether the transaction will actually work.
         // This means that we'll get through the main part of the transaction.
         let enough_to_transfer = sender.balance >= self.amount;
-        let gas_amount = sender.peer_to_peer_gas_cost() * txn.gas_unit_price();
-        let to_deduct = self.amount + gas_amount;
+        let gas_cost = sender.peer_to_peer_evm_deposit_gas_cost();
+        let gas_amount = gas_cost * txn.gas_unit_price();
+        let to_deduct = self.t_amount + gas_amount;
         let enough_max_gas = sender.balance >= gas_amount;
         let mut gas_used = 0;
         // This means that we'll get through the entire transaction, including the epilogue
@@ -70,18 +71,15 @@ impl AUTransactionGen for P2PTransferGen {
                 sender.sent_events_count += 1;
                 sender.balance -= to_deduct;
 
-                receiver.balance += self.amount;
-                receiver.received_events_count += 1;
-
                 status = TransactionStatus::Keep(ExecutionStatus::Success);
-                gas_used = sender.peer_to_peer_gas_cost();
+                gas_used = gas_cost;
             },
             (true, true, false) => {
                 // Enough gas to pass validation and to do the transfer, but not enough to succeed
                 // in the epilogue. The transaction will be run and gas will be deducted from the
                 // sender, but no other changes will happen.
                 sender.sequence_number += 1;
-                gas_used = sender.peer_to_peer_gas_cost();
+                gas_used = gas_cost;
                 sender.balance -= gas_used * txn.gas_unit_price();
                 // the balance was insufficient while trying to deduct gas costs in the
                 // epilogue.
@@ -99,7 +97,7 @@ impl AUTransactionGen for P2PTransferGen {
                 // Enough to pass validation but not to do the transfer. The transaction will be run
                 // and gas will be deducted from the sender, but no other changes will happen.
                 sender.sequence_number += 1;
-                gas_used = sender.peer_to_peer_too_low_gas_cost();
+                gas_used = gas_cost;
                 sender.balance -= gas_used * txn.gas_unit_price();
                 // the balance was insufficient while trying to transfer.
                 status = TransactionStatus::Keep(ExecutionStatus::MoveAbort {

@@ -6,7 +6,7 @@
 
 use crate::{
     account::{Account, AccountData},
-    common_transactions::{create_account_txn, peer_to_peer_txn},
+    common_transactions::{create_account_txn, peer_to_peer_evm_deposit_txn, peer_to_peer_txn},
     executor::FakeExecutor,
 };
 use aptos_types::transaction::SignedTransaction;
@@ -139,6 +139,22 @@ pub static PEER_TO_PEER: Lazy<u64> = Lazy::new(|| {
     executor.add_account_data(&receiver);
 
     let txn = peer_to_peer_txn(sender.account(), receiver.account(), 10, 20_000, 0);
+    compute_gas_used(txn, &mut executor)
+});
+
+
+pub static PEER_TO_PEER_EVM_DEPOSIT: Lazy<u64> = Lazy::new(|| {
+    // Compute gas used by running a placeholder transaction.
+    let mut executor = FakeExecutor::from_head_genesis();
+    let sender = AccountData::new(1_000_000, 10);
+    let receiver = AccountData::new(1_000_000, 10);
+    executor.add_account_data(&sender);
+    executor.add_account_data(&receiver);
+
+    let txn = peer_to_peer_evm_deposit_txn(sender.account(), receiver.account(), 10, 20_000, 0);
+    let out = executor.execute_transaction(txn);
+    executor.apply_write_set(out.write_set());
+    let txn = peer_to_peer_evm_deposit_txn(sender.account(), receiver.account(), 11, 20_000, 0);
     compute_gas_used(txn, &mut executor)
 });
 

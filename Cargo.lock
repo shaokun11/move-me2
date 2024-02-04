@@ -2215,6 +2215,7 @@ dependencies = [
  "aptos-vm-logging",
  "aptos-vm-types",
  "bcs 0.1.4",
+ "ethers",
  "goldenfile",
  "hex",
  "move-binary-format",
@@ -10882,6 +10883,35 @@ dependencies = [
  "proptest",
  "serde 1.0.192",
  "smallvec",
+]
+
+[[package]]
+name = "movement-evm-benchmark"
+version = "0.1.0"
+dependencies = [
+ "aptos-bitvec",
+ "aptos-block-executor",
+ "aptos-block-partitioner",
+ "aptos-crypto",
+ "aptos-executor-service",
+ "aptos-gas-schedule",
+ "aptos-language-e2e-tests",
+ "aptos-logger",
+ "aptos-metrics-core",
+ "aptos-node-resource-metrics",
+ "aptos-push-metrics",
+ "aptos-types",
+ "aptos-vm",
+ "aptos-vm-logging",
+ "clap 4.4.8",
+ "criterion",
+ "criterion-cpu-time",
+ "hex",
+ "move-core-types",
+ "num_cpus",
+ "once_cell",
+ "proptest",
+ "rayon",
 ]
 
 [[package]]

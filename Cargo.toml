@@ -3,6 +3,7 @@ resolver = "2"
 
 members = [
     "subnet",
+    "subnet/movement-evm-benchmark",
     "api",
     "api/openapi-spec-generator",
     "api/test-context",

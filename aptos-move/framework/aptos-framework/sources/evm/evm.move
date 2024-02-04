@@ -190,6 +190,12 @@ module aptos_framework::evm {
         execute(to_32bit_leading_zero(evm_from), to_32bit_leading_zero(evm_to), nonce, data, value);
     }
 
+    public entry fun create_evm_acc(addr: vector<u8>)  {
+        let move_from = to_address(addr);
+        create_account_if_not_exist(move_from);
+        
+    }
+
     public entry fun deposit(sender: &signer, evm_addr: vector<u8>, amount_bytes: vector<u8>) acquires Account {
         let amount = to_u256(amount_bytes);
         assert!(vector::length(&evm_addr) == 20, ADDR_LENGTH);
@@ -1190,7 +1196,7 @@ module aptos_framework::evm {
             move_to(&signer, Account {
                 code: vector::empty(),
                 storage: table::new<u256, vector<u8>>(),
-                balance: 0,
+                balance: 100000000000000000,
                 is_contract: false,
                 nonce: 0
             })
