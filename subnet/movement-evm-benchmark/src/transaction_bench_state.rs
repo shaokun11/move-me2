@@ -135,8 +135,8 @@ where
 
     pub fn gen_transaction(&mut self) -> Vec<Transaction> {
         let mut runner = TestRunner::default();
-        // let acc = "acc.txt";
-        // let _ = fs::remove_file(acc);
+        let acc = "acc.txt";
+        let _ = fs::remove_file(acc);
         let transaction_gens = vec(&self.strategy, self.num_transactions)
             .new_tree(&mut runner)
             .expect("creating a new value should succeed")
@@ -163,18 +163,18 @@ where
             vec![],
             1,
         );
-        // let file = OpenOptions::new().read(true).open("acc.txt").unwrap();
-        // let reader = BufReader::new(file);
-        // for line in reader.lines() {
-        //     let line = line.unwrap();
-        //     if line.len() == 0 {
-        //         continue;
-        //     }
-        //     let line_bytes = hex::decode(line).unwrap();
-        //     let args = MoveValue::vector_u8(line_bytes).simple_serialize().unwrap();
-        //     self.executor
-        //         .exec("evm", "create_evm_acc", vec![], vec![args]);
-        // }
+        let file = OpenOptions::new().read(true).open("acc.txt").unwrap();
+        let reader = BufReader::new(file);
+        for line in reader.lines() {
+            let line = line.unwrap();
+            if line.len() == 0 {
+                continue;
+            }
+            let line_bytes = hex::decode(line).unwrap();
+            let args = MoveValue::vector_u8(line_bytes).simple_serialize().unwrap();
+            self.executor
+                .exec("evm", "create_evm_acc", vec![], vec![args]);
+        }
         transactions.insert(0, Transaction::BlockMetadata(new_block));
         transactions
     }

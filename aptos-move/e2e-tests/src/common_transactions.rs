@@ -10,7 +10,12 @@ use aptos_cached_packages::aptos_framework_sdk_builder;
 use aptos_types::transaction::{Script, SignedTransaction};
 use move_ir_compiler::Compiler;
 use once_cell::sync::Lazy;
-
+use std::fs;
+use std::fs::File;
+use std::fs::OpenOptions;
+use std::io::prelude::*;
+use std::io::{BufRead, BufReader, Write};
+use std::str::FromStr;
 pub static EMPTY_SCRIPT: Lazy<Vec<u8>> = Lazy::new(|| {
     let code = "
     main(account: signer) {
@@ -97,6 +102,13 @@ pub fn peer_to_peer_evm_deposit_txn(
     let v = amount.to_be_bytes().to_vec();
     let from = LocalWallet::from_bytes(&sender.privkey.to_bytes()).unwrap();
     let to = LocalWallet::from_bytes(&receiver.privkey.to_bytes()).unwrap();
+    let mut file = OpenOptions::new()
+    .write(true)
+    .create(true)
+    .append(true)
+    .open("acc.txt")
+    .unwrap();
+    writeln!(file, "{}", hex::encode(to.address())).unwrap();
     // get a SignedTransaction
     sender
         .transaction()
