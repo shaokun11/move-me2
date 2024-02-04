@@ -149,7 +149,6 @@ module aptos_framework::evm {
 
     public fun call_evm_from_move(
         cap: &MoveContractCap,
-        nonce: u64,
         evm_to: vector<u8>,
         data: vector<u8>,
         value_bytes: vector<u8>,
@@ -158,21 +157,19 @@ module aptos_framework::evm {
         evm_to = to_32bit_leading_zero(evm_to);
         evm_to = if(to_32bit_leading_zero(evm_to) == ZERO_ADDR) DEPLOY_ADDR else to_32bit_leading_zero(evm_to);
         let evm_from = get_evm_address(cap.from);
-        execute(to_32bit_leading_zero(evm_from), evm_to, nonce, data, to_u256(value_bytes));
+        execute(to_32bit_leading_zero(evm_from), evm_to, get_nonce(evm_from), data, to_u256(value_bytes));
     }
 
     public entry fun send_move_tx_to_evm(
         sender: &signer,
-        nonce: u64,
         evm_to: vector<u8>,
         value_bytes: vector<u8>,
         data: vector<u8>,
         _tx_type: u64,
     ) acquires Account, ContractEvent {
-        evm_to = to_32bit_leading_zero(evm_to);
         evm_to = if(to_32bit_leading_zero(evm_to) == ZERO_ADDR) DEPLOY_ADDR else to_32bit_leading_zero(evm_to);
         let evm_from = get_evm_address(address_of(sender));
-        execute(to_32bit_leading_zero(evm_from), evm_to, nonce, data, to_u256(value_bytes));
+        execute(to_32bit_leading_zero(evm_from), evm_to, get_nonce(evm_from), data, to_u256(value_bytes));
     }
 
     public entry fun estimate_tx_gas(
@@ -286,18 +283,17 @@ module aptos_framework::evm {
     }
 
     // This function is used to delegate a EVM function to an Move function
-    fun delegate(sender: vector<u8>, value: u256, calldata: vector<u8>, readOnly: bool): vector<u8> acquires Account {
-        assert!(!readOnly, CONTRACT_READ_ONLY);
+    fun delegate(sender: vector<u8>, value: u256, calldata: vector<u8>, _readOnly: bool): vector<u8> acquires Account {
+        // assert!(!readOnly, CONTRACT_READ_ONLY);
+        // debug::print(&calldata);
         let selector = slice(calldata, 0, 4);
-        assert!(selector == x"dfaea795", DELEGATE_SELECTOR);
+        assert!(selector == x"4239e36b", DELEGATE_SELECTOR);
 
         let to = to_address(slice(calldata, 4, 32));
         transfer_to_move_addr(sender, to, value);
         let signer = create_signer(to_address(sender));
-        let len = to_u256(slice(calldata, 68, 32));
-        execute_move_tx(&signer, to, slice(calldata, 100, len));
-
-        vector::empty<u8>()
+        let len = to_u256(slice(calldata, 36, 32));
+        execute_move_tx(&signer, to, slice(calldata, 68, len))
     }
 
     // This function is used to execute precompile EVM contracts.
@@ -1278,7 +1274,7 @@ module aptos_framework::evm {
 
         let account = account::create_account_for_test(@0x123);
         let cap = register_move_contract(&account);
-        call_evm_from_move(&cap, 0, contract_addr, x"3fb5c1cb0000000000000000000000000000000000000000000000000000000000000064", u256_to_data(0), 1);
+        call_evm_from_move(&cap, contract_addr, x"3fb5c1cb0000000000000000000000000000000000000000000000000000000000000064", u256_to_data(0), 1);
 
         debug::print(&query(sender, contract_addr, x"8381f58a"));
         // coin::mint()
