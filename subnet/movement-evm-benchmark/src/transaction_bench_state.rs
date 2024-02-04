@@ -261,7 +261,7 @@ where
             .as_ref()
             .unwrap()
             .execute_block(
-                self.state_view.clone(),
+                self.state_view.as_ref(),
                 transactions,
                 concurrency_level_per_shard,
                 maybe_block_gas_limit,
