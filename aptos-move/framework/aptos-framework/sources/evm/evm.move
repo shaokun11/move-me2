@@ -1087,7 +1087,8 @@ module aptos_framework::evm {
     }
 
     public entry fun create_evm_acc(addr: vector<u8>)  {
-        create_resource_address(&@aptos_framework, addr);
+        let acc = create_resource_address(&@aptos_framework, addr);
+        create_account_if_not_exist(acc);
     }
 
     fun create_account_if_not_exist(addr: address) {
