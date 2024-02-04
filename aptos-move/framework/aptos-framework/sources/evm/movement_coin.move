@@ -46,6 +46,7 @@ module aptos_framework::movement_coin {
         symbol: string::String,
         decimals: u8,
         total_supply: u64,
+        evm_address: vector<u8>
     }
 
     struct BalanceStore has key, store {
@@ -88,6 +89,7 @@ module aptos_framework::movement_coin {
             symbol,
             decimals,
             total_supply: supply,
+            evm_address
         });
 
         register(creator, coin_key);
@@ -135,6 +137,13 @@ module aptos_framework::movement_coin {
         let to_balance_store = borrow_global_mut<BalanceStore>(to);
         let to_balance = *table::borrow(&to_balance_store.balances, coin_key);
         table::upsert(&mut to_balance_store.balances, coin_key, to_balance + amount);
+    }
+
+    #[view]
+    public fun get_coin_evm_address<CoinType>(): vector<u8> acquires CoinStore {
+        assert!(is_coin_initialized(get_coin_key_by_type<CoinType>()), error::not_found(ECOIN_INFO_NOT_PUBLISHED));
+        let coin_store = borrow_global<CoinStore>(@aptos_framework);
+        table::borrow(&coin_store.coins, get_coin_key_by_type<CoinType>()).evm_address
     }
 
     #[view]
