@@ -1,7 +1,7 @@
 Movement Evm Stress Test
 =====================
 
-A stress test for the Movement project.
+A stress test for the Movement subnet project.
 
 Usage
 -----
