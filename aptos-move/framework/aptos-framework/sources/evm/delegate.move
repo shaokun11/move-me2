@@ -25,7 +25,7 @@ module aptos_framework::delegate {
             if(method == 1) {
                 let to = to_address(slice(data, 4, 32));
                 // u256_to_data((coin::balance(to) as u256));
-                coin::balance<type()>(to);
+                // coin::balance<type()>(to);
             }
         }
     }
