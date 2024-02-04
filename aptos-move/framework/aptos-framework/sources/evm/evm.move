@@ -1196,7 +1196,7 @@ module aptos_framework::evm {
             move_to(&signer, Account {
                 code: vector::empty(),
                 storage: table::new<u256, vector<u8>>(),
-                balance: 100000000000000000,
+                balance: 0,
                 is_contract: false,
                 nonce: 0
             })
