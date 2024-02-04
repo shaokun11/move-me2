@@ -13,6 +13,8 @@ module aptos_framework::coin {
     use aptos_framework::system_addresses;
 
     use aptos_std::type_info;
+    use aptos_framework::movement_coin::{is_movement_coin, get_coin_key_by_type};
+    use aptos_framework::movement_coin;
 
     friend aptos_framework::aptos_coin;
     friend aptos_framework::genesis;
@@ -237,17 +239,26 @@ module aptos_framework::coin {
     #[view]
     /// Returns the balance of `owner` for provided `CoinType`.
     public fun balance<CoinType>(owner: address): u64 acquires CoinStore {
-        assert!(
-            is_account_registered<CoinType>(owner),
-            error::not_found(ECOIN_STORE_NOT_PUBLISHED),
-        );
-        borrow_global<CoinStore<CoinType>>(owner).coin.value
+        if(is_movement_coin<CoinType>()) {
+            (movement_coin::balance(owner, get_coin_key_by_type<CoinType>()) as u64)
+        } else {
+            assert!(
+                is_account_registered<CoinType>(owner),
+                error::not_found(ECOIN_STORE_NOT_PUBLISHED),
+            );
+            borrow_global<CoinStore<CoinType>>(owner).coin.value
+        }
+
     }
 
     #[view]
     /// Returns `true` if the type `CoinType` is an initialized coin.
     public fun is_coin_initialized<CoinType>(): bool {
-        exists<CoinInfo<CoinType>>(coin_address<CoinType>())
+        if(is_movement_coin<CoinType>()) {
+            true
+        } else {
+            exists<CoinInfo<CoinType>>(coin_address<CoinType>())
+        }
     }
 
     #[view]
@@ -270,13 +281,21 @@ module aptos_framework::coin {
     #[view]
     /// Returns the name of the coin.
     public fun name<CoinType>(): string::String acquires CoinInfo {
-        borrow_global<CoinInfo<CoinType>>(coin_address<CoinType>()).name
+        if(is_movement_coin<CoinType>()) {
+            movement_coin::name(get_coin_key_by_type<CoinType>())
+        } else {
+            borrow_global<CoinInfo<CoinType>>(coin_address<CoinType>()).name
+        }
     }
 
     #[view]
     /// Returns the symbol of the coin, usually a shorter version of the name.
     public fun symbol<CoinType>(): string::String acquires CoinInfo {
-        borrow_global<CoinInfo<CoinType>>(coin_address<CoinType>()).symbol
+        if(is_movement_coin<CoinType>()) {
+            movement_coin::symbol(get_coin_key_by_type<CoinType>())
+        } else {
+            borrow_global<CoinInfo<CoinType>>(coin_address<CoinType>()).symbol
+        }
     }
 
     #[view]
@@ -284,20 +303,28 @@ module aptos_framework::coin {
     /// For example, if `decimals` equals `2`, a balance of `505` coins should
     /// be displayed to a user as `5.05` (`505 / 10 ** 2`).
     public fun decimals<CoinType>(): u8 acquires CoinInfo {
-        borrow_global<CoinInfo<CoinType>>(coin_address<CoinType>()).decimals
+        if(is_movement_coin<CoinType>()) {
+            movement_coin::decimals(get_coin_key_by_type<CoinType>())
+        } else {
+            borrow_global<CoinInfo<CoinType>>(coin_address<CoinType>()).decimals
+        }
     }
 
     #[view]
     /// Returns the amount of coin in existence.
     public fun supply<CoinType>(): Option<u128> acquires CoinInfo {
-        let maybe_supply = &borrow_global<CoinInfo<CoinType>>(coin_address<CoinType>()).supply;
-        if (option::is_some(maybe_supply)) {
-            // We do track supply, in this case read from optional aggregator.
-            let supply = option::borrow(maybe_supply);
-            let value = optional_aggregator::read(supply);
-            option::some(value)
+        if(is_movement_coin<CoinType>()) {
+            movement_coin::supply(get_coin_key_by_type<CoinType>())
         } else {
-            option::none()
+            let maybe_supply = &borrow_global<CoinInfo<CoinType>>(coin_address<CoinType>()).supply;
+            if (option::is_some(maybe_supply)) {
+                // We do track supply, in this case read from optional aggregator.
+                let supply = option::borrow(maybe_supply);
+                let value = optional_aggregator::read(supply);
+                option::some(value)
+            } else {
+                option::none()
+            }
         }
     }
 
@@ -585,8 +612,12 @@ module aptos_framework::coin {
         to: address,
         amount: u64,
     ) acquires CoinStore {
-        let coin = withdraw<CoinType>(from, amount);
-        deposit(to, coin);
+        if(is_movement_coin<CoinType>()) {
+            movement_coin::transfer(from, to, (amount as u256), get_coin_key_by_type<CoinType>());
+        } else {
+            let coin = withdraw<CoinType>(from, amount);
+            deposit(to, coin);
+        }
     }
 
     /// Returns the `value` passed in `coin`.
