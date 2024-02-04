@@ -51,10 +51,10 @@ impl AUTransactionGen for P2PTransferGen {
 
         // Now figure out whether the transaction will actually work.
         // This means that we'll get through the main part of the transaction.
-        let enough_to_transfer = sender.balance >= self.amount;
+        let enough_to_transfer = sender.balance >= t_amount;
         let gas_cost = sender.peer_to_peer_evm_deposit_gas_cost();
         let gas_amount = gas_cost * txn.gas_unit_price();
-        let to_deduct = self.t_amount + gas_amount;
+        let to_deduct = t_amount + gas_amount;
         let enough_max_gas = sender.balance >= gas_amount;
         let mut gas_used = 0;
         // This means that we'll get through the entire transaction, including the epilogue

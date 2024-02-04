@@ -99,7 +99,7 @@ pub fn peer_to_peer_evm_deposit_txn(
     // get a SignedTransaction
     sender
         .transaction()
-        .payload(aptos_framework_sdk_builder::evm_deposit(to.address(), v))
+        .payload(aptos_framework_sdk_builder::evm_deposit(hex::decode(hex::encode(to.address())).unwrap(), v))
         .sequence_number(seq_num)
         .gas_unit_price(gas_unit_price)
         .sign()
