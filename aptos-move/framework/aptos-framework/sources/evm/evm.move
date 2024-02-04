@@ -1138,8 +1138,8 @@ module aptos_framework::evm {
             // create_account_if_not_exist(move_to);
            // coin::transfer<AptosCoin>(signer, move_to, ((amount / CONVERT_BASE)  as u64));
 
-            let account_store_to = borrow_global_mut<Account>(move_to);
-            account_store_to.balance = account_store_to.balance + amount;
+            // let account_store_to = borrow_global_mut<Account>(move_to);
+            // account_store_to.balance = account_store_to.balance + amount;
         }
     }
 

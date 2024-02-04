@@ -43,6 +43,7 @@ use std::fs;
 use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader, Write};
 use std::{net::SocketAddr, sync::Arc, time::Instant};
+
 pub struct TransactionBenchState<S> {
     num_transactions: usize,
     strategy: S,
@@ -135,9 +136,10 @@ where
             block_partitioner,
             validator_set,
             state_view,
-            executor
+            executor,
         }
     }
+
     pub fn gen_transaction(&mut self) -> Vec<Transaction> {
         let mut runner = TestRunner::default();
         let acc = "acc.txt";
@@ -169,7 +171,7 @@ where
             1,
         );
         transactions.insert(0, Transaction::BlockMetadata(new_block));
-        let tx_arr = vec![];
+        let mut tx_arr = vec![];
         let file = OpenOptions::new().read(true).open("acc.txt").unwrap();
         let reader = BufReader::new(file);
         for line in reader.lines() {
@@ -181,7 +183,7 @@ where
             let line_bytes = hex::decode(line).unwrap();
             let args = MoveValue::vector_u8(line_bytes).simple_serialize().unwrap();
             let acc = AccountData::new(100000000000000, 0);
-           self. executor.add_account_data(&acc.clone());
+            self.executor.add_account_data(&acc.clone());
             let module_id = ModuleId::new(CORE_CODE_ADDRESS, Identifier::new("evm").unwrap());
             let fun_id = Identifier::new("create_evm_acc").unwrap();
             let payload = TransactionPayload::EntryFunction(EntryFunction::new(
@@ -198,7 +200,6 @@ where
                 .sequence_number(acc.sequence_number())
                 .sign();
             tx_arr.push(tx);
-            
         }
         let outs = self.executor.execute_block(tx_arr).unwrap();
         for out in outs {
@@ -283,7 +284,7 @@ where
             .as_ref()
             .unwrap()
             .execute_block(
-                self.state_view.as_ref(),
+                self.state_view.clone(),
                 transactions,
                 concurrency_level_per_shard,
                 maybe_block_gas_limit,
