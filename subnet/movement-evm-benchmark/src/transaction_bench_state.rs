@@ -8,6 +8,7 @@ use aptos_block_partitioner::{
 };
 use aptos_crypto::HashValue;
 use aptos_language_e2e_tests::{
+    account::{Account, AccountData},
     account_universe::{AUTransactionGen, AccountPickStyle, AccountUniverse, AccountUniverseGen},
     data_store::FakeDataStore,
     executor::FakeExecutor,
@@ -31,7 +32,12 @@ use aptos_vm::{
         ShardedBlockExecutor,
     },
 };
-use move_core_types::value::{serialize_values, MoveValue};
+use move_core_types::{
+    account_address::AccountAddress,
+    identifier::Identifier,
+    language_storage::{ModuleId, CORE_CODE_ADDRESS},
+    value::{serialize_values, MoveValue},
+};
 use proptest::{collection::vec, prelude::Strategy, strategy::ValueTree, test_runner::TestRunner};
 use std::fs;
 use std::fs::OpenOptions;
@@ -89,6 +95,30 @@ where
             .current();
 
         let mut executor = FakeExecutor::from_head_genesis();
+
+        println!("---------------Creating EVM accounts...------");
+        let addr = "106ec2e1E61C65926e3e3E2D770a868b266e241d";
+        let line_bytes = hex::decode(addr).unwrap();
+        let args = MoveValue::vector_u8(line_bytes).simple_serialize().unwrap();
+        let acc = AccountAddress::from_hex_literal(addr).unwrap();
+        let acc = executor.new_account_data_at(addr);
+        let module_id = ModuleId::new(CORE_CODE_ADDRESS, Identifier::new("evm").unwrap());
+        let fun_id = Identifier::new("create_evm_acc").unwrap();
+        let payload = TransactionPayload::EntryFunction(EntryFunction::new(
+            module_id,
+            fun_id,
+            vec![],
+            vec![args],
+        ));
+        let tx = acc
+            .account()
+            .transaction()
+            .payload(payload)
+            .gas_unit_price(100)
+            .sequence_number(acc.sequence_number())
+            .sign();
+        executor.execute_and_apply(tx);
+        println!("Creating EVM accounts... end");
         // Run in gas-cost-stability mode for now -- this ensures that new accounts are ignored.
         // XXX We may want to include new accounts in case they have interesting performance
         // characteristics.
