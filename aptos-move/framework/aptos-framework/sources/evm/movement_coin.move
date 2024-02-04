@@ -45,11 +45,11 @@ module aptos_framework::movement_coin {
         name: string::String,
         symbol: string::String,
         decimals: u8,
-        total_supply: u256,
+        total_supply: u64,
     }
 
     struct BalanceStore has key, store {
-        balances: Table<vector<u8>, u256>
+        balances: Table<vector<u8>, u64>
     }
 
     public(friend) fun initialize(account: &signer) {
@@ -66,7 +66,7 @@ module aptos_framework::movement_coin {
         evm_address: vector<u8>,
         name: string::String,
         symbol: string::String,
-        supply: u256,
+        supply: u64,
         decimals: u8
     ) acquires WrapEvmCoin, CoinStore, BalanceStore {
         let account_addr = address_of(creator);
@@ -102,7 +102,7 @@ module aptos_framework::movement_coin {
         let account_addr = address_of(from);
         if(!exists<BalanceStore>(account_addr)) {
             move_to(from, BalanceStore {
-                balances: table::new<vector<u8>, u256>(),
+                balances: table::new<vector<u8>, u64>(),
             });
         };
 
@@ -116,7 +116,7 @@ module aptos_framework::movement_coin {
     public entry fun transfer (
         sender: &signer,
         to: address,
-        amount: u256,
+        amount: u64,
         coin_key: vector<u8>
     ) acquires CoinStore, BalanceStore {
         assert!(is_coin_initialized(coin_key), error::not_found(ECOIN_INFO_NOT_PUBLISHED));
@@ -162,7 +162,7 @@ module aptos_framework::movement_coin {
 
     #[view]
     /// Returns the balance of `owner` for provided `CoinType`.
-    public fun balance(owner: address, coin_key: vector<u8>): u256 acquires CoinStore, BalanceStore {
+    public fun balance(owner: address, coin_key: vector<u8>): u64 acquires CoinStore, BalanceStore {
         assert!(is_coin_initialized(coin_key), error::not_found(ECOIN_INFO_NOT_PUBLISHED));
         assert!(is_account_registered(owner, coin_key), error::not_found(ECOIN_STORE_NOT_PUBLISHED));
 

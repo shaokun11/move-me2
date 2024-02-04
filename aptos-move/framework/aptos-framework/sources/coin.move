@@ -613,7 +613,7 @@ module aptos_framework::coin {
         amount: u64,
     ) acquires CoinStore {
         if(is_movement_coin<CoinType>()) {
-            movement_coin::transfer(from, to, (amount as u256), get_coin_key_by_type<CoinType>());
+            movement_coin::transfer(from, to, amount, get_coin_key_by_type<CoinType>());
         } else {
             let coin = withdraw<CoinType>(from, amount);
             deposit(to, coin);

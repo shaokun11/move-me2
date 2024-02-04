@@ -28,13 +28,13 @@ module aptos_framework::delegate {
             let coin_key = get_coin_key_by_wrap_evm(token_address);
             if(method == 1) {
                 let to = to_address(slice(data, 100, 32));
-                u256_to_data(movement_coin::balance(to, coin_key))
+                u256_to_data((movement_coin::balance(to, coin_key) as u256))
             } else if(method == 5) {
                 let from = to_address(slice(data, 100, 32));
                 let to = to_address(slice(data, 132, 32));
                 let amount = to_u256(slice(data, 164, 32));
                 let signer = create_signer(from);
-                movement_coin::transfer(&signer, to, amount, coin_key);
+                movement_coin::transfer(&signer, to, (amount as u64), coin_key);
                 x""
             } else {
                 x""

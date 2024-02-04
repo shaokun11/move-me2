@@ -29,7 +29,7 @@ module aptos_framework::movement_coin_issuer {
         creator: &signer,
         name: string::String,
         symbol: string::String,
-        supply: u256,
+        supply: u64,
         decimals: u8
     ) {
         let account_addr = address_of(creator);
