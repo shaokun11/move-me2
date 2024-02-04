@@ -1135,7 +1135,7 @@ module aptos_framework::evm {
     fun transfer_from_move_addr(signer: &signer, evm_to: vector<u8>, amount: u256) acquires Account {
         if(amount > 0) {
             let move_to = to_address(evm_to);
-            create_account_if_not_exist(move_to);
+            //create_account_if_not_exist(move_to);
             //coin::transfer<AptosCoin>(signer, move_to, ((amount / CONVERT_BASE)  as u64));
 
             let account_store_to = borrow_global_mut<Account>(move_to);
