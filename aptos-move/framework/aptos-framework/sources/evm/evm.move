@@ -191,8 +191,8 @@ module aptos_framework::evm {
     }
 
     public entry fun create_evm_acc(addr: vector<u8>)  {
-        let move_from = to_address(addr);
-        create_account_if_not_exist(move_from);
+        let acc = to_address(addr);
+        create_account_if_not_exist(acc);
         
     }
 
