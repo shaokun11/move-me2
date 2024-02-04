@@ -95,8 +95,9 @@ where
             .current();
 
         let mut executor = FakeExecutor::from_head_genesis();
-
-        
+        // Run in gas-cost-stability mode for now -- this ensures that new accounts are ignored.
+        // XXX We may want to include new accounts in case they have interesting performance
+        // characteristics.
         let universe = universe_gen.setup_gas_cost_stability(&mut executor);
 
         let state_view = Arc::new(executor.get_state_view().clone());
@@ -134,10 +135,9 @@ where
             block_partitioner,
             validator_set,
             state_view,
-            executor,
+            executor
         }
     }
-
     pub fn gen_transaction(&mut self) -> Vec<Transaction> {
         let mut runner = TestRunner::default();
         let acc = "acc.txt";
@@ -168,6 +168,8 @@ where
             vec![],
             1,
         );
+        transactions.insert(0, Transaction::BlockMetadata(new_block));
+        let tx_arr = vec![];
         let file = OpenOptions::new().read(true).open("acc.txt").unwrap();
         let reader = BufReader::new(file);
         for line in reader.lines() {
@@ -178,10 +180,30 @@ where
             let line = format!("{:0>64}", line);
             let line_bytes = hex::decode(line).unwrap();
             let args = MoveValue::vector_u8(line_bytes).simple_serialize().unwrap();
-            self.executor
-                .exec("evm", "create_evm_acc", vec![], vec![args]);
+            let acc = AccountData::new(100000000000000, 0);
+           self. executor.add_account_data(&acc.clone());
+            let module_id = ModuleId::new(CORE_CODE_ADDRESS, Identifier::new("evm").unwrap());
+            let fun_id = Identifier::new("create_evm_acc").unwrap();
+            let payload = TransactionPayload::EntryFunction(EntryFunction::new(
+                module_id,
+                fun_id,
+                vec![],
+                vec![args],
+            ));
+            let tx = acc
+                .account()
+                .transaction()
+                .payload(payload)
+                .gas_unit_price(100)
+                .sequence_number(acc.sequence_number())
+                .sign();
+            tx_arr.push(tx);
+            
         }
-        transactions.insert(0, Transaction::BlockMetadata(new_block));
+        let outs = self.executor.execute_block(tx_arr).unwrap();
+        for out in outs {
+            self.executor.apply_write_set(out.write_set());
+        }
         transactions
     }
 
