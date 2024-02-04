@@ -260,7 +260,8 @@ where
         >(
             Arc::clone(&RAYON_EXEC_POOL),
             transactions,
-            self.state_view.as_ref(),
+            // self.state_view.as_ref(),
+            Arc::new( self.executor.get_state_view()).as_ref(),
             1,
             maybe_block_gas_limit,
             None,
@@ -284,7 +285,8 @@ where
             .as_ref()
             .unwrap()
             .execute_block(
-                self.state_view.clone(),
+                // self.state_view.clone(),
+                Arc::new(self.executor.get_state_view().clone()),
                 transactions,
                 concurrency_level_per_shard,
                 maybe_block_gas_limit,
@@ -309,7 +311,8 @@ where
         >(
             Arc::clone(&RAYON_EXEC_POOL),
             transactions,
-            self.state_view.as_ref(),
+            // self.state_view.as_ref(),
+           Arc::new( self.executor.get_state_view()).as_ref(),
             concurrency_level_per_shard,
             maybe_block_gas_limit,
             None,
