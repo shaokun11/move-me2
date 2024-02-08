@@ -2,7 +2,6 @@
 resolver = "2"
 
 members = [
-    "subnet/movement-evm-benchmark",
     "subnet/movement-benchmark",
     "subnet",
     "api",
