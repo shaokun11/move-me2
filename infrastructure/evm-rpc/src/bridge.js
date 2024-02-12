@@ -93,7 +93,7 @@ export async function getBlock() {
  *   - transactionsRoot: string - The root of the transactions trie of the block
  *   - uncles: Array<string> - The uncle blocks of the block
  */
-export async function getBlockByNumber(block) {
+export async function getBlockByNumber(block, withTx) {
     if (block === 'latest') {
         let info = await client.getLedgerInfo();
         block = info.block_height;
@@ -127,6 +127,9 @@ export async function getBlockByNumber(block) {
         return hash;
     };
 
+    if (withTx && evm_tx.length > 0) {
+        evm_tx = await Promise.all(evm_tx.map(it => getTransactionByHash(it)));
+    }
     return {
         baseFeePerGas: '0xc', // eip1559
         difficulty: '0x0',

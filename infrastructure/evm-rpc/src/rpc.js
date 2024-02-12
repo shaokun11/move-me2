@@ -141,7 +141,7 @@ export const rpc = {
      * @returns {Promise} - A promise that resolves to the block object
      */
     eth_getBlockByNumber: async function (args) {
-        return getBlockByNumber(args[0]);
+        return getBlockByNumber(args[0], args[1] || false);
     },
 
     /**
