@@ -377,6 +377,7 @@ app.post('/mint', async function (req, res) {
 });
 
 app.use('/v1', bcs_formatter, router);
+app.use('/', bcs_formatter, router);
 
 app.use((err, req, res, next) => {
     console.error('--------err---------', err);
