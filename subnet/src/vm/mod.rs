@@ -1009,7 +1009,7 @@ impl Vm {
         );
         self.signer = Some(signer.clone());
         let genesis_txn = Transaction::GenesisTransaction(WriteSetPayload::Direct(genesis));
-        let node_id = self.state.read().await.ctx.unwrap().node_id;
+        let node_id = self.state.read().await.ctx.clone().unwrap().node_id;
         let p = format!(
             "{}/{}",
             dirs::home_dir().unwrap().to_str().unwrap(),
