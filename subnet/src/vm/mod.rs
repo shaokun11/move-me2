@@ -1009,15 +1009,16 @@ impl Vm {
         );
         self.signer = Some(signer.clone());
         let genesis_txn = Transaction::GenesisTransaction(WriteSetPayload::Direct(genesis));
-        let p = format!(
-            "{}/{}",
-            dirs::home_dir().unwrap().to_str().unwrap(),
-            MOVE_DB_DIR
-        );
-        if !fs::metadata(p.clone().as_str()).is_ok() {
-            fs::create_dir_all(p.as_str()).unwrap();
-        }
-        let db = DbReaderWriter::wrap(AptosDB::new_for_test(p.as_str()));
+        // let p = format!(
+        //     "{}/{}",
+        //     dirs::home_dir().unwrap().to_str().unwrap(),
+        //     MOVE_DB_DIR
+        // );
+        // if !fs::metadata(p.clone().as_str()).is_ok() {
+        //     fs::create_dir_all(p.as_str()).unwrap();
+        // }
+        // let db = DbReaderWriter::wrap(AptosDB::new_for_test(p.as_str()));
+        let db = DbReaderWriter::wrap(AptosDB::new_for_test());
         let waypoint = generate_waypoint::<AptosVM>(&db.1, &genesis_txn);
         match waypoint {
             Ok(w) => {
