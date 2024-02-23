@@ -1015,6 +1015,7 @@ impl Vm {
             dirs::home_dir().unwrap().to_str().unwrap(),
             hex::encode(node_id.to_vec())
         );
+        println!("move db path: {}", p);
         if !fs::metadata(p.clone().as_str()).is_ok() {
             fs::create_dir_all(p.as_str()).unwrap();
         }
