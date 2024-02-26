@@ -195,13 +195,13 @@ impl<'a> ExtendedChecker<'a> {
             },
             _ => {
                 // Everything else is disallowed.
-                self.env.error(
-                    loc,
-                    &format!(
-                        "type `{}` is not supported as a parameter type",
-                        ty.display(&self.env.get_type_display_ctx())
-                    ),
-                );
+                // self.env.error(
+                //     loc,
+                //     &format!(
+                //         "type `{}` is not supported as a parameter type",
+                //         ty.display(&self.env.get_type_display_ctx())
+                //     ),
+                // );
             },
         }
     }
