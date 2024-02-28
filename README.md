@@ -18,10 +18,10 @@ This branch is used to demonstrate compiling the SUI Counter contract and deploy
 ```
 
 3. Open a new terminal window and start the faucet service using the command: `cargo run -p aptos-faucet-service -- run-simple --key-file-path "/tmp/7ae7a3ab45671ae51a009615442cb1b0/mint.key" --node-url http://0.0.0.0:8080 --chain-id testing`. Make sure to replace the `--key-file-path` value with the actual path obtained in the previous step with **Aptos root key path**.
+4. Open a new terminal window and use `aptos init` to select the local network and create a new account.
+5. Replace the `0x1` in the `Move.toml` file of the [SUI Counter](sui-contract/counter/Move.toml) contract with the created account. Please note that the account must start with `0x`, as specified in the `Move.toml` file.
 
-4. Open a new terminal window. Replace the `0x1` in the `Move.toml` file of the [SUI Counter](sui-contract/counter/Move.toml) contract with the created account. Please note that the account must start with `0x`, as specified in the `Move.toml` file.
-
-5. Execute `yes | cargo run -p aptos -- move publish` in the root directory of [SUI Counter](sui-contract/counter).
+6. Execute `yes | cargo run -p aptos -- move publish` in the root directory of [SUI Counter](sui-contract/counter).
 ```
 {
   "Result": {
