@@ -1,235 +1,69 @@
 module aptos_framework::movement_coin {
-    friend aptos_framework::movement_coin_issuer;
-    friend aptos_framework::genesis;
-
+    use aptos_framework::evm::{get_nonce, get_evm_address, send_move_tx_to_evm};
     use std::string;
+    use std::signer::address_of;
+    use aptos_framework::evm_util::{get_contract_address, u256_to_data};
+    use std::bcs::to_bytes;
+    use aptos_framework::primary_fungible_store;
+    use aptos_framework::object;
+    use std::option;
+    use aptos_framework::object::{ConstructorRef};
+    use aptos_framework::fungible_asset::{Metadata};
+    use aptos_std::debug;
+    use aptos_framework::system_addresses;
     use aptos_std::table;
     use aptos_std::table::Table;
-    use aptos_std::type_info::{type_of, account_address, module_name, struct_name, TypeInfo};
-    use std::bcs::to_bytes;
     use std::vector;
-    use std::signer::address_of;
-    use std::error;
-    use std::option::Option;
-    use std::option;
-    use aptos_std::debug;
 
-    /// Address of account which is used to initialize a coin `CoinType` doesn't match the deployer of module
-    const ECOIN_INFO_ADDRESS_MISMATCH: u64 = 1;
-
-    /// `CoinType` is already initialized as a coin
-    const ECOIN_INFO_ALREADY_PUBLISHED: u64 = 2;
-
-    /// `CoinType` hasn't been initialized as a coin
-    const ECOIN_INFO_NOT_PUBLISHED: u64 = 3;
-
-    /// Deprecated. Account already has `CoinStore` registered for `CoinType`
-    const ECOIN_STORE_ALREADY_PUBLISHED: u64 = 4;
-
-    /// Account hasn't registered `CoinStore` for `CoinType`
-    const ECOIN_STORE_NOT_PUBLISHED: u64 = 5;
-
-    /// Not enough coins to complete transaction
-    const EINSUFFICIENT_BALANCE: u64 = 6;
-
-
-    struct WrapEvmCoin has key {
-        info: Table<vector<u8>, vector<u8>>
-    }
+    const COIN_DEPLOY_BYTECODE: vector<u8> = x"60806040526101016000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff16021790555034801561005257600080fd5b50604051610a56380380610a56833981810160405281019061007491906100bc565b80600181905550506100e9565b600080fd5b6000819050919050565b61009981610086565b81146100a457600080fd5b50565b6000815190506100b681610090565b92915050565b6000602082840312156100d2576100d1610081565b5b60006100e0848285016100a7565b91505092915050565b61095e806100f86000396000f3fe608060405234801561001057600080fd5b50600436106100365760003560e01c806370a082311461003b578063a9059cbb1461006b575b600080fd5b61005560048036038101906100509190610522565b61009b565b6040516100629190610568565b60405180910390f35b610085600480360381019061008091906105af565b610295565b604051610092919061060a565b60405180910390f35b60008060018054846040516020016100b59392919061069f565b6040516020818303038152906040526040516024016100d49190610766565b6040516020818303038152906040527f2c9e6315000000000000000000000000000000000000000000000000000000007bffffffffffffffffffffffffffffffffffffffffffffffffffffffff19166020820180517bffffffffffffffffffffffffffffffffffffffffffffffffffffffff838183161783525050505090506000816040516024016101669190610766565b6040516020818303038152906040527f4239e36b000000000000000000000000000000000000000000000000000000007bffffffffffffffffffffffffffffffffffffffffffffffffffffffff19166020820180517bffffffffffffffffffffffffffffffffffffffffffffffffffffffff8381831617835250505050905060008060009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168260405161022d91906107c4565b600060405180830381855afa9150503d8060008114610268576040519150601f19603f3d011682016040523d82523d6000602084013e61026d565b606091505b5091505060008180602001905181019061028791906107f0565b905080945050505050919050565b60008060056001543386866040516020016102b4959493929190610858565b6040516020818303038152906040526040516024016102d39190610766565b6040516020818303038152906040527f2c9e6315000000000000000000000000000000000000000000000000000000007bffffffffffffffffffffffffffffffffffffffffffffffffffffffff19166020820180517bffffffffffffffffffffffffffffffffffffffffffffffffffffffff838183161783525050505090506000816040516024016103659190610766565b6040516020818303038152906040527f4239e36b000000000000000000000000000000000000000000000000000000007bffffffffffffffffffffffffffffffffffffffffffffffffffffffff19166020820180517bffffffffffffffffffffffffffffffffffffffffffffffffffffffff8381831617835250505050905060008060009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168260405161042c91906107c4565b6000604051808303816000865af19150503d8060008114610469576040519150601f19603f3d011682016040523d82523d6000602084013e61046e565b606091505b50509050806104b2576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004016104a990610908565b60405180910390fd5b6001935050505092915050565b600080fd5b600073ffffffffffffffffffffffffffffffffffffffff82169050919050565b60006104ef826104c4565b9050919050565b6104ff816104e4565b811461050a57600080fd5b50565b60008135905061051c816104f6565b92915050565b600060208284031215610538576105376104bf565b5b60006105468482850161050d565b91505092915050565b6000819050919050565b6105628161054f565b82525050565b600060208201905061057d6000830184610559565b92915050565b61058c8161054f565b811461059757600080fd5b50565b6000813590506105a981610583565b92915050565b600080604083850312156105c6576105c56104bf565b5b60006105d48582860161050d565b92505060206105e58582860161059a565b9150509250929050565b60008115159050919050565b610604816105ef565b82525050565b600060208201905061061f60008301846105fb565b92915050565b6000819050919050565b600060ff82169050919050565b6000819050919050565b600061066161065c61065784610625565b61063c565b61062f565b9050919050565b61067181610646565b82525050565b6000819050919050565b61068a81610677565b82525050565b610699816104e4565b82525050565b60006060820190506106b46000830186610668565b6106c16020830185610681565b6106ce6040830184610690565b949350505050565b600081519050919050565b600082825260208201905092915050565b60005b838110156107105780820151818401526020810190506106f5565b60008484015250505050565b6000601f19601f8301169050919050565b6000610738826106d6565b61074281856106e1565b93506107528185602086016106f2565b61075b8161071c565b840191505092915050565b60006020820190508181036000830152610780818461072d565b905092915050565b600081905092915050565b600061079e826106d6565b6107a88185610788565b93506107b88185602086016106f2565b80840191505092915050565b60006107d08284610793565b915081905092915050565b6000815190506107ea81610583565b92915050565b600060208284031215610806576108056104bf565b5b6000610814848285016107db565b91505092915050565b6000819050919050565b600061084261083d6108388461081d565b61063c565b61062f565b9050919050565b61085281610827565b82525050565b600060a08201905061086d6000830188610849565b61087a6020830187610681565b6108876040830186610690565b6108946060830185610690565b6108a16080830184610559565b9695505050505050565b600082825260208201905092915050565b7f63616c6c206661696c6564000000000000000000000000000000000000000000600082015250565b60006108f2600b836108ab565b91506108fd826108bc565b602082019050919050565b60006020820190508181036000830152610921816108e5565b905091905056fea2646970667358221220985fa97a1422a6be1202d8055d05bc62fe4081130adf0af170fa87a5342d711b64736f6c63430008120033";
+    const ZERO_ADDR: vector<u8> =      x"0000000000000000000000000000000000000000000000000000000000000000";
 
     struct CoinStore has key {
-        coins: Table<vector<u8>, CoinInfo>
+        evm_to_move: Table<vector<u8>, address>
     }
 
-    struct CoinInfo has store {
-        name: string::String,
-        symbol: string::String,
-        decimals: u8,
-        total_supply: u64,
-        evm_address: vector<u8>
-    }
-
-    struct BalanceStore has key, store {
-        balances: Table<vector<u8>, u64>
-    }
-
-    public(friend) fun initialize(account: &signer) {
-        move_to(account, CoinStore {
-            coins: table::new<vector<u8>, CoinInfo>(),
-        });
-        move_to(account, WrapEvmCoin {
-            info: table::new<vector<u8>, vector<u8>>(),
+    public fun initialize(aptos_framework: &signer) {
+        system_addresses::assert_aptos_framework(aptos_framework);
+        move_to(aptos_framework, CoinStore {
+            evm_to_move: table::new<vector<u8>, address>()
         });
     }
 
-    public(friend) fun create<CoinType> (
+    #[view]
+    public fun create_movement_coin(
         creator: &signer,
-        evm_address: vector<u8>,
         name: string::String,
-        symbol: string::String,
-        supply: u64,
-        decimals: u8
-    ) acquires WrapEvmCoin, CoinStore, BalanceStore {
+        symbol: string::String
+    ): (ConstructorRef, vector<u8>) acquires CoinStore {
         let account_addr = address_of(creator);
+        let nonce = get_nonce(get_evm_address(account_addr));
+        let evm_address = get_contract_address(to_bytes(&account_addr), nonce);
 
-        let coin_key = get_coin_key_by_type<CoinType>();
-        debug::print(&coin_key);
-        assert!(!is_coin_initialized(coin_key), error::already_exists(ECOIN_INFO_ALREADY_PUBLISHED));
+        // Create the Move fungible asset
+        let constructor_ref = object::create_named_object(creator, evm_address);
+        let asset_address = object::create_object_address(&address_of(creator), evm_address);
 
-        assert!(
-            account_address(&type_of<CoinType>()) == account_addr,
-            error::invalid_argument(ECOIN_INFO_ADDRESS_MISMATCH),
-        );
+        // Deploy the EVM ERC20 contract
+        let byte_code = COIN_DEPLOY_BYTECODE;
+        vector::append(&mut byte_code, to_bytes(&asset_address));
+        send_move_tx_to_evm(creator, ZERO_ADDR, u256_to_data(0), byte_code, 1);
 
-        let wrap_evm_coins = borrow_global_mut<WrapEvmCoin>(@aptos_framework);
-        table::add(&mut wrap_evm_coins.info, evm_address, coin_key);
+        // Add the mapping from EVM address to Move address
         let coin_store = borrow_global_mut<CoinStore>(@aptos_framework);
-        table::add(&mut coin_store.coins, coin_key, CoinInfo {
+        table::add(&mut coin_store.evm_to_move, evm_address, asset_address);
+
+        primary_fungible_store::create_primary_store_enabled_fungible_asset(
+            &constructor_ref,
+            option::none(),
             name,
             symbol,
-            decimals,
-            total_supply: supply,
-            evm_address
-        });
+            6,
+            string::utf8(b""),
+            string::utf8(b""),
+        );
 
-        register(creator, coin_key);
-        let balance_store = borrow_global_mut<BalanceStore>(account_addr);
-        table::upsert(&mut balance_store.balances, coin_key, supply);
+        debug::print(&primary_fungible_store::balance<Metadata>(account_addr, object::object_from_constructor_ref(&constructor_ref)));
+        (constructor_ref, evm_address)
     }
 
-    public entry fun register(
-        from: &signer,
-        coin_key: vector<u8>
-    ) acquires BalanceStore {
-        let account_addr = address_of(from);
-        if(!exists<BalanceStore>(account_addr)) {
-            move_to(from, BalanceStore {
-                balances: table::new<vector<u8>, u64>(),
-            });
-        };
-
-        let balance_store = borrow_global_mut<BalanceStore>(account_addr);
-        if(!table::contains(&balance_store.balances, coin_key)) {
-            table::add(&mut balance_store.balances, coin_key, 0);
-        }
-    }
-
-    /// Transfers `amount` of coins `CoinType` from `from` to `to`.
-    public entry fun transfer (
-        sender: &signer,
-        to: address,
-        amount: u64,
-        coin_key: vector<u8>
-    ) acquires CoinStore, BalanceStore {
-        assert!(is_coin_initialized(coin_key), error::not_found(ECOIN_INFO_NOT_PUBLISHED));
-        // Convert `from` and `to` addresses to bytes
-        let from = address_of(sender);
-
-        register(sender, coin_key);
-        let from_balance_store = borrow_global_mut<BalanceStore>(from);
-        // Check if `from` account has enough balance to transfer
-        let from_balance = *table::borrow(&from_balance_store.balances, coin_key);
-        assert!(from_balance >= amount, error::invalid_argument(EINSUFFICIENT_BALANCE));
-        // Update balances
-        table::upsert(&mut from_balance_store.balances, coin_key, from_balance - amount);
-        // table::upsert(&mut token_store, coin_key, Coin { value: from_balance.value - amount });
-        assert!(is_account_registered(to, coin_key), error::not_found(ECOIN_STORE_NOT_PUBLISHED));
-        let to_balance_store = borrow_global_mut<BalanceStore>(to);
-        let to_balance = *table::borrow(&to_balance_store.balances, coin_key);
-        table::upsert(&mut to_balance_store.balances, coin_key, to_balance + amount);
-    }
-
-    #[view]
-    public fun get_coin_evm_address<CoinType>(): vector<u8> acquires CoinStore {
-        assert!(is_coin_initialized(get_coin_key_by_type<CoinType>()), error::not_found(ECOIN_INFO_NOT_PUBLISHED));
-        let coin_store = borrow_global<CoinStore>(@aptos_framework);
-        table::borrow(&coin_store.coins, get_coin_key_by_type<CoinType>()).evm_address
-    }
-
-    #[view]
-    public fun is_movement_coin<CoinType>(): bool acquires CoinStore {
-        is_coin_initialized(get_coin_key_by_type<CoinType>())
-    }
-
-    #[view]
-    /// Returns `true` if `account_addr` is registered to receive `CoinType`.
-    public fun is_account_registered(account_addr: address, coin_key: vector<u8>): bool acquires BalanceStore, CoinStore {
-        if(!is_coin_initialized(coin_key) || !exists<BalanceStore>(account_addr)) {
-            false
-        } else {
-            let balance_store = borrow_global<BalanceStore>(account_addr);
-            table::contains(&balance_store.balances, coin_key)
-        }
-    }
-
-    #[view]
-    /// Returns `true` if the type `CoinType` is an initialized coin.
-    public fun is_coin_initialized(coin_key: vector<u8>): bool acquires CoinStore {
-        let coin_store = borrow_global<CoinStore>(@aptos_framework);
-        table::contains(&coin_store.coins, coin_key)
-    }
-
-    #[view]
-    /// Returns the balance of `owner` for provided `CoinType`.
-    public fun balance(owner: address, coin_key: vector<u8>): u64 acquires CoinStore, BalanceStore {
-        assert!(is_coin_initialized(coin_key), error::not_found(ECOIN_INFO_NOT_PUBLISHED));
-        assert!(is_account_registered(owner, coin_key), error::not_found(ECOIN_STORE_NOT_PUBLISHED));
-
-        let balance_store = borrow_global<BalanceStore>(owner);
-        *table::borrow(&balance_store.balances, coin_key)
-    }
-
-    #[view]
-    /// Returns the symbol of the coin, usually a shorter version of the name.
-    public fun name(coin_key: vector<u8>): string::String acquires CoinStore {
-        let coin_store = borrow_global<CoinStore>(@aptos_framework);
-        table::borrow(&coin_store.coins, coin_key).name
-    }
-
-    #[view]
-    /// Returns the symbol of the coin, usually a shorter version of the name.
-    public fun symbol(coin_key: vector<u8>): string::String acquires CoinStore {
-        let coin_store = borrow_global<CoinStore>(@aptos_framework);
-        table::borrow(&coin_store.coins, coin_key).symbol
-    }
-
-    #[view]
-    /// Returns the number of decimals used to get its user representation.
-    /// For example, if `decimals` equals `2`, a balance of `505` coins should
-    /// be displayed to a user as `5.05` (`505 / 10 ** 2`).
-    public fun decimals(coin_key: vector<u8>): u8 acquires CoinStore {
-        let coin_store = borrow_global<CoinStore>(@aptos_framework);
-        table::borrow(&coin_store.coins, coin_key).decimals
-    }
-
-    #[view]
-    /// Returns the amount of coin in existence.
-    public fun supply(coin_key: vector<u8>): Option<u128> acquires CoinStore {
-        let coin_store = borrow_global<CoinStore>(@aptos_framework);
-        let supply = &(table::borrow(&coin_store.coins, coin_key).total_supply as u128);
-        option::some(*supply)
-    }
-
-    #[view]
-    public fun get_coin_key_by_wrap_evm(evm_addr: vector<u8>): vector<u8> acquires WrapEvmCoin {
-        let wrap_evm_coins = borrow_global_mut<WrapEvmCoin>(@aptos_framework);
-        if(table::contains(&wrap_evm_coins.info, evm_addr)) {
-            *table::borrow(&wrap_evm_coins.info, evm_addr)
-        } else {
-            vector::empty<u8>()
-        }
-    }
-
-    #[view]
-    public fun get_coin_key_by_type<CoinType>(): vector<u8> {
-        get_coin_key_by_info(type_of<CoinType>())
-    }
-
-    fun get_coin_key_by_info(info: TypeInfo): vector<u8> {
-        let key = vector::empty<u8>();
-        vector::append(&mut key, to_bytes(&account_address(&info)));
-        vector::append(&mut key, to_bytes(&module_name(&info)));
-        vector::append(&mut key, to_bytes(&struct_name(&info)));
-        key
-    }
 }

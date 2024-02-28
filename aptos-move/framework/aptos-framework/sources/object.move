@@ -743,6 +743,7 @@ module aptos_framework::object {
         transfer_with_ref(linear_transfer_ref_good, @0x456);
         assert!(owner(hero) == @0x456, 0);
         transfer_with_ref(linear_transfer_ref_bad, @0x789);
+
     }
 
     #[test(fx = @std)]

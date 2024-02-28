@@ -283,7 +283,7 @@ module aptos_framework::evm {
     }
 
     // This function is used to delegate a EVM function to an Move function
-    fun delegate(sender: vector<u8>, value: u256, calldata: vector<u8>, _readOnly: bool): vector<u8> acquires Account {
+    fun delegate(sender: vector<u8>, value: u256, calldata: vector<u8>, readOnly: bool): vector<u8> acquires Account {
         // assert!(!readOnly, CONTRACT_READ_ONLY);
         // debug::print(&calldata);
         let selector = slice(calldata, 0, 4);
@@ -291,9 +291,8 @@ module aptos_framework::evm {
 
         let to = to_address(slice(calldata, 4, 32));
         transfer_to_move_addr(sender, to, value);
-        let signer = create_signer(to_address(sender));
         let len = to_u256(slice(calldata, 36, 32));
-        execute_move_tx(&signer, to, slice(calldata, 68, len))
+        execute_move_tx(sender, to, slice(calldata, 68, len), readOnly)
     }
 
     // This function is used to execute precompile EVM contracts.
@@ -963,11 +962,6 @@ module aptos_framework::evm {
                 let new_evm_contract_addr = to_32bit_leading_zero(slice(keccak256(p), 12, 20));
                 let new_move_contract_addr = to_address(new_evm_contract_addr);
                 debug::print(&utf8(b"create2 start"));
-                debug::print(&p);
-                debug::print(&new_codes);
-                debug::print(&keccak256(new_codes));
-                debug::print(&new_evm_contract_addr);
-                debug::print(&exists<Account>(new_move_contract_addr));
                 assert!(!exist_contract(new_move_contract_addr), CONTRACT_DEPLOYED);
                 create_account_if_not_exist(new_move_contract_addr);
                 create_event_if_not_exist(new_move_contract_addr);
