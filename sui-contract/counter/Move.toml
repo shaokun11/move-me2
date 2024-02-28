@@ -3,7 +3,7 @@ name = "counter"
 version = "1.0.0"
 
 [dependencies]
-AptosFramework = {  local = "../aptos-move/framework/aptos-framework" }
+AptosFramework = {  local = "../../aptos-move/framework/aptos-framework" }
 
 [addresses]
 self = "0x1"
