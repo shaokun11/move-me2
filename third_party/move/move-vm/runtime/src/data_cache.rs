@@ -225,6 +225,7 @@ impl<'r> TransactionDataCache<'r> {
                 return Ok(blob.clone());
             }
         }
+        println!("module_id: {:?}", module_id);
         match self.remote.get_module(module_id) {
             Ok(Some(bytes)) => Ok(bytes),
             Ok(None) => Err(PartialVMError::new(StatusCode::LINKER_ERROR)

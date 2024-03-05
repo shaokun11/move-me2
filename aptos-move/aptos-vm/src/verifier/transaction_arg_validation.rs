@@ -113,8 +113,10 @@ pub(crate) fn validate_combine_signer_and_txn_args(
         ));
     }
     let mut signer_param_cnt = 0;
+    // let mut tx_params_context_cnt = 0;
     // find all signer params at the beginning
     for ty in func.parameters.iter() {
+        // println!("ty:{:?}", ty);
         match ty {
             Type::Signer => signer_param_cnt += 1,
             Type::Reference(inner_type) => {
@@ -134,6 +136,7 @@ pub(crate) fn validate_combine_signer_and_txn_args(
             &ty.subst(&func.type_arguments).unwrap(),
             allowed_structs,
         );
+        println!("valid: {}", valid);
         if !valid {
             return Err(VMStatus::error(
                 StatusCode::INVALID_MAIN_FUNCTION_SIGNATURE,
@@ -193,18 +196,20 @@ pub(crate) fn is_valid_txn_arg(
 ) -> bool {
     use move_vm_types::loaded_data::runtime_types::Type::*;
 
+    // println!("type: {:?}", typ);
     match typ {
-        Bool | U8 | U16 | U32 | U64 | U128 | U256 | Address => true,
+        Bool | U8 | U16 | U32 | U64 | U128 | U256 | Address | MutableReference(_) => true,
         Vector(inner) => is_valid_txn_arg(session, inner, allowed_structs),
         Struct(idx) | StructInstantiation(idx, _) => {
             if let Some(st) = session.get_struct_type(*idx) {
                 let full_name = format!("{}::{}", st.module.short_str_lossless(), st.name);
+                println!("st: {:?}", st);
                 allowed_structs.contains_key(&full_name)
             } else {
                 false
             }
         },
-        Signer | Reference(_) | MutableReference(_) | TyParam(_) => false,
+        Signer | Reference(_) | TyParam(_) => false,
     }
 }
 
@@ -252,8 +257,9 @@ fn construct_arg(
     is_view: bool,
 ) -> Result<Vec<u8>, VMStatus> {
     use move_vm_types::loaded_data::runtime_types::Type::*;
+    // println!("type2: {:?}", ty);
     match ty {
-        Bool | U8 | U16 | U32 | U64 | U128 | U256 | Address => Ok(arg),
+        Bool | U8 | U16 | U32 | U64 | U128 | U256 | Address | MutableReference(_)  => Ok(arg),
         Vector(_) | Struct(_) | StructInstantiation(_, _) => {
             let mut cursor = Cursor::new(&arg[..]);
             let mut new_arg = vec![];
@@ -286,7 +292,7 @@ fn construct_arg(
                 Err(invalid_signature())
             }
         },
-        Reference(_) | MutableReference(_) | TyParam(_) => Err(invalid_signature()),
+        Reference(_) | TyParam(_) => Err(invalid_signature()),
     }
 }
 

@@ -1,4 +1,4 @@
-module sui::tx_context {
+module aptos_framework::tx_context {
 
     /// Information about the transaction currently being executed.
     /// This cannot be constructed by a transaction--it is a privileged object created by
