@@ -30,6 +30,9 @@ use std::{
     collections::BTreeMap,
     io::{Cursor, Read},
 };
+use aptos_types::{
+    sui::tx_context::TxContext
+};
 
 pub(crate) struct FunctionId {
     module_id: ModuleId,
@@ -113,10 +116,9 @@ pub(crate) fn validate_combine_signer_and_txn_args(
         ));
     }
     let mut signer_param_cnt = 0;
-    // let mut tx_params_context_cnt = 0;
+    let mut context_param_cnt = 0;
     // find all signer params at the beginning
     for ty in func.parameters.iter() {
-        // println!("ty:{:?}", ty);
         match ty {
             Type::Signer => signer_param_cnt += 1,
             Type::Reference(inner_type) => {
@@ -124,19 +126,33 @@ pub(crate) fn validate_combine_signer_and_txn_args(
                     signer_param_cnt += 1;
                 }
             },
+            Type::MutableReference(inner_type) => {
+                match &**inner_type {
+                    Type::Struct(idx) => {
+                        if let Some(struct_type) = session.get_struct_type(*idx) {
+                            if format!("{}::{}", struct_type.module.short_str_lossless(), struct_type.name) == "0x1::tx_context::TxContext" {
+                                context_param_cnt += 1
+                            }
+                        }
+                    },
+                    _ => {
+
+                    }
+                }
+            }
             _ => (),
         }
     }
 
+    let len = func.parameters.len();
     let allowed_structs = get_allowed_structs(are_struct_constructors_enabled);
     // Need to keep this here to ensure we return the historic correct error code for replay
-    for ty in func.parameters[signer_param_cnt..].iter() {
+    for ty in func.parameters[signer_param_cnt..len-context_param_cnt].iter() {
         let valid = is_valid_txn_arg(
             session,
             &ty.subst(&func.type_arguments).unwrap(),
             allowed_structs,
         );
-        println!("valid: {}", valid);
         if !valid {
             return Err(VMStatus::error(
                 StatusCode::INVALID_MAIN_FUNCTION_SIGNATURE,
@@ -145,7 +161,7 @@ pub(crate) fn validate_combine_signer_and_txn_args(
         }
     }
 
-    if (signer_param_cnt + args.len()) != func.parameters.len() {
+    if (signer_param_cnt + args.len() + context_param_cnt) != func.parameters.len() {
         return Err(VMStatus::error(
             StatusCode::NUMBER_OF_ARGUMENTS_MISMATCH,
             None,
@@ -168,7 +184,7 @@ pub(crate) fn validate_combine_signer_and_txn_args(
     // FAILED_TO_DESERIALIZE_ARGUMENT error.
     let args = construct_args(
         session,
-        &func.parameters[signer_param_cnt..],
+        &func.parameters[signer_param_cnt..len-context_param_cnt],
         args,
         &func.type_arguments,
         allowed_structs,
@@ -176,15 +192,22 @@ pub(crate) fn validate_combine_signer_and_txn_args(
     )?;
 
     // Combine signer and non-signer arguments.
-    let combined_args = if signer_param_cnt == 0 {
+    let mut combined_args = if signer_param_cnt == 0 {
         args
     } else {
-        senders
+        senders.clone()
             .into_iter()
             .map(|s| MoveValue::Signer(s).simple_serialize().unwrap())
             .chain(args)
             .collect()
+
     };
+
+    // println!("combine_args {:?}", combined_args);
+    let tx_context = TxContext::new(senders[0], vec![], 100, 100);
+    if context_param_cnt > 0 {
+        combined_args.push(tx_context.to_vec());
+    }
     Ok(combined_args)
 }
 
@@ -196,20 +219,18 @@ pub(crate) fn is_valid_txn_arg(
 ) -> bool {
     use move_vm_types::loaded_data::runtime_types::Type::*;
 
-    // println!("type: {:?}", typ);
     match typ {
-        Bool | U8 | U16 | U32 | U64 | U128 | U256 | Address | MutableReference(_) => true,
+        Bool | U8 | U16 | U32 | U64 | U128 | U256 | Address => true,
         Vector(inner) => is_valid_txn_arg(session, inner, allowed_structs),
         Struct(idx) | StructInstantiation(idx, _) => {
             if let Some(st) = session.get_struct_type(*idx) {
                 let full_name = format!("{}::{}", st.module.short_str_lossless(), st.name);
-                println!("st: {:?}", st);
                 allowed_structs.contains_key(&full_name)
             } else {
                 false
             }
         },
-        Signer | Reference(_) | TyParam(_) => false,
+        Signer | Reference(_) | MutableReference(_) | TyParam(_) => false,
     }
 }
 
@@ -257,9 +278,8 @@ fn construct_arg(
     is_view: bool,
 ) -> Result<Vec<u8>, VMStatus> {
     use move_vm_types::loaded_data::runtime_types::Type::*;
-    // println!("type2: {:?}", ty);
     match ty {
-        Bool | U8 | U16 | U32 | U64 | U128 | U256 | Address | MutableReference(_)  => Ok(arg),
+        Bool | U8 | U16 | U32 | U64 | U128 | U256 | Address => Ok(arg),
         Vector(_) | Struct(_) | StructInstantiation(_, _) => {
             let mut cursor = Cursor::new(&arg[..]);
             let mut new_arg = vec![];
@@ -292,7 +312,7 @@ fn construct_arg(
                 Err(invalid_signature())
             }
         },
-        Reference(_) | TyParam(_) => Err(invalid_signature()),
+        Reference(_) | MutableReference(_) | TyParam(_) => Err(invalid_signature()),
     }
 }
 

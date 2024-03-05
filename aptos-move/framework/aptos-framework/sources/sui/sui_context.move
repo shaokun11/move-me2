@@ -23,6 +23,10 @@ module aptos_framework::tx_context {
         self.sender
     }
 
+    public entry fun hello() {
+
+    }
+
     /// Return the transaction digest (hash of transaction inputs).
     /// Please do not use as a source of randomness.
     public fun digest(self: &TxContext): &vector<u8> {

@@ -54,5 +54,6 @@ pub mod account_view;
 pub mod aggregate_signature;
 pub mod block_executor;
 pub mod state_store;
+pub mod sui;
 #[cfg(test)]
 mod unit_tests;
