@@ -389,6 +389,7 @@ impl AptosVM {
         gas_meter: &mut impl AptosGasMeter,
         senders: Vec<AccountAddress>,
         script_fn: &EntryFunction,
+        is_sui_tx: bool
     ) -> Result<SerializedReturnValues, VMStatus> {
         let function = session.load_function(
             script_fn.module(),
@@ -405,6 +406,7 @@ impl AptosVM {
             script_fn.args().to_vec(),
             &function,
             struct_constructors,
+            is_sui_tx
         )?;
         Ok(session.execute_entry_function(
             script_fn.module(),
@@ -457,6 +459,7 @@ impl AptosVM {
                             self.0
                                 .get_features()
                                 .is_enabled(FeatureFlag::STRUCT_CONSTRUCTORS),
+                                false
                         )?;
                     session.execute_script(
                         script.code(),
@@ -471,6 +474,7 @@ impl AptosVM {
                         gas_meter,
                         txn_data.senders(),
                         script_fn,
+                        txn_data.is_sui_tx
                     )?;
                 },
 
@@ -621,6 +625,7 @@ impl AptosVM {
                     txn_payload.multisig_address,
                     &entry_function,
                     new_published_modules_loaded,
+                    txn_data.is_sui_tx
                 ),
         };
 
@@ -676,6 +681,7 @@ impl AptosVM {
         multisig_address: AccountAddress,
         payload: &EntryFunction,
         new_published_modules_loaded: &mut bool,
+        is_sui_tx:bool
     ) -> Result<(), VMStatus> {
         // If txn args are not valid, we'd still consider the transaction as executed but
         // failed. This is primarily because it's unrecoverable at this point.
@@ -684,6 +690,7 @@ impl AptosVM {
             gas_meter,
             vec![multisig_address],
             payload,
+            is_sui_tx
         )?;
 
         // Resolve any pending module publishes in case the multisig transaction is deploying
@@ -1289,6 +1296,7 @@ impl AptosVM {
                         self.0
                             .get_features()
                             .is_enabled(FeatureFlag::STRUCT_CONSTRUCTORS),
+                            false
                     )?;
 
                 return_on_failure!(tmp_session.execute_script(
@@ -1935,6 +1943,7 @@ impl AptosSimulationVM {
                                     multisig.multisig_address,
                                     &entry_function,
                                     &mut new_published_modules_loaded,
+                                    txn.is_sui_tx()
                                 ));
                                 // TODO: Deduplicate this against execute_multisig_transaction
                                 // A bit tricky since we need to skip success/failure cleanups,

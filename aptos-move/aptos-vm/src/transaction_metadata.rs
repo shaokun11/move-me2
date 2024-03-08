@@ -26,11 +26,12 @@ pub struct TransactionMetadata {
     pub chain_id: ChainId,
     pub script_hash: Vec<u8>,
     pub script_size: NumBytes,
+    pub is_sui_tx: bool,
 }
 
 impl TransactionMetadata {
     pub fn new(txn: &SignedTransaction) -> Self {
-        Self {
+         Self {
             sender: txn.sender(),
             authentication_key: txn.authenticator().sender().authentication_key().to_vec(),
             secondary_signers: txn.authenticator().secondary_signer_addresses(),
@@ -59,6 +60,7 @@ impl TransactionMetadata {
                 // Deprecated. Will be removed in the future.
                 TransactionPayload::ModuleBundle(_) => vec![],
             },
+            is_sui_tx: txn.is_sui_tx(),
             script_size: match txn.payload() {
                 TransactionPayload::Script(s) => (s.code().len() as u64).into(),
                 _ => NumBytes::zero(),
@@ -141,6 +143,7 @@ impl Default for TransactionMetadata {
             chain_id: ChainId::test(),
             script_hash: vec![],
             script_size: NumBytes::zero(),
+            is_sui_tx:  false,
         }
     }
 }
