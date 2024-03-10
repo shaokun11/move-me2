@@ -22,6 +22,7 @@ pub mod evm;
 pub mod sui;
 
 use crate::natives::cryptography::multi_ed25519;
+use sui::{tx_context, sui_object, sui_transfer};
 use aggregator_natives::{aggregator, aggregator_factory, aggregator_v2};
 use aptos_native_interface::SafeNativeBuilder;
 use cryptography::ed25519;
@@ -83,7 +84,9 @@ pub fn all_natives(
     add_natives_from_module!("debug", debug::make_all(builder));
     add_natives_from_module!("string_utils", string_utils::make_all(builder));
     add_natives_from_module!("evm", evm::make_all(builder));
-    add_natives_from_module!("sui", sui::make_all(builder));
+    add_natives_from_module!("tx_context", tx_context::make_all(builder));
+    add_natives_from_module!("sui_object", sui_object::make_all(builder));
+    add_natives_from_module!("sui_transfer", sui_transfer::make_all(builder));
 
     make_table_from_iter(framework_addr, natives)
 }
