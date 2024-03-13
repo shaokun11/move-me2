@@ -408,13 +408,23 @@ impl AptosVM {
             struct_constructors,
             is_sui_tx
         )?;
-        Ok(session.execute_entry_function(
+
+        let result = session.execute_entry_function(
             script_fn.module(),
             script_fn.function(),
             script_fn.ty_args().to_vec(),
             args,
             gas_meter,
-        )?)
+        )?;
+
+        let mutable_reference_outputs = result.clone().mutable_reference_outputs;
+        for (idx, bytes, ty) in mutable_reference_outputs.into_iter() {
+            println!("idx: {:?}", idx);
+            println!("bytes: {:?}", bytes);
+            println!("ty: {:?}", ty);
+        };
+
+        Ok(result)
     }
 
     fn execute_script_or_entry_function(

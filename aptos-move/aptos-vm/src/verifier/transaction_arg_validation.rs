@@ -16,7 +16,7 @@ use move_core_types::{
     account_address::AccountAddress,
     ident_str,
     identifier::{IdentStr, Identifier},
-    language_storage::ModuleId,
+    language_storage::{ModuleId},
     value::MoveValue,
     vm_status::StatusCode,
 };
@@ -24,16 +24,18 @@ use move_vm_runtime::session::LoadedFunctionInstantiation;
 use move_vm_types::{
     gas::{GasMeter, UnmeteredGasMeter},
     loaded_data::runtime_types::Type,
+    values::{Reference}
 };
 use once_cell::sync::Lazy;
-use serde::Deserialize;
 use std::{
     collections::BTreeMap,
-    io::{Cursor, Read},
+    io::{Cursor, Read}
 };
 use aptos_types::{
     sui::tx_context::TxContext
 };
+
+use rand::Rng;
 
 pub(crate) struct FunctionId {
     module_id: ModuleId,
@@ -95,6 +97,8 @@ pub(crate) fn get_allowed_structs(
     }
 }
 
+
+
 /// Validate and generate args for entry function
 /// validation includes:
 /// 1. return signature is empty
@@ -123,7 +127,7 @@ pub(crate) fn validate_combine_signer_and_txn_args(
     let mut signer_param_cnt = 0;
     let mut context_param_cnt = 0;
     // find all signer params at the beginning
-    for ty in func.parameters.iter() {
+    for (arg_index, ty) in func.parameters.iter().enumerate() {
         match ty {
             Type::Signer => signer_param_cnt += 1,
             Type::Reference(inner_type) => {
@@ -135,10 +139,12 @@ pub(crate) fn validate_combine_signer_and_txn_args(
                 match &**inner_type {
                     Type::Struct(idx) => {
                         if let Some(struct_type) = session.get_struct_type(*idx) {
+                            println!("ty: {:?}", struct_type);
+                            println!("args: {:?}", arg_index);
                             if format!("{}::{}", struct_type.module.short_str_lossless(), struct_type.name) == "0x1::tx_context::TxContext" {
                                 context_param_cnt += 1
                             }
-                        }
+                        } 
                     },
                     _ => {
 
@@ -213,6 +219,10 @@ pub(crate) fn validate_combine_signer_and_txn_args(
 
     };
 
+    // let mut rng = rand::thread_rng();
+    // let mut random_bytes: Vec<u8> = vec![0; 10];
+    // rng.fill(&mut random_bytes[..]);
+
     // println!("combine_args {:?}", combined_args);
     let tx_context = TxContext::new(senders[0], vec![], 100, 100);
     if context_param_cnt > 0 {
@@ -230,7 +240,7 @@ pub(crate) fn is_valid_txn_arg(
     use move_vm_types::loaded_data::runtime_types::Type::*;
 
     match typ {
-        Bool | U8 | U16 | U32 | U64 | U128 | U256 | Address => true,
+        Bool | U8 | U16 | U32 | U64 | U128 | U256 | Address | MutableReference(_) => true,
         Vector(inner) => is_valid_txn_arg(session, inner, allowed_structs),
         Struct(idx) | StructInstantiation(idx, _) => {
             if let Some(st) = session.get_struct_type(*idx) {
@@ -240,7 +250,7 @@ pub(crate) fn is_valid_txn_arg(
                 false
             }
         },
-        Signer | Reference(_) | MutableReference(_) | TyParam(_) => false,
+        Signer | Reference(_) | TyParam(_) => false,
     }
 }
 
@@ -277,6 +287,28 @@ pub(crate) fn construct_args(
 
 fn invalid_signature() -> VMStatus {
     VMStatus::error(StatusCode::INVALID_MAIN_FUNCTION_SIGNATURE, None)
+}
+
+fn load_data(session: &mut SessionExt, object_id: Vec<u8>, ty: &Type) -> Vec<u8> {
+    let addr = AccountAddress::new(object_id.try_into().unwrap());
+    
+    println!("ty: {:?}", ty);
+    println!("addr: {:?}", addr);
+    let data = session.load_resource(addr, ty).map(|(gv, _)| gv).unwrap();
+    
+    let state = data.borrow_global().and_then(|v| v.value_as::<Reference>())
+            .and_then(|r| r.read_ref()).map_err(|e| e).unwrap();
+    let type_tag = session.get_type_tag(ty).unwrap();
+    let type_layout = 
+        session
+        .get_type_layout(&type_tag)
+        .map_err(|e| e).unwrap();
+    let result = state
+        .simple_serialize(&type_layout).unwrap();
+    println!("layout: {:?}", type_layout);
+    println!("state: {:?}", state);
+    result
+    
 }
 
 fn construct_arg(
@@ -322,7 +354,10 @@ fn construct_arg(
                 Err(invalid_signature())
             }
         },
-        Reference(_) | MutableReference(_) | TyParam(_) => Err(invalid_signature()),
+        MutableReference(types) => {
+            Ok(load_data(session, arg, types))
+        }
+        Reference(_)  | TyParam(_) => Err(invalid_signature()),
     }
 }
 

@@ -99,7 +99,8 @@ impl<'r> TransactionDataCache<'r> {
 
             let mut resources = BTreeMap::new();
             for (ty, (layout, gv)) in account_data_cache.data_map {
-                if let Some(op) = gv.into_effect_with_layout(layout) {
+                let effect = gv.into_effect_with_layout(layout);
+                if let Some(op) = effect {
                     let struct_tag = match loader.type_to_type_tag(&ty)? {
                         TypeTag::Struct(struct_tag) => *struct_tag,
                         _ => return Err(PartialVMError::new(StatusCode::INTERNAL_TYPE_ERROR)),
@@ -117,6 +118,7 @@ impl<'r> TransactionDataCache<'r> {
                         AccountChanges::from_modules_resources(modules, resources),
                     )
                     .expect("accounts should be unique");
+
             }
         }
 

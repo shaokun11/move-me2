@@ -34,7 +34,7 @@ pub struct Session<'r, 'l> {
 
 /// Serialized return values from function/script execution
 /// Simple struct is designed just to convey meaning behind serialized values
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SerializedReturnValues {
     /// The value of any arguments that were mutably borrowed.
     /// Non-mut borrowed values are not included

@@ -2531,6 +2531,7 @@ impl GlobalValueImpl {
         }
     }
 
+
     fn into_effect(self) -> Option<Op<ValueImpl>> {
         match self {
             Self::None => None,

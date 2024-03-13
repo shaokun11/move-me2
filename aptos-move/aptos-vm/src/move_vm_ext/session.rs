@@ -12,6 +12,7 @@ use aptos_framework::natives::{
     aggregator_natives::{AggregatorChange, AggregatorChangeSet, NativeAggregatorContext},
     code::{NativeCodeContext, PublishRequest},
     event::NativeEventContext,
+    sui::{NativeObjectContext, ObjectChangeSet}
 };
 use aptos_table_natives::{NativeTableContext, TableChangeSet};
 use aptos_types::{
@@ -160,6 +161,9 @@ impl<'r, 'l> SessionExt<'r, 'l> {
             .into_change_set()
             .map_err(|e| e.finish(Location::Undefined))?;
 
+        let object_context: NativeObjectContext = extensions.remove();
+        let object_change_set = object_context.into_change_set();
+
         let aggregator_context: NativeAggregatorContext = extensions.remove();
         let aggregator_change_set = aggregator_context.into_change_set();
 
@@ -174,6 +178,7 @@ impl<'r, 'l> SessionExt<'r, 'l> {
             resource_group_change_set,
             events,
             table_change_set,
+            object_change_set,
             aggregator_change_set,
             ap_cache,
             configs,
@@ -301,6 +306,7 @@ impl<'r, 'l> SessionExt<'r, 'l> {
         resource_group_change_set: MoveChangeSet,
         events: Vec<ContractEvent>,
         table_change_set: TableChangeSet,
+        object_change_set: ObjectChangeSet,
         aggregator_change_set: AggregatorChangeSet,
         ap_cache: &mut C,
         configs: &ChangeSetConfigs,
@@ -352,6 +358,14 @@ impl<'r, 'l> SessionExt<'r, 'l> {
                 let op = woc.convert(&state_key, blob_op, false)?;
                 resource_write_set.insert(state_key, op);
             }
+        }
+
+        for (id, object) in object_change_set.changes {
+            let state_key =
+                    StateKey::access_path(ap_cache.get_resource_path(id, object.clone().get_tag()));
+            println!("state ley :{:?}", state_key);
+            let op = woc.convert(&state_key, object.clone().get_op(), false)?;
+            resource_write_set.insert(state_key, op);
         }
 
         for (handle, change) in table_change_set.changes {
