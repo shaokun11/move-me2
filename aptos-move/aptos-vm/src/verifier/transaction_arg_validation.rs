@@ -224,7 +224,7 @@ pub(crate) fn validate_combine_signer_and_txn_args(
     rng.fill(&mut random_bytes[..]);
 
     // println!("combine_args {:?}", combined_args);
-    let tx_context = TxContext::new(senders[0], vec![], 100, 100);
+    let tx_context = TxContext::new(senders[0], random_bytes, 100, 100);
     if context_param_cnt > 0 {
         combined_args.push(tx_context.to_vec());
     }
