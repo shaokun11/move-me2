@@ -1,0 +1,11 @@
+[package]
+name = "sui_on_aptos"
+version = "0.0.1"
+
+[addresses]
+sui_on_aptos = "945cc5d0c0315f9735794e0313aae678680d2fe404f278e48db2f0caaa762fae"
+
+[dependencies.AptosFramework]
+git = 'https://github.com/shaokun11/move-me2'
+rev = '4bbd43f73a621cdf2da37c14c345ed6281c2b7ab'
+subdir = 'aptos-move/framework/aptos-framework'
