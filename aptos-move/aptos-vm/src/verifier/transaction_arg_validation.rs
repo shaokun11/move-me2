@@ -219,9 +219,9 @@ pub(crate) fn validate_combine_signer_and_txn_args(
 
     };
 
-    // let mut rng = rand::thread_rng();
-    // let mut random_bytes: Vec<u8> = vec![0; 10];
-    // rng.fill(&mut random_bytes[..]);
+    let mut rng = rand::thread_rng();
+    let mut random_bytes: Vec<u8> = vec![0; 10];
+    rng.fill(&mut random_bytes[..]);
 
     // println!("combine_args {:?}", combined_args);
     let tx_context = TxContext::new(senders[0], vec![], 100, 100);

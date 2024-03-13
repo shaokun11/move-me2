@@ -19,16 +19,16 @@ module aptos_framework::sui_transfer {
     /// that `T` is an object defined in the module where `share_object` is invoked. Use
     /// `public_share_object` to share an object with `store` outside of its module.
     public fun share_object<T: key>(obj: T) {
-        let data = bcs::to_bytes<T>(&obj);
-        let uid = sui_object::id(&obj);
-        let owner = sui_object::id_to_address(&uid);
-
-        if(!exists<Object>(@0x123)) {
-            move_to(&create_signer(@0x123), Object {
-                owner,
-                data,
-            });
-        };
+        // let data = bcs::to_bytes<T>(&obj);
+        // let uid = sui_object::id(&obj);
+        // let owner = sui_object::id_to_address(&uid);
+        //
+        // if(!exists<Object>(@0x123)) {
+        //     move_to(&create_signer(@0x123), Object {
+        //         owner,
+        //         data,
+        //     });
+        // };
 
         share_object_impl(obj);
     }
