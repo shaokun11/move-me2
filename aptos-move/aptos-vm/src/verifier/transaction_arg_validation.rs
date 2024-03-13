@@ -115,7 +115,6 @@ pub(crate) fn validate_combine_signer_and_txn_args(
     is_sui_tx: bool,
 ) -> Result<Vec<Vec<u8>>, VMStatus> {
    let mut args =  args_;
-   println!("validate_combine_signer_and_txn_args is sui tx {} {} {} " ,is_sui_tx,func.parameters.len(),args.len());
    
     // entry function should not return
     if !func.return_.is_empty() {
