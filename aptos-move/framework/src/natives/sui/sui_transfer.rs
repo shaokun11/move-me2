@@ -27,6 +27,12 @@ pub struct Object {
 }
 
 impl Object {
+    pub fn new(struct_tag: StructTag, op: Op<Vec<u8>>)  -> Self {
+        Object {
+            struct_tag,
+            op
+        }
+    }
     pub fn get_tag(self) -> StructTag {
         self.struct_tag
     }
@@ -49,10 +55,16 @@ impl NativeObjectContext {
     pub fn into_change_set(self) -> ObjectChangeSet  {
         ObjectChangeSet { changes: self.objects }
     }
+
+    pub fn add_changes(&mut self, addrs: Vec<AccountAddress>, changes: Vec<Object>) {
+        self.objects.extend(addrs.into_iter().zip(changes.into_iter()))
+    }
 }
 
-pub fn get_object_id(object: Value) -> Result<Value, PartialVMError> {
-    get_nested_struct_field(object, &[0, 0, 0])
+pub fn get_object_id(object: Value) -> AccountAddress {
+    let v = get_nested_struct_field(object, &[0, 0, 0]).unwrap();
+
+    v.value_as::<AccountAddress>().unwrap()
 }
 
 // Extract a field valye that's nested inside value `v`. The offset of each nesting
@@ -69,6 +81,7 @@ pub fn get_nth_struct_field(v: Value, n: usize) -> Result<Value, PartialVMError>
     Ok(itr.nth(n).unwrap())
 }
 
+
 fn native_share_object_impl(
     context: &mut SafeNativeContext,
     mut ty_args: Vec<Type>,
@@ -76,9 +89,7 @@ fn native_share_object_impl(
 ) -> SafeNativeResult<SmallVec<[Value; 1]>> {
     // let obj = args.pop_back().unwrap();
     let obj = args.pop_back().unwrap();
-    let id: AccountAddress = get_object_id(obj.copy_value()?)?
-            .value_as::<AccountAddress>()?
-            .into();
+    let id = get_object_id(obj.copy_value()?);
     println!("object id: {:?}", id);
 
     // context.

@@ -97,6 +97,7 @@ impl<'r> TransactionDataCache<'r> {
                 modules.insert(module_name, op);
             }
 
+
             let mut resources = BTreeMap::new();
             for (ty, (layout, gv)) in account_data_cache.data_map {
                 let effect = gv.into_effect_with_layout(layout);

@@ -363,7 +363,7 @@ impl<'r, 'l> SessionExt<'r, 'l> {
         for (id, object) in object_change_set.changes {
             let state_key =
                     StateKey::access_path(ap_cache.get_resource_path(id, object.clone().get_tag()));
-            println!("state ley :{:?}", state_key);
+            println!("state key :{:?}", state_key);
             let op = woc.convert(&state_key, object.clone().get_op(), false)?;
             resource_write_set.insert(state_key, op);
         }

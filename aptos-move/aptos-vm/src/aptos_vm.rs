@@ -20,7 +20,10 @@ use crate::{
 use anyhow::{anyhow, Result};
 use aptos_block_executor::txn_commit_hook::NoOpTransactionCommitHook;
 use aptos_crypto::HashValue;
-use aptos_framework::natives::code::PublishRequest;
+use aptos_framework::natives:: {
+    code::PublishRequest,
+    sui::{NativeObjectContext, get_object_id, Object}
+};
 use aptos_gas_algebra::Gas;
 use aptos_gas_meter::{AptosGasMeter, StandardGasAlgebra, StandardGasMeter};
 use aptos_gas_schedule::VMGasParameters;
@@ -66,9 +69,14 @@ use move_core_types::{
     transaction_argument::convert_txn_args,
     value::{serialize_values, MoveValue},
     vm_status::StatusType,
+    effects::Op,
 };
 use move_vm_runtime::session::SerializedReturnValues;
-use move_vm_types::gas::UnmeteredGasMeter;
+use move_vm_types::{
+    gas::UnmeteredGasMeter,
+    loaded_data::runtime_types::Type,
+    values::{Value}
+};
 use num_cpus;
 use once_cell::sync::{Lazy, OnceCell};
 use std::{
@@ -417,12 +425,49 @@ impl AptosVM {
             gas_meter,
         )?;
 
-        let mutable_reference_outputs = result.clone().mutable_reference_outputs;
-        for (idx, bytes, ty) in mutable_reference_outputs.into_iter() {
-            println!("idx: {:?}", idx);
-            println!("bytes: {:?}", bytes);
-            println!("ty: {:?}", ty);
-        };
+        
+        
+        // let mut object_context = session.get_native_extensions().get_mut::<NativeObjectContext>();
+        // let mut object_context = session.get_native_extensions().get_mut::<NativeObjectContext>();
+        let mut changes = vec![];
+        let mut addrs = vec![];
+    
+        for (idx, ty) in function.parameters.iter().enumerate() {
+            if script_fn.args().len() > idx {
+                match ty {
+                    Type::MutableReference(inner) => {
+                        let tag = session.get_type_tag(inner).unwrap();
+                        match tag {
+                            TypeTag::Struct(stg) => {
+                                let arg_addr = AccountAddress::new(script_fn.args().to_vec()[idx].as_slice().try_into().unwrap());
+                                // println!("mut_ref_args {:?} {:?}", struct_tag, arg_addr);
+                                // object_context.add_change()
+                                let mutable_reference_outputs = result.clone().mutable_reference_outputs;
+                                for (_, bytes, layout) in mutable_reference_outputs.into_iter() {
+                                    // let p = *stg);
+                                    let strct = Value::simple_deserialize(bytes.as_slice(), &layout).unwrap();
+                                    let change_addr = get_object_id(strct);
+                                    if arg_addr.to_standard_string() == change_addr.to_standard_string() {
+                                        changes.push(Object::new(*stg.clone(), Op::Modify(bytes)));
+                                        addrs.push(arg_addr);
+                                        // object_context.add_change(object_id, *struct_tag, bytes);
+                                    }
+                                    
+                                };
+                            },
+                            _ => ()
+                        }
+                        
+                    },
+                    _ => (),
+                }
+            }
+        }
+
+        if changes.len() > 0 {
+            let object_context = session.get_native_extensions().get_mut::<NativeObjectContext>();
+            object_context.add_changes(addrs, changes);
+        }
 
         Ok(result)
     }

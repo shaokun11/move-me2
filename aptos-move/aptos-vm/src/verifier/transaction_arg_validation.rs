@@ -126,7 +126,7 @@ pub(crate) fn validate_combine_signer_and_txn_args(
     let mut signer_param_cnt = 0;
     let mut context_param_cnt = 0;
     // find all signer params at the beginning
-    for (arg_index, ty) in func.parameters.iter().enumerate() {
+    for (_, ty) in func.parameters.iter().enumerate() {
         match ty {
             Type::Signer => signer_param_cnt += 1,
             Type::Reference(inner_type) => {
@@ -138,8 +138,6 @@ pub(crate) fn validate_combine_signer_and_txn_args(
                 match &**inner_type {
                     Type::Struct(idx) => {
                         if let Some(struct_type) = session.get_struct_type(*idx) {
-                            println!("ty: {:?}", struct_type);
-                            println!("args: {:?}", arg_index);
                             if format!("{}::{}", struct_type.module.short_str_lossless(), struct_type.name) == "0x1::tx_context::TxContext" {
                                 context_param_cnt += 1
                             }
@@ -157,9 +155,8 @@ pub(crate) fn validate_combine_signer_and_txn_args(
     let len = func.parameters.len();
     let allowed_structs = get_allowed_structs(are_struct_constructors_enabled);
     if is_sui_tx && func.parameters.len()  + signer_param_cnt + context_param_cnt + 1 == args.len(){
-        let sui_sender = args.pop().unwrap();
-        let sui_sender   = bcs::from_bytes::<String>(&sui_sender).unwrap();
-        println!("sui_sender {:?}",sui_sender);
+        // let sui_sender = args.pop().unwrap();
+        // let sui_sender   = bcs::from_bytes::<String>(&sui_sender).unwrap();
     };
     // Need to keep this here to ensure we return the historic correct error code for replay
     for ty in func.parameters[signer_param_cnt..len-context_param_cnt].iter() {
@@ -291,10 +288,7 @@ fn invalid_signature() -> VMStatus {
 fn load_data(session: &mut SessionExt, object_id: Vec<u8>, ty: &Type) -> Vec<u8> {
     let addr = AccountAddress::new(object_id.try_into().unwrap());
     
-    println!("ty: {:?}", ty);
-    println!("addr: {:?}", addr);
     let data = session.load_resource(addr, ty).map(|(gv, _)| gv).unwrap();
-    
     let state = data.borrow_global().and_then(|v| v.value_as::<Reference>())
             .and_then(|r| r.read_ref()).map_err(|e| e).unwrap();
     let type_tag = session.get_type_tag(ty).unwrap();
@@ -304,8 +298,7 @@ fn load_data(session: &mut SessionExt, object_id: Vec<u8>, ty: &Type) -> Vec<u8>
         .map_err(|e| e).unwrap();
     let result = state
         .simple_serialize(&type_layout).unwrap();
-    println!("layout: {:?}", type_layout);
-    println!("state: {:?}", state);
+    
     result
     
 }
