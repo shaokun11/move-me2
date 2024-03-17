@@ -12,11 +12,11 @@ module sui_on_aptos::counter {
     }
 
     /// Create and share a Counter object.
-    public entry fun create(value: u64, ctx: &mut TxContext) {
+    public entry fun create(ctx: &mut TxContext) {
         sui_transfer::share_object(Counter {
             id: sui_object::new(ctx),
             owner: tx_context::sender(ctx),
-            value
+            value:0
         });
     }
 
