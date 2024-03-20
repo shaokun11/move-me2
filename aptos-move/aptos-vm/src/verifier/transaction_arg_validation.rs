@@ -171,8 +171,7 @@ pub(crate) fn validate_combine_signer_and_txn_args(
                 None,
             ));
         }
-    }
-
+    }   
     if (signer_param_cnt + args.len() + context_param_cnt) != func.parameters.len() {
         return Err(VMStatus::error(
             StatusCode::NUMBER_OF_ARGUMENTS_MISMATCH,

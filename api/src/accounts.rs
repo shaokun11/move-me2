@@ -321,6 +321,7 @@ impl Account {
                 })?,
         );
 
+        // println!("account key {:?}", state_key);
         let state_value = self.context.get_state_value_poem(
             &state_key,
             self.ledger_version,
@@ -343,6 +344,8 @@ impl Account {
             self.address.into(),
             ObjectGroupResource::struct_tag(),
         ));
+
+        println!("verify {:?}", state_key);
 
         let state_value = self.context.get_state_value_poem(
             &state_key,

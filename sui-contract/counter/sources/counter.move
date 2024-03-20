@@ -20,6 +20,15 @@ module sui_on_aptos::counter {
         });
     }
 
+    /// Create and share a Counter object.
+    public entry fun create2(signer: &signer, value: u64, ctx: &mut TxContext) {
+        move_to(signer, Counter {
+            id: sui_object::new(ctx),
+            owner: tx_context::sender(ctx),
+            value
+        });
+    }
+
     /// Increment a counter by 1.
     public entry fun increment(counter: &mut Counter) {
         counter.value = counter.value + 1;

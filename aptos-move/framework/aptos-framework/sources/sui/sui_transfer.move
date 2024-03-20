@@ -3,6 +3,7 @@ module aptos_framework::sui_transfer {
     use aptos_framework::sui_object;
     use aptos_framework::create_signer::create_signer;
     use std::bcs;
+    use aptos_framework::aptos_account::create_account;
 
     const SHARED_MODALITY: u64 = 1;
 
@@ -20,8 +21,8 @@ module aptos_framework::sui_transfer {
     /// `public_share_object` to share an object with `store` outside of its module.
     public fun share_object<T: key>(obj: T) {
         // let data = bcs::to_bytes<T>(&obj);
-        // let uid = sui_object::id(&obj);
-        // let owner = sui_object::id_to_address(&uid);
+        let uid = sui_object::id(&obj);
+        let object_id = sui_object::id_to_address(&uid);
         //
         // if(!exists<Object>(@0x123)) {
         //     move_to(&create_signer(@0x123), Object {
@@ -29,7 +30,8 @@ module aptos_framework::sui_transfer {
         //         data,
         //     });
         // };
-
+        //
+        create_account(object_id);
         share_object_impl(obj);
     }
 

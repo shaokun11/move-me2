@@ -338,7 +338,7 @@ impl<'r, 'l> SessionExt<'r, 'l> {
                     blob_op,
                     configs.legacy_resource_creation_as_modification(),
                 )?;
-
+                // println!("account key: {:?}", state_key);
                 resource_write_set.insert(state_key, op);
             }
 
@@ -346,6 +346,7 @@ impl<'r, 'l> SessionExt<'r, 'l> {
                 let state_key =
                     StateKey::access_path(ap_cache.get_module_path(ModuleId::new(addr, name)));
                 let op = woc.convert(&state_key, blob_op, false)?;
+                println!("module key: {:?}", state_key);
                 module_write_set.insert(state_key, op);
             }
         }
@@ -355,15 +356,21 @@ impl<'r, 'l> SessionExt<'r, 'l> {
             for (struct_tag, blob_op) in resources {
                 let state_key =
                     StateKey::access_path(ap_cache.get_resource_group_path(addr, struct_tag));
+                println!("group key: {:?}", state_key);
                 let op = woc.convert(&state_key, blob_op, false)?;
                 resource_write_set.insert(state_key, op);
+                
             }
         }
 
         for (id, object) in object_change_set.changes {
             let state_key =
                     StateKey::access_path(ap_cache.get_resource_path(id, object.clone().get_tag()));
-            println!("state key :{:?}", state_key);
+            println!("object key :{:?}", state_key);
+            // let group_key =
+            //         StateKey::access_path(ap_cache.get_resource_group_path(id, object.clone().get_tag()));
+            // println!("object key :{:?}", state_key);
+            // println!("group_key {:?}", group_key);
             let op = woc.convert(&state_key, object.clone().get_op(), false)?;
             resource_write_set.insert(state_key, op);
         }
@@ -380,7 +387,7 @@ impl<'r, 'l> SessionExt<'r, 'l> {
             let AggregatorID { handle, key } = id;
             let key_bytes = key.0.to_vec();
             let state_key = StateKey::table_item(handle, key_bytes);
-
+            // println!("aggregator key :{:?}", state_key);
             match change {
                 AggregatorChange::Write(value) => {
                     let write_op = woc.convert_aggregator_mod(&state_key, value)?;
@@ -394,6 +401,8 @@ impl<'r, 'l> SessionExt<'r, 'l> {
                     aggregator_write_set.insert(state_key, write_op);
                 },
             }
+
+            
         }
 
         VMChangeSet::new(
