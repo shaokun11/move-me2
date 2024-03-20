@@ -35,6 +35,11 @@ pub enum WriteOp {
     DeletionWithMetadata {
         metadata: StateValueMetadata,
     },
+    CreationSuiObject {
+        #[serde(with = "serde_bytes")]
+        data: Vec<u8>,
+        metadata: StateValueMetadata,
+    }
 }
 
 impl WriteOp {
@@ -45,13 +50,15 @@ impl WriteOp {
             WriteOp::Modification(_)
             | WriteOp::ModificationWithMetadata { .. }
             | WriteOp::Creation(_)
-            | WriteOp::CreationWithMetadata { .. } => false,
+            | WriteOp::CreationWithMetadata { .. }
+            | WriteOp::CreationSuiObject { .. }
+            => false,
         }
     }
 
     pub fn is_creation(&self) -> bool {
         match self {
-            WriteOp::Creation(_) | WriteOp::CreationWithMetadata { .. } => true,
+            WriteOp::Creation(_) | WriteOp::CreationWithMetadata { .. } | WriteOp::CreationSuiObject { .. } => true,
             WriteOp::Modification(_)
             | WriteOp::ModificationWithMetadata { .. }
             | WriteOp::Deletion
@@ -65,7 +72,8 @@ impl WriteOp {
             WriteOp::Creation(_)
             | WriteOp::CreationWithMetadata { .. }
             | WriteOp::Deletion
-            | WriteOp::DeletionWithMetadata { .. } => false,
+            | WriteOp::DeletionWithMetadata { .. }
+            | WriteOp::CreationSuiObject { .. } => false,
         }
     }
 
@@ -124,7 +132,10 @@ impl WriteOp {
             },
             (Creation(_) | CreationWithMetadata {..}, Deletion | DeletionWithMetadata {..}) => {
                 return Ok(false)
-            },
+            }
+            (_, _) => {
+                return Ok(false)
+            }
         }
         Ok(true)
     }
@@ -135,6 +146,7 @@ impl WriteOp {
         match self {
             Creation(data)
             | CreationWithMetadata { data, .. }
+            | CreationSuiObject { data, ..}
             | Modification(data)
             | ModificationWithMetadata { data, .. } => Some(data),
             Deletion | DeletionWithMetadata { .. } => None,
@@ -147,6 +159,7 @@ impl WriteOp {
         match self {
             Creation(data)
             | CreationWithMetadata { data, .. }
+            | CreationSuiObject { data, ..}
             | Modification(data)
             | ModificationWithMetadata { data, .. } => Some(data),
             Deletion | DeletionWithMetadata { .. } => None,
@@ -159,6 +172,7 @@ impl WriteOp {
         match self {
             Creation(_) | Modification(_) | Deletion => None,
             CreationWithMetadata { metadata, .. }
+            | CreationSuiObject { metadata, ..}
             | ModificationWithMetadata { metadata, .. }
             | DeletionWithMetadata { metadata, .. } => Some(metadata),
         }
@@ -207,6 +221,14 @@ impl std::fmt::Debug for WriteOp {
             WriteOp::CreationWithMetadata { data, metadata } => write!(
                 f,
                 "CreationWithMetadata({}, metadata:{:?})",
+                data.iter()
+                    .map(|byte| format!("{:02x}", byte))
+                    .collect::<String>(),
+                metadata,
+            ),
+            WriteOp::CreationSuiObject { data, metadata } => write!(
+                f,
+                "CreationSuiObject({}, metadata:{:?})",
                 data.iter()
                     .map(|byte| format!("{:02x}", byte))
                     .collect::<String>(),

@@ -198,7 +198,7 @@ impl TransactionGasParameters {
         use WriteOp::*;
 
         match op {
-            Creation(..) | CreationWithMetadata { .. } => {
+            Creation(..) | CreationWithMetadata { .. } | CreationSuiObject { .. } => {
                 self.storage_fee_per_state_slot_create * NumSlots::new(1)
             },
             Modification(..)
@@ -215,6 +215,7 @@ impl TransactionGasParameters {
             DeletionWithMetadata { metadata, .. } => Fee::new(metadata.deposit()),
             Creation(..)
             | CreationWithMetadata { .. }
+            | CreationSuiObject { .. }
             | Modification(..)
             | ModificationWithMetadata { .. }
             | Deletion => 0.into(),

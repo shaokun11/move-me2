@@ -337,6 +337,7 @@ impl<'r, 'l> SessionExt<'r, 'l> {
                     &state_key,
                     blob_op,
                     configs.legacy_resource_creation_as_modification(),
+                    false,
                 )?;
                 // println!("account key: {:?}", state_key);
                 resource_write_set.insert(state_key, op);
@@ -345,7 +346,7 @@ impl<'r, 'l> SessionExt<'r, 'l> {
             for (name, blob_op) in modules {
                 let state_key =
                     StateKey::access_path(ap_cache.get_module_path(ModuleId::new(addr, name)));
-                let op = woc.convert(&state_key, blob_op, false)?;
+                let op = woc.convert(&state_key, blob_op, false, false)?;
                 println!("module key: {:?}", state_key);
                 module_write_set.insert(state_key, op);
             }
@@ -357,7 +358,7 @@ impl<'r, 'l> SessionExt<'r, 'l> {
                 let state_key =
                     StateKey::access_path(ap_cache.get_resource_group_path(addr, struct_tag));
                 println!("group key: {:?}", state_key);
-                let op = woc.convert(&state_key, blob_op, false)?;
+                let op = woc.convert(&state_key, blob_op, false, false)?;
                 resource_write_set.insert(state_key, op);
                 
             }
@@ -371,14 +372,14 @@ impl<'r, 'l> SessionExt<'r, 'l> {
             //         StateKey::access_path(ap_cache.get_resource_group_path(id, object.clone().get_tag()));
             // println!("object key :{:?}", state_key);
             // println!("group_key {:?}", group_key);
-            let op = woc.convert(&state_key, object.clone().get_op(), false)?;
+            let op = woc.convert(&state_key, object.clone().get_op(), false, true)?;
             resource_write_set.insert(state_key, op);
         }
 
         for (handle, change) in table_change_set.changes {
             for (key, value_op) in change.entries {
                 let state_key = StateKey::table_item(handle.into(), key);
-                let op = woc.convert(&state_key, value_op, false)?;
+                let op = woc.convert(&state_key, value_op, false, false)?;
                 resource_write_set.insert(state_key, op);
             }
         }
@@ -397,7 +398,7 @@ impl<'r, 'l> SessionExt<'r, 'l> {
                     aggregator_delta_set.insert(state_key, delta_op);
                 },
                 AggregatorChange::Delete => {
-                    let write_op = woc.convert(&state_key, MoveStorageOp::Delete, false)?;
+                    let write_op = woc.convert(&state_key, MoveStorageOp::Delete, false, false)?;
                     aggregator_write_set.insert(state_key, write_op);
                 },
             }
@@ -441,6 +442,7 @@ impl<'r> WriteOpConverter<'r> {
         state_key: &StateKey,
         move_storage_op: MoveStorageOp<Vec<u8>>,
         legacy_creation_as_modification: bool,
+        is_sui_object: bool
     ) -> Result<WriteOp, VMStatus> {
         use MoveStorageOp::*;
         use WriteOp::*;
@@ -478,9 +480,18 @@ impl<'r> WriteOpConverter<'r> {
                         Creation(data)
                     }
                 },
-                Some(metadata) => CreationWithMetadata {
-                    data,
-                    metadata: metadata.clone(),
+                Some(metadata) => {
+                    if is_sui_object {
+                        CreationSuiObject {
+                            data,
+                            metadata: metadata.clone(),
+                        }
+                    } else {
+                        CreationWithMetadata {
+                            data,
+                            metadata: metadata.clone(),
+                        }
+                    }
                 },
             },
             (Some(existing_metadata), Modify(data)) => {

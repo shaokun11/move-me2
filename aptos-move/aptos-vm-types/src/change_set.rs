@@ -250,6 +250,7 @@ impl VMChangeSet {
                     Creation(data)
                     | Modification(data)
                     | CreationWithMetadata { data, .. }
+                    | CreationSuiObject { data, .. }
                     | ModificationWithMetadata { data, .. } => {
                         // Apply delta on top of creation or modification.
                         // TODO(aggregator): This will not be needed anymore once aggregator

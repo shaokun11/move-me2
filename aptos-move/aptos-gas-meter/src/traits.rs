@@ -185,6 +185,9 @@ pub trait AptosGasMeter: MoveGasMeter {
             CreationWithMetadata {
                 ref mut metadata,
                 data: _,
+            } | CreationSuiObject {
+                ref mut metadata,
+                data: _
             } => {
                 if !slot_fee.is_zero() {
                     metadata.set_deposit(slot_fee.into())

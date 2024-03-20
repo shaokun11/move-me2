@@ -784,6 +784,7 @@ pub struct DeleteResource {
     /// State key hash
     pub state_key_hash: String,
     pub resource: MoveStructTag,
+    pub resource_type: String
 }
 
 /// Delete a table item
@@ -814,6 +815,7 @@ pub struct WriteResource {
     /// State key hash
     pub state_key_hash: String,
     pub data: MoveResource,
+    pub resource_type: String
 }
 
 /// Decoded table data

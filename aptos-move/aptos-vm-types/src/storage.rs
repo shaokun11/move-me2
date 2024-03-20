@@ -69,7 +69,7 @@ impl StoragePricingV1 {
         }
 
         match op {
-            Creation(data) | CreationWithMetadata { data, .. } => {
+            Creation(data) | CreationWithMetadata { data, .. } | CreationSuiObject { data, .. } => {
                 cost += self.write_data_per_new_item * NumArgs::new(1)
                     + self.write_data_per_byte_in_val * NumBytes::new(data.len() as u64);
             },
@@ -151,7 +151,7 @@ impl StoragePricingV2 {
         use aptos_types::write_set::WriteOp::*;
 
         match &op {
-            Creation(data) | CreationWithMetadata { data, .. } => {
+            Creation(data) | CreationWithMetadata { data, .. } | CreationSuiObject { data, .. } => {
                 self.per_item_create * NumArgs::new(1)
                     + self.write_op_size(key, data) * self.per_byte_create
             },
@@ -198,6 +198,7 @@ impl StoragePricingV3 {
         match op {
             Creation(data)
             | CreationWithMetadata { data, .. }
+            | CreationSuiObject { data, .. }
             | Modification(data)
             | ModificationWithMetadata { data, .. } => Either::Left(
                 STORAGE_IO_PER_STATE_SLOT_WRITE * NumArgs::new(1)

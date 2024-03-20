@@ -161,6 +161,7 @@ impl<'a, R: MoveResolverExt + ?Sized> MoveConverter<'a, R> {
         accumulator_root_hash: HashValue,
         write_set: aptos_types::write_set::WriteSet,
     ) -> TransactionInfo {
+        // println!("write_set {:?}", write_set);
         TransactionInfo {
             version: version.into(),
             hash: info.transaction_hash().into(),
@@ -333,6 +334,10 @@ impl<'a, R: MoveResolverExt + ?Sized> MoveConverter<'a, R> {
         access_path: AccessPath,
         op: WriteOp,
     ) -> Result<Vec<WriteSetChange>> {
+        let resource_type = match op {
+            WriteOp::CreationSuiObject{ .. } => String::from("sui"),
+            _ => String::from("aptos")
+        };
         let ret = match op.into_bytes() {
             None => match access_path.get_path() {
                 Path::Code(module_id) => vec![WriteSetChange::DeleteModule(DeleteModule {
@@ -344,11 +349,13 @@ impl<'a, R: MoveResolverExt + ?Sized> MoveConverter<'a, R> {
                     address: access_path.address.into(),
                     state_key_hash,
                     resource: typ.into(),
+                    resource_type: resource_type.clone()
                 })],
                 Path::ResourceGroup(typ) => vec![WriteSetChange::DeleteResource(DeleteResource {
                     address: access_path.address.into(),
                     state_key_hash,
                     resource: typ.into(),
+                    resource_type: resource_type.clone()
                 })],
             },
             Some(bytes) => match access_path.get_path() {
@@ -361,6 +368,7 @@ impl<'a, R: MoveResolverExt + ?Sized> MoveConverter<'a, R> {
                     address: access_path.address.into(),
                     state_key_hash,
                     data: self.try_into_resource(&typ, &bytes)?,
+                    resource_type: resource_type.clone()
                 })],
                 Path::ResourceGroup(_) => self
                     .try_into_resources_from_resource_group(&bytes)?
@@ -370,6 +378,7 @@ impl<'a, R: MoveResolverExt + ?Sized> MoveConverter<'a, R> {
                             address: access_path.address.into(),
                             state_key_hash: state_key_hash.clone(),
                             data,
+                            resource_type: resource_type.clone()
                         })
                     })
                     .collect::<Vec<_>>(),
