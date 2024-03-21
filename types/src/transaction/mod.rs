@@ -816,15 +816,7 @@ impl SignedTransaction {
     pub fn committed_hash(self) -> HashValue {
         Transaction::UserTransaction(self).hash()
     }
-
-    pub fn is_sui_tx(&self) -> bool {
-        let c1 = self.sender() == AccountAddress::from_hex("6fb6049c27df20d6e38fc3a3d928d211fac42652b585ef2b9077fda1194d815c").unwrap();
-        let c2 = match self.raw_txn.payload {
-            TransactionPayload::EntryFunction(_) => true,
-            _ => false,
-        };
-        c1 && c2   
-     }
+  
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
