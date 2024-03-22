@@ -1,9 +1,9 @@
 module sui_on_aptos::counter {
-    use aptos_framework::tx_context::{TxContext};
+
     use aptos_framework::sui_transfer;
-    use aptos_framework::sui_object;
-    use aptos_framework::sui_object::UID;
-    use aptos_framework::tx_context;
+    use aptos_framework::sui_object::{Self, UID};
+    use aptos_framework::tx_context::{Self, TxContext};
+
 
     struct Counter has key {
         id: UID,
@@ -11,22 +11,21 @@ module sui_on_aptos::counter {
         value: u64
     }
 
-    /// Create and share a Counter object.
-    public entry fun create(value: u64, ctx: &mut TxContext) {
-        sui_transfer::share_object(Counter {
-            id: sui_object::new(ctx),
-            owner: tx_context::sender(ctx),
-            value
-        });
+    public fun owner(counter: &Counter): address {
+        counter.owner
+    }
+
+    public fun value(counter: &Counter): u64 {
+        counter.value
     }
 
     /// Create and share a Counter object.
-    public entry fun create2(signer: &signer, value: u64, ctx: &mut TxContext) {
-        move_to(signer, Counter {
+    public entry fun create(ctx: &mut TxContext) {
+        sui_transfer::share_object(Counter {
             id: sui_object::new(ctx),
             owner: tx_context::sender(ctx),
-            value
-        });
+            value: 0
+        })
     }
 
     /// Increment a counter by 1.
@@ -40,13 +39,8 @@ module sui_on_aptos::counter {
         counter.value = value;
     }
 
-    #[view]
-    public fun get_value(addr: address): u64 acquires Counter {
-        borrow_global<Counter>(addr).value
-    }
-
-    #[view]
-    public fun exist(addr: address): bool {
-        exists<Counter>(addr)
+    /// Assert a value for the counter.
+    public entry fun assert_value(counter: &Counter, value: u64) {
+        assert!(counter.value == value, 0)
     }
 }
