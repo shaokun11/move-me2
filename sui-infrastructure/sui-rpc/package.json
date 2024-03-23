@@ -1,0 +1,28 @@
+{
+    "name": "sui-rpc",
+    "version": "1.0.0",
+    "description": "",
+    "type": "module",
+    "main": "index.js",
+    "scripts": {
+        "start": "node src/app.js",
+        "format": "prettier --write src/**/*.js "
+    },
+    "keywords": [],
+    "author": "shaokun",
+    "license": "ISC",
+    "dependencies": {
+        "@mysten/bcs": "^0.11.1",
+        "aptos-sui": "https://github.com/shaokun11/move-chain-sdk",
+        "bs58": "^5.0.0",
+        "cors": "^2.8.5",
+        "dotenv": "^16.4.5",
+        "execa": "^8.0.1",
+        "express": "^4.18.2",
+        "json-rpc-2.0": "^1.7.0",
+        "lodash-es": "^4.17.21"
+    },
+    "devDependencies": {
+        "prettier": "^3.2.5"
+    }
+}

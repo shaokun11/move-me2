@@ -1,0 +1,22 @@
+[package]
+name = "sui-transaction-decode"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+fastcrypto = "0.1.7"
+serde = "1.0.197"
+serde_json = "1.0.114"
+hex = "0.4.3"
+anyhow = "1.0.80"
+im = "15.1.0"
+
+sui_types = { git = "https://github.com/MystenLabs/sui", package = "sui-types", rev = "041c5f2bae2fe52079e44b70514333532d69f4e6" }
+shared_crypto = { git = "https://github.com/MystenLabs/sui", package = "shared-crypto", rev = "041c5f2bae2fe52079e44b70514333532d69f4e6" }
+sui_json_rpc_types = { git = "https://github.com/MystenLabs/sui", package = "sui-json-rpc-types", rev = "041c5f2bae2fe52079e44b70514333532d69f4e6" }
+fastcrypto-zkp = { git = "https://github.com/MystenLabs/fastcrypto", rev = "ea66012b860d9dd152abb7f2156275698ee91126", package = "fastcrypto-zkp" }
+bcs = "0.1.6"
+
+
