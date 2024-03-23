@@ -13,7 +13,6 @@
     "license": "ISC",
     "dependencies": {
         "@mysten/bcs": "^0.11.1",
-        "aptos-sui": "https://github.com/shaokun11/move-chain-sdk",
         "bs58": "^5.0.0",
         "cors": "^2.8.5",
         "dotenv": "^16.4.5",

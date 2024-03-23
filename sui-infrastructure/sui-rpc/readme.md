@@ -19,10 +19,7 @@ To configure the project, update the `.env` file with the appropriate values. Re
 
 To start the service, perform the following steps:
 
-1. Install the necessary dependencies by running:
-   ```
-   npm i
-   ```
+1. Install the necessary dependencies: follow [aptos-sui-sdk](../aptos-sui-sdk/README.md) to install  and run `npm  i`
 
 2. Start the service by running:
    ```
