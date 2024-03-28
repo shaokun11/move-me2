@@ -1,4 +1,5 @@
-use avalanche_types::subnet::rpc::database::manager::{DatabaseManager, Manager};
+use avalanche_types::subnet::rpc::database::manager::DatabaseManager;
+use avalanche_types::subnet::rpc::database::BoxedDatabase;
 use avalanche_types::subnet::rpc::health::Checkable;
 use avalanche_types::subnet::rpc::snow::engine::common::appsender::client::AppSenderClient;
 use avalanche_types::subnet::rpc::snow::engine::common::appsender::AppSender;
@@ -1334,7 +1335,7 @@ impl CommonVm for Vm {
     async fn initialize(
         &mut self,
         ctx: Option<subnet::rpc::context::Context<Self::ValidatorState>>,
-        db_manager: Self::DatabaseManager,
+        db_manager: BoxedDatabase,
         _genesis_bytes: &[u8],
         _upgrade_bytes: &[u8],
         _config_bytes: &[u8],
@@ -1344,9 +1345,8 @@ impl CommonVm for Vm {
     ) -> io::Result<()> {
         let mut vm_state = self.state.write().await;
         vm_state.ctx = ctx.clone();
-        let current = db_manager.current().await?;
         let state = state::State {
-            db: Arc::new(RwLock::new(current.clone().db)),
+            db: Arc::new(RwLock::new(db_manager)),
             verified_blocks: Arc::new(RwLock::new(HashMap::new())),
             vm: None,
         };

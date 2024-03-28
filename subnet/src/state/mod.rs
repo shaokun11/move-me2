@@ -28,7 +28,9 @@ pub struct State {
 impl Default for State {
     fn default() -> State {
         Self {
-            db: Arc::new(RwLock::new(subnet::rpc::database::memdb::Database::new())),
+            db: Arc::new(RwLock::new(
+                subnet::rpc::database::memdb::Database::new_boxed(),
+            )),
             verified_blocks: Arc::new(RwLock::new(HashMap::new())),
             vm: None,
         }
