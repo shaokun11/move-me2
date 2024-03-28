@@ -62,9 +62,9 @@ app.use('/v1', async function (req, res, next) {
     let str_req = `<<< ${JSON.stringify(req.body)}`;
     server.receive(req.body).then(jsonRPCResponse => {
         if (jsonRPCResponse.error) {
-            console.error(str_req, jsonRPCResponse);
+            // console.error(str_req, jsonRPCResponse);
         } else {
-            console.log(str_req, jsonRPCResponse);
+            // console.log(str_req, jsonRPCResponse);
         }
         if (Array.isArray(req.body) && req.body.length === 1) {
             res.json([jsonRPCResponse]);
@@ -80,9 +80,9 @@ app.use('/', async function (req, res, next) {
     let str_req = `<<< ${JSON.stringify(req.body)}`;
     server.receive(req.body).then(jsonRPCResponse => {
         if (jsonRPCResponse.error) {
-            console.error(str_req, jsonRPCResponse);
+            // console.error(str_req, jsonRPCResponse);
         } else {
-            console.log(str_req, jsonRPCResponse);
+            // console.log(str_req, jsonRPCResponse);
         }
         if (Array.isArray(req.body) && req.body.length === 1) {
             res.json([jsonRPCResponse]);

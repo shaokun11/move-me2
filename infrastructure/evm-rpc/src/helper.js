@@ -36,6 +36,14 @@ export function toHex(number) {
     return '0x' + ret;
 }
 
+export function toHexStrict(number) {
+    let ret = BigNumber(number).toString(16);
+    if (ret.length % 2 != 0) {
+        ret = "0" + ret;
+    }
+    return '0x' + ret;
+}
+
 export function toNumber(number) {
     return BigNumber(number).toNumber();
 }

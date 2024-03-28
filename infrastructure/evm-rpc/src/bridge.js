@@ -10,7 +10,7 @@ import {
     FAUCET_SENDER_ADDRESS,
     FAUCET_SENDER_ACCOUNT,
 } from './const.js';
-import { parseRawTx, sleep, toHex, toNumber } from './helper.js';
+import { parseRawTx, sleep, toHex, toNumber,toHexStrict } from './helper.js';
 import { TxEvents, getMoveHash, saveMoveEvmTxHash, saveTx } from './db.js';
 import { ZeroAddress, ethers, isHexString, toBeHex, keccak256 } from 'ethers';
 import BigNumber from 'bignumber.js';
@@ -173,7 +173,7 @@ export async function getStorageAt(addr, pos) {
     let payload = {
         function: EVM_CONTRACT + `::evm::get_storage_at`,
         type_arguments: [],
-        arguments: [addr, toHex(pos)],
+        arguments: [addr, toHexStrict(pos)],
     };
     try {
         let result = await client.view(payload);
