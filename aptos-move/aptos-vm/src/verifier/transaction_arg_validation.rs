@@ -109,13 +109,10 @@ pub(crate) fn get_allowed_structs(
 pub(crate) fn validate_combine_signer_and_txn_args(
     session: &mut SessionExt,
     senders: Vec<AccountAddress>,
-    args_: Vec<Vec<u8>>,
+    args: Vec<Vec<u8>>,
     func: &LoadedFunctionInstantiation,
     are_struct_constructors_enabled: bool,
-    is_sui_tx: bool,
 ) -> Result<Vec<Vec<u8>>, VMStatus> {
-   let mut args =  args_;
-   
     // entry function should not return
     if !func.return_.is_empty() {
         return Err(VMStatus::error(
@@ -154,10 +151,6 @@ pub(crate) fn validate_combine_signer_and_txn_args(
 
     let len = func.parameters.len();
     let allowed_structs = get_allowed_structs(are_struct_constructors_enabled);
-    if is_sui_tx && func.parameters.len()  + signer_param_cnt + context_param_cnt + 1 == args.len(){
-        // let sui_sender = args.pop().unwrap();
-        // let sui_sender   = bcs::from_bytes::<String>(&sui_sender).unwrap();
-    };
     // Need to keep this here to ensure we return the historic correct error code for replay
     for ty in func.parameters[signer_param_cnt..len-context_param_cnt].iter() {
         let valid = is_valid_txn_arg(

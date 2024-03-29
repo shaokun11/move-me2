@@ -1,0 +1,9 @@
+[package]
+name = "sui_on_aptos"
+version = "0.0.1"
+
+[addresses]
+sui_on_aptos = "0x6fb6049c27df20d6e38fc3a3d928d211fac42652b585ef2b9077fda1194d815c"
+
+[dependencies]
+AptosFramework = { local= "../../aptos-move/framework/aptos-framework" }
