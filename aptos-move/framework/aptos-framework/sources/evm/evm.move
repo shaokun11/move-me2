@@ -167,7 +167,7 @@ module aptos_framework::evm {
 
     #[view]
     public fun get_storage_at(addr: vector<u8>, slot: vector<u8>): vector<u8> acquires Account {
-        let move_address = create_resource_address(&@aptos_framework, addr);
+        let move_address = create_resource_address(&@aptos_framework, to_32bit(addr));
         if(exists<Account>(move_address)) {
             let account_store = borrow_global<Account>(move_address);
             let slot_u256 = data_to_u256(slot, 0, (vector::length(&slot) as u256));
