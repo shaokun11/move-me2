@@ -6,4 +6,4 @@ version = "0.0.1"
 sui_on_aptos = "7fb9d233fce09d16df966695362cdafa102e355c6f05c2b4cab4dda9cf8d9084"
 
 [dependencies]
-AptosFramework = { local= "../../'aptos-move/framework/aptos-framework" }
+AptosFramework = { local= "../../aptos-move/framework/aptos-framework" }
