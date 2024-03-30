@@ -1,4 +1,4 @@
-module aptos_framework::moon_coin {
+module movement_coin_example::moon_coin {
     use aptos_framework::movement_coin;
     use std::string::utf8;
     use aptos_framework::fungible_asset::{MintRef, TransferRef, BurnRef, Metadata};
@@ -20,10 +20,6 @@ module aptos_framework::moon_coin {
     use aptos_framework::evm_util::u256_to_data;
     use aptos_framework::object::Object;
     use aptos_framework::object;
-
-    /// Only owner can create the moon coin
-    const INVALID_OWNER: u64 = 1;
-    const MoonCoinAddr: address = @0x5;
 
     struct MoonCoin has key {
         evm_address: vector<u8>,
@@ -51,19 +47,19 @@ module aptos_framework::moon_coin {
     }
 
     public entry fun mint(to: address, amount: u64) acquires MoonCoin {
-        let moon_coin = borrow_global<MoonCoin>(MoonCoinAddr);
+        let moon_coin = borrow_global<MoonCoin>(@movement_coin_example);
         primary_fungible_store::mint(&moon_coin.mint_ref, to, amount);
     }
 
     #[view]
     fun get_evm_address(): vector<u8> acquires MoonCoin {
-        borrow_global<MoonCoin>(MoonCoinAddr).evm_address
+        borrow_global<MoonCoin>(@movement_coin_example).evm_address
     }
 
     #[view]
     /// Return the address of the managed fungible asset that's created when this module is deployed.
     public fun get_metadata(): Object<Metadata> acquires MoonCoin {
-        let asset_address = object::create_object_address(&MoonCoinAddr, get_evm_address());
+        let asset_address = object::create_object_address(&@movement_coin_example, get_evm_address());
         object::address_to_object<Metadata>(asset_address)
     }
 
@@ -71,9 +67,9 @@ module aptos_framework::moon_coin {
     #[test]
     fun test_moon_coin() acquires MoonCoin {
         let aptos_framework = account::create_account_for_test(@0x1);
-        movement_coin::initialize_for_test(&aptos_framework);
+        movement_coin::initialize(&aptos_framework);
 
-        let mooncoin = account::create_account_for_test(MoonCoinAddr);
+        let mooncoin = account::create_account_for_test(@movement_coin_example);
         let owner = account::create_account_for_test(@0x2);
         let sender = to_bytes(&address_of(&owner));
         init_module(&mooncoin);

@@ -351,7 +351,6 @@ pub enum EntryFunctionCall {
     },
 
     EvmSendMoveTxToEvm {
-        nonce: u64,
         evm_to: Vec<u8>,
         value_bytes: Vec<u8>,
         data: Vec<u8>,
@@ -392,6 +391,11 @@ pub enum EntryFunctionCall {
     /// Required if user wants to start accepting deposits of `CoinType` in his account.
     ManagedCoinRegister {
         coin_type: TypeTag,
+    },
+
+    MoonCoinMint {
+        to: AccountAddress,
+        amount: u64,
     },
 
     /// Similar to add_owners, but only allow adding one owner.
@@ -1100,12 +1104,11 @@ impl EntryFunctionCall {
                 _tx_type,
             } => evm_estimate_tx_gas(evm_from, evm_to, data, value_bytes, _tx_type),
             EvmSendMoveTxToEvm {
-                nonce,
                 evm_to,
                 value_bytes,
                 data,
                 _tx_type,
-            } => evm_send_move_tx_to_evm(nonce, evm_to, value_bytes, data, _tx_type),
+            } => evm_send_move_tx_to_evm(evm_to, value_bytes, data, _tx_type),
             EvmSendTx {
                 _evm_from,
                 tx,
@@ -1126,6 +1129,7 @@ impl EntryFunctionCall {
                 amount,
             } => managed_coin_mint(coin_type, dst_addr, amount),
             ManagedCoinRegister { coin_type } => managed_coin_register(coin_type),
+            MoonCoinMint { to, amount } => moon_coin_mint(to, amount),
             MultisigAccountAddOwner { new_owner } => multisig_account_add_owner(new_owner),
             MultisigAccountAddOwners { new_owners } => multisig_account_add_owners(new_owners),
             MultisigAccountAddOwnersAndUpdateSignaturesRequired {
@@ -2345,7 +2349,6 @@ pub fn evm_estimate_tx_gas(
 }
 
 pub fn evm_send_move_tx_to_evm(
-    nonce: u64,
     evm_to: Vec<u8>,
     value_bytes: Vec<u8>,
     data: Vec<u8>,
@@ -2362,7 +2365,6 @@ pub fn evm_send_move_tx_to_evm(
         ident_str!("send_move_tx_to_evm").to_owned(),
         vec![],
         vec![
-            bcs::to_bytes(&nonce).unwrap(),
             bcs::to_bytes(&evm_to).unwrap(),
             bcs::to_bytes(&value_bytes).unwrap(),
             bcs::to_bytes(&data).unwrap(),
@@ -2477,6 +2479,21 @@ pub fn managed_coin_register(coin_type: TypeTag) -> TransactionPayload {
         ident_str!("register").to_owned(),
         vec![coin_type],
         vec![],
+    ))
+}
+
+pub fn moon_coin_mint(to: AccountAddress, amount: u64) -> TransactionPayload {
+    TransactionPayload::EntryFunction(EntryFunction::new(
+        ModuleId::new(
+            AccountAddress::new([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1,
+            ]),
+            ident_str!("moon_coin").to_owned(),
+        ),
+        ident_str!("mint").to_owned(),
+        vec![],
+        vec![bcs::to_bytes(&to).unwrap(), bcs::to_bytes(&amount).unwrap()],
     ))
 }
 
@@ -4560,11 +4577,10 @@ mod decoder {
     pub fn evm_send_move_tx_to_evm(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
         if let TransactionPayload::EntryFunction(script) = payload {
             Some(EntryFunctionCall::EvmSendMoveTxToEvm {
-                nonce: bcs::from_bytes(script.args().get(0)?).ok()?,
-                evm_to: bcs::from_bytes(script.args().get(1)?).ok()?,
-                value_bytes: bcs::from_bytes(script.args().get(2)?).ok()?,
-                data: bcs::from_bytes(script.args().get(3)?).ok()?,
-                _tx_type: bcs::from_bytes(script.args().get(4)?).ok()?,
+                evm_to: bcs::from_bytes(script.args().get(0)?).ok()?,
+                value_bytes: bcs::from_bytes(script.args().get(1)?).ok()?,
+                data: bcs::from_bytes(script.args().get(2)?).ok()?,
+                _tx_type: bcs::from_bytes(script.args().get(3)?).ok()?,
             })
         } else {
             None
@@ -4625,6 +4641,17 @@ mod decoder {
         if let TransactionPayload::EntryFunction(script) = payload {
             Some(EntryFunctionCall::ManagedCoinRegister {
                 coin_type: script.ty_args().get(0)?.clone(),
+            })
+        } else {
+            None
+        }
+    }
+
+    pub fn moon_coin_mint(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
+        if let TransactionPayload::EntryFunction(script) = payload {
+            Some(EntryFunctionCall::MoonCoinMint {
+                to: bcs::from_bytes(script.args().get(0)?).ok()?,
+                amount: bcs::from_bytes(script.args().get(1)?).ok()?,
             })
         } else {
             None
@@ -5744,6 +5771,10 @@ static SCRIPT_FUNCTION_DECODER_MAP: once_cell::sync::Lazy<EntryFunctionDecoderMa
         map.insert(
             "managed_coin_register".to_string(),
             Box::new(decoder::managed_coin_register),
+        );
+        map.insert(
+            "moon_coin_mint".to_string(),
+            Box::new(decoder::moon_coin_mint),
         );
         map.insert(
             "multisig_account_add_owner".to_string(),

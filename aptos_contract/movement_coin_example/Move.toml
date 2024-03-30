@@ -1,0 +1,9 @@
+[package]
+name = "sui_on_aptos"
+version = "0.0.1"
+
+[addresses]
+movement_coin_example = "b3e5e9d58797efbce688894c9aebf09afb074d9c03201b452bc81e8afcd4a75d"
+
+[dependencies]
+AptosFramework = { local= "../../aptos-move/framework/aptos-framework" }

@@ -120,6 +120,7 @@ module aptos_framework::evm {
     );
 
     public(friend) fun initialize()  {
+
     }
 
     native fun decode_raw_tx(
@@ -283,7 +284,7 @@ module aptos_framework::evm {
     }
 
     // This function is used to delegate a EVM function to an Move function
-    fun delegate(sender: vector<u8>, value: u256, calldata: vector<u8>, readOnly: bool): vector<u8> acquires Account {
+    fun delegate(sender: vector<u8>, call_contract: vector<u8>, value: u256, calldata: vector<u8>, readOnly: bool): vector<u8> acquires Account {
         // assert!(!readOnly, CONTRACT_READ_ONLY);
         // debug::print(&calldata);
         let selector = slice(calldata, 0, 4);
@@ -292,7 +293,7 @@ module aptos_framework::evm {
         let to = to_address(slice(calldata, 4, 32));
         transfer_to_move_addr(sender, to, value);
         let len = to_u256(slice(calldata, 36, 32));
-        execute_move_tx(sender, to, slice(calldata, 68, len), readOnly)
+        execute_move_tx(sender, call_contract, to, slice(calldata, 68, len), readOnly)
     }
 
     // This function is used to execute precompile EVM contracts.
@@ -311,9 +312,7 @@ module aptos_framework::evm {
     // - readOnly: A boolean flag indicating whether the execution should be read-only.
     // - value: The value to be transferred during the execution.
     fun run(sender: vector<u8>, origin: vector<u8>, evm_contract_address: vector<u8>, code: vector<u8>, data: vector<u8>, readOnly: bool, value: u256): vector<u8> acquires Account, ContractEvent {
-        if (evm_contract_address == DELEGATE_ADDR) {
-            return delegate(sender, value, data, readOnly)
-        } else if (is_precompile_address(evm_contract_address)) {
+        if (is_precompile_address(evm_contract_address)) {
             return precompile(sender, evm_contract_address, value, data)
         };
 
@@ -877,7 +876,13 @@ module aptos_framework::evm {
 
                     let target = if (opcode == 0xf4) evm_contract_address else evm_dest_addr;
                     let from = if (opcode == 0xf4) sender else evm_contract_address;
-                    ret_bytes = run(from, sender, target, dest_code, params, readOnly, msg_value);
+
+                    if (target == DELEGATE_ADDR) {
+                        ret_bytes = delegate(sender, evm_contract_address, msg_value, params, readOnly);
+                    } else {
+                        ret_bytes = run(from, sender, target, dest_code, params, readOnly, msg_value);
+                    };
+
                     ret_size = (vector::length(&ret_bytes) as u256);
                     let index = 0;
                     while (ret_pos < ret_end) {
@@ -1226,7 +1231,7 @@ module aptos_framework::evm {
         debug::print(&can_be_executed(multisig_account, 1));
 
         let calldata = x"dfaea7950000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000cd5f31061fb31b2b987c5b006f38dab364015dff646389d45722b50570d735500000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000";
-        delegate(sender, 0, calldata, false);
+        delegate(sender, sender, 0, calldata, false);
 
         debug::print(&can_be_executed(multisig_account, 1));
     }

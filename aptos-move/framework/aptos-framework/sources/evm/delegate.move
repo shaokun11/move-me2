@@ -5,7 +5,6 @@ module aptos_framework::delegate {
     use aptos_framework::multisig_account::vote_transanction;
     use aptos_std::from_bcs::to_address;
     use aptos_framework::create_signer::create_signer;
-    use aptos_std::debug;
     use aptos_framework::primary_fungible_store;
     use aptos_framework::fungible_asset::Metadata;
     use aptos_framework::object;
@@ -13,10 +12,10 @@ module aptos_framework::delegate {
     /// Cannot call not read only function in read only context
     const READ_ONLY: u64 = 10001;
 
-    public(friend) fun execute_move_tx(contract: vector<u8>, _target: address, data: vector<u8>, read_only: bool): vector<u8> {
+    public(friend) fun execute_move_tx(sender: vector<u8>, contract: vector<u8>, _target: address, data: vector<u8>, read_only: bool): vector<u8> {
         let selector = slice(data, 0, 4);
-        debug::print(&data);
-        debug::print(&selector);
+        // debug::print(&data);
+        // debug::print(&selector);
         if(selector == x"10d6791e") {
             let multisig_address = to_address(slice(data, 4, 32));
             let sequence_number = to_u256(slice(data, 36, 32));
@@ -32,14 +31,13 @@ module aptos_framework::delegate {
             if(method == 1) {
                 let to = to_address(slice(data, 132, 32));
                 u256_to_data((primary_fungible_store::balance<Metadata>(to, metadata) as u256))
-            } else if(method == 5) {
+            } else if(method == 5 || method == 6) {
                 assert!(!read_only, READ_ONLY);
-                let from = to_address(slice(data, 132, 32));
-                let to = to_address(slice(data, 164, 32));
-                let amount = to_u256(slice(data, 196, 32));
-                let signer = create_signer(from);
+                let to = to_address(slice(data, 132, 32));
+                let amount = to_u256(slice(data, 164, 32));
+                let from = create_signer(to_address(sender));
 
-                primary_fungible_store::transfer<Metadata>(&signer, metadata, to, (amount as u64));
+                primary_fungible_store::transfer<Metadata>(&from, metadata, to, (amount as u64));
                 x""
             } else {
                 x""
