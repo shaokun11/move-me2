@@ -15,7 +15,7 @@ npm install
 
 ### Conversion
 
-1. Execute the conversion command.
+1. Execute the conversion command. The counter contract from `https://github.com/MystenLabs/sui/blob/main/sui_programmability/examples/basics/sources/counter.move`
 
 ```bash
 node index.js
