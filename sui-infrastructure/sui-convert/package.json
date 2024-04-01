@@ -1,0 +1,17 @@
+{
+    "name": "sui-compile",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "type": "module",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [],
+    "author": "shaokun",
+    "license": "ISC",
+    "dependencies": {
+        "@iarna/toml": "^2.2.5",
+        "commander": "^12.0.0"
+    }
+}
