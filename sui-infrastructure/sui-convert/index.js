@@ -30,11 +30,11 @@ for (const source of sources) {
 async function convert(p) {
     let content = await fs.readFile(p, 'utf-8')
     // replace sui to aptos_framework
-    content = content.replace(/sui::transfer/gi, "aptos_framework::sui_transfer")
-    content = content.replace(/sui::object/gi, "aptos_framework::sui_object")
-    content = content.replace(/sui::tx_context/gi, "aptos_framework::tx_context")
-    content = content.replace(/transfer::share_object/gi, "sui_transfer::share_object")
-    content = content.replace(/object::new/gi, "sui_object::new")
+    content = content.replace(/sui::transfer/g, "aptos_framework::sui_transfer")
+    content = content.replace(/sui::object/g, "aptos_framework::sui_object")
+    content = content.replace(/sui::tx_context/g, "aptos_framework::tx_context")
+    content = content.replace(/transfer::share_object/g, "sui_transfer::share_object")
+    content = content.replace(/object::new/g, "sui_object::new")
     // now we are not supporting test code
     content = content.replace(/#[\s]*\[test_only\][\s\S]*/g, '');
     // replace content output directory
