@@ -17,11 +17,11 @@ use aptos_storage_interface::DbReader;
 use aptos_types::chain_id::ChainId;
 use poem::{
     handler,
-    http::Method,
+    http::Method, 
     listener::{Listener, RustlsCertificate, RustlsConfig, TcpListener},
     middleware::Cors,
     web::Html,
-    EndpointExt, Route, Server,
+    EndpointExt, Route, Server, Request, Response, Endpoint, Result
 };
 use poem_openapi::{ContactObject, LicenseObject, OpenApiService};
 use std::{net::SocketAddr, sync::Arc};
@@ -152,6 +152,13 @@ pub fn get_api_service(
         .external_document("https://github.com/aptos-labs/aptos-core")
 }
 
+async fn validate_ip_address<E: Endpoint>(next: E, request: Request) -> Result<Response> {
+    let addr = request.remote_addr().as_socket_addr().cloned();
+    println!("address {:?}", addr);
+    let response = next.get_response(request).await;
+    Ok(response)
+}
+
 /// Returns address it is running at.
 pub fn attach_poem_to_runtime(
     runtime_handle: &Handle,
@@ -235,6 +242,7 @@ pub fn attach_poem_to_runtime(
             .with(PostSizeLimit::new(size_limit))
             // NOTE: Make sure to keep this after all the `with` middleware.
             .catch_all_error(convert_error)
+            .around(validate_ip_address)
             .around(middleware_log);
         Server::new_with_acceptor(acceptor)
             .run(route)

@@ -1,6 +1,6 @@
 #syntax=docker/dockerfile:1.5-labs
 
-FROM debian-base as validator-testing-base 
+FROM ubunutu:20.04
 
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
