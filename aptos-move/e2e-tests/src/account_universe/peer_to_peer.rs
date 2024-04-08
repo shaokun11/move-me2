@@ -4,7 +4,7 @@
 
 use crate::{
     account_universe::{AUTransactionGen, AccountPair, AccountPairGen, AccountUniverse},
-    common_transactions::{peer_to_peer_evm_deposit_txn, peer_to_peer_txn},
+    common_transactions::peer_to_peer_txn,
 };
 use aptos_types::{
     transaction::{ExecutionStatus, SignedTransaction, TransactionStatus},
@@ -130,46 +130,4 @@ pub fn p2p_strategy(
     prop_oneof![
         3 => any_with::<P2PTransferGen>((min, max)).prop_map(P2PTransferGen::arced),
     ]
-}
-
-#[derive(Arbitrary, Clone, Debug)]
-#[proptest(params = "(u64, u64)")]
-pub struct P2PEvmDepositGen {
-    sender_receiver: AccountPairGen,
-    #[proptest(strategy = "params.0 ..= params.1")]
-    amount: u64,
-}
-
-impl AUTransactionGen for P2PEvmDepositGen {
-    fn apply(
-        &self,
-        universe: &mut AccountUniverse,
-    ) -> (SignedTransaction, (TransactionStatus, u64)) {
-        let AccountPair {
-            account_1: sender,
-            account_2: receiver,
-            ..
-        } = self.sender_receiver.pick(universe);
-
-        let txn = peer_to_peer_evm_deposit_txn(
-            sender.account(),
-            receiver.account(),
-            sender.sequence_number,
-            self.amount / 10,
-            1, // sets unit gas price, ensures an aggregator is used for total supply.
-        );
-
-        // Now figure out whether the transaction will actually work.
-        // This means that we'll get through the main part of the transaction.
-        let gas_amount = sender.peer_to_peer_evm_deposit_gas_cost() * txn.gas_unit_price();
-        let to_deduct = self.amount / 10 + gas_amount;
-        // Expect a failure if the amount is greater than the current balance.
-        // XXX return the failure somehow?
-        sender.sequence_number += 1;
-        sender.sent_events_count += 1;
-        sender.balance -= to_deduct;
-        let status = TransactionStatus::Keep(ExecutionStatus::Success);
-        let gas_used = sender.peer_to_peer_evm_deposit_gas_cost();
-        (txn, (status, gas_used))
-    }
 }

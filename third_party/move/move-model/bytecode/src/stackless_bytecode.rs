@@ -71,6 +71,8 @@ pub enum AssignKind {
     // currently makes a difference of this case. It originates from stack code where Copy
     // and Move push on the stack and Store pops.
     Store,
+    /// The assign kind should be inferred based on livevar analysis
+    Inferred,
 }
 
 /// The type of variable that is being havoc-ed
@@ -136,17 +138,13 @@ impl Constant {
 
 /// An operation -- target of a call. This contains user functions, builtin functions, and
 /// operators.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Operation {
+    // ==============================================================
+    // Core Bytecodes (part of the programming language)
+
     // User function
     Function(ModuleId, FunId, Vec<Type>),
-
-    // Markers for beginning and end of transformed
-    // opaque function calls (the function call is replaced
-    // by assumes/asserts/gotos, but it is necessary to
-    // add more assumes/asserts later in the pipeline.
-    OpaqueCallBegin(ModuleId, FunId, Vec<Type>),
-    OpaqueCallEnd(ModuleId, FunId, Vec<Type>),
 
     // Pack/Unpack
     Pack(ModuleId, StructId, Vec<Type>),
@@ -162,27 +160,16 @@ pub enum Operation {
     BorrowField(ModuleId, StructId, Vec<Type>, usize),
     BorrowGlobal(ModuleId, StructId, Vec<Type>),
 
-    // Get
-    GetField(ModuleId, StructId, Vec<Type>, usize),
-    GetGlobal(ModuleId, StructId, Vec<Type>),
-
     // Builtins
-    Uninit,
-    Destroy,
+    /// Indicates that the value is dropped.
+    Drop,
+    /// Indicates that the value is no longer borrowed.
+    Release,
+
     ReadRef,
     WriteRef,
     FreezeRef,
     Vector,
-    Havoc(HavocKind),
-    Stop,
-
-    // Memory model
-    IsParent(BorrowNode, BorrowEdge),
-    WriteBack(BorrowNode, BorrowEdge),
-    UnpackRef,
-    PackRef,
-    UnpackRefDeep,
-    PackRefDeep,
 
     // Unary
     CastU8,
@@ -212,6 +199,33 @@ pub enum Operation {
     Eq,
     Neq,
     CastU256,
+
+    // ==============================================================
+    // Extended Bytecodes (part of the verification IL)
+
+    // Markers for beginning and end of transformed
+    // opaque function calls (the function call is replaced
+    // by assumes/asserts/gotos, but it is necessary to
+    // add more assumes/asserts later in the pipeline).
+    OpaqueCallBegin(ModuleId, FunId, Vec<Type>),
+    OpaqueCallEnd(ModuleId, FunId, Vec<Type>),
+
+    // Memory model
+    IsParent(BorrowNode, BorrowEdge),
+    WriteBack(BorrowNode, BorrowEdge),
+    UnpackRef,
+    PackRef,
+    UnpackRefDeep,
+    PackRefDeep,
+
+    // Get shortcut
+    GetField(ModuleId, StructId, Vec<Type>, usize),
+    GetGlobal(ModuleId, StructId, Vec<Type>),
+
+    // Special ops
+    Uninit,
+    Havoc(HavocKind),
+    Stop,
 
     // Debugging
     TraceLocal(TempIndex),
@@ -243,7 +257,8 @@ impl Operation {
             Operation::GetField(_, _, _, _) => false,
             Operation::GetGlobal(_, _, _) => true,
             Operation::Uninit => false,
-            Operation::Destroy => false,
+            Operation::Drop => false,
+            Operation::Release => false,
             Operation::ReadRef => false,
             Operation::WriteRef => false,
             Operation::FreezeRef => false,
@@ -399,6 +414,7 @@ pub enum Bytecode {
     Abort(AttrId, TempIndex),
     Nop(AttrId),
 
+    // Extended bytecode: spec-only.
     SaveMem(AttrId, MemoryLabel, QualifiedInstId<StructId>),
     SaveSpecVar(AttrId, MemoryLabel, QualifiedInstId<SpecVarId>),
     Prop(AttrId, PropKind, Exp),
@@ -472,6 +488,70 @@ impl Bytecode {
 
     pub fn is_branch(&self) -> bool {
         self.is_conditional_branch() || self.is_unconditional_branch()
+    }
+
+    /// Returns true if the bytecode is spec-only.
+    pub fn is_spec_only(&self) -> bool {
+        use Bytecode::*;
+        matches!(self, SaveMem(..) | SaveSpecVar(..) | Prop(..))
+    }
+
+    /// Return the sources of the instruction (for non-spec-only instructions).
+    /// If the instruction is spec-only instruction, this function panics.
+    pub fn sources(&self) -> Vec<TempIndex> {
+        match self {
+            Bytecode::Assign(_, _, src, _) => {
+                vec![*src]
+            },
+            Bytecode::Call(_, _, _, srcs, _) => srcs.clone(),
+            Bytecode::Ret(_, srcs) => srcs.clone(),
+            Bytecode::Branch(_, _, _, cond) => {
+                vec![*cond]
+            },
+            Bytecode::Abort(_, src) => {
+                vec![*src]
+            },
+            Bytecode::Load(_, _, _)
+            | Bytecode::Jump(_, _)
+            | Bytecode::Label(_, _)
+            | Bytecode::Nop(_) => {
+                vec![]
+            },
+            // Note that for all spec-only instructions, we currently return no sources.
+            Bytecode::SaveMem(_, _, _)
+            | Bytecode::SaveSpecVar(_, _, _)
+            | Bytecode::Prop(_, _, _) => {
+                unimplemented!("should not be called on spec-only instructions")
+            },
+        }
+    }
+
+    /// Return the destinations of the instruction.
+    pub fn dests(&self) -> Vec<TempIndex> {
+        match self {
+            Bytecode::Assign(_, dst, _, _) => {
+                vec![*dst]
+            },
+            Bytecode::Load(_, dst, _) => {
+                vec![*dst]
+            },
+            Bytecode::Call(_, dsts, _, _, on_abort) => {
+                let mut result = dsts.clone();
+                if let Some(AbortAction(_, dst)) = on_abort {
+                    result.push(*dst);
+                }
+                result
+            },
+            Bytecode::Ret(_, _)
+            | Bytecode::Branch(_, _, _, _)
+            | Bytecode::Jump(_, _)
+            | Bytecode::Label(_, _)
+            | Bytecode::Abort(_, _)
+            | Bytecode::Nop(_)
+            | Bytecode::SaveMem(_, _, _)
+            | Bytecode::SaveSpecVar(_, _, _)
+            | Bytecode::Prop(_, _, _) => Vec::new(),
+        }
     }
 
     /// Return the destination(s) if self is a branch/jump instruction
@@ -827,6 +907,9 @@ impl<'env> fmt::Display for BytecodeDisplay<'env> {
             Assign(_, dst, src, AssignKind::Store) => {
                 write!(f, "{} := {}", self.lstr(*dst), self.lstr(*src))?
             },
+            Assign(_, dst, src, AssignKind::Inferred) => {
+                write!(f, "{} := infer({})", self.lstr(*dst), self.lstr(*src))?
+            },
             Call(_, dsts, oper, args, aa) => {
                 if !dsts.is_empty() {
                     self.fmt_locals(f, dsts, false)?;
@@ -1045,8 +1128,11 @@ impl<'env> fmt::Display for OperationDisplay<'env> {
             Uninit => {
                 write!(f, "uninit")?;
             },
-            Destroy => {
-                write!(f, "destroy")?;
+            Drop => {
+                write!(f, "drop")?;
+            },
+            Release => {
+                write!(f, "release")?;
             },
             ReadRef => {
                 write!(f, "read_ref")?;

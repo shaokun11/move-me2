@@ -41,7 +41,10 @@ fn success_generic(
     // Load the code
     let acc = h.new_account_at(AccountAddress::from_hex_literal("0xcafe").unwrap());
 
-    assert_success!(h.publish_package(&acc, &common::test_dir_path("constructor_args.data/pack")));
+    assert_success!(h.publish_package_cache_building(
+        &acc,
+        &common::test_dir_path("constructor_args.data/pack")
+    ));
 
     // Check in initial state, resource does not exist.
     assert!(!h.exists_resource(acc.address(), module_data()));
@@ -72,15 +75,22 @@ fn success_generic_view(
 ) {
     // Load the code
     let acc = h.new_account_at(AccountAddress::from_hex_literal("0xcafe").unwrap());
-    assert_success!(h.publish_package(&acc, &common::test_dir_path("constructor_args.data/pack")));
+    assert_success!(h.publish_package_cache_building(
+        &acc,
+        &common::test_dir_path("constructor_args.data/pack")
+    ));
 
     // Check in initial state, resource does not exist.
     assert!(!h.exists_resource(acc.address(), module_data()));
 
     for (entry, args, expected) in tests {
         let res = h.execute_view_function(str::parse(entry).unwrap(), ty_args.clone(), args);
-        assert!(res.is_ok(), "{}", res.err().unwrap().to_string());
-        let bcs = res.unwrap().pop().unwrap();
+        assert!(
+            res.values.is_ok(),
+            "{}",
+            res.values.err().unwrap().to_string()
+        );
+        let bcs = res.values.unwrap().pop().unwrap();
         let res = bcs::from_bytes::<String>(&bcs).unwrap();
         assert_eq!(res, expected);
     }
@@ -97,7 +107,10 @@ fn fail_generic(ty_args: Vec<TypeTag>, tests: Vec<(&str, Vec<Vec<u8>>, Closure)>
 
     // Load the code
     let acc = h.new_account_at(AccountAddress::from_hex_literal("0xcafe").unwrap());
-    assert_success!(h.publish_package(&acc, &common::test_dir_path("constructor_args.data/pack")));
+    assert_success!(h.publish_package_cache_building(
+        &acc,
+        &common::test_dir_path("constructor_args.data/pack")
+    ));
 
     // Check in initial state, resource does not exist.
     assert!(!h.exists_resource(acc.address(), module_data()));

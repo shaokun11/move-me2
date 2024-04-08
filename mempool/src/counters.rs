@@ -20,6 +20,7 @@ pub const TIMELINE_INDEX_LABEL: &str = "timeline";
 pub const PARKING_LOT_INDEX_LABEL: &str = "parking_lot";
 pub const TRANSACTION_HASH_INDEX_LABEL: &str = "transaction_hash";
 pub const SIZE_BYTES_LABEL: &str = "size_bytes";
+pub const GAS_UPGRADED_INDEX_LABEL: &str = "gas_upgraded";
 
 // Core mempool stages labels
 pub const COMMIT_ACCEPTED_LABEL: &str = "commit_accepted";
@@ -95,11 +96,12 @@ pub const SUBMITTED_BY_CLIENT_LABEL: &str = "client";
 pub const SUBMITTED_BY_DOWNSTREAM_LABEL: &str = "downstream";
 pub const SUBMITTED_BY_PEER_VALIDATOR_LABEL: &str = "peer_validator";
 
-// Histogram buckets that expand DEFAULT_BUCKETS with larger timescales
-// and some more granularity between 100-250 ms
+// Histogram buckets that expand DEFAULT_BUCKETS with larger timescales and some constant sized
+// buckets between: 50-250ms (every 25ms), 250ms-5s (250ms), 5-10s (1s), and 10-25s (2.5s).
 const MEMPOOL_LATENCY_BUCKETS: &[f64] = &[
-    0.005, 0.01, 0.025, 0.05, 0.1, 0.125, 0.15, 0.2, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 25.0, 50.0,
-    100.0, 250.0, 500.0,
+    0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.125, 0.15, 0.175, 0.2, 0.225, 0.25, 0.5, 0.75, 1.0,
+    1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 3.25, 3.5, 3.75, 4.0, 4.25, 4.5, 4.75, 5.0, 6.0,
+    7.0, 8.0, 9.0, 10.0, 12.5, 15.0, 17.5, 20.0, 22.5, 25.0, 50.0, 100.0, 250.0, 500.0,
 ];
 
 // Histogram buckets for tracking ranking score (see below test for the formula)
@@ -108,26 +110,14 @@ const RANKING_SCORE_BUCKETS: &[f64] = &[
     10000.0, 14678.0, 21544.0, 31623.0, 46416.0, 68129.0, 100000.0, 146780.0, 215443.0,
 ];
 
+const TXN_CONSENSUS_PULLED_BUCKETS: &[f64] = &[1.0, 2.0, 3.0, 4.0, 5.0, 10.0, 25.0, 50.0, 100.0];
+
 static TRANSACTION_COUNT_BUCKETS: Lazy<Vec<f64>> = Lazy::new(|| {
     exponential_buckets(
         /*start=*/ 1.5, /*factor=*/ 1.5, /*count=*/ 20,
     )
     .unwrap()
 });
-
-#[cfg(test)]
-mod test {
-    use crate::counters::RANKING_SCORE_BUCKETS;
-
-    #[test]
-    fn generate_ranking_score_buckets() {
-        let buckets: Vec<f64> = (0..21)
-            .map(|n| 100.0 * (10.0_f64.powf(n as f64 / 6.0)))
-            .map(|f| f.round())
-            .collect();
-        assert_eq!(RANKING_SCORE_BUCKETS, &buckets);
-    }
-}
 
 /// Counter tracking size of various indices in core mempool
 pub static CORE_MEMPOOL_INDEX_SIZE: Lazy<IntGaugeVec> = Lazy::new(|| {
@@ -261,6 +251,15 @@ pub static CORE_MEMPOOL_GC_LATENCY: Lazy<HistogramVec> = Lazy::new(|| {
         "aptos_core_mempool_gc_latency",
         "How long a transaction stayed in core mempool before garbage-collected",
         &["type", "status"]
+    )
+    .unwrap()
+});
+
+pub static CORE_MEMPOOL_TXN_CONSENSUS_PULLED: Lazy<Histogram> = Lazy::new(|| {
+    register_histogram!(
+        "aptos_core_mempool_txn_consensus_pulled",
+        "Number of times a txn was pulled from core mempool by consensus",
+        TXN_CONSENSUS_PULLED_BUCKETS.to_vec()
     )
     .unwrap()
 });
@@ -614,3 +613,17 @@ pub static MAIN_LOOP: Lazy<DurationHistogram> = Lazy::new(|| {
         .unwrap(),
     )
 });
+
+#[cfg(test)]
+mod test {
+    use crate::counters::RANKING_SCORE_BUCKETS;
+
+    #[test]
+    fn generate_ranking_score_buckets() {
+        let buckets: Vec<f64> = (0..21)
+            .map(|n| 100.0 * (10.0_f64.powf(n as f64 / 6.0)))
+            .map(|f| f.round())
+            .collect();
+        assert_eq!(RANKING_SCORE_BUCKETS, &buckets);
+    }
+}

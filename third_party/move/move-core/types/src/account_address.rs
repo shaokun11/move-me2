@@ -18,6 +18,8 @@ impl AccountAddress {
     /// The number of bytes in an address.
     /// Default to 16 bytes, can be set to 20 bytes with address20 feature.
     pub const LENGTH: usize = 32;
+    /// Max address: 0xff....
+    pub const MAX_ADDRESS: Self = Self([0xFF; Self::LENGTH]);
     /// Hex address: 0x1
     pub const ONE: Self = Self::get_hex_address_one();
     /// Hex address: 0x2
@@ -229,7 +231,7 @@ impl std::ops::Deref for AccountAddress {
 
 impl fmt::Display for AccountAddress {
     fn fmt(&self, f: &mut fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{:x}", self)
+        write!(f, "{}", self.to_standard_string())
     }
 }
 
@@ -588,7 +590,7 @@ mod tests {
 
         let address = AccountAddress::from_hex(hex).unwrap();
 
-        assert_eq!(format!("{}", address), hex);
+        assert_eq!(format!("{}", address), format!("0x{}", hex));
         assert_eq!(format!("{:?}", address), hex);
         assert_eq!(format!("{:X}", address), upper_hex);
         assert_eq!(format!("{:x}", address), hex);

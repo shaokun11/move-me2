@@ -4,13 +4,15 @@
 
 use crate::{
     account_config::{DepositEvent, NewBlockEvent, NewEpochEvent, WithdrawEvent},
+    dkg::DKGStartEvent,
     event::EventKey,
+    jwks::ObservedJWKsUpdated,
+    on_chain_config::new_epoch_event_key,
     transaction::Version,
 };
 use anyhow::{bail, Error, Result};
 use aptos_crypto_derive::{BCSCryptoHash, CryptoHasher};
 use move_core_types::{
-    account_address::AccountAddress,
     ident_str,
     language_storage::{StructTag, TypeTag, CORE_CODE_ADDRESS},
     move_resource::MoveStructType,
@@ -19,7 +21,7 @@ use once_cell::sync::Lazy;
 #[cfg(any(test, feature = "fuzzing"))]
 use proptest_derive::Arbitrary;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use std::convert::TryFrom;
+use std::{convert::TryFrom, str::FromStr};
 
 pub static FEE_STATEMENT_EVENT_TYPE: Lazy<TypeTag> = Lazy::new(|| {
     TypeTag::Struct(Box::new(StructTag {
@@ -30,15 +32,11 @@ pub static FEE_STATEMENT_EVENT_TYPE: Lazy<TypeTag> = Lazy::new(|| {
     }))
 });
 
-/// This trait is used by block executor to abstractly represent an event.
-/// Block executor uses `get_event_data` to get the event data.
-/// Block executor then checks for the occurrences of aggregators and aggregatorsnapshots
-/// in the event data, processes them, and calls `update_event_data` to update the event data.
-pub trait ReadWriteEvent {
-    /// Returns the event data.
-    fn get_event_data(&self) -> (EventKey, u64, &TypeTag, &[u8]);
-    /// Updates the event data.
-    fn update_event_data(&mut self, event_data: Vec<u8>);
+/// This trait is used by block executor to abstractly represent an event,
+/// and update its data.
+pub trait TransactionEvent {
+    fn get_event_data(&self) -> &[u8];
+    fn set_event_data(&mut self, event_data: Vec<u8>);
 }
 
 /// Support versioning of the data structure.
@@ -48,25 +46,15 @@ pub enum ContractEvent {
     V2(ContractEventV2),
 }
 
-impl ReadWriteEvent for ContractEvent {
-    fn get_event_data(&self) -> (EventKey, u64, &TypeTag, &[u8]) {
+impl TransactionEvent for ContractEvent {
+    fn get_event_data(&self) -> &[u8] {
         match self {
-            ContractEvent::V1(event) => (
-                *event.key(),
-                event.sequence_number(),
-                event.type_tag(),
-                event.event_data(),
-            ),
-            ContractEvent::V2(event) => (
-                EventKey::new(0, AccountAddress::ZERO),
-                0,
-                event.type_tag(),
-                event.event_data(),
-            ),
+            ContractEvent::V1(event) => event.event_data(),
+            ContractEvent::V2(event) => event.event_data(),
         }
     }
 
-    fn update_event_data(&mut self, event_data: Vec<u8>) {
+    fn set_event_data(&mut self, event_data: Vec<u8>) {
         match self {
             ContractEvent::V1(event) => event.event_data = event_data,
             ContractEvent::V2(event) => event.event_data = event_data,
@@ -91,6 +79,13 @@ impl ContractEvent {
 
     pub fn new_v2(type_tag: TypeTag, event_data: Vec<u8>) -> Self {
         ContractEvent::V2(ContractEventV2::new(type_tag, event_data))
+    }
+
+    pub fn new_v2_with_type_tag_str(type_tag_str: &str, event_data: Vec<u8>) -> Self {
+        ContractEvent::V2(ContractEventV2::new(
+            TypeTag::from_str(type_tag_str).unwrap(),
+            event_data,
+        ))
     }
 
     pub fn event_key(&self) -> Option<&EventKey> {
@@ -159,6 +154,13 @@ impl ContractEvent {
 
         Ok(None)
     }
+
+    pub fn is_new_epoch_event(&self) -> bool {
+        match self {
+            ContractEvent::V1(event) => *event.key() == new_epoch_event_key(),
+            ContractEvent::V2(_event) => false,
+        }
+    }
 }
 
 /// Entry produced via a call to the `emit_event` builtin.
@@ -207,7 +209,7 @@ impl ContractEventV1 {
     }
 
     pub fn size(&self) -> usize {
-        self.key.size() + 8 /* u64 */ + bcs::to_bytes(&self.type_tag).unwrap().len() + self.event_data.len()
+        self.key.size() + 8 /* u64 */ + bcs::serialized_size(&self.type_tag).unwrap() + self.event_data.len()
     }
 }
 
@@ -243,7 +245,7 @@ impl ContractEventV2 {
     }
 
     pub fn size(&self) -> usize {
-        bcs::to_bytes(&self.type_tag).unwrap().len() + self.event_data.len()
+        bcs::serialized_size(&self.type_tag).unwrap() + self.event_data.len()
     }
 
     pub fn type_tag(&self) -> &TypeTag {
@@ -278,6 +280,35 @@ impl TryFrom<&ContractEvent> for NewBlockEvent {
                 Self::try_from_bytes(&event.event_data)
             },
             ContractEvent::V2(_) => bail!("This is a module event"),
+        }
+    }
+}
+
+impl From<(u64, NewEpochEvent)> for ContractEvent {
+    fn from((seq_num, event): (u64, NewEpochEvent)) -> Self {
+        Self::new_v1(
+            new_epoch_event_key(),
+            seq_num,
+            TypeTag::from(NewEpochEvent::struct_tag()),
+            bcs::to_bytes(&event).unwrap(),
+        )
+    }
+}
+
+impl TryFrom<&ContractEvent> for DKGStartEvent {
+    type Error = Error;
+
+    fn try_from(event: &ContractEvent) -> Result<Self> {
+        match event {
+            ContractEvent::V1(_) => {
+                bail!("conversion to dkg start event failed with wrong contract event version");
+            },
+            ContractEvent::V2(event) => {
+                if event.type_tag != TypeTag::Struct(Box::new(Self::struct_tag())) {
+                    bail!("conversion to dkg start event failed with wrong type tag")
+                }
+                bcs::from_bytes(&event.event_data).map_err(Into::into)
+            },
         }
     }
 }
@@ -326,6 +357,24 @@ impl TryFrom<&ContractEvent> for DepositEvent {
                 Self::try_from_bytes(&event.event_data)
             },
             ContractEvent::V2(_) => bail!("This is a module event"),
+        }
+    }
+}
+
+impl TryFrom<&ContractEvent> for ObservedJWKsUpdated {
+    type Error = Error;
+
+    fn try_from(event: &ContractEvent) -> Result<Self> {
+        match event {
+            ContractEvent::V1(_) => {
+                bail!("conversion to `ObservedJWKsUpdated` failed with wrong event version")
+            },
+            ContractEvent::V2(v2) => {
+                if v2.type_tag != TypeTag::Struct(Box::new(Self::struct_tag())) {
+                    bail!("conversion to `ObservedJWKsUpdated` failed with wrong type tag");
+                }
+                bcs::from_bytes(&v2.event_data).map_err(Into::into)
+            },
         }
     }
 }

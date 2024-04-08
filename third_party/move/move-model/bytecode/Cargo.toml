@@ -10,6 +10,7 @@ publish = false
 edition = "2021"
 
 [dependencies]
+abstract-domain-derive = { path = "./abstract_domain_derive" }
 move-binary-format = { path = "../../move-binary-format" }
 move-borrow-graph = { path = "../../move-borrow-graph" }
 move-bytecode-verifier = { path = "../../move-bytecode-verifier" }
@@ -35,6 +36,9 @@ serde = { version = "1.0.124", features = ["derive"] }
 anyhow = "1.0.52"
 datatest-stable = "0.1.1"
 move-stackless-bytecode-test-utils = { path = "../bytecode-test-utils" }
+
+[features]
+default = []
 
 [[test]]
 name = "testsuite"

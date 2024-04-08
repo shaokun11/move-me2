@@ -5,7 +5,8 @@
 use crate::compiler::compile_modules_in_file;
 use move_binary_format::{
     file_format::{
-        empty_module, AddressIdentifierIndex, IdentifierIndex, ModuleHandle, TableIndex,
+        empty_module, AbilitySet, AddressIdentifierIndex, IdentifierIndex, ModuleHandle,
+        ModuleHandleIndex, StructHandle, StructTypeParameter, TableIndex,
     },
     CompiledModule,
 };
@@ -197,6 +198,72 @@ fn load_concurrent_many() {
 }
 
 #[test]
+fn load_phantom_module() {
+    let data_store = InMemoryStorage::new();
+    let mut adapter = Adapter::new(data_store);
+    let modules = get_modules();
+    adapter.publish_modules(modules);
+
+    let mut module = empty_module();
+    module.address_identifiers[0] = WORKING_ACCOUNT;
+    module.identifiers[0] = Identifier::new("I").unwrap();
+    module.identifiers.push(Identifier::new("H").unwrap());
+    module.module_handles.push(ModuleHandle {
+        address: AddressIdentifierIndex(0),
+        name: IdentifierIndex((module.identifiers.len() - 1) as TableIndex),
+    });
+    module.identifiers.push(Identifier::new("S").unwrap());
+    module.struct_handles.push(StructHandle {
+        module: ModuleHandleIndex((module.module_handles.len() - 1) as TableIndex),
+        name: IdentifierIndex((module.identifiers.len() - 1) as TableIndex),
+        abilities: AbilitySet::EMPTY,
+        type_parameters: vec![StructTypeParameter {
+            constraints: AbilitySet::EMPTY,
+            is_phantom: false,
+        }],
+    });
+
+    let module_id = module.self_id();
+    adapter.publish_modules(vec![module]);
+    adapter.vm.load_module(&module_id, &adapter.store).unwrap();
+}
+
+#[test]
+fn load_with_extra_ability() {
+    let data_store = InMemoryStorage::new();
+    let mut adapter = Adapter::new(data_store);
+    let modules = get_modules();
+    adapter.publish_modules(modules);
+
+    let mut module = empty_module();
+    module.address_identifiers[0] = WORKING_ACCOUNT;
+    module.identifiers[0] = Identifier::new("I").unwrap();
+    module.identifiers.push(Identifier::new("H").unwrap());
+    module.module_handles.push(ModuleHandle {
+        address: AddressIdentifierIndex(0),
+        name: IdentifierIndex((module.identifiers.len() - 1) as TableIndex),
+    });
+    module.identifiers.push(Identifier::new("F").unwrap());
+
+    // Publish a module where a struct has COPY ability at definition site and EMPTY ability at use site.
+    // This should be OK due to our module upgrade rule.
+    module.struct_handles.push(StructHandle {
+        module: ModuleHandleIndex((module.module_handles.len() - 1) as TableIndex),
+        name: IdentifierIndex((module.identifiers.len() - 1) as TableIndex),
+        abilities: AbilitySet::EMPTY,
+        type_parameters: vec![StructTypeParameter {
+            constraints: AbilitySet::EMPTY,
+            is_phantom: false,
+        }],
+    });
+
+    let module_id = module.self_id();
+    adapter.publish_modules(vec![module]);
+    adapter.vm.load_module(&module_id, &adapter.store).unwrap();
+}
+
+#[ignore = "temporarily disabled because we reimplemented dependency check outside the Move VM"]
+#[test]
 fn deep_dependency_list_err_0() {
     let data_store = InMemoryStorage::new();
     let mut adapter = Adapter::new(data_store);
@@ -216,6 +283,7 @@ fn deep_dependency_list_err_0() {
     adapter.publish_modules_with_error(vec![module]);
 }
 
+#[ignore = "temporarily disabled because we reimplemented dependency check outside the Move VM"]
 #[test]
 fn deep_dependency_list_err_1() {
     let data_store = InMemoryStorage::new();
@@ -276,6 +344,7 @@ fn deep_dependency_list_ok_1() {
     adapter.publish_modules(vec![module]);
 }
 
+#[ignore = "temporarily disabled because we reimplemented dependency check outside the Move VM"]
 #[test]
 fn deep_dependency_tree_err_0() {
     let data_store = InMemoryStorage::new();
@@ -298,6 +367,7 @@ fn deep_dependency_tree_err_0() {
     adapter.publish_modules_with_error(vec![module]);
 }
 
+#[ignore = "temporarily disabled because we reimplemented dependency check outside the Move VM"]
 #[test]
 fn deep_dependency_tree_err_1() {
     let data_store = InMemoryStorage::new();
@@ -320,6 +390,7 @@ fn deep_dependency_tree_err_1() {
     adapter.publish_modules_with_error(vec![module]);
 }
 
+#[ignore = "temporarily disabled because we reimplemented dependency check outside the Move VM"]
 #[test]
 fn deep_dependency_tree_ok_0() {
     let data_store = InMemoryStorage::new();
@@ -342,6 +413,7 @@ fn deep_dependency_tree_ok_0() {
     adapter.publish_modules(vec![module]);
 }
 
+#[ignore = "temporarily disabled because we reimplemented dependency check outside the Move VM"]
 #[test]
 fn deep_dependency_tree_ok_1() {
     let data_store = InMemoryStorage::new();
@@ -364,6 +436,7 @@ fn deep_dependency_tree_ok_1() {
     adapter.publish_modules(vec![module]);
 }
 
+#[ignore = "temporarily disabled because we reimplemented dependency check outside the Move VM"]
 #[test]
 fn deep_friend_list_err_0() {
     let data_store = InMemoryStorage::new();
@@ -384,6 +457,7 @@ fn deep_friend_list_err_0() {
     adapter.publish_modules_with_error(vec![module]);
 }
 
+#[ignore = "temporarily disabled because we reimplemented dependency check outside the Move VM"]
 #[test]
 fn deep_friend_list_err_1() {
     let data_store = InMemoryStorage::new();

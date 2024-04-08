@@ -7,7 +7,6 @@ use anyhow::Result;
 use aptos_channels::{aptos_channel, message_queues::QueueStyle};
 use aptos_id_generator::{IdGenerator, U64IdGenerator};
 use aptos_infallible::RwLock;
-use aptos_state_view::account_with_state_view::AsAccountWithStateView;
 use aptos_storage_interface::{state_view::DbStateViewAtVersion, DbReader, DbReaderWriter};
 use aptos_types::{
     account_config::CORE_CODE_ADDRESS,
@@ -15,8 +14,8 @@ use aptos_types::{
     contract_event::ContractEvent,
     event::EventKey,
     move_resource::MoveStorage,
-    on_chain_config,
     on_chain_config::{OnChainConfig, OnChainConfigPayload, OnChainConfigProvider},
+    state_store::account_with_state_view::AsAccountWithStateView,
     transaction::Version,
 };
 use futures::{channel::mpsc::SendError, stream::FusedStream, Stream};
@@ -77,6 +76,7 @@ pub trait EventNotificationSender: Send {
 pub struct EventSubscriptionService {
     // Event subscription registry
     event_key_subscriptions: HashMap<EventKey, HashSet<SubscriptionId>>,
+    event_v2_tag_subscriptions: HashMap<String, HashSet<SubscriptionId>>,
     subscription_id_to_event_subscription: HashMap<SubscriptionId, EventSubscription>,
 
     // Reconfig subscription registry
@@ -93,6 +93,7 @@ impl EventSubscriptionService {
     pub fn new(storage: Arc<RwLock<DbReaderWriter>>) -> Self {
         Self {
             event_key_subscriptions: HashMap::new(),
+            event_v2_tag_subscriptions: HashMap::new(),
             subscription_id_to_event_subscription: HashMap::new(),
             reconfig_subscriptions: HashMap::new(),
             storage,
@@ -110,8 +111,9 @@ impl EventSubscriptionService {
     pub fn subscribe_to_events(
         &mut self,
         event_keys: Vec<EventKey>,
+        event_v2_tags: Vec<String>,
     ) -> Result<EventNotificationListener, Error> {
-        if event_keys.is_empty() {
+        if event_keys.is_empty() && event_v2_tags.is_empty() {
             return Err(Error::CannotSubscribeToZeroEventKeys);
         }
 
@@ -143,7 +145,17 @@ impl EventSubscriptionService {
                 .and_modify(|subscriptions| {
                     subscriptions.insert(subscription_id);
                 })
-                .or_insert_with(|| HashSet::from_iter(vec![subscription_id].iter().cloned()));
+                .or_insert_with(|| HashSet::from_iter([subscription_id].iter().cloned()));
+        }
+
+        // Update the event v2 tag subscriptions to include the new subscription
+        for event_tag in event_v2_tags {
+            self.event_v2_tag_subscriptions
+                .entry(event_tag)
+                .and_modify(|subscriptions| {
+                    subscriptions.insert(subscription_id);
+                })
+                .or_insert_with(|| HashSet::from_iter([subscription_id].iter().cloned()));
         }
 
         Ok(EventNotificationListener {
@@ -201,33 +213,35 @@ impl EventSubscriptionService {
         let mut reconfig_event_found = false;
         let mut event_subscription_ids_to_notify = HashSet::new();
 
-        // TODO(eventv2): This doesn't deal with module events subscriptions.
         for event in events.iter() {
-            if let ContractEvent::V1(v1) = event {
-                let event_key = v1.key();
-
-                // Process all subscriptions for the current event
-                if let Some(subscription_ids) = self.event_key_subscriptions.get(event_key) {
-                    // Add the event to the subscription's pending event buffer
-                    // and store the subscriptions that will need to notified once all
-                    // events have been processed.
-                    for subscription_id in subscription_ids.iter() {
-                        if let Some(event_subscription) = self
-                            .subscription_id_to_event_subscription
-                            .get_mut(subscription_id)
-                        {
-                            event_subscription.buffer_event(event.clone());
-                            event_subscription_ids_to_notify.insert(*subscription_id);
-                        } else {
-                            return Err(Error::MissingEventSubscription(*subscription_id));
-                        }
+            // Process all subscriptions for the current event
+            let maybe_subscription_ids = match event {
+                ContractEvent::V1(evt) => self.event_key_subscriptions.get(evt.key()),
+                ContractEvent::V2(evt) => {
+                    let tag = evt.type_tag().to_string();
+                    self.event_v2_tag_subscriptions.get(&tag)
+                },
+            };
+            if let Some(subscription_ids) = maybe_subscription_ids {
+                // Add the event to the subscription's pending event buffer
+                // and store the subscriptions that will need to notified once all
+                // events have been processed.
+                for subscription_id in subscription_ids.iter() {
+                    if let Some(event_subscription) = self
+                        .subscription_id_to_event_subscription
+                        .get_mut(subscription_id)
+                    {
+                        event_subscription.buffer_event(event.clone());
+                        event_subscription_ids_to_notify.insert(*subscription_id);
+                    } else {
+                        return Err(Error::MissingEventSubscription(*subscription_id));
                     }
                 }
+            }
 
-                // Take note if a reconfiguration (new epoch) has occurred
-                if *event_key == on_chain_config::new_epoch_event_key() {
-                    reconfig_event_found = true;
-                }
+            // Take note if a reconfiguration (new epoch) has occurred
+            if event.is_new_epoch_event() {
+                reconfig_event_found = true;
             }
         }
 

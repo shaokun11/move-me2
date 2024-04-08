@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 set -e
 
-PROFILE=${PROFILE:-release}
+PROFILE=cli
 
 echo "Building tools and services docker images"
 echo "PROFILE: $PROFILE"
@@ -14,19 +14,12 @@ cargo build --locked --profile=$PROFILE \
     -p aptos \
     -p aptos-backup-cli \
     -p aptos-faucet-service \
-    -p aptos-forge-cli \
     -p aptos-fn-check-client \
     -p aptos-node-checker \
     -p aptos-openapi-spec-generator \
     -p aptos-telemetry-service \
-    -p aptos-db-bootstrapper \
-    -p aptos-db-tool \
+    -p aptos-debugger \
     -p aptos-transaction-emitter \
-    -p aptos-indexer-grpc-cache-worker \
-    -p aptos-indexer-grpc-file-store \
-    -p aptos-indexer-grpc-data-service \
-    -p aptos-indexer-grpc-post-processor \
-    -p aptos-nft-metadata-crawler-parser \
     -p aptos-api-tester \
     "$@"
 
@@ -38,15 +31,8 @@ BINS=(
     aptos-openapi-spec-generator
     aptos-telemetry-service
     aptos-fn-check-client
-    aptos-db-tool
-    aptos-db-bootstrapper
-    forge
+    aptos-debugger
     aptos-transaction-emitter
-    aptos-indexer-grpc-cache-worker
-    aptos-indexer-grpc-file-store
-    aptos-indexer-grpc-data-service
-    aptos-indexer-grpc-post-processor
-    aptos-nft-metadata-crawler-parser
     aptos-api-tester
 )
 

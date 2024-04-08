@@ -2,16 +2,18 @@
 // Parts of the project are originally copyright © Meta Platforms, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::account_generator::{AccountCache, AccountGenerator};
-use aptos_crypto::{ed25519::Ed25519PrivateKey, HashValue};
+use crate::{
+    account_generator::{AccountCache, AccountGenerator},
+    metrics::{NUM_TXNS, TIMER},
+};
+use aptos_crypto::ed25519::Ed25519PrivateKey;
 use aptos_logger::info;
 use aptos_sdk::{transaction_builder::TransactionFactory, types::LocalAccount};
-use aptos_state_view::account_with_state_view::AsAccountWithStateView;
 use aptos_storage_interface::{state_view::LatestDbStateCheckpointView, DbReader, DbReaderWriter};
-use aptos_transaction_generator_lib::TransactionGeneratorCreator;
 use aptos_types::{
     account_address::AccountAddress, account_config::aptos_test_root_address,
-    account_view::AccountView, chain_id::ChainId, transaction::Transaction,
+    account_view::AccountView, chain_id::ChainId,
+    state_store::account_with_state_view::AsAccountWithStateView, transaction::Transaction,
 };
 use chrono::Local;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -27,13 +29,17 @@ use serde::{Deserialize, Serialize};
 #[cfg(test)]
 use std::collections::HashSet;
 use std::{
+    cell::RefCell,
     collections::{BTreeMap, HashMap},
     fs::File,
     io::{Read, Write},
-    iter::once,
     path::Path,
-    sync::{mpsc, Arc},
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        mpsc, Arc, Mutex,
+    },
 };
+use thread_local::ThreadLocal;
 
 const META_FILENAME: &str = "metadata.toml";
 pub const MAX_ACCOUNTS_INVOLVED_IN_P2P: usize = 1_000_000;
@@ -174,7 +180,7 @@ impl TransactionGenerator {
 
     pub fn new_with_existing_db<P: AsRef<Path>>(
         db: DbReaderWriter,
-        genesis_key: Ed25519PrivateKey,
+        root_account: LocalAccount,
         block_sender: mpsc::SyncSender<Vec<Transaction>>,
         db_dir: P,
         num_main_signer_accounts: Option<usize>,
@@ -184,11 +190,7 @@ impl TransactionGenerator {
 
         Self {
             seed_accounts_cache: None,
-            root_account: LocalAccount::new(
-                aptos_test_root_address(),
-                genesis_key,
-                get_sequence_number(aptos_test_root_address(), db.reader.clone()),
-            ),
+            root_account,
             main_signer_accounts: num_main_signer_accounts.map(|num_main_signer_accounts| {
                 let num_cached_accounts =
                     std::cmp::min(num_existing_accounts, num_main_signer_accounts);
@@ -209,8 +211,6 @@ impl TransactionGenerator {
         TransactionFactory::new(ChainId::test())
             .with_transaction_expiration_time(300)
             .with_gas_unit_price(100)
-            // TODO(Gas): double check if this is correct
-            .with_max_gas_amount(100_000)
     }
 
     // Write metadata
@@ -235,6 +235,14 @@ impl TransactionGenerator {
             let TestCase::P2p(P2pTestCase { num_accounts }) = test_case;
             num_accounts
         })
+    }
+
+    pub fn read_root_account(genesis_key: Ed25519PrivateKey, db: &DbReaderWriter) -> LocalAccount {
+        LocalAccount::new(
+            aptos_test_root_address(),
+            genesis_key,
+            get_sequence_number(aptos_test_root_address(), db.reader.clone()),
+        )
     }
 
     pub fn num_existing_accounts(&self) -> usize {
@@ -290,33 +298,43 @@ impl TransactionGenerator {
         &mut self,
         block_size: usize,
         num_blocks: usize,
-        mut transaction_generator_creator: Box<dyn TransactionGeneratorCreator>,
+        transaction_generators: Vec<Box<dyn aptos_transaction_generator_lib::TransactionGenerator>>,
+        phase: Arc<AtomicUsize>,
         transactions_per_sender: usize,
     ) {
+        let transaction_generators = Mutex::new(transaction_generators);
         assert!(self.block_sender.is_some());
         let num_senders_per_block =
             (block_size + transactions_per_sender - 1) / transactions_per_sender;
         let account_pool_size = self.main_signer_accounts.as_ref().unwrap().accounts.len();
-        let mut transaction_generator =
-            transaction_generator_creator.create_transaction_generator();
+        let transaction_generator = ThreadLocal::with_capacity(self.num_workers);
         for _ in 0..num_blocks {
-            let transactions: Vec<_> = rand::seq::index::sample(
+            let sender_indices = rand::seq::index::sample(
                 &mut thread_rng(),
                 account_pool_size,
                 num_senders_per_block,
             )
             .into_iter()
-            .flat_map(|idx| {
-                let sender = &self.main_signer_accounts.as_mut().unwrap().accounts[idx];
-                transaction_generator.generate_transactions(sender, transactions_per_sender)
-            })
-            .map(Transaction::UserTransaction)
-            .chain(once(Transaction::StateCheckpoint(HashValue::random())))
+            .flat_map(|sender_idx| vec![sender_idx; transactions_per_sender])
             .collect();
-
-            if let Some(sender) = &self.block_sender {
-                sender.send(transactions).unwrap();
-            }
+            self.generate_and_send_block(
+                self.main_signer_accounts.as_ref().unwrap(),
+                sender_indices,
+                phase.clone(),
+                |sender_idx, _| {
+                    let sender = &self.main_signer_accounts.as_ref().unwrap().accounts[sender_idx];
+                    let mut transaction_generator = transaction_generator
+                        .get_or(|| {
+                            RefCell::new(transaction_generators.lock().unwrap().pop().unwrap())
+                        })
+                        .borrow_mut();
+                    transaction_generator
+                        .generate_transactions(sender, 1)
+                        .pop()
+                        .map(Transaction::UserTransaction)
+                },
+                |sender_idx| *sender_idx,
+            );
         }
     }
 
@@ -358,7 +376,6 @@ impl TransactionGenerator {
                     );
                     Transaction::UserTransaction(txn)
                 })
-                .chain(once(Transaction::StateCheckpoint(HashValue::random())))
                 .collect();
             bar.inc(transactions.len() as u64 - 1);
             if let Some(sender) = &self.block_sender {
@@ -403,6 +420,7 @@ impl TransactionGenerator {
             self.generate_and_send_block(
                 self.seed_accounts_cache.as_ref().unwrap(),
                 input,
+                Arc::new(AtomicUsize::new(0)),
                 |(sender_idx, new_account), account_cache| {
                     let sender = &account_cache.accounts[sender_idx];
                     let txn = sender.sign_with_transaction_builder(
@@ -412,7 +430,7 @@ impl TransactionGenerator {
                                 init_account_balance,
                             ),
                     );
-                    Transaction::UserTransaction(txn)
+                    Some(Transaction::UserTransaction(txn))
                 },
                 |(sender_idx, _)| *sender_idx,
             );
@@ -602,12 +620,13 @@ impl TransactionGenerator {
         self.generate_and_send_block(
             account_cache,
             transfer_indices,
+            Arc::new(AtomicUsize::new(0)),
             |(sender_idx, receiver_idx), account_cache| {
                 let txn = account_cache.accounts[sender_idx].sign_with_transaction_builder(
                     self.transaction_factory
                         .transfer(account_cache.accounts[receiver_idx].address(), 1),
                 );
-                Transaction::UserTransaction(txn)
+                Some(Transaction::UserTransaction(txn))
             },
             |(sender_idx, _)| *sender_idx,
         );
@@ -617,13 +636,15 @@ impl TransactionGenerator {
         &self,
         account_cache: &AccountCache,
         inputs: Vec<T>,
+        phase: Arc<AtomicUsize>,
         func: F,
         sender_func: S,
     ) where
         T: Send,
-        F: Fn(T, &AccountCache) -> Transaction + Send + Sync,
+        F: Fn(T, &AccountCache) -> Option<Transaction> + Send + Sync,
         S: Fn(&T) -> usize,
     {
+        let _timer = TIMER.with_label_values(&["generate_block"]).start_timer();
         let block_size = inputs.len();
         let mut jobs = Vec::new();
         jobs.resize_with(self.num_workers, BTreeMap::new);
@@ -633,11 +654,13 @@ impl TransactionGenerator {
         });
         let (tx, rx) = std::sync::mpsc::channel();
         self.worker_pool.scope(move |scope| {
-            for (_, per_worker_jobs) in jobs.into_iter().enumerate() {
+            for per_worker_jobs in jobs.into_iter() {
                 let tx = tx.clone();
                 scope.spawn(move |_| {
                     for (index, job) in per_worker_jobs {
-                        tx.send((index, job())).unwrap();
+                        if let Some(txn) = job() {
+                            tx.send((index, txn)).unwrap();
+                        }
                     }
                 });
             }
@@ -650,10 +673,29 @@ impl TransactionGenerator {
 
         let mut transactions = Vec::new();
         for i in 0..block_size {
-            transactions.push(transactions_by_index.get(&i).unwrap().clone());
+            if let Some(txn) = transactions_by_index.get(&i) {
+                transactions.push(txn.clone());
+            }
         }
 
-        transactions.push(Transaction::StateCheckpoint(HashValue::random()));
+        if transactions.is_empty() {
+            let val = phase.fetch_add(1, Ordering::Relaxed);
+            info!(
+                "Block generation: no transactions generated in phase {}, moving to next phase",
+                val
+            );
+        } else {
+            let val = phase.load(Ordering::Relaxed);
+            info!(
+                "Block generation: {} transactions generated in phase {}",
+                transactions.len(),
+                val
+            );
+        }
+
+        NUM_TXNS
+            .with_label_values(&["generation_done"])
+            .inc_by(transactions.len() as u64);
 
         if let Some(sender) = &self.block_sender {
             sender.send(transactions).unwrap();
@@ -798,14 +840,8 @@ fn test_get_conflicting_grps_transfer_indices() {
             for (sender_idx, receiver_idx) in transfer_indices {
                 assert!(sender_idx < num_signer_accounts);
                 assert!(receiver_idx < num_signer_accounts);
-                adj_list
-                    .entry(sender_idx)
-                    .or_insert(HashSet::new())
-                    .insert(receiver_idx);
-                adj_list
-                    .entry(receiver_idx)
-                    .or_insert(HashSet::new())
-                    .insert(sender_idx);
+                adj_list.entry(sender_idx).or_default().insert(receiver_idx);
+                adj_list.entry(receiver_idx).or_default().insert(sender_idx);
             }
 
             assert_eq!(get_num_connected_components(&adj_list), connected_txn_grps);

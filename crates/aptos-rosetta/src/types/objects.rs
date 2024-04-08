@@ -31,6 +31,7 @@ use aptos_types::{
     account_config::{AccountResource, CoinStoreResource, WithdrawEvent},
     contract_event::ContractEvent,
     event::EventKey,
+    fee_statement::FeeStatement,
     stake_pool::{SetOperatorEvent, StakePool},
     state_store::state_key::{StateKey, StateKeyInner},
     transaction::{EntryFunction, TransactionPayload},
@@ -852,7 +853,9 @@ pub enum TransactionType {
     User,
     Genesis,
     BlockMetadata,
+    BlockMetadataExt,
     StateCheckpoint,
+    Validator,
 }
 
 impl Display for TransactionType {
@@ -862,7 +865,9 @@ impl Display for TransactionType {
             User => "User",
             Genesis => "Genesis",
             BlockMetadata => "BlockResource",
+            BlockMetadataExt => "BlockResourceExt",
             StateCheckpoint => "StateCheckpoint",
+            Validator => "Validator",
         })
     }
 }
@@ -879,7 +884,14 @@ impl Transaction {
             },
             GenesisTransaction(_) => (TransactionType::Genesis, None, txn.info, txn.events),
             BlockMetadata(_) => (TransactionType::BlockMetadata, None, txn.info, txn.events),
+            BlockMetadataExt(_) => (
+                TransactionType::BlockMetadataExt,
+                None,
+                txn.info,
+                txn.events,
+            ),
             StateCheckpoint(_) => (TransactionType::StateCheckpoint, None, txn.info, vec![]),
+            ValidatorTransaction(_) => (TransactionType::Validator, None, txn.info, txn.events),
         };
 
         // Operations must be sequential and operation index must always be in the same order
@@ -904,6 +916,21 @@ impl Transaction {
                 .await?;
                 operation_index += ops.len() as u64;
                 operations.append(&mut ops);
+            }
+
+            // For storage fee refund
+            if let Some(user_txn) = maybe_user_txn {
+                let fee_events = get_fee_statement_from_event(&events);
+                for event in fee_events {
+                    operations.push(Operation::deposit(
+                        operation_index,
+                        Some(OperationStatusType::Success),
+                        AccountIdentifier::base_account(user_txn.sender()),
+                        native_coin(),
+                        event.storage_fee_refund(),
+                    ));
+                    operation_index += 1;
+                }
             }
         } else {
             // Parse all failed operations from the payload
@@ -988,7 +1015,7 @@ fn parse_failed_operations_from_txn_payload(
             (AccountAddress::ONE, ACCOUNT_MODULE, CREATE_ACCOUNT_FUNCTION) => {
                 if let Some(Ok(address)) = inner
                     .args()
-                    .get(0)
+                    .first()
                     .map(|encoded| bcs::from_bytes::<AccountAddress>(encoded))
                 {
                     operations.push(Operation::create_account(
@@ -1135,7 +1162,7 @@ fn parse_transfer_from_txn_payload(
 
     let args = payload.args();
     let maybe_receiver = args
-        .get(0)
+        .first()
         .map(|encoded| bcs::from_bytes::<AccountAddress>(encoded));
     let maybe_amount = args.get(1).map(|encoded| bcs::from_bytes::<u64>(encoded));
 
@@ -1193,10 +1220,11 @@ async fn parse_operations_from_write_set(
         },
     };
 
-    let data = match write_op.bytes() {
+    let bytes = match write_op.bytes() {
         Some(bytes) => bytes,
         None => return Ok(vec![]),
     };
+    let data = &bytes;
 
     // Determine operation
     match (
@@ -1810,6 +1838,25 @@ fn get_amount_from_event(events: &[ContractEvent], event_key: &EventKey) -> Vec<
     })
 }
 
+/// Filter v2 FeeStatement events with non-zero storage_fee_refund
+fn get_fee_statement_from_event(events: &[ContractEvent]) -> Vec<FeeStatement> {
+    events
+        .iter()
+        .filter(|event| event.is_v2())
+        .filter_map(|event| {
+            if let Ok(fee_statement_event) = bcs::from_bytes::<FeeStatement>(event.event_data()) {
+                if fee_statement_event.storage_fee_refund() != 0 {
+                    Some(fee_statement_event) // Collect only if storage_fee_refund_octas is non-zero
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
 fn filter_events<F: Fn(&EventKey, &ContractEvent) -> Option<T>, T>(
     events: &[ContractEvent],
     event_key: &EventKey,
@@ -2265,7 +2312,6 @@ impl Transfer {
             let op_type = OperationType::from_str(&op.operation_type)?;
             op_map.insert(op_type, op);
         }
-        if !op_map.contains_key(&OperationType::Withdraw) {}
 
         if !op_map.contains_key(&OperationType::Deposit) {
             return Err(ApiError::InvalidTransferOperations(Some(

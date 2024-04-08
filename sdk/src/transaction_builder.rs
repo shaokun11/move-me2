@@ -12,7 +12,7 @@ use crate::{
 pub use aptos_cached_packages::aptos_stdlib;
 use aptos_crypto::{ed25519::Ed25519PublicKey, HashValue};
 use aptos_global_constants::{GAS_UNIT_PRICE, MAX_GAS_AMOUNT};
-use aptos_types::transaction::{EntryFunction, ModuleBundle, Script};
+use aptos_types::transaction::{EntryFunction, Script};
 
 pub struct TransactionBuilder {
     sender: Option<AccountAddress>,
@@ -141,12 +141,6 @@ impl TransactionFactory {
         self.transaction_builder(payload)
     }
 
-    pub fn module(&self, code: Vec<u8>) -> TransactionBuilder {
-        self.payload(TransactionPayload::ModuleBundle(ModuleBundle::singleton(
-            code,
-        )))
-    }
-
     pub fn entry_function(&self, func: EntryFunction) -> TransactionBuilder {
         self.payload(TransactionPayload::EntryFunction(func))
     }
@@ -155,10 +149,6 @@ impl TransactionFactory {
         self.payload(aptos_stdlib::aptos_account_create_account(
             AuthenticationKey::ed25519(public_key).account_address(),
         ))
-    }
-
-    pub fn create_account(&self, address: AccountAddress) -> TransactionBuilder {
-        self.payload(aptos_stdlib::aptos_account_create_account(address))
     }
 
     pub fn implicitly_create_user_account_and_transfer(
@@ -267,26 +257,5 @@ impl TransactionFactory {
             .unwrap()
             .as_secs()
             + self.transaction_expiration_time
-    }
-}
-
-pub struct DualAttestationMessage {
-    message: Box<[u8]>,
-}
-
-impl DualAttestationMessage {
-    pub fn new<M: Into<Vec<u8>>>(metadata: M, reciever: AccountAddress, amount: u64) -> Self {
-        let mut message = metadata.into();
-        bcs::serialize_into(&mut message, &reciever).unwrap();
-        bcs::serialize_into(&mut message, &amount).unwrap();
-        message.extend(b"@@$$APTOS_ATTEST$$@@");
-
-        Self {
-            message: message.into(),
-        }
-    }
-
-    pub fn message(&self) -> &[u8] {
-        &self.message
     }
 }

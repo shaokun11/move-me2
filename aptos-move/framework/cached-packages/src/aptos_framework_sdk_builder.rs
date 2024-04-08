@@ -13,6 +13,8 @@
 #![allow(dead_code)]
 #![allow(unused_imports)]
 #![allow(clippy::too_many_arguments)]
+#![allow(clippy::arc_with_non_send_sync)]
+#![allow(clippy::get_first)]
 use aptos_types::{
     account_address::AccountAddress,
     transaction::{EntryFunction, TransactionPayload},
@@ -127,6 +129,15 @@ pub enum EntryFunctionCall {
         to_public_key_bytes: Vec<u8>,
         cap_rotate_key: Vec<u8>,
         cap_update_table: Vec<u8>,
+    },
+
+    /// Private entry function for key rotation that allows the signer to update their authentication key.
+    /// Note that this does not update the `OriginatingAddress` table because the `new_auth_key` is not "verified": it
+    /// does not come with a proof-of-knowledge of the underlying SK. Nonetheless, we need this functionality due to
+    /// the introduction of non-standard key algorithms, such as passkeys, which cannot produce proofs-of-knowledge in
+    /// the format expected in `rotate_authentication_key`.
+    AccountRotateAuthenticationKeyCall {
+        new_auth_key: Vec<u8>,
     },
 
     AccountRotateAuthenticationKeyWithRotationCapability {
@@ -296,6 +307,14 @@ pub enum EntryFunctionCall {
         amount: u64,
     },
 
+    /// Allows an operator to change its beneficiary. Any existing unpaid commission rewards will be paid to the new
+    /// beneficiary. To ensures payment to the current beneficiary, one should first call `synchronize_delegation_pool`
+    /// before switching the beneficiary. An operator can set one beneficiary for delegation pools, not a separate
+    /// one for each pool.
+    DelegationPoolSetBeneficiaryForOperator {
+        new_beneficiary: AccountAddress,
+    },
+
     /// Allows an owner to change the delegated voter of the underlying stake pool.
     DelegationPoolSetDelegatedVoter {
         new_voter: AccountAddress,
@@ -317,6 +336,11 @@ pub enum EntryFunctionCall {
     DelegationPoolUnlock {
         pool_address: AccountAddress,
         amount: u64,
+    },
+
+    /// Allows an owner to update the commission percentage for the operator of the underlying stake pool.
+    DelegationPoolUpdateCommissionPercentage {
+        new_commission_percentage: u64,
     },
 
     /// Vote on a proposal with a voter's voting power. To successfully vote, the following conditions must be met:
@@ -575,6 +599,15 @@ pub enum EntryFunctionCall {
         to: AccountAddress,
     },
 
+    /// Creates a new object with a unique address derived from the publisher address and the object seed.
+    /// Publishes the code passed in the function to the newly created object.
+    /// The caller must provide package metadata describing the package via `metadata_serialized` and
+    /// the code to be published via `code`. This contains a vector of modules to be deployed on-chain.
+    ObjectCodeDeploymentPublish {
+        metadata_serialized: Vec<u8>,
+        code: Vec<Vec<u8>>,
+    },
+
     /// Creates a new resource account and rotates the authentication key to either
     /// the optional auth key if it is non-empty (though auth keys are 32-bytes)
     /// or the source accounts current auth key.
@@ -707,7 +740,7 @@ pub enum EntryFunctionCall {
     /// Unlock commission amount from the stake pool. Operator needs to wait for the amount to become withdrawable
     /// at the end of the stake pool's lockup period before they can actually can withdraw_commission.
     ///
-    /// Only staker or operator can call this.
+    /// Only staker, operator or beneficiary can call this.
     StakingContractRequestCommission {
         staker: AccountAddress,
         operator: AccountAddress,
@@ -716,6 +749,13 @@ pub enum EntryFunctionCall {
     /// Convenient function to allow the staker to reset their stake pool's lockup period to start now.
     StakingContractResetLockup {
         operator: AccountAddress,
+    },
+
+    /// Allows an operator to change its beneficiary. Any existing unpaid commission rewards will be paid to the new
+    /// beneficiary. To ensures payment to the current beneficiary, one should first call `distribute` before switching
+    /// the beneficiary. An operator can set one beneficiary for staking contract pools, not a separate one for each pool.
+    StakingContractSetBeneficiaryForOperator {
+        new_beneficiary: AccountAddress,
     },
 
     /// Allows staker to switch operator without going through the lenghthy process to unstake.
@@ -833,6 +873,11 @@ pub enum EntryFunctionCall {
         new_beneficiary: AccountAddress,
     },
 
+    /// Set the beneficiary for the operator.
+    VestingSetBeneficiaryForOperator {
+        new_beneficiary: AccountAddress,
+    },
+
     VestingSetBeneficiaryResetter {
         contract_address: AccountAddress,
         beneficiary_resetter: AccountAddress,
@@ -941,6 +986,9 @@ impl EntryFunctionCall {
                 cap_rotate_key,
                 cap_update_table,
             ),
+            AccountRotateAuthenticationKeyCall { new_auth_key } => {
+                account_rotate_authentication_key_call(new_auth_key)
+            },
             AccountRotateAuthenticationKeyWithRotationCapability {
                 rotation_cap_offerer_address,
                 new_scheme,
@@ -1057,6 +1105,9 @@ impl EntryFunctionCall {
                 pool_address,
                 amount,
             } => delegation_pool_reactivate_stake(pool_address, amount),
+            DelegationPoolSetBeneficiaryForOperator { new_beneficiary } => {
+                delegation_pool_set_beneficiary_for_operator(new_beneficiary)
+            },
             DelegationPoolSetDelegatedVoter { new_voter } => {
                 delegation_pool_set_delegated_voter(new_voter)
             },
@@ -1070,6 +1121,9 @@ impl EntryFunctionCall {
                 pool_address,
                 amount,
             } => delegation_pool_unlock(pool_address, amount),
+            DelegationPoolUpdateCommissionPercentage {
+                new_commission_percentage,
+            } => delegation_pool_update_commission_percentage(new_commission_percentage),
             DelegationPoolVote {
                 pool_address,
                 proposal_id,
@@ -1239,6 +1293,10 @@ impl EntryFunctionCall {
                 approved,
             } => multisig_account_vote_transanction(multisig_account, sequence_number, approved),
             ObjectTransferCall { object, to } => object_transfer_call(object, to),
+            ObjectCodeDeploymentPublish {
+                metadata_serialized,
+                code,
+            } => object_code_deployment_publish(metadata_serialized, code),
             ResourceAccountCreateResourceAccount {
                 seed,
                 optional_auth_key,
@@ -1325,6 +1383,9 @@ impl EntryFunctionCall {
                 staking_contract_request_commission(staker, operator)
             },
             StakingContractResetLockup { operator } => staking_contract_reset_lockup(operator),
+            StakingContractSetBeneficiaryForOperator { new_beneficiary } => {
+                staking_contract_set_beneficiary_for_operator(new_beneficiary)
+            },
             StakingContractSwitchOperator {
                 old_operator,
                 new_operator,
@@ -1396,6 +1457,9 @@ impl EntryFunctionCall {
                 shareholder,
                 new_beneficiary,
             } => vesting_set_beneficiary(contract_address, shareholder, new_beneficiary),
+            VestingSetBeneficiaryForOperator { new_beneficiary } => {
+                vesting_set_beneficiary_for_operator(new_beneficiary)
+            },
             VestingSetBeneficiaryResetter {
                 contract_address,
                 beneficiary_resetter,
@@ -1650,6 +1714,26 @@ pub fn account_rotate_authentication_key(
             bcs::to_bytes(&cap_rotate_key).unwrap(),
             bcs::to_bytes(&cap_update_table).unwrap(),
         ],
+    ))
+}
+
+/// Private entry function for key rotation that allows the signer to update their authentication key.
+/// Note that this does not update the `OriginatingAddress` table because the `new_auth_key` is not "verified": it
+/// does not come with a proof-of-knowledge of the underlying SK. Nonetheless, we need this functionality due to
+/// the introduction of non-standard key algorithms, such as passkeys, which cannot produce proofs-of-knowledge in
+/// the format expected in `rotate_authentication_key`.
+pub fn account_rotate_authentication_key_call(new_auth_key: Vec<u8>) -> TransactionPayload {
+    TransactionPayload::EntryFunction(EntryFunction::new(
+        ModuleId::new(
+            AccountAddress::new([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1,
+            ]),
+            ident_str!("account").to_owned(),
+        ),
+        ident_str!("rotate_authentication_key_call").to_owned(),
+        vec![],
+        vec![bcs::to_bytes(&new_auth_key).unwrap()],
     ))
 }
 
@@ -2164,6 +2248,27 @@ pub fn delegation_pool_reactivate_stake(
     ))
 }
 
+/// Allows an operator to change its beneficiary. Any existing unpaid commission rewards will be paid to the new
+/// beneficiary. To ensures payment to the current beneficiary, one should first call `synchronize_delegation_pool`
+/// before switching the beneficiary. An operator can set one beneficiary for delegation pools, not a separate
+/// one for each pool.
+pub fn delegation_pool_set_beneficiary_for_operator(
+    new_beneficiary: AccountAddress,
+) -> TransactionPayload {
+    TransactionPayload::EntryFunction(EntryFunction::new(
+        ModuleId::new(
+            AccountAddress::new([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1,
+            ]),
+            ident_str!("delegation_pool").to_owned(),
+        ),
+        ident_str!("set_beneficiary_for_operator").to_owned(),
+        vec![],
+        vec![bcs::to_bytes(&new_beneficiary).unwrap()],
+    ))
+}
+
 /// Allows an owner to change the delegated voter of the underlying stake pool.
 pub fn delegation_pool_set_delegated_voter(new_voter: AccountAddress) -> TransactionPayload {
     TransactionPayload::EntryFunction(EntryFunction::new(
@@ -2232,6 +2337,24 @@ pub fn delegation_pool_unlock(pool_address: AccountAddress, amount: u64) -> Tran
             bcs::to_bytes(&pool_address).unwrap(),
             bcs::to_bytes(&amount).unwrap(),
         ],
+    ))
+}
+
+/// Allows an owner to update the commission percentage for the operator of the underlying stake pool.
+pub fn delegation_pool_update_commission_percentage(
+    new_commission_percentage: u64,
+) -> TransactionPayload {
+    TransactionPayload::EntryFunction(EntryFunction::new(
+        ModuleId::new(
+            AccountAddress::new([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1,
+            ]),
+            ident_str!("delegation_pool").to_owned(),
+        ),
+        ident_str!("update_commission_percentage").to_owned(),
+        vec![],
+        vec![bcs::to_bytes(&new_commission_percentage).unwrap()],
     ))
 }
 
@@ -2966,6 +3089,31 @@ pub fn object_transfer_call(object: AccountAddress, to: AccountAddress) -> Trans
     ))
 }
 
+/// Creates a new object with a unique address derived from the publisher address and the object seed.
+/// Publishes the code passed in the function to the newly created object.
+/// The caller must provide package metadata describing the package via `metadata_serialized` and
+/// the code to be published via `code`. This contains a vector of modules to be deployed on-chain.
+pub fn object_code_deployment_publish(
+    metadata_serialized: Vec<u8>,
+    code: Vec<Vec<u8>>,
+) -> TransactionPayload {
+    TransactionPayload::EntryFunction(EntryFunction::new(
+        ModuleId::new(
+            AccountAddress::new([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1,
+            ]),
+            ident_str!("object_code_deployment").to_owned(),
+        ),
+        ident_str!("publish").to_owned(),
+        vec![],
+        vec![
+            bcs::to_bytes(&metadata_serialized).unwrap(),
+            bcs::to_bytes(&code).unwrap(),
+        ],
+    ))
+}
+
 /// Creates a new resource account and rotates the authentication key to either
 /// the optional auth key if it is non-empty (though auth keys are 32-bytes)
 /// or the source accounts current auth key.
@@ -3366,7 +3514,7 @@ pub fn staking_contract_distribute(
 /// Unlock commission amount from the stake pool. Operator needs to wait for the amount to become withdrawable
 /// at the end of the stake pool's lockup period before they can actually can withdraw_commission.
 ///
-/// Only staker or operator can call this.
+/// Only staker, operator or beneficiary can call this.
 pub fn staking_contract_request_commission(
     staker: AccountAddress,
     operator: AccountAddress,
@@ -3401,6 +3549,26 @@ pub fn staking_contract_reset_lockup(operator: AccountAddress) -> TransactionPay
         ident_str!("reset_lockup").to_owned(),
         vec![],
         vec![bcs::to_bytes(&operator).unwrap()],
+    ))
+}
+
+/// Allows an operator to change its beneficiary. Any existing unpaid commission rewards will be paid to the new
+/// beneficiary. To ensures payment to the current beneficiary, one should first call `distribute` before switching
+/// the beneficiary. An operator can set one beneficiary for staking contract pools, not a separate one for each pool.
+pub fn staking_contract_set_beneficiary_for_operator(
+    new_beneficiary: AccountAddress,
+) -> TransactionPayload {
+    TransactionPayload::EntryFunction(EntryFunction::new(
+        ModuleId::new(
+            AccountAddress::new([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1,
+            ]),
+            ident_str!("staking_contract").to_owned(),
+        ),
+        ident_str!("set_beneficiary_for_operator").to_owned(),
+        vec![],
+        vec![bcs::to_bytes(&new_beneficiary).unwrap()],
     ))
 }
 
@@ -3814,6 +3982,22 @@ pub fn vesting_set_beneficiary(
     ))
 }
 
+/// Set the beneficiary for the operator.
+pub fn vesting_set_beneficiary_for_operator(new_beneficiary: AccountAddress) -> TransactionPayload {
+    TransactionPayload::EntryFunction(EntryFunction::new(
+        ModuleId::new(
+            AccountAddress::new([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1,
+            ]),
+            ident_str!("vesting").to_owned(),
+        ),
+        ident_str!("set_beneficiary_for_operator").to_owned(),
+        vec![],
+        vec![bcs::to_bytes(&new_beneficiary).unwrap()],
+    ))
+}
+
 pub fn vesting_set_beneficiary_resetter(
     contract_address: AccountAddress,
     beneficiary_resetter: AccountAddress,
@@ -4110,6 +4294,18 @@ mod decoder {
                 to_public_key_bytes: bcs::from_bytes(script.args().get(3)?).ok()?,
                 cap_rotate_key: bcs::from_bytes(script.args().get(4)?).ok()?,
                 cap_update_table: bcs::from_bytes(script.args().get(5)?).ok()?,
+            })
+        } else {
+            None
+        }
+    }
+
+    pub fn account_rotate_authentication_key_call(
+        payload: &TransactionPayload,
+    ) -> Option<EntryFunctionCall> {
+        if let TransactionPayload::EntryFunction(script) = payload {
+            Some(EntryFunctionCall::AccountRotateAuthenticationKeyCall {
+                new_auth_key: bcs::from_bytes(script.args().get(0)?).ok()?,
             })
         } else {
             None
@@ -4421,6 +4617,18 @@ mod decoder {
         }
     }
 
+    pub fn delegation_pool_set_beneficiary_for_operator(
+        payload: &TransactionPayload,
+    ) -> Option<EntryFunctionCall> {
+        if let TransactionPayload::EntryFunction(script) = payload {
+            Some(EntryFunctionCall::DelegationPoolSetBeneficiaryForOperator {
+                new_beneficiary: bcs::from_bytes(script.args().get(0)?).ok()?,
+            })
+        } else {
+            None
+        }
+    }
+
     pub fn delegation_pool_set_delegated_voter(
         payload: &TransactionPayload,
     ) -> Option<EntryFunctionCall> {
@@ -4461,6 +4669,20 @@ mod decoder {
                 pool_address: bcs::from_bytes(script.args().get(0)?).ok()?,
                 amount: bcs::from_bytes(script.args().get(1)?).ok()?,
             })
+        } else {
+            None
+        }
+    }
+
+    pub fn delegation_pool_update_commission_percentage(
+        payload: &TransactionPayload,
+    ) -> Option<EntryFunctionCall> {
+        if let TransactionPayload::EntryFunction(script) = payload {
+            Some(
+                EntryFunctionCall::DelegationPoolUpdateCommissionPercentage {
+                    new_commission_percentage: bcs::from_bytes(script.args().get(0)?).ok()?,
+                },
+            )
         } else {
             None
         }
@@ -4878,6 +5100,19 @@ mod decoder {
         }
     }
 
+    pub fn object_code_deployment_publish(
+        payload: &TransactionPayload,
+    ) -> Option<EntryFunctionCall> {
+        if let TransactionPayload::EntryFunction(script) = payload {
+            Some(EntryFunctionCall::ObjectCodeDeploymentPublish {
+                metadata_serialized: bcs::from_bytes(script.args().get(0)?).ok()?,
+                code: bcs::from_bytes(script.args().get(1)?).ok()?,
+            })
+        } else {
+            None
+        }
+    }
+
     pub fn resource_account_create_resource_account(
         payload: &TransactionPayload,
     ) -> Option<EntryFunctionCall> {
@@ -5120,6 +5355,20 @@ mod decoder {
             Some(EntryFunctionCall::StakingContractResetLockup {
                 operator: bcs::from_bytes(script.args().get(0)?).ok()?,
             })
+        } else {
+            None
+        }
+    }
+
+    pub fn staking_contract_set_beneficiary_for_operator(
+        payload: &TransactionPayload,
+    ) -> Option<EntryFunctionCall> {
+        if let TransactionPayload::EntryFunction(script) = payload {
+            Some(
+                EntryFunctionCall::StakingContractSetBeneficiaryForOperator {
+                    new_beneficiary: bcs::from_bytes(script.args().get(0)?).ok()?,
+                },
+            )
         } else {
             None
         }
@@ -5376,6 +5625,18 @@ mod decoder {
         }
     }
 
+    pub fn vesting_set_beneficiary_for_operator(
+        payload: &TransactionPayload,
+    ) -> Option<EntryFunctionCall> {
+        if let TransactionPayload::EntryFunction(script) = payload {
+            Some(EntryFunctionCall::VestingSetBeneficiaryForOperator {
+                new_beneficiary: bcs::from_bytes(script.args().get(0)?).ok()?,
+            })
+        } else {
+            None
+        }
+    }
+
     pub fn vesting_set_beneficiary_resetter(
         payload: &TransactionPayload,
     ) -> Option<EntryFunctionCall> {
@@ -5544,6 +5805,10 @@ static SCRIPT_FUNCTION_DECODER_MAP: once_cell::sync::Lazy<EntryFunctionDecoderMa
             Box::new(decoder::account_rotate_authentication_key),
         );
         map.insert(
+            "account_rotate_authentication_key_call".to_string(),
+            Box::new(decoder::account_rotate_authentication_key_call),
+        );
+        map.insert(
             "account_rotate_authentication_key_with_rotation_capability".to_string(),
             Box::new(decoder::account_rotate_authentication_key_with_rotation_capability),
         );
@@ -5640,6 +5905,10 @@ static SCRIPT_FUNCTION_DECODER_MAP: once_cell::sync::Lazy<EntryFunctionDecoderMa
             Box::new(decoder::delegation_pool_reactivate_stake),
         );
         map.insert(
+            "delegation_pool_set_beneficiary_for_operator".to_string(),
+            Box::new(decoder::delegation_pool_set_beneficiary_for_operator),
+        );
+        map.insert(
             "delegation_pool_set_delegated_voter".to_string(),
             Box::new(decoder::delegation_pool_set_delegated_voter),
         );
@@ -5654,6 +5923,10 @@ static SCRIPT_FUNCTION_DECODER_MAP: once_cell::sync::Lazy<EntryFunctionDecoderMa
         map.insert(
             "delegation_pool_unlock".to_string(),
             Box::new(decoder::delegation_pool_unlock),
+        );
+        map.insert(
+            "delegation_pool_update_commission_percentage".to_string(),
+            Box::new(decoder::delegation_pool_update_commission_percentage),
         );
         map.insert(
             "delegation_pool_vote".to_string(),
@@ -5774,6 +6047,10 @@ static SCRIPT_FUNCTION_DECODER_MAP: once_cell::sync::Lazy<EntryFunctionDecoderMa
             Box::new(decoder::object_transfer_call),
         );
         map.insert(
+            "object_code_deployment_publish".to_string(),
+            Box::new(decoder::object_code_deployment_publish),
+        );
+        map.insert(
             "resource_account_create_resource_account".to_string(),
             Box::new(decoder::resource_account_create_resource_account),
         );
@@ -5853,6 +6130,10 @@ static SCRIPT_FUNCTION_DECODER_MAP: once_cell::sync::Lazy<EntryFunctionDecoderMa
         map.insert(
             "staking_contract_reset_lockup".to_string(),
             Box::new(decoder::staking_contract_reset_lockup),
+        );
+        map.insert(
+            "staking_contract_set_beneficiary_for_operator".to_string(),
+            Box::new(decoder::staking_contract_set_beneficiary_for_operator),
         );
         map.insert(
             "staking_contract_switch_operator".to_string(),
@@ -5937,6 +6218,10 @@ static SCRIPT_FUNCTION_DECODER_MAP: once_cell::sync::Lazy<EntryFunctionDecoderMa
         map.insert(
             "vesting_set_beneficiary".to_string(),
             Box::new(decoder::vesting_set_beneficiary),
+        );
+        map.insert(
+            "vesting_set_beneficiary_for_operator".to_string(),
+            Box::new(decoder::vesting_set_beneficiary_for_operator),
         );
         map.insert(
             "vesting_set_beneficiary_resetter".to_string(),

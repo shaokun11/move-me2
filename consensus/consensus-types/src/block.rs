@@ -8,16 +8,20 @@ use crate::{
     quorum_cert::QuorumCert,
 };
 use anyhow::{bail, ensure, format_err};
+use aptos_bitvec::BitVec;
 use aptos_crypto::{bls12381, hash::CryptoHash, HashValue};
 use aptos_infallible::duration_since_epoch;
 use aptos_types::{
     account_address::AccountAddress,
     block_info::BlockInfo,
     block_metadata::BlockMetadata,
+    block_metadata_ext::BlockMetadataExt,
     epoch_state::EpochState,
     ledger_info::LedgerInfo,
+    randomness::Randomness,
     transaction::{SignedTransaction, Transaction, Version},
     validator_signer::ValidatorSigner,
+    validator_txn::ValidatorTransaction,
     validator_verifier::ValidatorVerifier,
 };
 use mirai_annotations::debug_checked_verify_eq;
@@ -69,7 +73,7 @@ impl Display for Block {
             author,
             self.epoch(),
             self.round(),
-            self.quorum_cert().certified_block().id(),
+            self.parent_id(),
             self.timestamp_usecs(),
         )
     }
@@ -95,7 +99,7 @@ impl Block {
     }
 
     pub fn parent_id(&self) -> HashValue {
-        self.block_data.quorum_cert().certified_block().id()
+        self.block_data.parent_id()
     }
 
     pub fn payload(&self) -> Option<&Payload> {
@@ -107,7 +111,11 @@ impl Block {
             None => 0,
             Some(payload) => match payload {
                 Payload::InQuorumStore(pos) => pos.proofs.len(),
-                Payload::DirectMempool(txns) => txns.len(),
+                Payload::DirectMempool(_txns) => 0,
+                Payload::InQuorumStoreWithLimit(pos) => pos.proof_with_data.proofs.len(),
+                Payload::QuorumStoreInlineHybrid(inline_batches, proof_with_data, _) => {
+                    inline_batches.len() + proof_with_data.proofs.len()
+                },
             },
         }
     }
@@ -207,13 +215,31 @@ impl Block {
         epoch: u64,
         round: Round,
         timestamp: u64,
+        validator_txns: Vec<ValidatorTransaction>,
         payload: Payload,
         author: Author,
         failed_authors: Vec<(Round, Author)>,
-    ) -> anyhow::Result<Self> {
-        let block_data =
-            BlockData::new_for_dag(epoch, round, timestamp, payload, author, failed_authors);
-        Self::new_proposal_from_block_data(block_data, &ValidatorSigner::from_int(0))
+        parent_block_id: HashValue,
+        parents_bitvec: BitVec,
+        node_digests: Vec<HashValue>,
+    ) -> Self {
+        let block_data = BlockData::new_for_dag(
+            epoch,
+            round,
+            timestamp,
+            validator_txns,
+            payload,
+            author,
+            failed_authors,
+            parent_block_id,
+            parents_bitvec,
+            node_digests,
+        );
+        Self {
+            id: block_data.hash(),
+            block_data,
+            signature: None,
+        }
     }
 
     pub fn new_proposal(
@@ -225,6 +251,28 @@ impl Block {
         failed_authors: Vec<(Round, Author)>,
     ) -> anyhow::Result<Self> {
         let block_data = BlockData::new_proposal(
+            payload,
+            validator_signer.author(),
+            failed_authors,
+            round,
+            timestamp_usecs,
+            quorum_cert,
+        );
+
+        Self::new_proposal_from_block_data(block_data, validator_signer)
+    }
+
+    pub fn new_proposal_ext(
+        validator_txns: Vec<ValidatorTransaction>,
+        payload: Payload,
+        round: Round,
+        timestamp_usecs: u64,
+        quorum_cert: QuorumCert,
+        validator_signer: &ValidatorSigner,
+        failed_authors: Vec<(Round, Author)>,
+    ) -> anyhow::Result<Self> {
+        let block_data = BlockData::new_proposal_ext(
+            validator_txns,
             payload,
             validator_signer.author(),
             failed_authors,
@@ -257,6 +305,10 @@ impl Block {
         }
     }
 
+    pub fn validator_txns(&self) -> Option<&Vec<ValidatorTransaction>> {
+        self.block_data.validator_txns()
+    }
+
     /// Verifies that the proposal and the QC are correctly signed.
     /// If this is the genesis block, we skip these checks.
     pub fn validate_signature(&self, validator: &ValidatorVerifier) -> anyhow::Result<()> {
@@ -271,6 +323,15 @@ impl Block {
                 validator.verify(*author, &self.block_data, signature)?;
                 self.quorum_cert().verify(validator)
             },
+            BlockType::ProposalExt(proposal_ext) => {
+                let signature = self
+                    .signature
+                    .as_ref()
+                    .ok_or_else(|| format_err!("Missing signature in Proposal"))?;
+                validator.verify(*proposal_ext.author(), &self.block_data, signature)?;
+                self.quorum_cert().verify(validator)
+            },
+            BlockType::DAGBlock { .. } => bail!("We should not accept DAG block from others"),
         }
     }
 
@@ -355,44 +416,36 @@ impl Block {
         Ok(())
     }
 
-    pub fn transactions_to_execute(
-        &self,
-        validators: &[AccountAddress],
+    pub fn combine_to_input_transactions(
+        validator_txns: Vec<ValidatorTransaction>,
         txns: Vec<SignedTransaction>,
-        block_gas_limit: Option<u64>,
+        metadata: BlockMetadataExt,
     ) -> Vec<Transaction> {
-        if block_gas_limit.is_some() {
-            // After the per-block gas limit change, StateCheckpoint txn
-            // is inserted after block execution
-            once(Transaction::BlockMetadata(
-                self.new_block_metadata(validators),
-            ))
+        once(Transaction::from(metadata))
+            .chain(
+                validator_txns
+                    .into_iter()
+                    .map(Transaction::ValidatorTransaction),
+            )
             .chain(txns.into_iter().map(Transaction::UserTransaction))
             .collect()
+    }
+
+    fn previous_bitvec(&self) -> BitVec {
+        if let BlockType::DAGBlock { parents_bitvec, .. } = self.block_data.block_type() {
+            parents_bitvec.clone()
         } else {
-            // Before the per-block gas limit change, StateCheckpoint txn
-            // is inserted here for compatibility.
-            once(Transaction::BlockMetadata(
-                self.new_block_metadata(validators),
-            ))
-            .chain(txns.into_iter().map(Transaction::UserTransaction))
-            .chain(once(Transaction::StateCheckpoint(self.id)))
-            .collect()
+            self.quorum_cert().ledger_info().get_voters_bitvec().clone()
         }
     }
 
-    fn new_block_metadata(&self, validators: &[AccountAddress]) -> BlockMetadata {
+    pub fn new_block_metadata(&self, validators: &[AccountAddress]) -> BlockMetadata {
         BlockMetadata::new(
             self.id(),
             self.epoch(),
             self.round(),
             self.author().unwrap_or(AccountAddress::ZERO),
-            // A bitvec of voters
-            self.quorum_cert()
-                .ledger_info()
-                .get_voters_bitvec()
-                .clone()
-                .into(),
+            self.previous_bitvec().into(),
             // For nil block, we use 0x0 which is convention for nil address in move.
             self.block_data()
                 .failed_authors()
@@ -400,6 +453,28 @@ impl Block {
                     Self::failed_authors_to_indices(validators, failed_authors)
                 }),
             self.timestamp_usecs(),
+        )
+    }
+
+    pub fn new_metadata_with_randomness(
+        &self,
+        validators: &[AccountAddress],
+        randomness: Option<Randomness>,
+    ) -> BlockMetadataExt {
+        BlockMetadataExt::new_v1(
+            self.id(),
+            self.epoch(),
+            self.round(),
+            self.author().unwrap_or(AccountAddress::ZERO),
+            self.previous_bitvec().into(),
+            // For nil block, we use 0x0 which is convention for nil address in move.
+            self.block_data()
+                .failed_authors()
+                .map_or(vec![], |failed_authors| {
+                    Self::failed_authors_to_indices(validators, failed_authors)
+                }),
+            self.timestamp_usecs(),
+            randomness,
         )
     }
 

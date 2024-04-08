@@ -49,6 +49,7 @@ use std::{
 pub mod ast;
 mod builder;
 pub mod code_writer;
+pub mod constant_folder;
 pub mod exp_generator;
 pub mod exp_rewriter;
 pub mod intrinsics;
@@ -371,29 +372,112 @@ fn run_move_checker(env: &mut GlobalEnv, program: E::Program) {
         );
         // Assign new module id in the model.
         let module_id = ModuleId::new(module_count);
+        // Associate the module name with the module id for lookups.
+        builder.module_table.insert(module_name.clone(), module_id);
         let mut module_translator = ModuleBuilder::new(&mut builder, module_id, module_name);
         module_translator.translate(loc, module_def, None);
     }
-    for (_, script_def) in program.scripts.into_iter() {
+    for (i, (_, script_def)) in program.scripts.into_iter().enumerate() {
         let loc = builder.to_loc(&script_def.loc);
-        let module_name = ModuleName::pseudo_script_name(builder.env.symbol_pool());
+        let module_name = ModuleName::pseudo_script_name(builder.env.symbol_pool(), i);
         let module_id = ModuleId::new(builder.env.module_data.len());
         let mut module_translator = ModuleBuilder::new(&mut builder, module_id, module_name);
         let module_def = expansion_script_to_module(script_def);
         module_translator.translate(loc, module_def, None);
     }
-
+    // Perform any remaining friend-declaration checks and update friend module id information.
+    check_and_update_friend_info(builder);
     // Compute information derived from AST (currently callgraph)
     for module in env.module_data.iter_mut() {
         for fun_data in module.function_data.values_mut() {
             fun_data.called_funs = Some(
                 fun_data
                     .def
-                    .clone()
+                    .as_ref()
                     .map(|e| e.called_funs())
                     .unwrap_or_default(),
             )
         }
+    }
+}
+
+/// Checks if any friend declarations are invalid because:
+///     - they are self-friend declarations
+///     - they are out-of-address friend declarations
+///     - they refer to unbound modules
+/// If so, report errors.
+/// Also, update friend module id information: this function assumes all modules have been assigned ids.
+///
+/// Note: we assume (a) friend declarations creating cyclic dependencies (cycle size > 1),
+///                 (b) duplicate friend declarations
+/// have been reported already. Currently, these checks happen in the expansion phase.
+fn check_and_update_friend_info(mut builder: ModelBuilder) {
+    let module_table = std::mem::take(&mut builder.module_table);
+    let env = builder.env;
+    // To save (loc, name) info about self friend decls.
+    let mut self_friends = vec![];
+    // To save (loc, friend_module_name, current_module_name) info about out-of-address friend decls.
+    let mut out_of_address_friends = vec![];
+    // To save (loc, friend_module_name) info about unbound modules in friend decls.
+    let mut unbound_friend_modules = vec![];
+    // Patch up information about friend module ids, as all the modules have ids by now.
+    for module in env.module_data.iter_mut() {
+        let mut friend_modules = BTreeSet::new();
+        for friend_decl in module.friend_decls.iter_mut() {
+            // Save information of out-of-address friend decls to report error later.
+            if friend_decl.module_name.addr() != module.name.addr() {
+                out_of_address_friends.push((
+                    friend_decl.loc.clone(),
+                    friend_decl.module_name.clone(),
+                    module.name.clone(),
+                ));
+            }
+            if let Some(friend_mod_id) = module_table.get(&friend_decl.module_name) {
+                friend_decl.module_id = Some(*friend_mod_id);
+                friend_modules.insert(*friend_mod_id);
+                // Save information of self-friend decls to report error later.
+                if module.id == *friend_mod_id {
+                    self_friends.push((friend_decl.loc.clone(), friend_decl.module_name.clone()));
+                }
+            } else {
+                // Save information of unbound modules in friend decls to report error later.
+                unbound_friend_modules
+                    .push((friend_decl.loc.clone(), friend_decl.module_name.clone()));
+            }
+        }
+        module.friend_modules = friend_modules;
+    }
+    // Report self-friend errors.
+    for (loc, module_name) in self_friends {
+        env.error(
+            &loc,
+            &format!(
+                "cannot declare module `{}` as a friend of itself",
+                module_name.display_full(env)
+            ),
+        );
+    }
+    // Report out-of-address friend errors.
+    for (loc, friend_mod_name, cur_mod_name) in out_of_address_friends {
+        env.error(
+            &loc,
+            &format!(
+                "friend modules of `{}` must have the same address, \
+                    but the declared friend module `{}` has a different address",
+                cur_mod_name.display_full(env),
+                friend_mod_name.display_full(env),
+            ),
+        );
+    }
+    // Report unbound friend errors.
+    for (loc, friend_mod_name) in unbound_friend_modules {
+        env.error(
+            &loc,
+            &format!(
+                "unbound module `{}` in friend declaration",
+                friend_mod_name.display_full(env)
+            ),
+        );
     }
 }
 
@@ -412,7 +496,7 @@ fn collect_related_modules_recursive<'a>(
     }
 }
 
-fn add_move_lang_diagnostics(env: &mut GlobalEnv, diags: Diagnostics) {
+pub fn add_move_lang_diagnostics(env: &mut GlobalEnv, diags: Diagnostics) {
     let mk_label = |is_primary: bool, (loc, msg): (move_ir_types::location::Loc, String)| {
         let style = if is_primary {
             LabelStyle::Primary
@@ -460,8 +544,8 @@ fn script_into_module(compiled_script: CompiledScript) -> CompiledModule {
         },
     };
 
-    // Add a dummy adress if none exists.
-    let dummy_addr = AccountAddress::new([0xFF; AccountAddress::LENGTH]);
+    // Add a dummy address if none exists.
+    let dummy_addr = AccountAddress::MAX_ADDRESS;
     let dummy_addr_idx = match script
         .address_identifiers
         .iter()
@@ -511,6 +595,7 @@ fn script_into_module(compiled_script: CompiledScript) -> CompiledModule {
         parameters: script.parameters,
         return_: return_sig_idx,
         type_parameters: script.type_parameters,
+        access_specifiers: None, // TODO: access specifiers for script functions
     });
 
     // Create a function definition for the main function.
@@ -717,6 +802,7 @@ fn retrospective_lambda_lifting(
             },
             entry: None,
             acquires: vec![], // TODO: might need inference here
+            access_specifiers: None,
             body: new_body,
             specs: BTreeMap::new(),
         };
@@ -752,6 +838,7 @@ fn expansion_script_to_module(script: E::Script) -> E::ModuleDefinition {
         constants,
         function,
         specs,
+        use_decls,
     } = script;
 
     // Construct a pseudo module definition.
@@ -771,6 +858,7 @@ fn expansion_script_to_module(script: E::Script) -> E::ModuleDefinition {
         constants,
         functions,
         specs,
+        use_decls,
     }
 }
 

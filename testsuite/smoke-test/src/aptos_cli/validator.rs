@@ -26,9 +26,9 @@ use aptos_types::{
     account_config::CORE_CODE_ADDRESS,
     network_address::DnsName,
     on_chain_config::{
-        ConsensusConfigV1, ExecutionConfigV1, LeaderReputationType, OnChainConsensusConfig,
-        OnChainExecutionConfig, ProposerAndVoterConfig, ProposerElectionType,
-        TransactionShufflerType, ValidatorSet,
+        ConsensusAlgorithmConfig, ConsensusConfigV1, ExecutionConfigV1, LeaderReputationType,
+        OnChainConsensusConfig, OnChainExecutionConfig, ProposerAndVoterConfig,
+        ProposerElectionType, TransactionShufflerType, ValidatorSet,
     },
     PeerId,
 };
@@ -44,7 +44,7 @@ use std::{
 async fn test_analyze_validators() {
     let (mut swarm, cli, _faucet) = SwarmBuilder::new_local(1)
         .with_aptos()
-        .with_init_config(Arc::new(|_i, _conf, genesis_stake_amount| {
+        .with_init_genesis_stake(Arc::new(|_i, genesis_stake_amount| {
             *genesis_stake_amount = 100000;
         }))
         .build_with_cli(0)
@@ -170,7 +170,7 @@ async fn check_vote_to_elected(swarm: &mut LocalSwarm) -> (Option<u64>, Option<u
         .validator_index;
     let mut first_vote = None;
     let mut first_elected = None;
-    for (_i, event) in info.blocks.iter().enumerate() {
+    for event in info.blocks.iter() {
         let previous_block_votes_bitvec: BitVec =
             event.event.previous_block_votes_bitvec().clone().into();
         if first_vote.is_none() && previous_block_votes_bitvec.is_set(off_index) {
@@ -198,6 +198,11 @@ async fn test_onchain_config_change() {
             let inner = match genesis_config.consensus_config.clone() {
                 OnChainConsensusConfig::V1(inner) => inner,
                 OnChainConsensusConfig::V2(inner) => inner,
+                OnChainConsensusConfig::V3 {
+                    alg: ConsensusAlgorithmConfig::Jolteon { main, .. },
+                    ..
+                } => main,
+                _ => unimplemented!(),
             };
 
             let leader_reputation_type =
@@ -255,6 +260,7 @@ async fn test_onchain_config_change() {
     let inner = match current_consensus_config {
         OnChainConsensusConfig::V1(inner) => inner,
         OnChainConsensusConfig::V2(inner) => inner,
+        _ => unimplemented!(),
     };
     let leader_reputation_type =
         if let ProposerElectionType::LeaderReputation(leader_reputation_type) =
@@ -540,7 +546,7 @@ async fn test_large_total_stake() {
     // just barelly below u64::MAX
     const BASE: u64 = 10_000_000_000_000_000_000;
     let (mut swarm, mut cli, _faucet) = SwarmBuilder::new_local(4)
-        .with_init_config(Arc::new(|_, _, genesis_stake_amount| {
+        .with_init_genesis_stake(Arc::new(|_, genesis_stake_amount| {
             // make sure we have quorum
             *genesis_stake_amount = BASE;
         }))
@@ -606,12 +612,13 @@ async fn test_nodes_rewards() {
     const BASE: u64 = 3600u64 * 24 * 365 * 10 * 100;
 
     let (mut swarm, mut cli, _faucet) = SwarmBuilder::new_local(4)
-        .with_init_config(Arc::new(|i, conf, genesis_stake_amount| {
+        .with_init_config(Arc::new(|_, conf, _| {
             // reduce timeout, as we will have dead node during rounds
             conf.consensus.round_initial_timeout_ms = 200;
             conf.consensus.quorum_store_poll_time_ms = 100;
             conf.api.failpoints_enabled = true;
-
+        }))
+        .with_init_genesis_stake(Arc::new(|i, genesis_stake_amount| {
             // make sure we have quorum
             *genesis_stake_amount = if i < 2 { 10 * BASE } else { BASE };
         }))
@@ -1035,10 +1042,12 @@ async fn test_register_and_update_validator() {
 async fn test_join_and_leave_validator() {
     let (mut swarm, mut cli, _faucet) = SwarmBuilder::new_local(1)
         .with_aptos()
-        .with_init_config(Arc::new(|_i, conf, genesis_stake_amount| {
+        .with_init_config(Arc::new(|_i, conf, _| {
             // reduce timeout, as we will have dead node during rounds
             conf.consensus.round_initial_timeout_ms = 200;
             conf.consensus.quorum_store_poll_time_ms = 100;
+        }))
+        .with_init_genesis_stake(Arc::new(|_i, genesis_stake_amount| {
             *genesis_stake_amount = 100000;
         }))
         .with_init_genesis_config(Arc::new(|genesis_config| {
@@ -1197,10 +1206,12 @@ async fn test_join_and_leave_validator() {
 async fn test_owner_create_and_delegate_flow() {
     let (mut swarm, mut cli, _faucet) = SwarmBuilder::new_local(1)
         .with_aptos()
-        .with_init_config(Arc::new(|_i, conf, genesis_stake_amount| {
+        .with_init_config(Arc::new(|_i, conf, _| {
             // reduce timeout, as we will have dead node during rounds
             conf.consensus.round_initial_timeout_ms = 200;
             conf.consensus.quorum_store_poll_time_ms = 100;
+        }))
+        .with_init_genesis_stake(Arc::new(|_i, genesis_stake_amount| {
             // enough for quorum
             *genesis_stake_amount = 5000000;
         }))

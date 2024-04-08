@@ -4,7 +4,6 @@
 use crate::{error::MempoolError, monitor};
 use anyhow::{format_err, Result};
 use aptos_consensus_types::common::RejectedTransactionSummary;
-use aptos_executor_types::StateComputeResult;
 use aptos_mempool::QuorumStoreRequest;
 use aptos_types::transaction::{SignedTransaction, TransactionStatus};
 use futures::channel::{mpsc, oneshot};
@@ -19,8 +18,8 @@ pub trait TxnNotifier: Send + Sync {
     /// state sync.)
     async fn notify_failed_txn(
         &self,
-        txns: Vec<SignedTransaction>,
-        compute_results: &StateComputeResult,
+        txns: &[SignedTransaction],
+        statuses: &[TransactionStatus],
     ) -> Result<(), MempoolError>;
 }
 
@@ -48,28 +47,12 @@ impl MempoolNotifier {
 impl TxnNotifier for MempoolNotifier {
     async fn notify_failed_txn(
         &self,
-        txns: Vec<SignedTransaction>,
-        compute_results: &StateComputeResult,
+        user_txns: &[SignedTransaction],
+        user_txn_statuses: &[TransactionStatus],
     ) -> Result<(), MempoolError> {
         let mut rejected_txns = vec![];
 
-        if txns.is_empty() {
-            return Ok(());
-        }
-        let compute_status = compute_results.compute_status();
-        if txns.len() + 2 != compute_status.len() {
-            // reconfiguration suffix blocks don't have any transactions
-            if compute_status.is_empty() {
-                return Ok(());
-            }
-            return Err(format_err!(
-                "Block meta and state checkpoint txns are expected. txns len: {}, compute status len: {}",
-                txns.len(),
-                compute_status.len(),
-            ).into());
-        }
-        let user_txn_status = &compute_status[1..txns.len() + 1];
-        for (txn, status) in txns.iter().zip_eq(user_txn_status) {
+        for (txn, status) in user_txns.iter().zip_eq(user_txn_statuses) {
             if let TransactionStatus::Discard(reason) = status {
                 rejected_txns.push(RejectedTransactionSummary {
                     sender: txn.sender(),

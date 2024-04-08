@@ -8,6 +8,7 @@ use aptos_infallible::RwLock;
 use aptos_storage_interface::{DbReader, DbReaderWriter, DbWriter};
 use aptos_temppath::TempPath;
 use aptos_types::{chain_id::ChainId, waypoint::Waypoint};
+use rand::SeedableRng;
 use std::{fs, sync::Arc};
 
 /// A mock database implementing DbReader and DbWriter
@@ -48,10 +49,11 @@ fn test_aptos_vm_does_not_have_test_natives() {
     aptos_vm::natives::assert_no_test_natives(crate::utils::ERROR_MSG_BAD_FEATURE_FLAGS)
 }
 
+// This test confirms that the overriding behavior works as intended.
 #[test]
 fn test_create_single_node_test_config() {
-    // create a test config override and merge it with the default config
-    // this will get cleaned up by the tempdir when it goes out of scope
+    // Create a test config override and merge it with the default config.
+    // This will get cleaned up by the tempdir when it goes out of scope.
     let test_dir = aptos_temppath::TempPath::new().as_ref().to_path_buf();
     fs::DirBuilder::new()
         .recursive(true)
@@ -70,6 +72,9 @@ fn test_create_single_node_test_config() {
             output_batch_size: 100
         api:
             address: 0.0.0.0:8081
+        execution:
+            genesis_waypoint:
+                from_config: "0:6072b68a942aace147e0655c5704beaa255c84a7829baa4e72a500f1516584c4"
         "#,
     )
     .unwrap();
@@ -82,8 +87,16 @@ fn test_create_single_node_test_config() {
 
     // merge it
     let default_node_config = NodeConfig::get_default_validator_config();
-    let merged_config =
-        create_single_node_test_config(None, Some(config_override_path), false).unwrap();
+    let merged_config = create_single_node_test_config(
+        &None,
+        &Some(config_override_path),
+        &test_dir,
+        false,
+        false,
+        aptos_cached_packages::head_release_bundle(),
+        rand::rngs::StdRng::from_entropy(),
+    )
+    .unwrap();
 
     // overriden configs
     assert!(merged_config.storage.enable_indexer);

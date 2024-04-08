@@ -15,10 +15,14 @@ use backoff::{future::retry, ExponentialBackoff};
 use futures::FutureExt;
 use image::{
     imageops::{resize, FilterType},
-    DynamicImage, ImageBuffer, ImageFormat, ImageOutputFormat,
+    DynamicImage, GenericImageView, ImageBuffer, ImageFormat, ImageOutputFormat,
 };
 use reqwest::Client;
-use std::{io::Cursor, time::Duration};
+use std::{
+    cmp::{max, min},
+    io::Cursor,
+    time::Duration,
+};
 use tracing::{info, warn};
 
 pub struct ImageOptimizer;
@@ -27,12 +31,13 @@ impl ImageOptimizer {
     /// Resizes and optimizes image from input URI.
     /// Returns new image as a byte array and its format.
     pub async fn optimize(
-        uri: String,
+        uri: &str,
         max_file_size_bytes: u32,
         image_quality: u8,
+        max_image_dimensions: u32,
     ) -> anyhow::Result<(Vec<u8>, ImageFormat)> {
         OPTIMIZE_IMAGE_INVOCATION_COUNT.inc();
-        let (_, size) = get_uri_metadata(uri.clone()).await?;
+        let (_, size) = get_uri_metadata(uri).await?;
         if size > max_file_size_bytes {
             FAILED_TO_OPTIMIZE_IMAGE_COUNT
                 .with_label_values(&["Image file too large"])
@@ -53,7 +58,7 @@ impl ImageOptimizer {
                     .context("Failed to build reqwest client")?;
 
                 let response = client
-                    .get(&uri)
+                    .get(uri.trim())
                     .send()
                     .await
                     .context("Failed to get image")?;
@@ -71,11 +76,14 @@ impl ImageOptimizer {
                     _ => {
                         let img = image::load_from_memory(&img_bytes)
                             .context(format!("Failed to load image from memory: {} bytes", size))?;
-                        let (nwidth, nheight) =
-                            Self::calculate_dimensions_with_ration(512, img.width(), img.height());
+                        let (nwidth, nheight) = Self::calculate_dimensions_with_ration(
+                            min(max(img.width(), img.height()), max_image_dimensions),
+                            img.width(),
+                            img.height(),
+                        );
                         let resized_image =
-                            resize(&img.to_rgb8(), nwidth, nheight, FilterType::Gaussian);
-                        Ok((Self::to_jpeg_bytes(resized_image, image_quality)?, format))
+                            resize(&img.to_rgba8(), nwidth, nheight, FilterType::Gaussian);
+                        Ok(Self::to_image_bytes(resized_image, image_quality)?)
                     },
                 }
             }
@@ -118,15 +126,35 @@ impl ImageOptimizer {
         }
     }
 
-    /// Converts image to JPEG bytes vector
-    fn to_jpeg_bytes(
-        image_buffer: ImageBuffer<image::Rgb<u8>, Vec<u8>>,
+    /// Checks if an image has any transparent pixels
+    fn has_transparent_pixels(img: &DynamicImage) -> bool {
+        let (width, height) = img.dimensions();
+        for x in 0..width {
+            for y in 0..height {
+                if img.get_pixel(x, y)[3] < 255 {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    /// Converts image to image bytes vector
+    fn to_image_bytes(
+        image_buffer: ImageBuffer<image::Rgba<u8>, Vec<u8>>,
         image_quality: u8,
-    ) -> anyhow::Result<Vec<u8>> {
-        let dynamic_image = DynamicImage::ImageRgb8(image_buffer);
+    ) -> anyhow::Result<(Vec<u8>, ImageFormat)> {
+        let dynamic_image = DynamicImage::ImageRgba8(image_buffer);
         let mut byte_store = Cursor::new(Vec::new());
-        match dynamic_image.write_to(&mut byte_store, ImageOutputFormat::Jpeg(image_quality)) {
-            Ok(_) => Ok(byte_store.into_inner()),
+        let mut encode_format = ImageOutputFormat::Jpeg(image_quality);
+        let mut output_format = ImageFormat::Jpeg;
+        if Self::has_transparent_pixels(&dynamic_image) {
+            encode_format = ImageOutputFormat::Png;
+            output_format = ImageFormat::Png;
+        }
+
+        match dynamic_image.write_to(&mut byte_store, encode_format) {
+            Ok(_) => Ok((byte_store.into_inner(), output_format)),
             Err(e) => {
                 warn!(error = ?e, "[NFT Metadata Crawler] Error converting image to bytes: {} bytes", dynamic_image.as_bytes().len());
                 Err(anyhow::anyhow!(e))

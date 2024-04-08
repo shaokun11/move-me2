@@ -11,16 +11,17 @@ use aptos_executor_test_helpers::{
     },
 };
 use aptos_executor_types::BlockExecutorTrait;
-use aptos_state_view::account_with_state_view::AsAccountWithStateView;
 use aptos_storage_interface::state_view::DbStateViewAtVersion;
 use aptos_types::{
     access_path::AccessPath,
     account_config::{aptos_test_root_address, AccountResource, CORE_CODE_ADDRESS},
     account_view::AccountView,
     block_metadata::BlockMetadata,
-    state_store::state_key::StateKey,
-    test_helpers::transaction_test_helpers::BLOCK_GAS_LIMIT,
-    transaction::{Transaction, WriteSetPayload},
+    state_store::{account_with_state_view::AsAccountWithStateView, state_key::StateKey},
+    test_helpers::transaction_test_helpers::TEST_BLOCK_EXECUTOR_ONCHAIN_CONFIG,
+    transaction::{
+        signature_verified_transaction::into_signature_verified_block, Transaction, WriteSetPayload,
+    },
     trusted_state::TrustedState,
     validator_signer::ValidatorSigner,
 };
@@ -140,13 +141,13 @@ fn test_reconfiguration() {
         Some(aptos_stdlib::version_set_version(42)),
     );
 
-    let txn_block = vec![txn1, txn2, txn3];
+    let txn_block = into_signature_verified_block(vec![txn1, txn2, txn3]);
     let block_id = gen_block_id(1);
     let vm_output = executor
         .execute_block(
             (block_id, txn_block.clone()).into(),
             parent_block_id,
-            BLOCK_GAS_LIMIT,
+            TEST_BLOCK_EXECUTOR_ONCHAIN_CONFIG,
         )
         .unwrap();
 
@@ -161,13 +162,14 @@ fn test_reconfiguration() {
         .unwrap();
 
     let state_proof = db.reader.get_state_proof(0).unwrap();
-    let current_version = state_proof.latest_ledger_info().version();
+    let latest_li = state_proof.latest_ledger_info();
+    let current_version = latest_li.version();
 
     let t3 = db
         .reader
-        .get_account_transaction(aptos_test_root_address(), 1, true, current_version)
+        .get_transaction_by_version(3, current_version, /*fetch_events=*/ true)
         .unwrap();
-    verify_committed_txn_status(t3.as_ref(), &txn_block[2]).unwrap();
+    verify_committed_txn_status(latest_li, &t3, &txn_block[2]).unwrap();
 
     let db_state_view = db
         .reader

@@ -318,6 +318,10 @@ pub(crate) mod private {
     impl Sealed for crate::multi_ed25519::MultiEd25519PublicKey {}
     impl Sealed for crate::multi_ed25519::MultiEd25519Signature {}
 
+    impl Sealed for crate::secp256r1_ecdsa::PrivateKey {}
+    impl Sealed for crate::secp256r1_ecdsa::PublicKey {}
+    impl Sealed for crate::secp256r1_ecdsa::Signature {}
+
     impl Sealed for crate::secp256k1_ecdsa::PrivateKey {}
     impl Sealed for crate::secp256k1_ecdsa::PublicKey {}
     impl Sealed for crate::secp256k1_ecdsa::Signature {}

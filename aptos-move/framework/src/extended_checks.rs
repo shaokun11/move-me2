@@ -3,6 +3,7 @@
 
 use crate::{KnownAttribute, RuntimeModuleMetadataV1};
 use move_binary_format::file_format::{Ability, AbilitySet, Visibility};
+use move_cli::base::test_validation;
 use move_compiler::shared::known_attributes;
 use move_core_types::{
     account_address::AccountAddress,
@@ -77,6 +78,14 @@ pub fn run_extended_checks(env: &GlobalEnv) -> BTreeMap<ModuleId, RuntimeModuleM
     checker.output
 }
 
+/// Configures the move-cli unit test validation hook to run the extended checker.
+pub fn configure_extended_checks_for_unit_test() {
+    fn validate(env: &GlobalEnv) {
+        run_extended_checks(env);
+    }
+    test_validation::set_validation_hook(Box::new(validate));
+}
+
 #[derive(Debug)]
 struct ExtendedChecker<'a> {
     env: &'a GlobalEnv,
@@ -123,9 +132,9 @@ impl<'a> ExtendedChecker<'a> {
         if let Some(ref fun) = module.find_function(init_module_sym) {
             if fun.visibility() != Visibility::Private {
                 self.env
-                    .error(&fun.get_loc(), "`init_module` function must be private")
+                    .error(&fun.get_id_loc(), "`init_module` function must be private")
             }
-            for Parameter(_, ty) in fun.get_parameters() {
+            for Parameter(_, ty, _) in fun.get_parameters() {
                 let ok = match ty {
                     Type::Primitive(PrimitiveType::Signer) => true,
                     Type::Reference(_, ty) => matches!(*ty, Type::Primitive(PrimitiveType::Signer)),
@@ -133,14 +142,14 @@ impl<'a> ExtendedChecker<'a> {
                 };
                 if !ok {
                     self.env.error(
-                        &fun.get_loc(),
+                        &fun.get_id_loc(),
                         "`init_module` function can only take signers as parameters",
                     );
                 }
             }
             if fun.get_return_count() > 0 {
                 self.env.error(
-                    &fun.get_loc(),
+                    &fun.get_id_loc(),
                     "`init_module` function cannot return values",
                 )
             }
@@ -161,10 +170,10 @@ impl<'a> ExtendedChecker<'a> {
                 // Skip checking for legacy entries
                 continue;
             }
-            self.check_transaction_args(&fun.get_loc(), &fun.get_parameter_types());
+            self.check_transaction_args(&fun.get_id_loc(), &fun.get_parameter_types());
             if fun.get_return_count() > 0 {
                 self.env
-                    .error(&fun.get_loc(), "entry function cannot return values")
+                    .error(&fun.get_id_loc(), "entry function cannot return values")
             }
         }
     }
@@ -449,10 +458,10 @@ impl<'a> ExtendedChecker<'a> {
             if !self.has_attribute(fun, VIEW_FUN_ATTRIBUTE) {
                 continue;
             }
-            self.check_transaction_args(&fun.get_loc(), &fun.get_parameter_types());
+            self.check_transaction_args(&fun.get_id_loc(), &fun.get_parameter_types());
             if fun.get_return_count() == 0 {
                 self.env
-                    .error(&fun.get_loc(), "view function must return values")
+                    .error(&fun.get_id_loc(), "view function must return values")
             }
             // Remember the runtime info that this is a view function
             let module_id = self.get_runtime_module_id(module);

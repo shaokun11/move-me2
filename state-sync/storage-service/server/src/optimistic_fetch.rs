@@ -26,11 +26,11 @@ use aptos_storage_service_types::{
     responses::{StorageServerSummary, StorageServiceResponse},
 };
 use aptos_time_service::{TimeService, TimeServiceTrait};
-use aptos_types::{ledger_info::LedgerInfoWithSignatures, transaction::Version};
+use aptos_types::ledger_info::LedgerInfoWithSignatures;
 use arc_swap::ArcSwap;
 use dashmap::DashMap;
 use futures::future::join_all;
-use lru::LruCache;
+use mini_moka::sync::Cache;
 use std::{cmp::min, collections::HashMap, ops::Deref, sync::Arc, time::Instant};
 
 /// An optimistic fetch request from a peer
@@ -62,9 +62,17 @@ impl OptimisticFetchRequest {
         config: StorageServiceConfig,
         target_ledger_info: &LedgerInfoWithSignatures,
     ) -> aptos_storage_service_types::Result<StorageServiceRequest, Error> {
-        // Calculate the number of versions to fetch
+        // Verify that the target version is higher than the highest known version
         let known_version = self.highest_known_version();
         let target_version = target_ledger_info.ledger_info().version();
+        if target_version <= known_version {
+            return Err(Error::InvalidRequest(format!(
+                "Target version: {:?} is not higher than known version: {:?}!",
+                target_version, known_version
+            )));
+        }
+
+        // Calculate the number of versions to fetch
         let mut num_versions_to_fetch =
             target_version.checked_sub(known_version).ok_or_else(|| {
                 Error::UnexpectedErrorEncountered(
@@ -179,10 +187,10 @@ pub(crate) async fn handle_active_optimistic_fetches<T: StorageReaderInterface>(
     cached_storage_server_summary: Arc<ArcSwap<StorageServerSummary>>,
     config: StorageServiceConfig,
     optimistic_fetches: Arc<DashMap<PeerNetworkId, OptimisticFetchRequest>>,
-    lru_response_cache: Arc<Mutex<LruCache<StorageServiceRequest, StorageServiceResponse>>>,
+    lru_response_cache: Cache<StorageServiceRequest, StorageServiceResponse>,
     request_moderator: Arc<RequestModerator>,
     storage: T,
-    subscriptions: Arc<Mutex<HashMap<PeerNetworkId, SubscriptionStreamRequests>>>,
+    subscriptions: Arc<DashMap<PeerNetworkId, SubscriptionStreamRequests>>,
     time_service: TimeService,
 ) -> Result<(), Error> {
     // Update the number of active optimistic fetches
@@ -222,21 +230,27 @@ pub(crate) async fn handle_active_optimistic_fetches<T: StorageReaderInterface>(
 
 /// Handles the ready optimistic fetches by removing them from the
 /// active map and notifying the peer of the new data.
-async fn handle_ready_optimistic_fetches<T: StorageReaderInterface>(
+pub(crate) async fn handle_ready_optimistic_fetches<T: StorageReaderInterface>(
     bounded_executor: BoundedExecutor,
     cached_storage_server_summary: Arc<ArcSwap<StorageServerSummary>>,
     config: StorageServiceConfig,
     optimistic_fetches: Arc<DashMap<PeerNetworkId, OptimisticFetchRequest>>,
-    lru_response_cache: Arc<Mutex<LruCache<StorageServiceRequest, StorageServiceResponse>>>,
+    lru_response_cache: Cache<StorageServiceRequest, StorageServiceResponse>,
     request_moderator: Arc<RequestModerator>,
     storage: T,
-    subscriptions: Arc<Mutex<HashMap<PeerNetworkId, SubscriptionStreamRequests>>>,
+    subscriptions: Arc<DashMap<PeerNetworkId, SubscriptionStreamRequests>>,
     time_service: TimeService,
     peers_with_ready_optimistic_fetches: Vec<(PeerNetworkId, LedgerInfoWithSignatures)>,
 ) {
     for (peer_network_id, target_ledger_info) in peers_with_ready_optimistic_fetches {
-        // Remove the optimistic fetch from the active map
-        let ready_optimistic_fetch = optimistic_fetches.clone().remove(&peer_network_id);
+        // Remove the optimistic fetch from the active map. Note: we only do this if
+        // the known version is lower than the target version. This is because
+        // the peer may have updated their highest known version since we last checked.
+        let ready_optimistic_fetch =
+            optimistic_fetches.remove_if(&peer_network_id, |_, optimistic_fetch| {
+                optimistic_fetch.highest_known_version()
+                    < target_ledger_info.ledger_info().version()
+            });
 
         // Handle the optimistic fetch request
         if let Some((_, optimistic_fetch)) = ready_optimistic_fetch {
@@ -256,47 +270,40 @@ async fn handle_ready_optimistic_fetches<T: StorageReaderInterface>(
                     let optimistic_fetch_start_time = optimistic_fetch.fetch_start_time;
                     let optimistic_fetch_request = optimistic_fetch.request.clone();
 
-                    // Get the storage service request for the missing data
-                    let missing_data_request = match optimistic_fetch
-                        .get_storage_request_for_missing_data(config, &target_ledger_info)
-                    {
-                        Ok(storage_service_request) => storage_service_request,
-                        Err(error) => {
-                            // Failed to get the storage service request
-                            warn!(LogSchema::new(LogEntry::OptimisticFetchResponse)
-                                .error(&Error::UnexpectedErrorEncountered(error.to_string())));
-                            return;
-                        },
-                    };
+                    // Handle the optimistic fetch request and time the operation
+                    let handle_request = || {
+                        // Get the storage service request for the missing data
+                        let missing_data_request = optimistic_fetch
+                            .get_storage_request_for_missing_data(config, &target_ledger_info)?;
 
-                    // Notify the peer of the new data
-                    if let Err(error) = utils::notify_peer_of_new_data(
-                        cached_storage_server_summary.clone(),
-                        optimistic_fetches.clone(),
-                        subscriptions.clone(),
-                        lru_response_cache.clone(),
-                        request_moderator.clone(),
-                        storage.clone(),
-                        time_service.clone(),
-                        &peer_network_id,
-                        missing_data_request,
-                        target_ledger_info,
-                        optimistic_fetch.take_response_sender(),
-                    ) {
+                        // Notify the peer of the new data
+                        utils::notify_peer_of_new_data(
+                            cached_storage_server_summary.clone(),
+                            optimistic_fetches.clone(),
+                            subscriptions.clone(),
+                            lru_response_cache.clone(),
+                            request_moderator.clone(),
+                            storage.clone(),
+                            time_service.clone(),
+                            &peer_network_id,
+                            missing_data_request,
+                            target_ledger_info,
+                            optimistic_fetch.take_response_sender(),
+                        )
+                    };
+                    let result = utils::execute_and_time_duration(
+                        &metrics::OPTIMISTIC_FETCH_LATENCIES,
+                        Some((&peer_network_id, &optimistic_fetch_request)),
+                        None,
+                        handle_request,
+                        Some(optimistic_fetch_start_time),
+                    );
+
+                    // Log an error if the handler failed
+                    if let Err(error) = result {
                         warn!(LogSchema::new(LogEntry::OptimisticFetchResponse)
                             .error(&Error::UnexpectedErrorEncountered(error.to_string())));
                     }
-
-                    // Update the optimistic fetch latency metric
-                    let optimistic_fetch_duration = time_service
-                        .now()
-                        .duration_since(optimistic_fetch_start_time);
-                    metrics::observe_value_with_label(
-                        &metrics::OPTIMISTIC_FETCH_LATENCIES,
-                        peer_network_id.network_id(),
-                        &optimistic_fetch_request.get_label(),
-                        optimistic_fetch_duration.as_secs_f64(),
-                    );
                 })
                 .await;
         }
@@ -311,10 +318,10 @@ pub(crate) async fn get_peers_with_ready_optimistic_fetches<T: StorageReaderInte
     config: StorageServiceConfig,
     cached_storage_server_summary: Arc<ArcSwap<StorageServerSummary>>,
     optimistic_fetches: Arc<DashMap<PeerNetworkId, OptimisticFetchRequest>>,
-    lru_response_cache: Arc<Mutex<LruCache<StorageServiceRequest, StorageServiceResponse>>>,
+    lru_response_cache: Cache<StorageServiceRequest, StorageServiceResponse>,
     request_moderator: Arc<RequestModerator>,
     storage: T,
-    subscriptions: Arc<Mutex<HashMap<PeerNetworkId, SubscriptionStreamRequests>>>,
+    subscriptions: Arc<DashMap<PeerNetworkId, SubscriptionStreamRequests>>,
     time_service: TimeService,
 ) -> aptos_storage_service_types::Result<Vec<(PeerNetworkId, LedgerInfoWithSignatures)>, Error> {
     // Fetch the latest storage summary and highest synced version
@@ -323,8 +330,6 @@ pub(crate) async fn get_peers_with_ready_optimistic_fetches<T: StorageReaderInte
         Some(ledger_info) => ledger_info.clone(),
         None => return Ok(vec![]),
     };
-    let highest_synced_version = highest_synced_ledger_info.ledger_info().version();
-    let highest_synced_epoch = highest_synced_ledger_info.ledger_info().epoch();
 
     // Identify the peers with expired, invalid and ready optimistic fetches
     let (
@@ -342,8 +347,6 @@ pub(crate) async fn get_peers_with_ready_optimistic_fetches<T: StorageReaderInte
         storage,
         time_service,
         highest_synced_ledger_info,
-        highest_synced_version,
-        highest_synced_epoch,
     )
     .await;
 
@@ -367,14 +370,12 @@ async fn identify_expired_invalid_and_ready_fetches<T: StorageReaderInterface>(
     config: StorageServiceConfig,
     cached_storage_server_summary: Arc<ArcSwap<StorageServerSummary>>,
     optimistic_fetches: Arc<DashMap<PeerNetworkId, OptimisticFetchRequest>>,
-    subscriptions: Arc<Mutex<HashMap<PeerNetworkId, SubscriptionStreamRequests>>>,
-    lru_response_cache: Arc<Mutex<LruCache<StorageServiceRequest, StorageServiceResponse>>>,
+    subscriptions: Arc<DashMap<PeerNetworkId, SubscriptionStreamRequests>>,
+    lru_response_cache: Cache<StorageServiceRequest, StorageServiceResponse>,
     request_moderator: Arc<RequestModerator>,
     storage: T,
     time_service: TimeService,
     highest_synced_ledger_info: LedgerInfoWithSignatures,
-    highest_synced_version: Version,
-    highest_synced_epoch: u64,
 ) -> (
     Vec<PeerNetworkId>,
     Vec<PeerNetworkId>,
@@ -416,8 +417,6 @@ async fn identify_expired_invalid_and_ready_fetches<T: StorageReaderInterface>(
             storage,
             time_service,
             highest_synced_ledger_info,
-            highest_synced_version,
-            highest_synced_epoch,
             peers_and_highest_synced_data,
         )
         .await;
@@ -436,14 +435,12 @@ async fn identify_ready_and_invalid_optimistic_fetches<T: StorageReaderInterface
     bounded_executor: BoundedExecutor,
     cached_storage_server_summary: Arc<ArcSwap<StorageServerSummary>>,
     optimistic_fetches: Arc<DashMap<PeerNetworkId, OptimisticFetchRequest>>,
-    subscriptions: Arc<Mutex<HashMap<PeerNetworkId, SubscriptionStreamRequests>>>,
-    lru_response_cache: Arc<Mutex<LruCache<StorageServiceRequest, StorageServiceResponse>>>,
+    subscriptions: Arc<DashMap<PeerNetworkId, SubscriptionStreamRequests>>,
+    lru_response_cache: Cache<StorageServiceRequest, StorageServiceResponse>,
     request_moderator: Arc<RequestModerator>,
     storage: T,
     time_service: TimeService,
     highest_synced_ledger_info: LedgerInfoWithSignatures,
-    highest_synced_version: Version,
-    highest_synced_epoch: u64,
     peers_and_highest_synced_data: HashMap<PeerNetworkId, (u64, u64)>,
 ) -> (
     Vec<(PeerNetworkId, LedgerInfoWithSignatures)>,
@@ -452,6 +449,10 @@ async fn identify_ready_and_invalid_optimistic_fetches<T: StorageReaderInterface
     // Create the peer lists for ready and invalid optimistic fetches
     let peers_with_ready_optimistic_fetches = Arc::new(Mutex::new(vec![]));
     let peers_with_invalid_optimistic_fetches = Arc::new(Mutex::new(vec![]));
+
+    // Identify the highest synced version and epoch
+    let highest_synced_version = highest_synced_ledger_info.ledger_info().version();
+    let highest_synced_epoch = highest_synced_ledger_info.ledger_info().epoch();
 
     // Go through all peers and highest synced data and identify the relevant entries
     let mut active_tasks = vec![];
@@ -566,13 +567,18 @@ fn remove_invalid_optimistic_fetches(
     peers_with_invalid_optimistic_fetches: Vec<PeerNetworkId>,
 ) {
     for peer_network_id in peers_with_invalid_optimistic_fetches {
-        if let Some((_, optimistic_fetch)) = optimistic_fetches.remove(&peer_network_id) {
+        if let Some((peer_network_id, optimistic_fetch)) =
+            optimistic_fetches.remove(&peer_network_id)
+        {
             warn!(LogSchema::new(LogEntry::OptimisticFetchRefresh)
                 .error(&Error::InvalidRequest(
                     "Mismatch between known version and epoch!".into()
                 ))
                 .request(&optimistic_fetch.request)
-                .message("Dropping invalid optimistic fetch request!"));
+                .message(&format!(
+                    "Dropping invalid optimistic fetch request for peer: {:?}!",
+                    peer_network_id
+                )));
         }
     }
 }

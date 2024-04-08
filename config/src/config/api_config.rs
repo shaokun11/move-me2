@@ -2,6 +2,7 @@
 // Parts of the project are originally copyright © Meta Platforms, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
+use super::transaction_filter_type::{Filter, Matcher};
 use crate::{
     config::{
         config_sanitizer::ConfigSanitizer, gas_estimation_config::GasEstimationConfig,
@@ -9,7 +10,7 @@ use crate::{
     },
     utils,
 };
-use aptos_types::chain_id::ChainId;
+use aptos_types::{account_address::AccountAddress, chain_id::ChainId};
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 
@@ -72,6 +73,14 @@ pub struct ApiConfig {
     pub runtime_worker_multiplier: usize,
     /// Configs for computing unit gas price estimation
     pub gas_estimation: GasEstimationConfig,
+    /// Periodically call gas estimation
+    pub periodic_gas_estimation_ms: Option<u64>,
+    /// Configuration to filter simulation requests.
+    pub simulation_filter: Filter,
+    /// Configuration to filter view function requests.
+    pub view_filter: ViewFilter,
+    /// Periodically log stats for view function and simulate transaction usage
+    pub periodic_function_stats_sec: Option<u64>,
 }
 
 const DEFAULT_ADDRESS: &str = "127.0.0.1";
@@ -116,6 +125,10 @@ impl Default for ApiConfig {
             max_runtime_workers: None,
             runtime_worker_multiplier: 2,
             gas_estimation: GasEstimationConfig::default(),
+            periodic_gas_estimation_ms: Some(30_000),
+            simulation_filter: Filter::default(),
+            view_filter: ViewFilter::default(),
+            periodic_function_stats_sec: Some(60),
         }
     }
 }
@@ -135,9 +148,9 @@ impl ApiConfig {
 
 impl ConfigSanitizer for ApiConfig {
     fn sanitize(
-        node_config: &mut NodeConfig,
+        node_config: &NodeConfig,
         node_type: NodeType,
-        chain_id: ChainId,
+        chain_id: Option<ChainId>,
     ) -> Result<(), Error> {
         let sanitizer_name = Self::get_sanitizer_name();
         let api_config = &node_config.api;
@@ -148,11 +161,13 @@ impl ConfigSanitizer for ApiConfig {
         }
 
         // Verify that failpoints are not enabled in mainnet
-        if chain_id.is_mainnet() && api_config.failpoints_enabled {
-            return Err(Error::ConfigSanitizerFailed(
-                sanitizer_name,
-                "Failpoints are not supported on mainnet nodes!".into(),
-            ));
+        if let Some(chain_id) = chain_id {
+            if chain_id.is_mainnet() && api_config.failpoints_enabled {
+                return Err(Error::ConfigSanitizerFailed(
+                    sanitizer_name,
+                    "Failpoints are not supported on mainnet nodes!".into(),
+                ));
+            }
         }
 
         // Validate basic runtime properties
@@ -163,9 +178,62 @@ impl ConfigSanitizer for ApiConfig {
             ));
         }
 
+        // We don't support Block ID based simulation filters.
+        for rule in api_config.simulation_filter.rules() {
+            if let Matcher::BlockId(_) = rule.matcher() {
+                return Err(Error::ConfigSanitizerFailed(
+                    sanitizer_name,
+                    "Block ID based simulation filters are not supported!".into(),
+                ));
+            }
+        }
+
+        // Sanitize the gas estimation config
         GasEstimationConfig::sanitize(node_config, node_type, chain_id)?;
 
         Ok(())
+    }
+}
+
+// This is necessary because we can't import the EntryFunctionId type from the API types.
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub struct ViewFunctionId {
+    pub address: AccountAddress,
+    pub module: String,
+    pub function_name: String,
+}
+
+// We just accept Strings here because we can't import EntryFunctionId. We sanitize
+// the values later.
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ViewFilter {
+    /// Allowlist of functions. If a function is not found here, the API will refuse to
+    /// service the view / simulation request.
+    Allowlist(Vec<ViewFunctionId>),
+    /// Blocklist of functions. If a function is found here, the API will refuse to
+    /// service the view / simulation request.
+    Blocklist(Vec<ViewFunctionId>),
+}
+
+impl Default for ViewFilter {
+    fn default() -> Self {
+        ViewFilter::Blocklist(vec![])
+    }
+}
+
+impl ViewFilter {
+    /// Returns true if the given function is allowed by the filter.
+    pub fn allows(&self, address: &AccountAddress, module: &str, function: &str) -> bool {
+        match self {
+            ViewFilter::Allowlist(ids) => ids.iter().any(|id| {
+                &id.address == address && id.module == module && id.function_name == function
+            }),
+            ViewFilter::Blocklist(ids) => !ids.iter().any(|id| {
+                &id.address == address && id.module == module && id.function_name == function
+            }),
+        }
     }
 }
 
@@ -176,7 +244,7 @@ mod tests {
     #[test]
     fn test_sanitize_disabled_api() {
         // Create a node config with the API disabled
-        let mut node_config = NodeConfig {
+        let node_config = NodeConfig {
             api: ApiConfig {
                 enabled: false,
                 failpoints_enabled: true,
@@ -186,13 +254,13 @@ mod tests {
         };
 
         // Sanitize the config and verify that it succeeds
-        ApiConfig::sanitize(&mut node_config, NodeType::Validator, ChainId::mainnet()).unwrap();
+        ApiConfig::sanitize(&node_config, NodeType::Validator, Some(ChainId::mainnet())).unwrap();
     }
 
     #[test]
     fn test_sanitize_failpoints_on_mainnet() {
         // Create a node config with failpoints enabled
-        let mut node_config = NodeConfig {
+        let node_config = NodeConfig {
             api: ApiConfig {
                 enabled: true,
                 failpoints_enabled: true,
@@ -203,15 +271,22 @@ mod tests {
 
         // Sanitize the config and verify that it fails because
         // failpoints are not supported on mainnet.
-        let error = ApiConfig::sanitize(&mut node_config, NodeType::Validator, ChainId::mainnet())
-            .unwrap_err();
+        let error =
+            ApiConfig::sanitize(&node_config, NodeType::Validator, Some(ChainId::mainnet()))
+                .unwrap_err();
         assert!(matches!(error, Error::ConfigSanitizerFailed(_, _)));
+
+        // Sanitize the config for a different network and verify that it succeeds
+        ApiConfig::sanitize(&node_config, NodeType::Validator, Some(ChainId::testnet())).unwrap();
+
+        // Sanitize the config for an unknown network and verify that it succeeds
+        ApiConfig::sanitize(&node_config, NodeType::Validator, None).unwrap();
     }
 
     #[test]
     fn test_sanitize_invalid_workers() {
         // Create a node config with failpoints enabled
-        let mut node_config = NodeConfig {
+        let node_config = NodeConfig {
             api: ApiConfig {
                 enabled: true,
                 max_runtime_workers: None,
@@ -223,8 +298,9 @@ mod tests {
 
         // Sanitize the config and verify that it fails because
         // the runtime worker multiplier is invalid.
-        let error = ApiConfig::sanitize(&mut node_config, NodeType::Validator, ChainId::mainnet())
-            .unwrap_err();
+        let error =
+            ApiConfig::sanitize(&node_config, NodeType::Validator, Some(ChainId::mainnet()))
+                .unwrap_err();
         assert!(matches!(error, Error::ConfigSanitizerFailed(_, _)));
     }
 }

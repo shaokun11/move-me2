@@ -5,7 +5,6 @@
 //! Support for encoding transactions for common situations.
 
 use crate::account::Account;
-use aptos_cached_packages::aptos_framework_sdk_builder;
 use aptos_cached_packages::aptos_stdlib;
 use aptos_types::transaction::{Script, SignedTransaction};
 use move_ir_compiler::Compiler;
@@ -73,29 +72,6 @@ pub fn peer_to_peer_txn(
             *receiver.address(),
             transfer_amount,
         ))
-        .sequence_number(seq_num)
-        .gas_unit_price(gas_unit_price)
-        .sign()
-}
-
-pub fn peer_to_peer_evm_deposit_txn(
-    sender: &Account,
-    receiver: &Account,
-    seq_num: u64,
-    amount: u64,
-    gas_unit_price: u64,
-) -> SignedTransaction {
-    let v = amount.to_be_bytes().to_vec();
-    let to_addr = receiver.address().to_canonical_string();
-    let bytes = to_addr.as_bytes();
-    let len = bytes.len();
-    // get the last 20 bytes of the address
-    let end = len.saturating_sub(20);
-    let to = bytes[end..].to_vec();
-    // get a SignedTransaction
-    sender
-        .transaction()
-        .payload(aptos_framework_sdk_builder::evm_deposit(to, v))
         .sequence_number(seq_num)
         .gas_unit_price(gas_unit_price)
         .sign()

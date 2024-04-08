@@ -10,8 +10,8 @@ pub mod nft_metadata_crawler {
     }
 
     diesel::table! {
-        nft_metadata_crawler.parsed_token_uris (token_uri) {
-            token_uri -> Varchar,
+        nft_metadata_crawler.parsed_asset_uris (asset_uri) {
+            asset_uri -> Varchar,
             raw_image_uri -> Nullable<Varchar>,
             raw_animation_uri -> Nullable<Varchar>,
             cdn_json_uri -> Nullable<Varchar>,
@@ -21,8 +21,10 @@ pub mod nft_metadata_crawler {
             image_optimizer_retry_count -> Int4,
             animation_optimizer_retry_count -> Int4,
             inserted_at -> Timestamp,
+            do_not_parse -> Bool,
+            last_transaction_version -> Int8,
         }
     }
 
-    diesel::allow_tables_to_appear_in_same_query!(ledger_infos, parsed_token_uris,);
+    diesel::allow_tables_to_appear_in_same_query!(ledger_infos, parsed_asset_uris,);
 }

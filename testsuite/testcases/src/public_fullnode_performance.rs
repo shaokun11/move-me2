@@ -7,6 +7,7 @@ use crate::{
     NetworkLoadTest,
 };
 use anyhow::Error;
+use aptos_config::config::OverrideNodeConfig;
 use aptos_forge::{
     NetworkContext, NetworkTest, Result, Swarm, SwarmChaos, SwarmCpuStress, SwarmNetEm, Test,
 };
@@ -130,31 +131,35 @@ impl NetworkLoadTest for PFNPerformance {
 
         // Add CPU chaos to the swarm
         if self.add_cpu_chaos {
-            let cpu_chaos = self.create_cpu_chaos(ctx.swarm());
-            ctx.swarm().inject_chaos(SwarmChaos::CpuStress(cpu_chaos))?;
+            let cpu_chaos = self.create_cpu_chaos(ctx.swarm);
+            ctx.runtime
+                .block_on(ctx.swarm.inject_chaos(SwarmChaos::CpuStress(cpu_chaos)))?;
         }
 
         // Add network emulation to the swarm
         if self.add_network_emulation {
-            let network_chaos = self.create_network_emulation_chaos(ctx.swarm());
-            ctx.swarm().inject_chaos(SwarmChaos::NetEm(network_chaos))?;
+            let network_chaos = self.create_network_emulation_chaos(ctx.swarm);
+            ctx.runtime
+                .block_on(ctx.swarm.inject_chaos(SwarmChaos::NetEm(network_chaos)))?;
         }
 
         // Use the PFNs as the load destination
         Ok(LoadDestination::Peers(pfn_peer_ids))
     }
 
-    fn finish(&self, swarm: &mut dyn Swarm) -> Result<()> {
+    fn finish(&self, ctx: &mut NetworkContext) -> Result<()> {
         // Remove CPU chaos from the swarm
         if self.add_cpu_chaos {
-            let cpu_chaos = self.create_cpu_chaos(swarm);
-            swarm.remove_chaos(SwarmChaos::CpuStress(cpu_chaos))?;
+            let cpu_chaos = self.create_cpu_chaos(ctx.swarm);
+            ctx.runtime
+                .block_on(ctx.swarm.remove_chaos(SwarmChaos::CpuStress(cpu_chaos)))?;
         }
 
         // Remove network emulation from the swarm
         if self.add_network_emulation {
-            let network_chaos = self.create_network_emulation_chaos(swarm);
-            swarm.remove_chaos(SwarmChaos::NetEm(network_chaos))?;
+            let network_chaos = self.create_network_emulation_chaos(ctx.swarm);
+            ctx.runtime
+                .block_on(ctx.swarm.remove_chaos(SwarmChaos::NetEm(network_chaos)))?;
         }
 
         Ok(())
@@ -176,10 +181,11 @@ fn create_and_add_pfns(ctx: &mut NetworkContext, num_pfns: u64) -> Result<Vec<Pe
             // Create a config for the PFN. Note: this needs to be done here
             // because the config will generate a unique peer ID for the PFN.
             let pfn_config = swarm.get_default_pfn_node_config();
+            let pfn_override_config = OverrideNodeConfig::new_with_default_base(pfn_config);
 
             // Add the PFN to the swarm
             let peer_id = runtime
-                .block_on(swarm.add_full_node(&pfn_version, pfn_config))
+                .block_on(swarm.add_full_node(&pfn_version, pfn_override_config))
                 .unwrap();
 
             // Verify the PFN was added

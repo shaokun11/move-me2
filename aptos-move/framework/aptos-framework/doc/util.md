@@ -1,5 +1,5 @@
 
-<a name="0x1_util"></a>
+<a id="0x1_util"></a>
 
 # Module `0x1::util`
 
@@ -10,13 +10,16 @@ Utility functions used by the framework modules.
 -  [Function `address_from_bytes`](#0x1_util_address_from_bytes)
 -  [Specification](#@Specification_0)
     -  [Function `from_bytes`](#@Specification_0_from_bytes)
+    -  [High-level Requirements](#high-level-req)
+    -  [Module-level Specification](#module-level-spec)
+    -  [Function `address_from_bytes`](#@Specification_0_address_from_bytes)
 
 
 <pre><code></code></pre>
 
 
 
-<a name="0x1_util_from_bytes"></a>
+<a id="0x1_util_from_bytes"></a>
 
 ## Function `from_bytes`
 
@@ -43,7 +46,7 @@ owned.
 
 </details>
 
-<a name="0x1_util_address_from_bytes"></a>
+<a id="0x1_util_address_from_bytes"></a>
 
 ## Function `address_from_bytes`
 
@@ -67,12 +70,12 @@ owned.
 
 </details>
 
-<a name="@Specification_0"></a>
+<a id="@Specification_0"></a>
 
 ## Specification
 
 
-<a name="@Specification_0_from_bytes"></a>
+<a id="@Specification_0_from_bytes"></a>
 
 ### Function `from_bytes`
 
@@ -83,6 +86,34 @@ owned.
 
 
 
+
+<a id="high-level-req"></a>
+
+### High-level Requirements
+
+<table>
+<tr>
+<th>No.</th><th>Requirement</th><th>Criticality</th><th>Implementation</th><th>Enforcement</th>
+</tr>
+
+<tr>
+<td>1</td>
+<td>The address input bytes should be exactly 32 bytes long.</td>
+<td>Low</td>
+<td>The address_from_bytes function should assert if the length of the input bytes is 32.</td>
+<td>Verified via <a href="#high-level-req-1">address_from_bytes</a>.</td>
+</tr>
+
+</table>
+
+
+
+
+<a id="module-level-spec"></a>
+
+### Module-level Specification
+
+
 <pre><code><b>pragma</b> opaque;
 <b>aborts_if</b> [abstract] <b>false</b>;
 <b>ensures</b> [abstract] result == <a href="util.md#0x1_util_spec_from_bytes">spec_from_bytes</a>&lt;T&gt;(bytes);
@@ -91,7 +122,7 @@ owned.
 
 
 
-<a name="0x1_util_spec_from_bytes"></a>
+<a id="0x1_util_spec_from_bytes"></a>
 
 
 <pre><code><b>fun</b> <a href="util.md#0x1_util_spec_from_bytes">spec_from_bytes</a>&lt;T&gt;(bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): T;
@@ -99,7 +130,24 @@ owned.
 
 
 
-<a name="0x1_evm_util"></a>
+<a id="@Specification_0_address_from_bytes"></a>
+
+### Function `address_from_bytes`
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_util_address_from_bytes">address_from_bytes</a>(bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): <b>address</b>
+</code></pre>
+
+
+
+
+<pre><code>// This enforces <a id="high-level-req-1" href="#high-level-req">high-level requirement 1</a>:
+<b>aborts_if</b> [abstract] len(bytes) != 32;
+</code></pre>
+
+
+
+<a id="0x1_evm_util"></a>
 
 # Module `0x1::evm_util`
 
@@ -123,17 +171,18 @@ owned.
 
 
 <pre><code><b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/hash.md#0x1_aptos_hash">0x1::aptos_hash</a>;
+<b>use</b> <a href="encode.md#0x1_rlp_encode">0x1::rlp_encode</a>;
 <b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">0x1::vector</a>;
 </code></pre>
 
 
 
-<a name="@Constants_0"></a>
+<a id="@Constants_0"></a>
 
 ## Constants
 
 
-<a name="0x1_evm_util_TX_FORMAT"></a>
+<a id="0x1_evm_util_TX_FORMAT"></a>
 
 
 
@@ -142,7 +191,7 @@ owned.
 
 
 
-<a name="0x1_evm_util_U255_MAX"></a>
+<a id="0x1_evm_util_U255_MAX"></a>
 
 
 
@@ -151,7 +200,7 @@ owned.
 
 
 
-<a name="0x1_evm_util_U256_MAX"></a>
+<a id="0x1_evm_util_U256_MAX"></a>
 
 
 
@@ -160,7 +209,7 @@ owned.
 
 
 
-<a name="0x1_evm_util_ZERO_EVM_ADDR"></a>
+<a id="0x1_evm_util_ZERO_EVM_ADDR"></a>
 
 
 
@@ -169,7 +218,7 @@ owned.
 
 
 
-<a name="0x1_evm_util_slice"></a>
+<a id="0x1_evm_util_slice"></a>
 
 ## Function `slice`
 
@@ -206,7 +255,7 @@ owned.
 
 </details>
 
-<a name="0x1_evm_util_to_32bit"></a>
+<a id="0x1_evm_util_to_32bit"></a>
 
 ## Function `to_32bit`
 
@@ -238,7 +287,7 @@ owned.
 
 </details>
 
-<a name="0x1_evm_util_get_contract_address"></a>
+<a id="0x1_evm_util_get_contract_address"></a>
 
 ## Function `get_contract_address`
 
@@ -261,20 +310,8 @@ owned.
         <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(&<b>mut</b> nonce_bytes, ((nonce % 0x100) <b>as</b> u8));
         nonce = nonce / 0x100;
     };
-    <b>if</b>(l == 0) {
-        <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(&<b>mut</b> nonce_bytes, 0x80);
-        l = 1;
-    } <b>else</b> <b>if</b>(l &gt; 1) {
-        <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(&<b>mut</b> nonce_bytes, 0x80 + l);
-        l = l + 1;
-    };
     <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_reverse">vector::reverse</a>(&<b>mut</b> nonce_bytes);
-
-    <b>let</b> salt = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_empty">vector::empty</a>&lt;u8&gt;();
-    <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(&<b>mut</b> salt, l + 0xc0 + 0x15);
-    <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(&<b>mut</b> salt, 0x94);
-    <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> salt, <a href="util.md#0x1_evm_util_slice">slice</a>(addr, 12, 20));
-    <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> salt, nonce_bytes);
+    <b>let</b> salt = encode_bytes_list(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>[<a href="util.md#0x1_evm_util_slice">slice</a>(addr, 12, 20), nonce_bytes]);
     <a href="util.md#0x1_evm_util_to_32bit">to_32bit</a>(<a href="util.md#0x1_evm_util_slice">slice</a>(keccak256(salt), 12, 20))
 }
 </code></pre>
@@ -283,7 +320,7 @@ owned.
 
 </details>
 
-<a name="0x1_evm_util_power"></a>
+<a id="0x1_evm_util_power"></a>
 
 ## Function `power`
 
@@ -315,7 +352,7 @@ owned.
 
 </details>
 
-<a name="0x1_evm_util_to_int256"></a>
+<a id="0x1_evm_util_to_int256"></a>
 
 ## Function `to_int256`
 
@@ -344,7 +381,7 @@ owned.
 
 </details>
 
-<a name="0x1_evm_util_to_u256"></a>
+<a id="0x1_evm_util_to_u256"></a>
 
 ## Function `to_u256`
 
@@ -376,7 +413,7 @@ owned.
 
 </details>
 
-<a name="0x1_evm_util_data_to_u256"></a>
+<a id="0x1_evm_util_data_to_u256"></a>
 
 ## Function `data_to_u256`
 
@@ -415,7 +452,7 @@ owned.
 
 </details>
 
-<a name="0x1_evm_util_u256_to_data"></a>
+<a id="0x1_evm_util_u256_to_data"></a>
 
 ## Function `u256_to_data`
 
@@ -447,7 +484,7 @@ owned.
 
 </details>
 
-<a name="0x1_evm_util_mstore"></a>
+<a id="0x1_evm_util_mstore"></a>
 
 ## Function `mstore`
 
@@ -489,7 +526,7 @@ owned.
 
 </details>
 
-<a name="0x1_evm_util_get_message_hash"></a>
+<a id="0x1_evm_util_get_message_hash"></a>
 
 ## Function `get_message_hash`
 
@@ -524,7 +561,7 @@ owned.
 
 </details>
 
-<a name="0x1_evm_util_u256_to_trimed_data"></a>
+<a id="0x1_evm_util_u256_to_trimed_data"></a>
 
 ## Function `u256_to_trimed_data`
 
@@ -548,7 +585,7 @@ owned.
 
 </details>
 
-<a name="0x1_evm_util_trim"></a>
+<a id="0x1_evm_util_trim"></a>
 
 ## Function `trim`
 
@@ -581,7 +618,7 @@ owned.
 
 </details>
 
-<a name="0x1_evm_util_hex_length"></a>
+<a id="0x1_evm_util_hex_length"></a>
 
 ## Function `hex_length`
 
@@ -613,7 +650,7 @@ owned.
 
 </details>
 
-<a name="0x1_evm_util_encode_data"></a>
+<a id="0x1_evm_util_encode_data"></a>
 
 ## Function `encode_data`
 

@@ -106,10 +106,17 @@ pub struct LatencyBreakdownThreshold {
 
 impl LatencyBreakdownThreshold {
     pub fn new_strict(thresholds: Vec<(LatencyBreakdownSlice, f64)>) -> Self {
+        Self::new_with_breach_pct(thresholds, 0)
+    }
+
+    pub fn new_with_breach_pct(
+        thresholds: Vec<(LatencyBreakdownSlice, f64)>,
+        max_breach_pct: usize,
+    ) -> Self {
         Self {
             thresholds: thresholds
                 .into_iter()
-                .map(|(k, v)| (k, MetricsThreshold::new(v, 0)))
+                .map(|(k, v)| (k, MetricsThreshold::new(v, max_breach_pct)))
                 .collect(),
         }
     }
@@ -213,7 +220,7 @@ impl SuccessCriteriaChecker {
     ) -> anyhow::Result<()> {
         let traffic_name_addition = traffic_name
             .map(|n| format!(" for {}", n))
-            .unwrap_or_else(|| "".to_string());
+            .unwrap_or_default();
         Self::check_throughput(
             success_criteria.min_avg_tps,
             success_criteria.max_expired_tps,

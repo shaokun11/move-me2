@@ -8,7 +8,9 @@ use crate::{
     test_utils::{
         build_empty_tree, build_simple_tree, consensus_runtime, timed_block_on, TreeInserter,
     },
+    util::mock_time_service::SimulatedTimeService,
 };
+use aptos_config::config::QcAggregatorType;
 use aptos_consensus_types::{
     block::{
         block_test_utils::{
@@ -25,8 +27,9 @@ use aptos_crypto::{HashValue, PrivateKey};
 use aptos_types::{
     validator_signer::ValidatorSigner, validator_verifier::random_validator_verifier,
 };
+use futures_channel::mpsc::unbounded;
 use proptest::prelude::*;
-use std::{cmp::min, collections::HashSet};
+use std::{cmp::min, collections::HashSet, sync::Arc};
 
 #[tokio::test]
 async fn test_highest_block_and_quorum_cert() {
@@ -281,7 +284,11 @@ async fn test_insert_vote() {
     let block = inserter
         .insert_block_with_qc(certificate_for_genesis(), &genesis, 1)
         .await;
-    let mut pending_votes = PendingVotes::new();
+    let time_service = Arc::new(SimulatedTimeService::new());
+    let (delayed_qc_tx, _) = unbounded();
+
+    let mut pending_votes =
+        PendingVotes::new(time_service, delayed_qc_tx, QcAggregatorType::NoDelay);
 
     assert!(block_store.get_quorum_cert_for_block(block.id()).is_none());
     for (i, voter) in signers.iter().enumerate().take(10).skip(1) {
@@ -350,7 +357,7 @@ async fn test_illegal_timestamp() {
     let block_store = build_empty_tree();
     let genesis = block_store.ordered_root();
     let block_with_illegal_timestamp = Block::new_proposal(
-        Payload::empty(false),
+        Payload::empty(false, true),
         0,
         // This timestamp is illegal, it is the same as genesis
         genesis.timestamp_usecs(),
@@ -455,7 +462,7 @@ async fn test_need_sync_for_ledger_info() {
             certificate_for_genesis(),
             1,
             round,
-            Payload::empty(false),
+            Payload::empty(false, true),
             vec![],
         );
         gen_test_certificate(
@@ -473,7 +480,7 @@ async fn test_need_sync_for_ledger_info() {
     assert!(block_store.need_sync_for_ledger_info(&ordered_too_far));
 
     let committed_round_too_far =
-        block_store.commit_root().round() + block_store.vote_back_pressure_limit * 2 + 1;
+        block_store.commit_root().round() + 30.max(block_store.vote_back_pressure_limit * 2) + 1;
     let committed_too_far = create_ledger_info(committed_round_too_far);
     assert!(block_store.need_sync_for_ledger_info(&committed_too_far));
 

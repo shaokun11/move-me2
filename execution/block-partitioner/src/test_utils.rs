@@ -80,7 +80,7 @@ pub fn create_signed_p2p_transaction(
     receivers: Vec<&TestAccount>,
 ) -> Vec<AnalyzedTransaction> {
     let mut transactions = Vec::new();
-    for (_, receiver) in receivers.iter().enumerate() {
+    for receiver in receivers.iter() {
         let transaction_payload = TransactionPayload::EntryFunction(EntryFunction::new(
             ModuleId::new(AccountAddress::ONE, Identifier::new("coin").unwrap()),
             Identifier::new("transfer").unwrap(),
@@ -197,7 +197,7 @@ pub fn verify_partitioner_output(
             old_txn_idxs_seen.insert(old_txn_idx);
             old_txn_idxs_by_sender
                 .entry(sender)
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(old_txn_idx);
             let new_txn_idx = start_txn_idx + pos_in_sub_block;
             for loc in txn_with_dep.txn.write_hints().iter() {
@@ -215,6 +215,12 @@ pub fn verify_partitioner_output(
             {
                 for loc in locs.iter() {
                     let key = loc.clone().into_state_key();
+                    let key_str = CryptoHash::hash(&key).to_hex();
+                    println!(
+                        "MATRIX_REPORT - round={}, shard={}, old_tid={}, new_tid={}, wait for key={} from round={}, shard={}, new_tid={}",
+                        round_id, shard_id, old_txn_idx, new_txn_idx, key_str, src_txn_idx.round_id, src_txn_idx.shard_id, src_txn_idx.txn_index
+                    );
+
                     if round_id != num_rounds - 1 {
                         assert_ne!(src_txn_idx.round_id, round_id);
                     }
@@ -241,6 +247,12 @@ pub fn verify_partitioner_output(
             {
                 for loc in locs.iter() {
                     let key = loc.clone().into_state_key();
+                    let key_str = CryptoHash::hash(&key).to_hex();
+                    println!(
+                        "MATRIX_REPORT - round={}, shard={}, old_tid={}, new_tid={}, send key={} to round={}, shard={}, new_tid={}",
+                        round_id, shard_id, old_txn_idx, new_txn_idx, key_str, dst_tid.round_id, dst_tid.shard_id, dst_tid.txn_index
+                    );
+
                     if round_id != num_rounds - 1 {
                         assert_ne!(dst_tid.round_id, round_id);
                     }

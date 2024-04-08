@@ -27,6 +27,8 @@ module std::features {
     use std::signer;
     use std::vector;
 
+    const EINVALID_FEATURE: u64 = 1;
+
     // --------------------------------------------------------------------------------------------
     // Code Publishing
 
@@ -145,6 +147,7 @@ module std::features {
         is_enabled(BLS12_381_STRUCTURES)
     }
 
+
     /// Whether native_public_key_validate aborts when a public key of the wrong length is given
     /// Lifetime: ephemeral
     const ED25519_PUBKEY_VALIDATE_RETURN_FALSE_WRONG_LENGTH: u64 = 14;
@@ -241,15 +244,32 @@ module std::features {
     /// Lifetime: transient
     const SIGNATURE_CHECKER_V2_SCRIPT_FIX: u64 = 29;
 
-    /// Whether the aggregator snapshots feature is enabled.
+    /// Whether the Aggregator V2 API feature is enabled.
+    /// Once enabled, the functions from aggregator_v2.move will be available for use.
     /// Lifetime: transient
-    const AGGREGATOR_SNAPSHOTS: u64 = 30;
+    const AGGREGATOR_V2_API: u64 = 30;
 
-    public fun get_aggregator_snapshots_feature(): u64 { AGGREGATOR_SNAPSHOTS }
+    public fun get_aggregator_v2_api_feature(): u64 { AGGREGATOR_V2_API }
 
-    public fun aggregator_snapshots_enabled(): bool acquires Features {
-        is_enabled(AGGREGATOR_SNAPSHOTS)
+    public fun aggregator_v2_api_enabled(): bool acquires Features {
+        is_enabled(AGGREGATOR_V2_API)
     }
+
+    #[deprecated]
+    public fun get_aggregator_snapshots_feature(): u64 {
+        abort error::invalid_argument(EINVALID_FEATURE)
+    }
+
+    #[deprecated]
+    public fun aggregator_snapshots_enabled(): bool {
+        abort error::invalid_argument(EINVALID_FEATURE)
+    }
+
+    const SAFER_RESOURCE_GROUPS: u64 = 31;
+
+    const SAFER_METADATA: u64 = 32;
+
+    const SINGLE_SENDER_AUTHENTICATOR: u64 = 33;
 
     /// Whether the automatic creation of accounts is enabled for sponsored transactions.
     /// Lifetime: transient
@@ -261,9 +281,143 @@ module std::features {
         is_enabled(SPONSORED_AUTOMATIC_ACCOUNT_CREATION)
     }
 
-    /// Whether the fix to reduce the maximum identifer length is enabled.
+    const FEE_PAYER_ACCOUNT_OPTIONAL: u64 = 35;
+
+    /// Whether the Aggregator V2 delayed fields feature is enabled.
+    /// Once enabled, Aggregator V2 functions become parallel.
     /// Lifetime: transient
+    const AGGREGATOR_V2_DELAYED_FIELDS: u64 = 36;
+
+    /// Whether enable TokenV2 collection creation and Fungible Asset creation
+    /// to create higher throughput concurrent variants.
+    /// Lifetime: transient
+    const CONCURRENT_TOKEN_V2: u64 = 37;
+
+    public fun get_concurrent_token_v2_feature(): u64 { CONCURRENT_TOKEN_V2 }
+
+    public fun concurrent_token_v2_enabled(): bool acquires Features {
+        // concurrent token v2 cannot be used if aggregator v2 api is not enabled.
+        is_enabled(CONCURRENT_TOKEN_V2) && aggregator_v2_api_enabled()
+    }
+
+    #[deprecated]
+    public fun get_concurrent_assets_feature(): u64 {
+        abort error::invalid_argument(EINVALID_FEATURE)
+    }
+
+    #[deprecated]
+    public fun concurrent_assets_enabled(): bool {
+        abort error::invalid_argument(EINVALID_FEATURE)
+    }
+
     const LIMIT_MAX_IDENTIFIER_LENGTH: u64 = 38;
+
+    /// Whether allow changing beneficiaries for operators.
+    /// Lifetime: transient
+    const OPERATOR_BENEFICIARY_CHANGE: u64 = 39;
+
+    public fun get_operator_beneficiary_change_feature(): u64 { OPERATOR_BENEFICIARY_CHANGE }
+
+    public fun operator_beneficiary_change_enabled(): bool acquires Features {
+        is_enabled(OPERATOR_BENEFICIARY_CHANGE)
+    }
+
+    const VM_BINARY_FORMAT_V7: u64 = 40;
+
+    const RESOURCE_GROUPS_SPLIT_IN_VM_CHANGE_SET: u64 = 41;
+
+    /// Whether the operator commission rate change in delegation pool is enabled.
+    /// Lifetime: transient
+    const COMMISSION_CHANGE_DELEGATION_POOL: u64 = 42;
+
+    public fun get_commission_change_delegation_pool_feature(): u64 { COMMISSION_CHANGE_DELEGATION_POOL }
+
+    public fun commission_change_delegation_pool_enabled(): bool acquires Features {
+        is_enabled(COMMISSION_CHANGE_DELEGATION_POOL)
+    }
+
+    /// Whether the generic algebra implementation for BN254 operations are enabled.
+    ///
+    /// Lifetime: transient
+    const BN254_STRUCTURES: u64 = 43;
+
+    public fun get_bn254_strutures_feature(): u64 { BN254_STRUCTURES }
+
+    public fun bn254_structures_enabled(): bool acquires Features {
+        is_enabled(BN254_STRUCTURES)
+    }
+
+    /// Whether keyless accounts are enabled, possibly with the ZK-less verification mode.
+    ///
+    /// Lifetime: transient
+    const KEYLESS_ACCOUNTS: u64 = 46;
+
+    public fun get_keyless_accounts_feature(): u64 { KEYLESS_ACCOUNTS }
+
+    public fun keyless_accounts_enabled(): bool acquires Features {
+        is_enabled(KEYLESS_ACCOUNTS)
+    }
+
+    /// Whether the ZK-less mode of the keyless accounts feature is enabled.
+    ///
+    /// Lifetime: transient
+    const KEYLESS_BUT_ZKLESS_ACCOUNTS: u64 = 47;
+
+    public fun get_keyless_but_zkless_accounts_feature(): u64 { KEYLESS_BUT_ZKLESS_ACCOUNTS }
+
+    public fun keyless_but_zkless_accounts_feature_enabled(): bool acquires Features {
+        is_enabled(KEYLESS_BUT_ZKLESS_ACCOUNTS)
+    }
+
+    /// The JWK consensus feature.
+    ///
+    /// Lifetime: permanent
+    const JWK_CONSENSUS: u64 = 49;
+
+    public fun get_jwk_consensus_feature(): u64 { JWK_CONSENSUS }
+
+    public fun jwk_consensus_enabled(): bool acquires Features {
+        is_enabled(JWK_CONSENSUS)
+    }
+
+    /// Whether enable Fungible Asset creation
+    /// to create higher throughput concurrent variants.
+    /// Lifetime: transient
+    const CONCURRENT_FUNGIBLE_ASSETS: u64 = 50;
+
+    public fun get_concurrent_fungible_assets_feature(): u64 { CONCURRENT_FUNGIBLE_ASSETS }
+
+    public fun concurrent_fungible_assets_enabled(): bool acquires Features {
+        // concurrent fungible assets cannot be used if aggregator v2 api is not enabled.
+        is_enabled(CONCURRENT_FUNGIBLE_ASSETS) && aggregator_v2_api_enabled()
+    }
+
+    /// Whether deploying to objects is enabled.
+    const OBJECT_CODE_DEPLOYMENT: u64 = 52;
+
+    public fun is_object_code_deployment_enabled(): bool acquires Features {
+        is_enabled(OBJECT_CODE_DEPLOYMENT)
+    }
+
+    /// Whether checking the maximum object nesting is enabled.
+    const MAX_OBJECT_NESTING_CHECK: u64 = 53;
+
+    public fun get_max_object_nesting_check_feature(): u64 { MAX_OBJECT_NESTING_CHECK }
+
+    public fun max_object_nesting_check_enabled(): bool acquires Features {
+        is_enabled(MAX_OBJECT_NESTING_CHECK)
+    }
+
+    /// Whether keyless accounts support passkey-based ephemeral signatures.
+    ///
+    /// Lifetime: transient
+    const KEYLESS_ACCOUNTS_WITH_PASSKEYS: u64 = 54;
+
+    public fun get_keyless_accounts_with_passkeys_feature(): u64 { KEYLESS_ACCOUNTS_WITH_PASSKEYS }
+
+    public fun keyless_accounts_with_passkeys_feature_enabled(): bool acquires Features {
+        is_enabled(KEYLESS_ACCOUNTS_WITH_PASSKEYS)
+    }
 
     // ============================================================================================
     // Feature Flag Implementation
@@ -292,8 +446,9 @@ module std::features {
         });
     }
 
+    #[view]
     /// Check whether the feature is enabled.
-    fun is_enabled(feature: u64): bool acquires Features {
+    public fun is_enabled(feature: u64): bool acquires Features {
         exists<Features>(@std) &&
             contains(&borrow_global<Features>(@std).features, feature)
     }

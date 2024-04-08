@@ -1,10 +1,7 @@
 // Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::{
-    move_vm_ext::{AptosMoveResolver, SessionExt, SessionId},
-    natives::aptos_natives_with_builder,
-};
+use crate::move_vm_ext::{warm_vm_cache::WarmVmCache, AptosMoveResolver, SessionExt, SessionId};
 use aptos_framework::natives::{
     aggregator_natives::NativeAggregatorContext,
     code::NativeCodeContext,
@@ -17,10 +14,14 @@ use aptos_gas_algebra::DynamicExpression;
 use aptos_gas_schedule::{MiscGasParameters, NativeGasParameters};
 use aptos_native_interface::SafeNativeBuilder;
 use aptos_table_natives::NativeTableContext;
-use aptos_types::on_chain_config::{FeatureFlag, Features, TimedFeatureFlag, TimedFeatures};
+use aptos_types::{
+    chain_id::ChainId,
+    on_chain_config::{FeatureFlag, Features, TimedFeatureFlag, TimedFeatures},
+};
 use move_binary_format::{
     deserializer::DeserializerConfig,
     errors::VMResult,
+    file_format_common,
     file_format_common::{IDENTIFIER_SIZE_MAX, LEGACY_IDENTIFIER_SIZE_MAX},
 };
 use move_bytecode_verifier::VerifierConfig;
@@ -35,11 +36,21 @@ pub struct MoveVmExt {
     features: Arc<Features>,
 }
 
-pub fn get_max_binary_format_version(features: &Features, gas_feature_version: u64) -> u32 {
-    if features.is_enabled(FeatureFlag::VM_BINARY_FORMAT_V6) && gas_feature_version >= 5 {
-        6
+pub fn get_max_binary_format_version(
+    features: &Features,
+    gas_feature_version_opt: Option<u64>,
+) -> u32 {
+    // For historical reasons, we support still < gas version 5, but if a new caller don't specify
+    // the gas version, we default to 5, which was introduced in late '22.
+    let gas_feature_version = gas_feature_version_opt.unwrap_or(5);
+    if gas_feature_version < 5 {
+        file_format_common::VERSION_5
+    } else if features.is_enabled(FeatureFlag::VM_BINARY_FORMAT_V7) {
+        file_format_common::VERSION_7
+    } else if features.is_enabled(FeatureFlag::VM_BINARY_FORMAT_V6) {
+        file_format_common::VERSION_6
     } else {
-        5
+        file_format_common::VERSION_5
     }
 }
 
@@ -60,6 +71,8 @@ impl MoveVmExt {
         features: Features,
         timed_features: TimedFeatures,
         gas_hook: Option<F>,
+        resolver: &impl AptosMoveResolver,
+        aggregator_v2_type_tagging: bool,
     ) -> VMResult<Self>
     where
         F: Fn(DynamicExpression) + Send + Sync + 'static,
@@ -68,7 +81,7 @@ impl MoveVmExt {
         //       Therefore it depends on a new version of the gas schedule and cannot be allowed if
         //       the gas schedule hasn't been updated yet.
         let max_binary_format_version =
-            get_max_binary_format_version(&features, gas_feature_version);
+            get_max_binary_format_version(&features, Some(gas_feature_version));
 
         let max_identifier_size = get_max_identifier_size(&features);
 
@@ -101,20 +114,25 @@ impl MoveVmExt {
         }
 
         Ok(Self {
-            inner: MoveVM::new_with_config(aptos_natives_with_builder(&mut builder), VMConfig {
-                verifier: verifier_config,
-                deserializer_config: DeserializerConfig::new(
-                    max_binary_format_version,
-                    max_identifier_size,
-                ),
-                paranoid_type_checks: crate::AptosVM::get_paranoid_checks(),
-                enable_invariant_violation_check_in_swap_loc,
-                type_size_limit,
-                max_value_nest_depth: Some(128),
-                type_max_cost,
-                type_base_cost,
-                type_byte_cost,
-            })?,
+            inner: WarmVmCache::get_warm_vm(
+                builder,
+                VMConfig {
+                    verifier: verifier_config,
+                    deserializer_config: DeserializerConfig::new(
+                        max_binary_format_version,
+                        max_identifier_size,
+                    ),
+                    paranoid_type_checks: crate::AptosVM::get_paranoid_checks(),
+                    enable_invariant_violation_check_in_swap_loc,
+                    type_size_limit,
+                    max_value_nest_depth: Some(128),
+                    type_max_cost,
+                    type_base_cost,
+                    type_byte_cost,
+                    aggregator_v2_type_tagging,
+                },
+                resolver,
+            )?,
             chain_id,
             features: Arc::new(features),
         })
@@ -127,6 +145,8 @@ impl MoveVmExt {
         chain_id: u8,
         features: Features,
         timed_features: TimedFeatures,
+        resolver: &impl AptosMoveResolver,
+        aggregator_v2_type_tagging: bool,
     ) -> VMResult<Self> {
         Self::new_impl::<fn(DynamicExpression)>(
             native_gas_params,
@@ -136,6 +156,8 @@ impl MoveVmExt {
             features,
             timed_features,
             None,
+            resolver,
+            aggregator_v2_type_tagging,
         )
     }
 
@@ -147,6 +169,8 @@ impl MoveVmExt {
         features: Features,
         timed_features: TimedFeatures,
         gas_hook: Option<F>,
+        resolver: &impl AptosMoveResolver,
+        aggregator_v2_type_tagging: bool,
     ) -> VMResult<Self>
     where
         F: Fn(DynamicExpression) + Send + Sync + 'static,
@@ -159,6 +183,8 @@ impl MoveVmExt {
             features,
             timed_features,
             gas_hook,
+            resolver,
+            aggregator_v2_type_tagging,
         )
     }
 
@@ -177,7 +203,7 @@ impl MoveVmExt {
         extensions.add(NativeTableContext::new(txn_hash, resolver));
         extensions.add(NativeRistrettoPointContext::new());
         extensions.add(AlgebraContext::new());
-        extensions.add(NativeAggregatorContext::new(txn_hash, resolver));
+        extensions.add(NativeAggregatorContext::new(txn_hash, resolver, resolver));
 
         let script_hash = match session_id {
             SessionId::Txn {
@@ -195,6 +221,7 @@ impl MoveVmExt {
                 sequence_number: _,
                 script_hash,
             } => script_hash,
+            SessionId::ValidatorTxn { script_hash } => script_hash,
             _ => vec![],
         };
 
@@ -216,6 +243,10 @@ impl MoveVmExt {
             resolver,
             self.features.clone(),
         )
+    }
+
+    pub fn get_chain_id(&self) -> ChainId {
+        ChainId::new(self.chain_id)
     }
 }
 

@@ -13,3 +13,4 @@ mod hkdf_test;
 mod multi_ed25519_test;
 mod noise_test;
 mod secp256k1_ecdsa_test;
+mod secp256r1_ecdsa_test;

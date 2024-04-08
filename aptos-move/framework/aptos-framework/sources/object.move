@@ -180,6 +180,11 @@ module aptos_framework::object {
         exists<ObjectCore>(object)
     }
 
+    /// Returns true if there exists an object with resource T.
+    public fun object_exists<T: key>(object: address): bool {
+        exists<ObjectCore>(object) && exists_at<T>(object)
+    }
+
     /// Derives an object address from source material: sha3_256([creator address | seed | 0xFE]).
     public fun create_object_address(source: &address, seed: vector<u8>): address {
         let bytes = bcs::to_bytes(source);
@@ -467,21 +472,22 @@ module aptos_framework::object {
     ) acquires ObjectCore {
         let owner_address = signer::address_of(owner);
         verify_ungated_and_descendant(owner_address, object);
+        transfer_raw_inner(object, to);
+    }
 
+    inline fun transfer_raw_inner(object: address, to: address) acquires ObjectCore {
         let object_core = borrow_global_mut<ObjectCore>(object);
-        if (object_core.owner == to) {
-            return
+        if (object_core.owner != to) {
+            event::emit_event(
+                &mut object_core.transfer_events,
+                TransferEvent {
+                    object,
+                    from: object_core.owner,
+                    to,
+                },
+            );
+            object_core.owner = to;
         };
-
-        event::emit_event(
-            &mut object_core.transfer_events,
-            TransferEvent {
-                object: object,
-                from: object_core.owner,
-                to,
-            },
-        );
-        object_core.owner = to;
     }
 
     /// Transfer the given object to another object. See `transfer` for more information.
@@ -510,12 +516,12 @@ module aptos_framework::object {
         );
 
         let current_address = object.owner;
-
         let count = 0;
         while (owner != current_address) {
-            let count = count + 1;
-            assert!(count < MAXIMUM_OBJECT_NESTING, error::out_of_range(EMAXIMUM_NESTING));
-
+            count = count + 1;
+            if (std::features::max_object_nesting_check_enabled()) {
+                assert!(count < MAXIMUM_OBJECT_NESTING, error::out_of_range(EMAXIMUM_NESTING))
+            };
             // At this point, the first object exists and so the more likely case is that the
             // object's owner is not an object. So we return a more sensible error.
             assert!(
@@ -527,7 +533,6 @@ module aptos_framework::object {
                 object.allow_ungated_transfer,
                 error::permission_denied(ENO_UNGATED_TRANSFERS),
             );
-
             current_address = object.owner;
         };
     }
@@ -537,45 +542,23 @@ module aptos_framework::object {
     /// Original owners can reclaim burnt objects any time in the future by calling unburn.
     public entry fun burn<T: key>(owner: &signer, object: Object<T>) acquires ObjectCore {
         let original_owner = signer::address_of(owner);
-        assert!(owner(object) == original_owner, error::permission_denied(ENOT_OBJECT_OWNER));
+        assert!(is_owner(object, original_owner), error::permission_denied(ENOT_OBJECT_OWNER));
         let object_addr = object.inner;
         move_to(&create_signer(object_addr), TombStone { original_owner });
-        let object = borrow_global_mut<ObjectCore>(object_addr);
-        object.owner = BURN_ADDRESS;
-
-        // Burn should still emit event to make sure ownership is upgrade correctly in indexing.
-        event::emit_event(
-            &mut object.transfer_events,
-            TransferEvent {
-                object: object_addr,
-                from: original_owner,
-                to: BURN_ADDRESS,
-            },
-        );
+        transfer_raw_inner(object_addr, BURN_ADDRESS);
     }
 
     /// Allow origin owners to reclaim any objects they previous burnt.
     public entry fun unburn<T: key>(
         original_owner: &signer,
         object: Object<T>,
-    ) acquires ObjectCore, TombStone {
+    ) acquires TombStone, ObjectCore {
         let object_addr = object.inner;
         assert!(exists<TombStone>(object_addr), error::invalid_argument(EOBJECT_NOT_BURNT));
 
         let TombStone { original_owner: original_owner_addr } = move_from<TombStone>(object_addr);
         assert!(original_owner_addr == signer::address_of(original_owner), error::permission_denied(ENOT_OBJECT_OWNER));
-        let object = borrow_global_mut<ObjectCore>(object_addr);
-        object.owner = original_owner_addr;
-
-        // Unburn reclaims should still emit event to make sure ownership is upgrade correctly in indexing.
-        event::emit_event(
-            &mut object.transfer_events,
-            TransferEvent {
-                object: object_addr,
-                from: BURN_ADDRESS,
-                to: original_owner_addr,
-            },
-        );
+        transfer_raw_inner(object_addr, original_owner_addr);
     }
 
     /// Accessors
@@ -619,8 +602,10 @@ module aptos_framework::object {
 
         let count = 0;
         while (owner != current_address) {
-            let count = count + 1;
-            assert!(count < MAXIMUM_OBJECT_NESTING, error::out_of_range(EMAXIMUM_NESTING));
+            count = count + 1;
+            if (std::features::max_object_nesting_check_enabled()) {
+                assert!(count < MAXIMUM_OBJECT_NESTING, error::out_of_range(EMAXIMUM_NESTING))
+            };
             if (!exists<ObjectCore>(current_address)) {
                 return false
             };
@@ -803,5 +788,111 @@ module aptos_framework::object {
     fun test_unburn_object_not_burnt_should_fail(creator: &signer) acquires ObjectCore, TombStone {
         let (_, hero) = create_hero(creator);
         unburn(creator, hero);
+    }
+
+    #[test_only]
+    fun create_simple_object(creator: &signer, seed: vector<u8>): Object<ObjectCore> {
+        object_from_constructor_ref<ObjectCore>(&create_named_object(creator, seed))
+    }
+
+    #[test(creator = @0x123)]
+    #[expected_failure(abort_code = 131078, location = Self)]
+    fun test_exceeding_maximum_object_nesting_owns_should_fail(creator: &signer) acquires ObjectCore {
+        use std::features;
+        let feature = features::get_max_object_nesting_check_feature();
+        let fx = account::create_signer_for_test(@0x1);
+        features::change_feature_flags(&fx, vector[feature], vector[]);
+
+        let obj1 = create_simple_object(creator, b"1");
+        let obj2 = create_simple_object(creator, b"2");
+        let obj3 = create_simple_object(creator, b"3");
+        let obj4 = create_simple_object(creator, b"4");
+        let obj5 = create_simple_object(creator, b"5");
+        let obj6 = create_simple_object(creator, b"6");
+        let obj7 = create_simple_object(creator, b"7");
+        let obj8 = create_simple_object(creator, b"8");
+        let obj9 = create_simple_object(creator, b"9");
+
+        transfer(creator, obj1, object_address(&obj2));
+        transfer(creator, obj2, object_address(&obj3));
+        transfer(creator, obj3, object_address(&obj4));
+        transfer(creator, obj4, object_address(&obj5));
+        transfer(creator, obj5, object_address(&obj6));
+        transfer(creator, obj6, object_address(&obj7));
+        transfer(creator, obj7, object_address(&obj8));
+        transfer(creator, obj8, object_address(&obj9));
+
+        assert!(owns(obj9, signer::address_of(creator)), 1);
+        assert!(owns(obj8, signer::address_of(creator)), 1);
+        assert!(owns(obj7, signer::address_of(creator)), 1);
+        assert!(owns(obj6, signer::address_of(creator)), 1);
+        assert!(owns(obj5, signer::address_of(creator)), 1);
+        assert!(owns(obj4, signer::address_of(creator)), 1);
+        assert!(owns(obj3, signer::address_of(creator)), 1);
+        assert!(owns(obj2, signer::address_of(creator)), 1);
+
+        // Calling `owns` should fail as the nesting is too deep.
+        assert!(owns(obj1, signer::address_of(creator)), 1);
+    }
+
+    #[test(creator = @0x123)]
+    #[expected_failure(abort_code = 131078, location = Self)]
+    fun test_exceeding_maximum_object_nesting_transfer_should_fail(creator: &signer) acquires ObjectCore {
+        use std::features;
+        let feature = features::get_max_object_nesting_check_feature();
+        let fx = account::create_signer_for_test(@0x1);
+        features::change_feature_flags(&fx, vector[feature], vector[]);
+
+        let obj1 = create_simple_object(creator, b"1");
+        let obj2 = create_simple_object(creator, b"2");
+        let obj3 = create_simple_object(creator, b"3");
+        let obj4 = create_simple_object(creator, b"4");
+        let obj5 = create_simple_object(creator, b"5");
+        let obj6 = create_simple_object(creator, b"6");
+        let obj7 = create_simple_object(creator, b"7");
+        let obj8 = create_simple_object(creator, b"8");
+        let obj9 = create_simple_object(creator, b"9");
+
+        transfer(creator, obj1, object_address(&obj2));
+        transfer(creator, obj2, object_address(&obj3));
+        transfer(creator, obj3, object_address(&obj4));
+        transfer(creator, obj4, object_address(&obj5));
+        transfer(creator, obj5, object_address(&obj6));
+        transfer(creator, obj6, object_address(&obj7));
+        transfer(creator, obj7, object_address(&obj8));
+        transfer(creator, obj8, object_address(&obj9));
+
+        // This should fail as the nesting is too deep.
+        transfer(creator, obj1, @0x1);
+    }
+
+    #[test(creator = @0x123)]
+    #[expected_failure(abort_code = 131078, location = Self)]
+    fun test_cyclic_ownership_transfer_should_fail(creator: &signer) acquires ObjectCore {
+        use std::features;
+        let feature = features::get_max_object_nesting_check_feature();
+        let fx = account::create_signer_for_test(@0x1);
+        features::change_feature_flags(&fx, vector[feature], vector[]);
+
+        let obj1 = create_simple_object(creator, b"1");
+        // This creates a cycle (self-loop) in ownership.
+        transfer(creator, obj1, object_address(&obj1));
+        // This should fails as the ownership is cyclic.
+        transfer(creator, obj1, object_address(&obj1));
+    }
+
+    #[test(creator = @0x123)]
+    #[expected_failure(abort_code = 131078, location = Self)]
+    fun test_cyclic_ownership_owns_should_fail(creator: &signer) acquires ObjectCore {
+        use std::features;
+        let feature = features::get_max_object_nesting_check_feature();
+        let fx = account::create_signer_for_test(@0x1);
+        features::change_feature_flags(&fx, vector[feature], vector[]);
+
+        let obj1 = create_simple_object(creator, b"1");
+        // This creates a cycle (self-loop) in ownership.
+        transfer(creator, obj1, object_address(&obj1));
+        // This should fails as the ownership is cyclic.
+        let _ = owns(obj1, signer::address_of(creator));
     }
 }

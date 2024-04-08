@@ -1,5 +1,5 @@
 
-<a name="@Aptos_Framework_0"></a>
+<a id="@Aptos_Framework_0"></a>
 
 # Aptos Framework
 
@@ -7,7 +7,7 @@
 This is the reference documentation of the Aptos framework.
 
 
-<a name="@Index_1"></a>
+<a id="@Index_1"></a>
 
 ## Index
 
@@ -36,10 +36,14 @@ This is the reference documentation of the Aptos framework.
 -  [`0x1::genesis`](genesis.md#0x1_genesis)
 -  [`0x1::governance_proposal`](governance_proposal.md#0x1_governance_proposal)
 -  [`0x1::guid`](guid.md#0x1_guid)
+-  [`0x1::jwks`](jwks.md#0x1_jwks)
+-  [`0x1::keyless_account`](keyless_account.md#0x1_keyless_account)
 -  [`0x1::managed_coin`](managed_coin.md#0x1_managed_coin)
 -  [`0x1::multisig_account`](multisig_account.md#0x1_multisig_account)
 -  [`0x1::object`](object.md#0x1_object)
+-  [`0x1::object_code_deployment`](object_code_deployment.md#0x1_object_code_deployment)
 -  [`0x1::optional_aggregator`](optional_aggregator.md#0x1_optional_aggregator)
+-  [`0x1::precompile`](precompile.md#0x1_precompile)
 -  [`0x1::primary_fungible_store`](primary_fungible_store.md#0x1_primary_fungible_store)
 -  [`0x1::reconfiguration`](reconfiguration.md#0x1_reconfiguration)
 -  [`0x1::resource_account`](resource_account.md#0x1_resource_account)

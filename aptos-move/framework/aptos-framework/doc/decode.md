@@ -1,5 +1,5 @@
 
-<a name="0x1_rlp_decode"></a>
+<a id="0x1_rlp_decode"></a>
 
 # Module `0x1::rlp_decode`
 
@@ -19,12 +19,12 @@
 
 
 
-<a name="@Constants_0"></a>
+<a id="@Constants_0"></a>
 
 ## Constants
 
 
-<a name="0x1_rlp_decode_ERR_EMPTY"></a>
+<a id="0x1_rlp_decode_ERR_EMPTY"></a>
 
 
 
@@ -33,7 +33,7 @@
 
 
 
-<a name="0x1_rlp_decode_ERR_INVALID"></a>
+<a id="0x1_rlp_decode_ERR_INVALID"></a>
 
 
 
@@ -42,7 +42,7 @@
 
 
 
-<a name="0x1_rlp_decode_ERR_NOT_BYTES"></a>
+<a id="0x1_rlp_decode_ERR_NOT_BYTES"></a>
 
 
 
@@ -51,7 +51,7 @@
 
 
 
-<a name="0x1_rlp_decode_ERR_NOT_BYTES_LIST"></a>
+<a id="0x1_rlp_decode_ERR_NOT_BYTES_LIST"></a>
 
 
 
@@ -60,7 +60,7 @@
 
 
 
-<a name="0x1_rlp_decode_ERR_NOT_LIST"></a>
+<a id="0x1_rlp_decode_ERR_NOT_LIST"></a>
 
 
 
@@ -69,7 +69,7 @@
 
 
 
-<a name="0x1_rlp_decode_TYPE_BYTES"></a>
+<a id="0x1_rlp_decode_TYPE_BYTES"></a>
 
 
 
@@ -78,7 +78,7 @@
 
 
 
-<a name="0x1_rlp_decode_TYPE_LIST"></a>
+<a id="0x1_rlp_decode_TYPE_LIST"></a>
 
 
 
@@ -87,7 +87,7 @@
 
 
 
-<a name="0x1_rlp_decode_decode_bytes"></a>
+<a id="0x1_rlp_decode_decode_bytes"></a>
 
 ## Function `decode_bytes`
 
@@ -123,7 +123,7 @@
 
 </details>
 
-<a name="0x1_rlp_decode_append_u8a_to"></a>
+<a id="0x1_rlp_decode_append_u8a_to"></a>
 
 ## Function `append_u8a_to`
 
@@ -152,7 +152,7 @@
 
 </details>
 
-<a name="0x1_rlp_decode_decode_bytes_list"></a>
+<a id="0x1_rlp_decode_decode_bytes_list"></a>
 
 ## Function `decode_bytes_list`
 
@@ -196,7 +196,7 @@
 
 </details>
 
-<a name="0x1_rlp_decode_decode_length"></a>
+<a id="0x1_rlp_decode_decode_length"></a>
 
 ## Function `decode_length`
 
@@ -251,7 +251,7 @@
 
 </details>
 
-<a name="0x1_rlp_decode_slice"></a>
+<a id="0x1_rlp_decode_slice"></a>
 
 ## Function `slice`
 
@@ -282,7 +282,7 @@
 
 </details>
 
-<a name="0x1_rlp_decode_to_integer"></a>
+<a id="0x1_rlp_decode_to_integer"></a>
 
 ## Function `to_integer`
 
@@ -317,7 +317,7 @@
 
 </details>
 
-<a name="0x1_rlp_decode_to_integer_within"></a>
+<a id="0x1_rlp_decode_to_integer_within"></a>
 
 ## Function `to_integer_within`
 

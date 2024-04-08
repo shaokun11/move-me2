@@ -8,7 +8,7 @@ use aptos_consensus_types::{
     common::{Author, Payload, Round},
 };
 use aptos_types::validator_signer::ValidatorSigner;
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 struct MockProposerElection {
     proposers: HashMap<Round, Author>,
@@ -37,7 +37,7 @@ fn test_is_valid_proposal() {
     let quorum_cert = certificate_for_genesis();
 
     let good_proposal = Block::new_proposal(
-        Payload::empty(false),
+        Payload::empty(false, true),
         1,
         1,
         quorum_cert.clone(),
@@ -46,7 +46,7 @@ fn test_is_valid_proposal() {
     )
     .unwrap();
     let bad_author_proposal = Block::new_proposal(
-        Payload::empty(false),
+        Payload::empty(false, true),
         1,
         1,
         quorum_cert.clone(),
@@ -55,7 +55,7 @@ fn test_is_valid_proposal() {
     )
     .unwrap();
     let bad_duplicate_proposal = Block::new_proposal(
-        Payload::empty(false),
+        Payload::empty(false, true),
         1,
         2,
         quorum_cert.clone(),
@@ -64,7 +64,7 @@ fn test_is_valid_proposal() {
     )
     .unwrap();
     let next_good_proposal = Block::new_proposal(
-        Payload::empty(false),
+        Payload::empty(false, true),
         2,
         3,
         quorum_cert.clone(),
@@ -73,7 +73,7 @@ fn test_is_valid_proposal() {
     )
     .unwrap();
     let next_bad_duplicate_proposal = Block::new_proposal(
-        Payload::empty(false),
+        Payload::empty(false, true),
         2,
         4,
         quorum_cert,
@@ -83,7 +83,7 @@ fn test_is_valid_proposal() {
     .unwrap();
 
     let pe =
-        UnequivocalProposerElection::new(Box::new(MockProposerElection::new(HashMap::from([
+        UnequivocalProposerElection::new(Arc::new(MockProposerElection::new(HashMap::from([
             (1, chosen_author),
             (2, chosen_author),
         ]))));

@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #![allow(clippy::unit_arg)]
+#![allow(clippy::arc_with_non_send_sync)]
 
 use crate::language_storage::ModuleId;
 use anyhow::Result;
@@ -207,14 +208,16 @@ impl VMStatus {
                 status_code:
                     StatusCode::EXECUTION_LIMIT_REACHED
                     | StatusCode::IO_LIMIT_REACHED
-                    | StatusCode::STORAGE_LIMIT_REACHED,
+                    | StatusCode::STORAGE_LIMIT_REACHED
+                    | StatusCode::TOO_MANY_DELAYED_FIELDS,
                 ..
             }
             | VMStatus::Error {
                 status_code:
                     StatusCode::EXECUTION_LIMIT_REACHED
                     | StatusCode::IO_LIMIT_REACHED
-                    | StatusCode::STORAGE_LIMIT_REACHED,
+                    | StatusCode::STORAGE_LIMIT_REACHED
+                    | StatusCode::TOO_MANY_DELAYED_FIELDS,
                 ..
             } => Ok(KeptVMStatus::MiscellaneousError),
 
@@ -699,13 +702,15 @@ pub enum StatusCode {
     MAX_FUNCTION_DEFINITIONS_REACHED = 1119,
     MAX_STRUCT_DEFINITIONS_REACHED = 1120,
     MAX_FIELD_DEFINITIONS_REACHED = 1121,
-    // Reserved error code for future use
     TOO_MANY_BACK_EDGES = 1122,
     EVENT_METADATA_VALIDATION_ERROR = 1123,
-    RESERVED_VERIFICATION_ERROR_2 = 1124,
-    RESERVED_VERIFICATION_ERROR_3 = 1125,
-    RESERVED_VERIFICATION_ERROR_4 = 1126,
-    RESERVED_VERIFICATION_ERROR_5 = 1127,
+    DEPENDENCY_LIMIT_REACHED = 1124,
+    // Reserved error code for future use
+    RESERVED_VERIFICATION_ERROR_1 = 1125,
+    RESERVED_VERIFICATION_ERROR_2 = 1126,
+    RESERVED_VERIFICATION_ERROR_3 = 1127,
+    RESERVED_VERIFICATION_ERROR_4 = 1128,
+    RESERVED_VERIFICATION_ERROR_5 = 1129,
 
     // These are errors that the VM might raise if a violation of internal
     // invariants takes place.
@@ -728,15 +733,25 @@ pub enum StatusCode {
     // Failed to resolve type due to linking being broken after verification
     TYPE_RESOLUTION_FAILURE = 2021,
     DUPLICATE_NATIVE_FUNCTION = 2022,
+    // code invariant error while handling delayed materialization, should never happen,
+    // always indicates a code bug.
+    // Delayed materialization includes handling of Resource Groups and Delayed Fields.
+    // Unlike regular CODE_INVARIANT_ERROR, this is a signal to BlockSTM,
+    // which it might do something about (i.e. fallback to sequential execution)
+    DELAYED_MATERIALIZATION_CODE_INVARIANT_ERROR = 2023,
+    // Speculative error means that there was an issue because of speculative
+    // reads provided to the transaction, and the transaction needs to
+    // be re-executed.
+    // Should never be committed on chain
+    SPECULATIVE_EXECUTION_ABORT_ERROR = 2024,
+
     // Reserved error code for future use
-    RESERVED_INVARIANT_VIOLATION_ERROR_1 = 2023,
-    RESERVED_INVARIANT_VIOLATION_ERROR_2 = 2024,
     RESERVED_INVARIANT_VIOLATION_ERROR_3 = 2025,
     RESERVED_INVARIANT_VIOLATION_ERROR_4 = 2026,
     RESERVED_INVARIANT_VIOLATION_ERROR_5 = 2027,
 
     // Errors that can arise from binary decoding (deserialization)
-    // Deserializtion Errors: 3000-3999
+    // Deserialization Errors: 3000-3999
     UNKNOWN_BINARY_ERROR = 3000,
     MALFORMED = 3001,
     BAD_MAGIC = 3002,
@@ -793,12 +808,19 @@ pub enum StatusCode {
     IO_LIMIT_REACHED = 4031,
     STORAGE_LIMIT_REACHED = 4032,
     TYPE_TAG_LIMIT_EXCEEDED = 4033,
-    // Reserved error code for future use
-    RESERVED_RUNTIME_ERROR_2 = 4034,
-    RESERVED_RUNTIME_ERROR_3 = 4035,
-    RESERVED_RUNTIME_ERROR_4 = 4036,
-    RESERVED_RUNTIME_ERROR_5 = 4037,
-    EVM_CONTRACT_ERROR = 5001,
+    // A resource was accessed in a way which is not permitted by the active access control
+    // specifier.
+    ACCESS_DENIED = 4034,
+    // The stack of access control specifier has overflowed.
+    ACCESS_STACK_LIMIT_EXCEEDED = 4035,
+    // We tried to create resource with more than currently allowed number of DelayedFields
+    TOO_MANY_DELAYED_FIELDS = 4036,
+
+    // Reserved error code for future use. Always keep this buffer of well-defined new codes.
+    RESERVED_RUNTIME_ERROR_1 = 4037,
+    RESERVED_RUNTIME_ERROR_2 = 4038,
+    RESERVED_RUNTIME_ERROR_3 = 4039,
+    RESERVED_RUNTIME_ERROR_4 = 4040,
 
     // A reserved status to represent an unknown vm status.
     // this is std::u64::MAX, but we can't pattern match on that, so put the hardcoded value in

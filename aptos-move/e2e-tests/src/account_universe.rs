@@ -2,6 +2,8 @@
 // Parts of the project are originally copyright © Meta Platforms, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
+#![allow(clippy::arc_with_non_send_sync)]
+
 //! A model to test properties of common Aptos transactions.
 //!
 //! The structs and functions in this module together form a simplified *model* of how common Aptos
@@ -202,10 +204,6 @@ impl AccountCurrent {
         *gas_costs::PEER_TO_PEER
     }
 
-    pub fn peer_to_peer_evm_deposit_gas_cost(&self) -> u64 {
-        *gas_costs::PEER_TO_PEER_EVM_DEPOSIT
-    }
-
     /// Returns the gas cost of a peer-to-peer transaction with an insufficient balance.
     pub fn peer_to_peer_too_low_gas_cost(&self) -> u64 {
         *gas_costs::PEER_TO_PEER_TOO_LOW
@@ -382,8 +380,10 @@ pub fn run_and_assert_universe(
     for (idx, (output, expected)) in outputs.iter().zip(&expected_values).enumerate() {
         prop_assert!(
             transaction_status_eq(output.status(), &expected.0),
-            "unexpected status for transaction {}",
-            idx
+            "unexpected status for transaction {}, {:?} != {:?}",
+            idx,
+            output.status(),
+            &expected.0
         );
         executor.apply_write_set(output.write_set());
     }

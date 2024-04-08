@@ -23,6 +23,11 @@ use move_vm_types::{
 use smallvec::{smallvec, SmallVec};
 use std::{collections::VecDeque, fmt::Write, ops::Deref};
 
+// Error codes from Move contracts:
+const EARGS_MISMATCH: u64 = 1;
+const EINVALID_FORMAT: u64 = 2;
+const EUNABLE_TO_FORMAT_DELAYED_FIELD: u64 = 3;
+
 struct FormatContext<'a, 'b, 'c, 'd, 'e> {
     context: &'d mut SafeNativeContext<'a, 'b, 'c, 'e>,
     should_charge_gas: bool,
@@ -167,7 +172,7 @@ fn native_format_impl(
             suffix = "u256";
         },
         MoveTypeLayout::Address => {
-            let addr = val.value_as::<move_core_types::account_address::AccountAddress>()?;
+            let addr = val.value_as::<AccountAddress>()?;
             let str = if context.canonicalize {
                 addr.to_canonical_string()
             } else {
@@ -185,9 +190,9 @@ fn native_format_impl(
                     .unpack()?
                     .next()
                     .unwrap()
-                    .value_as::<move_core_types::account_address::AccountAddress>()?
+                    .value_as::<AccountAddress>()?
             } else {
-                val.value_as::<move_core_types::account_address::AccountAddress>()?
+                val.value_as::<AccountAddress>()?
             };
 
             let str = if context.canonicalize {
@@ -303,6 +308,14 @@ fn native_format_impl(
             )?;
             out.push('}');
         },
+
+        // This is unreachable because we check layout at the start. Still, return
+        // an error to be safe.
+        MoveTypeLayout::Native(..) => {
+            return Err(SafeNativeError::Abort {
+                abort_code: EUNABLE_TO_FORMAT_DELAYED_FIELD,
+            })
+        },
     };
     if context.include_int_type {
         write!(out, "{}", suffix).unwrap();
@@ -317,6 +330,16 @@ pub(crate) fn native_format_debug(
     ty: &Type,
     v: Value,
 ) -> SafeNativeResult<String> {
+    // TODO[agg_v2](cleanup): Shift this to annotated layout computation.
+    let (_, has_identifier_mappings) = context
+        .deref()
+        .type_to_type_layout_with_identifier_mappings(ty)?;
+    if has_identifier_mappings {
+        return Err(SafeNativeError::Abort {
+            abort_code: EUNABLE_TO_FORMAT_DELAYED_FIELD,
+        });
+    }
+
     let layout = context.deref().type_to_fully_annotated_layout(ty)?;
     let mut format_context = FormatContext {
         context,
@@ -339,6 +362,17 @@ fn native_format(
     mut arguments: VecDeque<Value>,
 ) -> SafeNativeResult<SmallVec<[Value; 1]>> {
     debug_assert!(ty_args.len() == 1);
+
+    // TODO[agg_v2](cleanup): Shift this to annotated layout computation.
+    let (_, has_identifier_mappings) = context
+        .deref()
+        .type_to_type_layout_with_identifier_mappings(&ty_args[0])?;
+    if has_identifier_mappings {
+        return Err(SafeNativeError::Abort {
+            abort_code: EUNABLE_TO_FORMAT_DELAYED_FIELD,
+        });
+    }
+
     let ty = context
         .deref()
         .type_to_fully_annotated_layout(&ty_args[0])?;
@@ -372,9 +406,6 @@ fn native_format_list(
     debug_assert!(ty_args.len() == 1);
     let mut list_ty = &ty_args[0];
 
-    let arg_mismatch = 1;
-    let invalid_fmt = 2;
-
     let val = safely_pop_arg!(arguments, Reference);
     let mut val = val
         .read_ref()
@@ -384,7 +415,7 @@ fn native_format_list(
     let fmt_ref2 = fmt_ref.as_bytes_ref();
     // Could use unsafe here, but it's forbidden in this crate.
     let fmt = std::str::from_utf8(fmt_ref2.as_slice()).map_err(|_| SafeNativeError::Abort {
-        abort_code: invalid_fmt,
+        abort_code: EINVALID_FORMAT,
     })?;
 
     context.charge(STRING_UTILS_PER_BYTE * NumBytes::new(fmt.len() as u64))?;
@@ -399,13 +430,13 @@ fn native_format_list(
                 && struct_tag.name.as_str() == name)
             {
                 return Err(SafeNativeError::Abort {
-                    abort_code: arg_mismatch,
+                    abort_code: EARGS_MISMATCH,
                 });
             }
             Ok(())
         } else {
             Err(SafeNativeError::Abort {
-                abort_code: arg_mismatch,
+                abort_code: EARGS_MISMATCH,
             })
         }
     };
@@ -420,7 +451,7 @@ fn native_format_list(
                 match_list_ty(context, list_ty, "Cons")?;
 
                 // We know that the type is a list, so we can safely unwrap
-                let ty_args = if let Type::StructInstantiation(_, ty_args) = list_ty {
+                let ty_args = if let Type::StructInstantiation { ty_args, .. } = list_ty {
                     ty_args
                 } else {
                     unreachable!()
@@ -430,7 +461,17 @@ fn native_format_list(
                 val = it.next().unwrap();
                 list_ty = &ty_args[1];
 
+                // TODO[agg_v2](cleanup): Shift this to annotated layout computation.
+                let (_, has_identifier_mappings) = context
+                    .deref()
+                    .type_to_type_layout_with_identifier_mappings(&ty_args[0])?;
+                if has_identifier_mappings {
+                    return Err(SafeNativeError::Abort {
+                        abort_code: EUNABLE_TO_FORMAT_DELAYED_FIELD,
+                    });
+                }
                 let ty = context.type_to_fully_annotated_layout(&ty_args[0])?;
+
                 let mut format_context = FormatContext {
                     context,
                     should_charge_gas: true,
@@ -445,14 +486,14 @@ fn native_format_list(
                 continue;
             } else if c != '{' {
                 return Err(SafeNativeError::Abort {
-                    abort_code: invalid_fmt,
+                    abort_code: EINVALID_FORMAT,
                 });
             }
         } else if in_braces == -1 {
             in_braces = 0;
             if c != '}' {
                 return Err(SafeNativeError::Abort {
-                    abort_code: invalid_fmt,
+                    abort_code: EINVALID_FORMAT,
                 });
             }
         } else if c == '{' {
@@ -466,7 +507,7 @@ fn native_format_list(
     }
     if in_braces != 0 {
         return Err(SafeNativeError::Abort {
-            abort_code: invalid_fmt,
+            abort_code: EINVALID_FORMAT,
         });
     }
     match_list_ty(context, list_ty, "NIL")?;

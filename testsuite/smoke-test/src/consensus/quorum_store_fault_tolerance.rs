@@ -17,7 +17,6 @@ use aptos_types::{
     on_chain_config::{ConsensusConfigV1, OnChainConsensusConfig},
     PeerId,
 };
-use move_core_types::language_storage::CORE_CODE_ADDRESS;
 use std::{fs, sync::Arc, time::Duration};
 
 const MAX_WAIT_SECS: u64 = 60;
@@ -59,20 +58,6 @@ async fn generate_traffic_and_assert_committed(
     // assert some much smaller number than expected, so it doesn't fail under contention
     assert!(txn_stat.submitted > 30);
     assert!(txn_stat.committed > 30);
-}
-
-async fn get_current_consensus_config(rest_client: &Client) -> OnChainConsensusConfig {
-    bcs::from_bytes(
-        &rest_client
-            .get_account_resource_bcs::<Vec<u8>>(
-                CORE_CODE_ADDRESS,
-                "0x1::consensus_config::ConsensusConfig",
-            )
-            .await
-            .unwrap()
-            .into_inner(),
-    )
-    .unwrap()
 }
 
 async fn update_consensus_config(
@@ -128,10 +113,12 @@ async fn test_onchain_config_quorum_store_enabled_and_disabled() {
         );
         let rest_client = swarm.validators().next().unwrap().rest_client();
 
-        let current_consensus_config = get_current_consensus_config(&rest_client).await;
+        let current_consensus_config =
+            crate::utils::get_current_consensus_config(&rest_client).await;
         let inner = match current_consensus_config {
             OnChainConsensusConfig::V1(inner) => inner,
             OnChainConsensusConfig::V2(_) => panic!("Unexpected V2 config"),
+            _ => unimplemented!(),
         };
         // Change to V2
         let new_consensus_config = OnChainConsensusConfig::V2(ConsensusConfigV1 { ..inner });
@@ -149,10 +136,12 @@ async fn test_onchain_config_quorum_store_enabled_and_disabled() {
             .await
             .unwrap();
 
-        let current_consensus_config = get_current_consensus_config(&rest_client).await;
+        let current_consensus_config =
+            crate::utils::get_current_consensus_config(&rest_client).await;
         let inner = match current_consensus_config {
             OnChainConsensusConfig::V1(_) => panic!("Unexpected V1 config"),
             OnChainConsensusConfig::V2(inner) => inner,
+            _ => unimplemented!(),
         };
 
         // Disaster rollback to V1
@@ -268,10 +257,13 @@ async fn test_batch_id_on_restart(do_wipe_db: bool) {
     info!("stop node 0");
     swarm.validator_mut(node_to_restart).unwrap().stop();
     if do_wipe_db {
-        info!("wipe only quorum store db");
         let node0_config = swarm.validator(node_to_restart).unwrap().config().clone();
         let db_dir = node0_config.storage.dir();
         let quorum_store_db_dir = db_dir.join(QUORUM_STORE_DB_NAME);
+        info!(
+            "wipe only quorum store db: {}",
+            quorum_store_db_dir.display()
+        );
         fs::remove_dir_all(quorum_store_db_dir).unwrap();
     } else {
         info!("don't do anything to quorum store db");

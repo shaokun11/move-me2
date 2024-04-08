@@ -5,11 +5,10 @@
 use crate::{
     transaction::{
         DecodedTableData, DeleteModule, DeleteResource, DeleteTableItem, DeletedTableData,
-        ModuleBundlePayload, MultisigPayload, MultisigTransactionPayload,
-        StateCheckpointTransaction, UserTransactionRequestInner, WriteModule, WriteResource,
-        WriteTableItem,
+        MultisigPayload, MultisigTransactionPayload, StateCheckpointTransaction,
+        UserTransactionRequestInner, WriteModule, WriteResource, WriteTableItem,
     },
-    view::ViewRequest,
+    view::{ViewFunction, ViewRequest},
     Bytecode, DirectWriteSet, EntryFunctionId, EntryFunctionPayload, Event, HexEncodedBytes,
     MoveFunction, MoveModuleBytecode, MoveResource, MoveScriptBytecode, MoveType, MoveValue,
     PendingTransaction, ResourceGroup, ScriptPayload, ScriptWriteSet, SubmitTransactionRequest,
@@ -18,6 +17,7 @@ use crate::{
 };
 use anyhow::{bail, ensure, format_err, Context as AnyhowContext, Result};
 use aptos_crypto::{hash::CryptoHash, HashValue};
+use aptos_db_indexer::table_info_reader::TableInfoReader;
 use aptos_storage_interface::DbReader;
 use aptos_types::{
     access_path::{AccessPath, Path},
@@ -25,22 +25,21 @@ use aptos_types::{
     contract_event::{ContractEvent, EventWithVersion},
     state_store::{
         state_key::{StateKey, StateKeyInner},
-        table::TableHandle,
+        table::{TableHandle, TableInfo},
     },
     transaction::{
-        EntryFunction, ExecutionStatus, ModuleBundle, Multisig, RawTransaction, Script,
-        SignedTransaction,
+        EntryFunction, ExecutionStatus, Multisig, RawTransaction, Script, SignedTransaction,
     },
     vm_status::AbortLocation,
     write_set::WriteOp,
 };
-use aptos_vm::move_vm_ext::MoveResolverExt;
 use move_binary_format::file_format::FunctionHandleIndex;
 use move_core_types::{
     account_address::AccountAddress,
     ident_str,
     identifier::{IdentStr, Identifier},
     language_storage::{ModuleId, StructTag, TypeTag},
+    resolver::ModuleResolver,
     value::{MoveStructLayout, MoveTypeLayout},
 };
 use move_resource_viewer::MoveValueAnnotator;
@@ -62,13 +61,19 @@ const OBJECT_STRUCT: &IdentStr = ident_str!("Object");
 pub struct MoveConverter<'a, R: ?Sized> {
     inner: MoveValueAnnotator<'a, R>,
     db: Arc<dyn DbReader>,
+    table_info_reader: Option<Arc<dyn TableInfoReader>>,
 }
 
-impl<'a, R: MoveResolverExt + ?Sized> MoveConverter<'a, R> {
-    pub fn new(inner: &'a R, db: Arc<dyn DbReader>) -> Self {
+impl<'a, R: ModuleResolver + ?Sized> MoveConverter<'a, R> {
+    pub fn new(
+        inner: &'a R,
+        db: Arc<dyn DbReader>,
+        table_info_reader: Option<Arc<dyn TableInfoReader>>,
+    ) -> Self {
         Self {
             inner: MoveValueAnnotator::new(inner),
             db,
+            table_info_reader,
         }
     }
 
@@ -145,12 +150,14 @@ impl<'a, R: MoveResolverExt + ?Sized> MoveConverter<'a, R> {
                 (info, payload, events).into()
             },
             BlockMetadata(txn) => (&txn, info, events).into(),
+            BlockMetadataExt(txn) => (&txn, info, events).into(),
             StateCheckpoint(_) => {
                 Transaction::StateCheckpointTransaction(StateCheckpointTransaction {
                     info,
                     timestamp: timestamp.into(),
                 })
             },
+            ValidatorTransaction(_txn) => (info, events, timestamp).into(),
         })
     }
 
@@ -260,13 +267,8 @@ impl<'a, R: MoveResolverExt + ?Sized> MoveConverter<'a, R> {
                 })
             },
 
-            // Deprecated. Will be removed in the future.
-            ModuleBundle(modules) => TransactionPayload::ModuleBundlePayload(ModuleBundlePayload {
-                modules: modules
-                    .into_iter()
-                    .map(|module| MoveModuleBytecode::from(module).try_parse_abi())
-                    .collect::<Result<Vec<_>>>()?,
-            }),
+            // Deprecated.
+            ModuleBundle(_) => bail!("Module bundle payload has been removed"),
         };
         Ok(ret)
     }
@@ -333,7 +335,7 @@ impl<'a, R: MoveResolverExt + ?Sized> MoveConverter<'a, R> {
         access_path: AccessPath,
         op: WriteOp,
     ) -> Result<Vec<WriteSetChange>> {
-        let ret = match op.into_bytes() {
+        let ret = match op.bytes() {
             None => match access_path.get_path() {
                 Path::Code(module_id) => vec![WriteSetChange::DeleteModule(DeleteModule {
                     address: access_path.address.into(),
@@ -355,15 +357,15 @@ impl<'a, R: MoveResolverExt + ?Sized> MoveConverter<'a, R> {
                 Path::Code(_) => vec![WriteSetChange::WriteModule(WriteModule {
                     address: access_path.address.into(),
                     state_key_hash,
-                    data: MoveModuleBytecode::new(bytes).try_parse_abi()?,
+                    data: MoveModuleBytecode::new(bytes.to_vec()).try_parse_abi()?,
                 })],
                 Path::Resource(typ) => vec![WriteSetChange::WriteResource(WriteResource {
                     address: access_path.address.into(),
                     state_key_hash,
-                    data: self.try_into_resource(&typ, &bytes)?,
+                    data: self.try_into_resource(&typ, bytes)?,
                 })],
                 Path::ResourceGroup(_) => self
-                    .try_into_resources_from_resource_group(&bytes)?
+                    .try_into_resources_from_resource_group(bytes)?
                     .into_iter()
                     .map(|data| {
                         WriteSetChange::WriteResource(WriteResource {
@@ -387,7 +389,7 @@ impl<'a, R: MoveResolverExt + ?Sized> MoveConverter<'a, R> {
     ) -> Result<WriteSetChange> {
         let hex_handle = handle.0.to_vec().into();
         let key: HexEncodedBytes = key.into();
-        let ret = match op.into_bytes() {
+        let ret = match op.bytes() {
             None => {
                 let data = self.try_delete_table_item_into_deleted_table_data(handle, &key.0)?;
 
@@ -400,13 +402,13 @@ impl<'a, R: MoveResolverExt + ?Sized> MoveConverter<'a, R> {
             },
             Some(bytes) => {
                 let data =
-                    self.try_write_table_item_into_decoded_table_data(handle, &key.0, &bytes)?;
+                    self.try_write_table_item_into_decoded_table_data(handle, &key.0, bytes)?;
 
                 WriteSetChange::WriteTableItem(WriteTableItem {
                     state_key_hash,
                     handle: hex_handle,
                     key,
-                    value: bytes.into(),
+                    value: bytes.to_vec().into(),
                     data,
                 })
             },
@@ -420,12 +422,9 @@ impl<'a, R: MoveResolverExt + ?Sized> MoveConverter<'a, R> {
         key: &[u8],
         value: &[u8],
     ) -> Result<Option<DecodedTableData>> {
-        if !self.db.indexer_enabled() {
-            return Ok(None);
-        }
-        let table_info = match self.db.get_table_info(handle) {
-            Ok(ti) => ti,
-            Err(_) => {
+        let table_info = match self.get_table_info(handle)? {
+            Some(ti) => ti,
+            None => {
                 aptos_logger::warn!(
                     "Table info not found for handle {:?}, can't decode table item. OK for simulation",
                     handle
@@ -433,6 +432,7 @@ impl<'a, R: MoveResolverExt + ?Sized> MoveConverter<'a, R> {
                 return Ok(None); // if table item not found return None anyway to avoid crash
             },
         };
+
         let key = self.try_into_move_value(&table_info.key_type, key)?;
         let value = self.try_into_move_value(&table_info.value_type, value)?;
 
@@ -449,12 +449,9 @@ impl<'a, R: MoveResolverExt + ?Sized> MoveConverter<'a, R> {
         handle: TableHandle,
         key: &[u8],
     ) -> Result<Option<DeletedTableData>> {
-        if !self.db.indexer_enabled() {
-            return Ok(None);
-        }
-        let table_info = match self.db.get_table_info(handle) {
-            Ok(ti) => ti,
-            Err(_) => {
+        let table_info = match self.get_table_info(handle)? {
+            Some(ti) => ti,
+            None => {
                 aptos_logger::warn!(
                     "Table info not found for handle {:?}, can't decode table item. OK for simulation",
                     handle
@@ -462,6 +459,7 @@ impl<'a, R: MoveResolverExt + ?Sized> MoveConverter<'a, R> {
                 return Ok(None); // if table item not found return None anyway to avoid crash
             },
         };
+
         let key = self.try_into_move_value(&table_info.key_type, key)?;
 
         Ok(Some(DeletedTableData {
@@ -696,15 +694,9 @@ impl<'a, R: MoveResolverExt + ?Sized> MoveConverter<'a, R> {
                 })
             },
 
-            // Deprecated. Will be removed in the future.
-            TransactionPayload::ModuleBundlePayload(payload) => {
-                Target::ModuleBundle(ModuleBundle::new(
-                    payload
-                        .modules
-                        .into_iter()
-                        .map(|m| m.bytecode.into())
-                        .collect(),
-                ))
+            // Deprecated.
+            TransactionPayload::ModuleBundlePayload(_) => {
+                bail!("Module bundle payload has been removed")
             },
         };
         Ok(ret)
@@ -734,7 +726,7 @@ impl<'a, R: MoveResolverExt + ?Sized> MoveConverter<'a, R> {
         );
         arg_types
             .into_iter()
-            .zip(args.into_iter())
+            .zip(args)
             .enumerate()
             .map(|(i, (arg_type, arg))| {
                 self.try_into_vm_value(&arg_type.clone().try_into()?, arg)
@@ -800,7 +792,11 @@ impl<'a, R: MoveResolverExt + ?Sized> MoveConverter<'a, R> {
             MoveTypeLayout::Struct(struct_layout) => {
                 self.try_into_vm_value_struct(struct_layout, val)?
             },
-            MoveTypeLayout::Signer => {
+
+            // Some values, e.g., signer or ones with custom serialization
+            // (native), are not stored to storage and so we do not expect
+            // to see them here.
+            MoveTypeLayout::Signer | MoveTypeLayout::Native(..) => {
                 bail!("unexpected move type {:?} for value {:?}", layout, val)
             },
         })
@@ -872,17 +868,17 @@ impl<'a, R: MoveResolverExt + ?Sized> MoveConverter<'a, R> {
         self.inner.view_value(typ, bytes)?.try_into()
     }
 
-    pub fn function_return_types(&self, function: &EntryFunction) -> Result<Vec<MoveType>> {
-        let module = function.module().clone();
+    pub fn function_return_types(&self, function: &ViewFunction) -> Result<Vec<MoveType>> {
+        let module = function.module.clone();
         let code = self.inner.get_module(&module)? as Rc<dyn Bytecode>;
         let func = code
-            .find_function(function.function())
+            .find_function(function.function.as_ident_str())
             .ok_or_else(|| format_err!("could not find entry function by {:?}", function))?;
 
         Ok(func.return_)
     }
 
-    pub fn convert_view_function(&self, view_request: ViewRequest) -> Result<EntryFunction> {
+    pub fn convert_view_function(&self, view_request: ViewRequest) -> Result<ViewFunction> {
         let ViewRequest {
             function,
             type_arguments,
@@ -907,19 +903,31 @@ impl<'a, R: MoveResolverExt + ?Sized> MoveConverter<'a, R> {
             .map(bcs::to_bytes)
             .collect::<Result<_, bcs::Error>>()?;
 
-        Ok(EntryFunction::new(
-            module.into(),
-            function.name.into(),
-            type_arguments
+        Ok(ViewFunction {
+            module: module.into(),
+            function: function.name.into(),
+            ty_args: type_arguments
                 .into_iter()
                 .map(|v| v.try_into())
                 .collect::<Result<_>>()?,
             args,
-        ))
+        })
+    }
+
+    fn get_table_info(&self, handle: TableHandle) -> Result<Option<TableInfo>> {
+        if let Some(table_info_reader) = self.table_info_reader.as_ref() {
+            // Attempt to get table_info from the table_info_reader if it exists
+            Ok(table_info_reader.get_table_info(handle)?)
+        } else if self.db.indexer_enabled() {
+            // Attempt to get table_info from the db if indexer is enabled
+            Ok(Some(self.db.get_table_info(handle)?))
+        } else {
+            Ok(None)
+        }
     }
 }
 
-impl<'a, R: MoveResolverExt + ?Sized> ExplainVMStatus for MoveConverter<'a, R> {
+impl<'a, R: ModuleResolver + ?Sized> ExplainVMStatus for MoveConverter<'a, R> {
     fn get_module_bytecode(&self, module_id: &ModuleId) -> Result<Rc<dyn Bytecode>> {
         self.inner
             .get_module(module_id)
@@ -927,12 +935,20 @@ impl<'a, R: MoveResolverExt + ?Sized> ExplainVMStatus for MoveConverter<'a, R> {
     }
 }
 pub trait AsConverter<R> {
-    fn as_converter(&self, db: Arc<dyn DbReader>) -> MoveConverter<R>;
+    fn as_converter(
+        &self,
+        db: Arc<dyn DbReader>,
+        table_info_reader: Option<Arc<dyn TableInfoReader>>,
+    ) -> MoveConverter<R>;
 }
 
-impl<R: MoveResolverExt> AsConverter<R> for R {
-    fn as_converter(&self, db: Arc<dyn DbReader>) -> MoveConverter<R> {
-        MoveConverter::new(self, db)
+impl<R: ModuleResolver> AsConverter<R> for R {
+    fn as_converter(
+        &self,
+        db: Arc<dyn DbReader>,
+        table_info_reader: Option<Arc<dyn TableInfoReader>>,
+    ) -> MoveConverter<R> {
+        MoveConverter::new(self, db, table_info_reader)
     }
 }
 

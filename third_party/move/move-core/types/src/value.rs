@@ -60,7 +60,7 @@ pub enum MoveValue {
 }
 
 /// A layout associated with a named field
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Hash, Serialize, Deserialize, PartialEq, Eq)]
 #[cfg_attr(any(test, feature = "fuzzing"), derive(arbitrary::Arbitrary))]
 pub struct MoveFieldLayout {
     pub name: Identifier,
@@ -73,7 +73,7 @@ impl MoveFieldLayout {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Hash, Serialize, Deserialize, PartialEq, Eq)]
 #[cfg_attr(any(test, feature = "fuzzing"), derive(arbitrary::Arbitrary))]
 pub enum MoveStructLayout {
     /// The representation used by the MoveVM
@@ -87,7 +87,16 @@ pub enum MoveStructLayout {
     },
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Used to distinguish between aggregators ans snapshots.
+#[derive(Debug, Clone, Hash, Serialize, Deserialize, PartialEq, Eq)]
+#[cfg_attr(any(test, feature = "fuzzing"), derive(arbitrary::Arbitrary))]
+pub enum IdentifierMappingKind {
+    Aggregator,
+    Snapshot,
+    DerivedString,
+}
+
+#[derive(Debug, Clone, Hash, Serialize, Deserialize, PartialEq, Eq)]
 #[cfg_attr(any(test, feature = "fuzzing"), derive(arbitrary::Arbitrary))]
 pub enum MoveTypeLayout {
     #[serde(rename(serialize = "bool", deserialize = "bool"))]
@@ -114,6 +123,15 @@ pub enum MoveTypeLayout {
     U32,
     #[serde(rename(serialize = "u256", deserialize = "u256"))]
     U256,
+
+    /// Represents an extension to layout which can be used by the runtime
+    /// (MoveVM) to allow for custom serialization and deserialization of
+    /// values.
+    // TODO[agg_v2](cleanup): Shift to registry based implementation and
+    //                        come up with a better name.
+    // TODO[agg_v2](?): Do we need a layout here if we have custom serde
+    //                  implementations available?
+    Native(IdentifierMappingKind, Box<MoveTypeLayout>),
 }
 
 impl MoveValue {
@@ -328,6 +346,11 @@ impl<'d> serde::de::DeserializeSeed<'d> for &MoveTypeLayout {
             MoveTypeLayout::Vector(layout) => Ok(MoveValue::Vector(
                 deserializer.deserialize_seq(VectorElementVisitor(layout))?,
             )),
+
+            // This layout is only used by MoveVM, so we do not expect to see it here.
+            MoveTypeLayout::Native(..) => {
+                Err(D::Error::custom("Unsupported layout for Move value"))
+            },
         }
     }
 }
@@ -529,6 +552,8 @@ impl fmt::Display for MoveTypeLayout {
             Vector(typ) => write!(f, "vector<{}>", typ),
             Struct(s) => write!(f, "{}", s),
             Signer => write!(f, "signer"),
+            // TODO[agg_v2](cleanup): consider printing the tag as well.
+            Native(_, typ) => write!(f, "native<{}>", typ),
         }
     }
 }
@@ -573,11 +598,12 @@ impl TryInto<TypeTag> for &MoveTypeLayout {
             MoveTypeLayout::U128 => TypeTag::U128,
             MoveTypeLayout::U256 => TypeTag::U256,
             MoveTypeLayout::Signer => TypeTag::Signer,
-            MoveTypeLayout::Vector(v) => {
-                let inner_type = &**v;
-                TypeTag::Vector(Box::new(inner_type.try_into()?))
-            },
+            MoveTypeLayout::Vector(v) => TypeTag::Vector(Box::new(v.as_ref().try_into()?)),
             MoveTypeLayout::Struct(v) => TypeTag::Struct(Box::new(v.try_into()?)),
+
+            // Native layout variant is only used by MoveVM, and is irrelevant
+            // for type tags which are used to key resources in the global state.
+            MoveTypeLayout::Native(..) => bail!("Unsupported layout for type tag"),
         })
     }
 }

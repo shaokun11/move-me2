@@ -1,14 +1,66 @@
 spec aptos_framework::transaction_fee {
+    /// <high-level-req>
+    /// No.: 1
+    /// Requirement: Given the blockchain is in an operating state, it guarantees that the Aptos framework signer may burn
+    /// Aptos coins.
+    /// Criticality: Critical
+    /// Implementation: The AptosCoinCapabilities structure is defined in this module and it stores burn capability to
+    /// burn the gas fees.
+    /// Enforcement: Formally Verified via [high-level-req-1](module).
+    ///
+    /// No.: 2
+    /// Requirement: The initialization function may only be called once.
+    /// Criticality: Medium
+    /// Implementation: The initialize_fee_collection_and_distribution function ensures CollectedFeesPerBlock does not
+    /// already exist.
+    /// Enforcement: Formally verified via [high-level-req-2](initialize_fee_collection_and_distribution).
+    ///
+    /// No.: 3
+    /// Requirement: Only the admin address is authorized to call the initialization function.
+    /// Criticality: Critical
+    /// Implementation: The initialize_fee_collection_and_distribution function ensures only the Aptos framework address
+    /// calls it.
+    /// Enforcement: Formally verified via [high-level-req-3](initialize_fee_collection_and_distribution).
+    ///
+    /// No.: 4
+    /// Requirement: The percentage of the burnt collected fee is always a value from 0 to 100.
+    /// Criticality: Medium
+    /// Implementation: During the initialization of CollectedFeesPerBlock in
+    /// Initialize_fee_collection_and_distribution, and while upgrading burn percentage, it asserts that burn_percentage
+    /// is within the specified limits.
+    /// Enforcement: Formally verified via [high-level-req-4](CollectedFeesPerBlock).
+    ///
+    /// No.: 5
+    /// Requirement: Prior to upgrading the burn percentage, it must process all the fees collected up to that point.
+    /// Criticality: Critical
+    /// Implementation: The upgrade_burn_percentage function ensures process_collected_fees function is called before
+    /// updating the burn percentage.
+    /// Enforcement: Formally verified in [high-level-req-5](ProcessCollectedFeesRequiresAndEnsures).
+    ///
+    /// No.: 6
+    /// Requirement: The presence of the resource, indicating collected fees per block under the Aptos framework account,
+    /// is a prerequisite for the successful execution of the following functionalities: Upgrading burn percentage.
+    /// Registering a block proposer. Processing collected fees.
+    /// Criticality: Low
+    /// Implementation: The functions: upgrade_burn_percentage, register_proposer_for_fee_collection, and
+    /// process_collected_fees all ensure that the CollectedFeesPerBlock resource exists under aptos_framework by
+    /// calling the is_fees_collection_enabled method, which returns a boolean value confirming if the resource exists
+    /// or not.
+    /// Enforcement: Formally verified via [high-level-req-6.1](register_proposer_for_fee_collection), [high-level-req-6.2](process_collected_fees), and [high-level-req-6.3](upgrade_burn_percentage).
+    /// </high-level-req>
+    ///
     spec module {
         use aptos_framework::chain_status;
         pragma verify = true;
         pragma aborts_if_is_strict;
         // property 1: Given the blockchain is in an operating state, it guarantees that the Aptos framework signer may burn Aptos coins.
+        /// [high-level-req-1]
         invariant [suspendable] chain_status::is_operating() ==> exists<AptosCoinCapabilities>(@aptos_framework);
     }
 
     spec CollectedFeesPerBlock {
         // property 4: The percentage of the burnt collected fee is always a value from 0 to 100.
+        /// [high-level-req-4]
         invariant burn_percentage <= 100;
     }
 
@@ -19,15 +71,17 @@ spec aptos_framework::transaction_fee {
         use aptos_framework::system_addresses;
 
         // property 2: The initialization function may only be called once.
+        /// [high-level-req-2]
         aborts_if exists<CollectedFeesPerBlock>(@aptos_framework);
         aborts_if burn_percentage > 100;
 
         let aptos_addr = signer::address_of(aptos_framework);
         // property 3: Only the admin address is authorized to call the initialization function.
+        /// [high-level-req-3]
         aborts_if !system_addresses::is_aptos_framework_address(aptos_addr);
         aborts_if exists<ValidatorFees>(aptos_addr);
 
-        include system_addresses::AbortsIfNotAptosFramework {account: aptos_framework};
+        include system_addresses::AbortsIfNotAptosFramework { account: aptos_framework };
         include aggregator_factory::CreateAggregatorInternalAbortsIf;
         aborts_if exists<CollectedFeesPerBlock>(aptos_addr);
 
@@ -47,6 +101,8 @@ spec aptos_framework::transaction_fee {
         // property 5: Prior to upgrading the burn percentage, it must process all the fees collected up to that point.
         // property 6: Ensure the presence of the resource.
         // Requirements and ensures conditions of `process_collected_fees`
+        /// [high-level-req-5]
+        /// [high-level-req-6.3]
         include ProcessCollectedFeesRequiresAndEnsures;
 
         // The effect of upgrading the burn percentage
@@ -57,6 +113,7 @@ spec aptos_framework::transaction_fee {
     spec register_proposer_for_fee_collection(proposer_addr: address) {
         aborts_if false;
         // property 6: Ensure the presence of the resource.
+        /// [high-level-req-6.1]
         ensures is_fees_collection_enabled() ==>
             option::spec_borrow(global<CollectedFeesPerBlock>(@aptos_framework).proposer) == proposer_addr;
     }
@@ -71,7 +128,7 @@ spec aptos_framework::transaction_fee {
 
         let amount_to_burn = (burn_percentage * coin::value(coin)) / 100;
         // include (amount_to_burn > 0) ==> coin::AbortsIfNotExistCoinInfo<AptosCoin>;
-        include amount_to_burn > 0 ==> coin::AbortsIfAggregator<AptosCoin>{ coin: Coin<AptosCoin>{ value: amount_to_burn } };
+        include amount_to_burn > 0 ==> coin::CoinSubAbortsIf<AptosCoin> { amount: amount_to_burn };
         ensures coin.value == old(coin).value - amount_to_burn;
     }
 
@@ -87,7 +144,9 @@ spec aptos_framework::transaction_fee {
         requires
             (is_fees_collection_enabled() && option::is_some(maybe_supply)) ==>
                 (aggregator::spec_aggregator_get_val(global<CollectedFeesPerBlock>(@aptos_framework).amount.value) <=
-                    optional_aggregator::optional_aggregator_value(option::spec_borrow(coin::get_coin_supply_opt<AptosCoin>())));
+                    optional_aggregator::optional_aggregator_value(
+                        option::spec_borrow(coin::get_coin_supply_opt<AptosCoin>())
+                    ));
     }
 
     spec schema ProcessCollectedFeesRequiresAndEnsures {
@@ -116,9 +175,12 @@ spec aptos_framework::transaction_fee {
             option::spec_is_some(collected_fees.proposer) ==>
             if (proposer != @vm_reserved) {
                 if (table::spec_contains(fees_table, proposer)) {
-                    table::spec_get(post_fees_table, proposer).value == table::spec_get(fees_table, proposer).value + fee_to_add
+                    table::spec_get(post_fees_table, proposer).value == table::spec_get(
+                        fees_table,
+                        proposer
+                    ).value + fee_to_add
                 } else {
-                table::spec_get(post_fees_table, proposer).value == fee_to_add
+                    table::spec_get(post_fees_table, proposer).value == fee_to_add
                 }
             } else {
                 option::spec_is_none(post_collected_fees.proposer) && post_amount == 0
@@ -126,6 +188,7 @@ spec aptos_framework::transaction_fee {
     }
 
     spec process_collected_fees() {
+        /// [high-level-req-6.2]
         include ProcessCollectedFeesRequiresAndEnsures;
     }
 
@@ -182,6 +245,8 @@ spec aptos_framework::transaction_fee {
 
         let aptos_addr = type_info::type_of<AptosCoin>().account_address;
         modifies global<CoinInfo<AptosCoin>>(aptos_addr);
+        aborts_if (refund != 0) && !exists<CoinInfo<AptosCoin>>(aptos_addr);
+        include coin::CoinAddAbortsIf<AptosCoin> { amount: refund };
 
         aborts_if !exists<CoinStore<AptosCoin>>(account);
         modifies global<CoinStore<AptosCoin>>(account);
@@ -211,7 +276,9 @@ spec aptos_framework::transaction_fee {
         let post post_coin_store = global<coin::CoinStore<AptosCoin>>(account);
         let post post_collected_fees = global<CollectedFeesPerBlock>(@aptos_framework).amount;
         ensures post_coin_store.coin.value == coin_store.coin.value - fee;
-        ensures aggregator::spec_aggregator_get_val(post_collected_fees.value) == aggregator::spec_aggregator_get_val(aggr) + fee;
+        ensures aggregator::spec_aggregator_get_val(post_collected_fees.value) == aggregator::spec_aggregator_get_val(
+            aggr
+        ) + fee;
     }
 
     /// Ensure caller is admin.
@@ -234,20 +301,11 @@ spec aptos_framework::transaction_fee {
         ensures exists<AptosCoinMintCapability>(addr);
     }
 
-    /// Ensure caller is admin.
-    /// Aborts if `AptosCoinCapabilities` under the stake module does not exist.
-    /// Aborts if `AptosCoinMintCapability` already exists.
-    spec initialize_storage_refund(aptos_framework: &signer) {
-        use std::signer;
-        let addr = signer::address_of(aptos_framework);
-        aborts_if !system_addresses::is_aptos_framework_address(addr);
-        aborts_if !exists<stake::AptosCoinCapabilities>(addr);
-        aborts_if exists<AptosCoinMintCapability>(addr);
-        ensures exists<AptosCoinMintCapability>(addr);
+    /// Historical. Aborts.
+    spec initialize_storage_refund(_: &signer) {
+        aborts_if true;
     }
 
     /// Aborts if module event feature is not enabled.
-    spec emit_fee_statement {
-        aborts_if !std::features::spec_module_event_enabled();
-    }
+    spec emit_fee_statement {}
 }

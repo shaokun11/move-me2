@@ -15,7 +15,6 @@ use aptos_executor_test_helpers::{
     bootstrap_genesis, gen_ledger_info_with_sigs, get_test_signed_transaction,
 };
 use aptos_executor_types::BlockExecutorTrait;
-use aptos_state_view::account_with_state_view::AsAccountWithStateView;
 use aptos_storage_interface::{state_view::LatestDbStateCheckpointView, DbReaderWriter};
 use aptos_temppath::TempPath;
 use aptos_types::{
@@ -29,8 +28,8 @@ use aptos_types::{
     contract_event::ContractEvent,
     event::EventHandle,
     on_chain_config::{access_path_for_config, ConfigurationResource, OnChainConfig, ValidatorSet},
-    state_store::state_key::StateKey,
-    test_helpers::transaction_test_helpers::{block, BLOCK_GAS_LIMIT},
+    state_store::{account_with_state_view::AsAccountWithStateView, state_key::StateKey},
+    test_helpers::transaction_test_helpers::{block, TEST_BLOCK_EXECUTOR_ONCHAIN_CONFIG},
     transaction::{authenticator::AuthenticationKey, ChangeSet, Transaction, WriteSetPayload},
     trusted_state::TrustedState,
     validator_signer::ValidatorSigner,
@@ -75,7 +74,9 @@ fn test_empty_db() {
     assert!(trusted_state_change.is_epoch_change());
 
     // `maybe_bootstrap()` does nothing on non-empty DB.
-    assert!(!maybe_bootstrap::<AptosVM>(&db_rw, &genesis_txn, waypoint).unwrap());
+    assert!(maybe_bootstrap::<AptosVM>(&db_rw, &genesis_txn, waypoint)
+        .unwrap()
+        .is_none());
 }
 
 fn execute_and_commit(txns: Vec<Transaction>, db: &DbReaderWriter, signer: &ValidatorSigner) {
@@ -87,9 +88,9 @@ fn execute_and_commit(txns: Vec<Transaction>, db: &DbReaderWriter, signer: &Vali
     let executor = BlockExecutor::<AptosVM>::new(db.clone());
     let output = executor
         .execute_block(
-            (block_id, block(txns, BLOCK_GAS_LIMIT)).into(),
+            (block_id, block(txns)).into(),
             executor.committed_block_id(),
-            BLOCK_GAS_LIMIT,
+            TEST_BLOCK_EXECUTOR_ONCHAIN_CONFIG,
         )
         .unwrap();
     assert_eq!(output.num_leaves(), target_version + 1);
@@ -227,28 +228,35 @@ fn test_new_genesis() {
                 StateKey::access_path(
                     access_path_for_config(ValidatorSet::CONFIG_ID).expect("access path in test"),
                 ),
-                WriteOp::Modification(bcs::to_bytes(&ValidatorSet::new(vec![])).unwrap()),
+                WriteOp::legacy_modification(
+                    bcs::to_bytes(&ValidatorSet::new(vec![])).unwrap().into(),
+                ),
             ),
             (
                 StateKey::access_path(AccessPath::new(
                     CORE_CODE_ADDRESS,
                     ConfigurationResource::resource_path(),
                 )),
-                WriteOp::Modification(bcs::to_bytes(&configuration.bump_epoch_for_test()).unwrap()),
+                WriteOp::legacy_modification(
+                    bcs::to_bytes(&configuration.bump_epoch_for_test())
+                        .unwrap()
+                        .into(),
+                ),
             ),
             (
                 StateKey::access_path(AccessPath::new(
                     account1,
                     CoinStoreResource::resource_path(),
                 )),
-                WriteOp::Modification(
+                WriteOp::legacy_modification(
                     bcs::to_bytes(&CoinStoreResource::new(
                         100_000_000,
                         false,
                         EventHandle::random(0),
                         EventHandle::random(0),
                     ))
-                    .unwrap(),
+                    .unwrap()
+                    .into(),
                 ),
             ),
         ])
@@ -274,7 +282,9 @@ fn test_new_genesis() {
 
     // Bootstrap DB into new genesis.
     let waypoint = generate_waypoint::<AptosVM>(&db, &genesis_txn).unwrap();
-    assert!(maybe_bootstrap::<AptosVM>(&db, &genesis_txn, waypoint).unwrap());
+    assert!(maybe_bootstrap::<AptosVM>(&db, &genesis_txn, waypoint)
+        .unwrap()
+        .is_some());
     assert_eq!(waypoint.version(), 6);
 
     // Client bootable from waypoint.

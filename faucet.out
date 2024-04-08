@@ -1,0 +1,48 @@
+   Compiling move-stackless-bytecode v0.1.0 (/Users/wujiajun/Documents/code/movement/move-me2/third_party/move/move-model/bytecode)
+   Compiling aptos-gas-meter v0.1.0 (/Users/wujiajun/Documents/code/movement/move-me2/aptos-move/aptos-gas-meter)
+   Compiling aptos-memory-usage-tracker v0.1.0 (/Users/wujiajun/Documents/code/movement/move-me2/aptos-move/aptos-memory-usage-tracker)
+   Compiling move-prover-bytecode-pipeline v0.1.0 (/Users/wujiajun/Documents/code/movement/move-me2/third_party/move/move-prover/bytecode-pipeline)
+   Compiling move-compiler-v2 v0.1.0 (/Users/wujiajun/Documents/code/movement/move-me2/third_party/move/move-compiler-v2)
+   Compiling move-package v0.1.0 (/Users/wujiajun/Documents/code/movement/move-me2/third_party/move/tools/move-package)
+   Compiling move-prover-boogie-backend v0.1.0 (/Users/wujiajun/Documents/code/movement/move-me2/third_party/move/move-prover/boogie-backend)
+   Compiling move-prover v0.1.0 (/Users/wujiajun/Documents/code/movement/move-me2/third_party/move/move-prover)
+   Compiling aptos-move-stdlib v0.1.1 (/Users/wujiajun/Documents/code/movement/move-me2/aptos-move/framework/move-stdlib)
+   Compiling aptos-framework v0.1.0 (/Users/wujiajun/Documents/code/movement/move-me2/aptos-move/framework)
+warning: unused imports: `Context`, `anyhow`
+ --> aptos-move/framework/src/docgen.rs:4:14
+  |
+4 | use anyhow::{anyhow, Context, Ok};
+  |              ^^^^^^  ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused imports: `ColorChoice`, `StandardStream`, `diagnostic::Severity`
+ --> aptos-move/framework/src/docgen.rs:6:5
+  |
+6 |     diagnostic::Severity,
+  |     ^^^^^^^^^^^^^^^^^^^^
+7 |     term::termcolor::{ColorChoice, StandardStream},
+  |                       ^^^^^^^^^^^  ^^^^^^^^^^^^^^
+
+warning: unused imports: `path::PathBuf`, `sync::Mutex`
+  --> aptos-move/framework/src/docgen.rs:10:11
+   |
+10 | use std::{path::PathBuf, sync::Mutex};
+   |           ^^^^^^^^^^^^^  ^^^^^^^^^^^
+
+   Compiling aptos-vm v0.1.0 (/Users/wujiajun/Documents/code/movement/move-me2/aptos-move/aptos-vm)
+warning: `aptos-framework` (lib) generated 3 warnings (2 duplicates) (run `cargo fix --lib -p aptos-framework` to apply 1 suggestion)
+   Compiling aptos-cached-packages v0.1.0 (/Users/wujiajun/Documents/code/movement/move-me2/aptos-move/framework/cached-packages)
+warning: `aptos-framework` (lib) generated 3 warnings (1 duplicate) (run `cargo fix --lib -p aptos-framework` to apply 2 suggestions)
+warning: unused variable: `error_type`
+  --> aptos-move/aptos-vm/src/testing.rs:11:42
+   |
+11 | pub(crate) fn maybe_raise_injected_error(error_type: InjectedError) -> VMResult<()> {
+   |                                          ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_error_type`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+   Compiling aptos-storage-interface v0.1.0 (/Users/wujiajun/Documents/code/movement/move-me2/storage/storage-interface)
+warning: `aptos-vm` (lib) generated 1 warning (run `cargo fix --lib -p aptos-vm` to apply 1 suggestion)
+   Compiling aptos-api-types v0.0.1 (/Users/wujiajun/Documents/code/movement/move-me2/api/types)
+   Compiling aptos-rest-client v0.0.0 (/Users/wujiajun/Documents/code/movement/move-me2/crates/aptos-rest-client)

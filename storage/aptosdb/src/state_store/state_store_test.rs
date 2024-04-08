@@ -4,10 +4,10 @@
 
 use super::*;
 use crate::{
-    jellyfish_merkle_node::JellyfishMerkleNodeSchema,
-    new_sharded_kv_schema_batch,
+    db::test_helper::{arb_state_kv_sets, update_store},
+    schema::jellyfish_merkle_node::JellyfishMerkleNodeSchema,
     state_restore::StateSnapshotRestore,
-    test_helper::{arb_state_kv_sets, update_store},
+    utils::new_sharded_kv_schema_batch,
     AptosDB,
 };
 use aptos_jellyfish_merkle::{
@@ -22,6 +22,7 @@ use aptos_types::{
     access_path::AccessPath, account_address::AccountAddress, nibble::nibble_path::NibblePath,
     state_store::state_key::StateKeyTag,
 };
+use arr_macro::arr;
 use proptest::{collection::hash_map, prelude::*};
 use std::collections::HashMap;
 
@@ -58,6 +59,7 @@ fn put_value_set(
             &state_kv_metadata_batch,
             /*put_state_value_indices=*/ false,
             /*skip_usage=*/ false,
+            /*last_checkpoint_index=*/ None,
         )
         .unwrap();
     state_store
@@ -284,11 +286,7 @@ pub fn test_get_state_snapshot_before() {
 
     // hack: VersionData expected on every version, so duplicate the data at version 1
     let usage = store.get_usage(Some(0)).unwrap();
-    store
-        .ledger_db
-        .metadata_db()
-        .put::<VersionDataSchema>(&1, &usage.into())
-        .unwrap();
+    db.ledger_db.metadata_db().put_usage(1, usage).unwrap();
 
     // put in another version
     put_value_set(store, kv, 2, Some(0));
@@ -309,13 +307,13 @@ pub fn test_get_state_snapshot_before() {
             &Node::Null,
         )
         .unwrap();
-    db.state_merkle_db
+    db.state_merkle_db()
         .metadata_db()
         .write_schemas(batch)
         .unwrap();
 
     assert_eq!(
-        db.state_merkle_db
+        db.state_merkle_db()
             .get_state_snapshot_version_before(4)
             .unwrap(),
         Some(2)
@@ -325,13 +323,13 @@ pub fn test_get_state_snapshot_before() {
     batch
         .delete::<JellyfishMerkleNodeSchema>(&NodeKey::new_empty_path(2))
         .unwrap();
-    db.state_merkle_db
+    db.state_merkle_db()
         .metadata_db()
         .write_schemas(batch)
         .unwrap();
 
     assert_eq!(
-        db.state_merkle_db
+        db.state_merkle_db()
             .get_state_snapshot_version_before(4)
             .unwrap(),
         Some(0)

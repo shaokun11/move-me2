@@ -60,6 +60,7 @@ impl Proposal {
                 ReleaseEntry::Framework(_)
                 | ReleaseEntry::CustomGas(_)
                 | ReleaseEntry::DefaultGas
+                | ReleaseEntry::DefaultGasWithOverride(_)
                 | ReleaseEntry::Version(_)
                 | ReleaseEntry::Consensus(_)
                 | ReleaseEntry::Execution(_)
@@ -92,8 +93,13 @@ fn default_url() -> String {
 #[derive(Serialize, Deserialize, Clone, Copy, Eq, PartialEq)]
 pub enum ExecutionMode {
     MultiStep,
-    SingleStep,
     RootSigner,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
+pub struct GasOverride {
+    name: String,
+    value: u64,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
@@ -101,6 +107,7 @@ pub enum ReleaseEntry {
     Framework(FrameworkReleaseConfig),
     CustomGas(GasScheduleV2),
     DefaultGas,
+    DefaultGasWithOverride(Vec<GasOverride>),
     Version(Version),
     FeatureFlag(Features),
     Consensus(OnChainConsensusConfig),
@@ -117,7 +124,6 @@ impl ReleaseEntry {
     ) -> Result<()> {
         let (is_testnet, is_multi_step) = match execution_mode {
             ExecutionMode::MultiStep => (false, true),
-            ExecutionMode::SingleStep => (false, false),
             ExecutionMode::RootSigner => (true, false),
         };
         match self {
@@ -150,6 +156,20 @@ impl ReleaseEntry {
             },
             ReleaseEntry::DefaultGas => {
                 let gas_schedule = aptos_gas_schedule_updator::current_gas_schedule();
+                if !fetch_and_equals::<GasScheduleV2>(client, &gas_schedule)? {
+                    result.append(&mut gas::generate_gas_upgrade_proposal(
+                        &gas_schedule,
+                        is_testnet,
+                        if is_multi_step {
+                            get_execution_hash(result)
+                        } else {
+                            "".to_owned().into_bytes()
+                        },
+                    )?);
+                }
+            },
+            ReleaseEntry::DefaultGasWithOverride(gas_overrides) => {
+                let gas_schedule = gas_override_default(gas_overrides)?;
                 if !fetch_and_equals::<GasScheduleV2>(client, &gas_schedule)? {
                     result.append(&mut gas::generate_gas_upgrade_proposal(
                         &gas_schedule,
@@ -294,6 +314,11 @@ impl ReleaseEntry {
                     bail!("Gas schedule config mismatch: Expected Default");
                 }
             },
+            ReleaseEntry::DefaultGasWithOverride(gas_overrides) => {
+                if !fetch_and_equals(client_opt, &gas_override_default(gas_overrides)?)? {
+                    bail!("Gas schedule config mismatch: Expected Default");
+                }
+            },
             ReleaseEntry::Version(version) => {
                 if !fetch_and_equals(client_opt, version)? {
                     bail!("Version config mismatch: Expected {:?}", version);
@@ -342,6 +367,27 @@ impl ReleaseEntry {
         }
         Ok(())
     }
+}
+
+fn gas_override_default(gas_overrides: &[GasOverride]) -> Result<GasScheduleV2> {
+    let mut gas_schedule = aptos_gas_schedule_updator::current_gas_schedule();
+    for gas_override in gas_overrides {
+        let mut found = false;
+        for (name, value) in &mut gas_schedule.entries {
+            if name == &gas_override.name {
+                *value = gas_override.value;
+                found = true;
+                break;
+            }
+        }
+        if !found {
+            bail!(
+                "Gas override config mismatch: Expected {:?} to be in the gas schedule",
+                gas_override.name
+            );
+        }
+    }
+    Ok(gas_schedule)
 }
 
 // Compare the current on chain config with the value recorded on chain. Return false if there's a difference.
@@ -528,14 +574,6 @@ impl Default for ReleaseConfig {
             name: "TestingConfig".to_string(),
             remote_endpoint: None,
             proposals: vec![
-                Proposal {
-                    execution_mode: ExecutionMode::SingleStep,
-                    metadata: ProposalMetadata::default(),
-                    name: "custom".to_string(),
-                    update_sequence: vec![ReleaseEntry::RawScript(PathBuf::from(
-                        "data/proposals/empty.move",
-                    ))],
-                },
                 Proposal {
                     execution_mode: ExecutionMode::MultiStep,
                     metadata: ProposalMetadata::default(),
