@@ -960,15 +960,15 @@ impl Vm {
         let parent_block_id = executor.committed_block_id();
         let next_epoch = aptos_data.3;
         let ts = aptos_data.4;
+        let execute_block = block_tx
+        .iter()
+        .cloned()
+        .map(SignatureVerifiedTransaction::from)
+        .collect();
         match executor.execute_block(
             ExecutableBlock::new(
                 block_id,
-                ExecutableTransactions::Unsharded(block_tx
-                    .iter()
-                    .cloned()
-                    .map(SignatureVerifiedTransaction::from)
-                    .collect(),
-                    )
+                ExecutableTransactions::Unsharded(execute_block)
             ),
             parent_block_id,
             BlockExecutorConfigFromOnchain::new_no_block_limit()
@@ -1100,7 +1100,7 @@ impl Vm {
         let mut block_tx: Vec<_> = vec![];
         block_tx.push(block_meta);
         block_tx.append(&mut txs);
-        block_tx.push(Transaction::StateCheckpoint(HashValue::random()));
+        // block_tx.push(Transaction::StateCheckpoint(HashValue::random()));
         let parent_block_id = executor.committed_block_id();
         let block_tx_bytes = serde_json::to_vec(&block_tx).unwrap();
         let data = AptosData(

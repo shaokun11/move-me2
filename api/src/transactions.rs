@@ -234,7 +234,6 @@ impl TransactionsApi {
         &self,
         accept_type: AcceptType,
         txn_hash: HashValue,
-        // TODO: Use a new request type that can't return 507.
     ) -> BasicResultWith404<Transaction> {
         self.get_transaction_by_hash(accept_type, Path(txn_hash))
             .await
