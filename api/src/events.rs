@@ -90,6 +90,19 @@ impl EventsApi {
         .await
     }
 
+
+    pub async fn get_events_by_creation_number_raw(
+        &self,
+        accept_type: AcceptType,
+        address: Address,
+        creation_number: U64,
+        start: Option<U64>,
+        limit: Option<u16>,
+    ) -> BasicResultWith404<Vec<VersionedEvent>> {
+        self.get_events_by_creation_number(accept_type, Path(address), Path(creation_number), 
+            Query(start), Query(limit)).await
+    }
+
     /// Get events by event handle
     ///
     /// This API uses the given account `address`, `eventHandle`, and `fieldName`
@@ -150,6 +163,19 @@ impl EventsApi {
             api.list(account.latest_ledger_info, accept_type, page, key)
         })
         .await
+    }
+
+    pub async fn get_events_by_event_handle_raw(
+        &self,
+        accept_type: AcceptType,
+        address: Address,
+        event_handle: MoveStructTag,
+        field_name: IdentifierWrapper,
+        start: Option<U64>,
+        limit: Option<u16>,
+    ) -> BasicResultWith404<Vec<VersionedEvent>> {
+        self.get_events_by_event_handle(accept_type, Path(address), Path(event_handle), 
+            Path(field_name), Query(start), Query(limit)).await
     }
 }
 

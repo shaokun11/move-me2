@@ -35,6 +35,7 @@ use poem_openapi::{
 };
 use std::{collections::BTreeMap, convert::TryInto, sync::Arc};
 
+#[derive(Clone)]
 /// API for accounts, their associated resources, and modules
 pub struct AccountsApi {
     pub context: Arc<Context>,
@@ -70,6 +71,24 @@ impl AccountsApi {
         let context = self.context.clone();
         api_spawn_blocking(move || {
             let account = Account::new(context, address.0, ledger_version.0, None, None)?;
+            account.account(&accept_type)
+        })
+        .await
+    }
+
+    pub async fn get_account_raw(
+        &self,
+        accept_type: AcceptType,
+        address: Address,
+        ledger_version: Option<U64>,
+    ) -> BasicResultWith404<AccountData> {
+        fail_point_poem("endpoint_get_account")?;
+        self.context
+            .check_api_output_enabled("Get account", &accept_type)?;
+
+        let context = self.context.clone();
+        api_spawn_blocking(move || {
+            let account = Account::new(context, address, ledger_version, None, None)?;
             account.account(&accept_type)
         })
         .await
@@ -127,6 +146,32 @@ impl AccountsApi {
         .await
     }
 
+     pub async fn get_account_resources_raw(
+        &self,
+        accept_type: AcceptType,
+        address: Address,
+        ledger_version: Option<U64>,
+        start: Option<StateKeyWrapper>,
+        limit: Option<u16>,
+    ) -> BasicResultWith404<Vec<MoveResource>> {
+        fail_point_poem("endpoint_get_account_resources")?;
+        self.context
+            .check_api_output_enabled("Get account resources", &accept_type)?;
+
+        let context = self.context.clone();
+        api_spawn_blocking(move || {
+            let account = Account::new(
+                context,
+                address,
+                ledger_version,
+                start.map(StateKey::from),
+                limit,
+            )?;
+            account.resources(&accept_type)
+        })
+        .await
+    }
+
     /// Get account modules
     ///
     /// Retrieves all account modules' bytecode for a given account at a specific ledger version.
@@ -173,6 +218,32 @@ impl AccountsApi {
                 ledger_version.0,
                 start.0.map(StateKey::from),
                 limit.0,
+            )?;
+            account.modules(&accept_type)
+        })
+        .await
+    }
+
+    pub async fn get_account_modules_raw(
+        &self,
+        accept_type: AcceptType,
+        address: Address,
+        ledger_version: Option<U64>,
+        start: Option<StateKeyWrapper>,
+        limit: Option<u16>,
+    ) -> BasicResultWith404<Vec<MoveModuleBytecode>> {
+        fail_point_poem("endpoint_get_account_modules")?;
+        self.context
+            .check_api_output_enabled("Get account modules", &accept_type)?;
+
+        let context = self.context.clone();
+        api_spawn_blocking(move || {
+            let account = Account::new(
+                context,
+                address,
+                ledger_version,
+                start.map(StateKey::from),
+                limit,
             )?;
             account.modules(&accept_type)
         })

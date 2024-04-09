@@ -23,7 +23,7 @@ use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{
-    collections::HashMap,
+    collections::{BTreeMap, HashMap},
     fs,
     io::{self, Error, ErrorKind},
     sync::Arc,
@@ -52,20 +52,25 @@ use aptos_mempool::{MempoolClientRequest, MempoolClientSender, SubmissionStatus}
 use aptos_sdk::rest_client::aptos_api_types::MAX_RECURSIVE_TYPES_ALLOWED;
 use aptos_sdk::transaction_builder::TransactionFactory;
 use aptos_sdk::types::{AccountKey, LocalAccount};
-use aptos_state_view::account_with_state_view::AsAccountWithStateView;
 use aptos_storage_interface::state_view::DbStateViewAtVersion;
 use aptos_storage_interface::DbReaderWriter;
+use aptos_types::state_store::account_with_state_view::AsAccountWithStateView;
 use aptos_types::account_address::AccountAddress;
 use aptos_types::account_config::aptos_test_root_address;
 use aptos_types::account_view::AccountView;
-use aptos_types::block_executor::partitioner::{ExecutableBlock, ExecutableTransactions};
+use aptos_types::{
+    block_executor::{
+        config::BlockExecutorConfigFromOnchain,
+        partitioner::{ExecutableBlock, ExecutableTransactions}
+    }
+};
 use aptos_types::block_info::BlockInfo;
 use aptos_types::block_metadata::BlockMetadata;
 use aptos_types::chain_id::ChainId;
 use aptos_types::ledger_info::{generate_ledger_info_with_sig, LedgerInfo};
 use aptos_types::mempool_status::{MempoolStatus, MempoolStatusCode};
 use aptos_types::transaction::Transaction::UserTransaction;
-use aptos_types::transaction::{SignedTransaction, Transaction, WriteSetPayload};
+use aptos_types::transaction::{SignedTransaction, Transaction, WriteSetPayload, signature_verified_transaction::SignatureVerifiedTransaction};
 use aptos_types::validator_signer::ValidatorSigner;
 use aptos_vm::AptosVM;
 use aptos_vm_genesis::{test_genesis_change_set_and_validators, GENESIS_KEYPAIR};
@@ -731,7 +736,7 @@ impl Vm {
 
     async fn get_pending_tx(&self, count: u64) -> Vec<SignedTransaction> {
         let core_pool = self.core_mempool.as_ref().unwrap().read().await;
-        core_pool.get_batch(count, 1024 * 5 * 1000, true, true, vec![])
+        core_pool.get_batch(count, 1024 * 5 * 1000, true, true, BTreeMap::new())
     }
 
     async fn check_pending_tx(&self) {
@@ -958,10 +963,15 @@ impl Vm {
         match executor.execute_block(
             ExecutableBlock::new(
                 block_id,
-                ExecutableTransactions::Unsharded(block_tx.clone()),
+                ExecutableTransactions::Unsharded(block_tx
+                    .iter()
+                    .cloned()
+                    .map(SignatureVerifiedTransaction::from)
+                    .collect(),
+                    )
             ),
             parent_block_id,
-            None,
+            BlockExecutorConfigFromOnchain::new_no_block_limit()
         ) {
             Ok(output) => {
                 let ledger_info = LedgerInfo::new(
@@ -1041,6 +1051,7 @@ impl Vm {
             db.1.reader.clone(),
             sender,
             node_config.clone(),
+            None
         );
         self.api_context = Some(context.clone());
         let service = get_raw_api_service(Arc::new(context));

@@ -89,6 +89,49 @@ pub fn bootstrap(
     Ok(runtime)
 }
 
+pub type RawApi = (
+    TransactionsApi,
+    ViewFunctionApi,
+    IndexApi,
+    AccountsApi,
+    StateApi,
+    BlocksApi,
+    EventsApi,
+// BasicApi,
+);
+
+pub fn get_raw_api_service(
+    context: Arc<Context>,
+) -> RawApi {
+    let a = (
+        TransactionsApi {
+            context: context.clone(),
+        },
+        ViewFunctionApi {
+            context: context.clone()
+        },
+        IndexApi {
+            context: context.clone(),
+        },
+        AccountsApi {
+            context: context.clone(),
+        },
+        StateApi {
+            context: context.clone(),
+        },
+        BlocksApi {
+            context: context.clone(),
+        },
+        EventsApi {
+            context: context.clone(),
+        },
+        // BasicApi {
+        //     context: context.clone(),
+        // },
+    );
+    a
+}
+
 // TODOs regarding spec generation:
 // TODO: https://github.com/aptos-labs/aptos-core/issues/2280
 // TODO: https://github.com/poem-web/poem/issues/321

@@ -71,6 +71,15 @@ impl ViewFunctionApi {
         api_spawn_blocking(move || view_request(context, accept_type, request, ledger_version))
             .await
     }
+
+    pub async fn view_function_raw(
+        &self,
+        accept_type: AcceptType,
+        request: ViewRequest,
+        ledger_version: Option<U64>,
+    ) -> BasicResultWith404<Vec<MoveValue>> {
+        self.view_function(accept_type, ViewFunctionRequest::Json(Json(request)), Query(ledger_version)).await
+    }
 }
 
 fn view_request(

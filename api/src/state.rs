@@ -90,6 +90,35 @@ impl StateApi {
         .await
     }
 
+    pub async fn get_account_resource_raw(
+        &self,
+        accept_type: AcceptType,
+        address: Address,
+        resource_type: MoveStructTag,
+        ledger_version: Option<U64>,
+    ) -> BasicResultWith404<MoveResource> {
+        resource_type
+            .verify(0)
+            .context("'resource_type' invalid")
+            .map_err(|err| {
+                BasicErrorWith404::bad_request_with_code_no_info(err, AptosErrorCode::InvalidInput)
+            })?;
+        fail_point_poem("endpoint_get_account_resource")?;
+        self.context
+            .check_api_output_enabled("Get account resource", &accept_type)?;
+
+        let api = self.clone();
+        api_spawn_blocking(move || {
+            api.resource(
+                &accept_type,
+                address,
+                resource_type,
+                ledger_version.map(|inner| inner.0),
+            )
+        })
+        .await
+    }
+
     /// Get account module
     ///
     /// Retrieves an individual module from a given account and at a specific ledger version. If the
@@ -126,6 +155,28 @@ impl StateApi {
         let api = self.clone();
         api_spawn_blocking(move || {
             api.module(&accept_type, address.0, module_name.0, ledger_version.0)
+        })
+        .await
+    }
+
+    pub async fn get_account_module_raw(
+        &self,
+        accept_type: AcceptType,
+        address: Address,
+        module_name: IdentifierWrapper,
+        ledger_version: Option<U64>,
+    ) -> BasicResultWith404<MoveModuleBytecode> {
+        verify_module_identifier(module_name.0.as_str())
+            .context("'module_name' invalid")
+            .map_err(|err| {
+                BasicErrorWith404::bad_request_with_code_no_info(err, AptosErrorCode::InvalidInput)
+            })?;
+        fail_point_poem("endpoint_get_account_module")?;
+        self.context
+            .check_api_output_enabled("Get account module", &accept_type)?;
+        let api = self.clone();
+        api_spawn_blocking(move || {
+            api.module(&accept_type, address, module_name, ledger_version)
         })
         .await
     }
@@ -182,6 +233,34 @@ impl StateApi {
         .await
     }
 
+    pub async fn get_table_item_raw(
+        &self,
+        accept_type: AcceptType,
+        table_handle: Address,
+        table_item_request: TableItemRequest,
+        ledger_version: Option<U64>,
+    ) -> BasicResultWith404<MoveValue> {
+        table_item_request
+            .verify()
+            .context("'table_item_request' invalid")
+            .map_err(|err| {
+                BasicErrorWith404::bad_request_with_code_no_info(err, AptosErrorCode::InvalidInput)
+            })?;
+        fail_point_poem("endpoint_get_table_item")?;
+        self.context
+            .check_api_output_enabled("Get table item", &accept_type)?;
+        let api = self.clone();
+        api_spawn_blocking(move || {
+            api.table_item(
+                &accept_type,
+                table_handle,
+                table_item_request,
+                ledger_version,
+            )
+        })
+        .await
+    }
+
     /// Get raw table item
     ///
     /// Get a table item at a specific ledger version from the table identified by {table_handle}
@@ -228,6 +307,37 @@ impl StateApi {
                 table_handle.0,
                 table_item_request.0,
                 ledger_version.0,
+            )
+        })
+        .await
+    }
+
+
+    pub async fn get_raw_table_item_raw(
+        &self,
+        accept_type: AcceptType,
+        table_handle: Address,
+        table_item_request: RawTableItemRequest,
+        ledger_version: Option<U64>,
+    ) -> BasicResultWith404<MoveValue> {
+        fail_point_poem("endpoint_get_table_item")?;
+
+        if AcceptType::Json == accept_type {
+            return Err(api_forbidden(
+                "Get raw table item",
+                "Only BCS is supported as an AcceptType.",
+            ));
+        }
+        self.context
+            .check_api_output_enabled("Get raw table item", &accept_type)?;
+
+        let api = self.clone();
+        api_spawn_blocking(move || {
+            api.raw_table_item(
+                &accept_type,
+                table_handle,
+                table_item_request,
+                ledger_version,
             )
         })
         .await

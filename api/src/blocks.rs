@@ -63,6 +63,26 @@ impl BlocksApi {
         .await
     }
 
+    pub async fn get_block_by_height_raw(
+        &self,
+        accept_type: AcceptType,
+        block_height: u64,
+        with_transactions: Option<bool>,
+    ) -> BasicResultWith404<Block> {
+        fail_point_poem("endpoint_get_block_by_height")?;
+        self.context
+            .check_api_output_enabled("Get block by height", &accept_type)?;
+        let api = self.clone();
+        api_spawn_blocking(move || {
+            api.get_by_height(
+                accept_type,
+                block_height,
+                with_transactions.unwrap_or_default(),
+            )
+        })
+        .await
+    }
+
     /// Get blocks by version
     ///
     /// This endpoint allows you to get the transactions in a block
@@ -98,6 +118,26 @@ impl BlocksApi {
                 accept_type,
                 version.0,
                 with_transactions.0.unwrap_or_default(),
+            )
+        })
+        .await
+    }
+
+    pub async fn get_block_by_version_raw(
+        &self,
+        accept_type: AcceptType,
+        version: u64,
+        with_transactions: Option<bool>,
+    ) -> BasicResultWith404<Block> {
+        fail_point_poem("endpoint_get_block_by_version")?;
+        self.context
+            .check_api_output_enabled("Get block by version", &accept_type)?;
+        let api = self.clone();
+        api_spawn_blocking(move || {
+            api.get_by_version(
+                accept_type,
+                version,
+                with_transactions.unwrap_or_default(),
             )
         })
         .await

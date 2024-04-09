@@ -175,6 +175,26 @@ impl TransactionsApi {
         api_spawn_blocking(move || api.list(&accept_type, page)).await
     }
 
+
+    pub async fn get_transactions_raw(
+        &self,
+        accept_type: AcceptType,
+        start: Option<U64>,
+        limit: Option<u16>,
+    ) -> BasicResultWith404<Vec<Transaction>> {
+        fail_point_poem("endpoint_get_transactions")?;
+        self.context
+            .check_api_output_enabled("Get transactions", &accept_type)?;
+        let page = Page::new(
+            start.map(|v| v.0),
+            limit,
+            self.context.max_transactions_page_size(),
+        );
+
+        let api = self.clone();
+        api_spawn_blocking(move || api.list(&accept_type, page)).await
+    }
+
     /// Get transaction by hash
     ///
     /// Look up a transaction by its hash. This is the same hash that is returned
@@ -209,6 +229,17 @@ impl TransactionsApi {
             .await
     }
 
+
+    pub async fn get_transaction_by_hash_raw(
+        &self,
+        accept_type: AcceptType,
+        txn_hash: HashValue,
+        // TODO: Use a new request type that can't return 507.
+    ) -> BasicResultWith404<Transaction> {
+        self.get_transaction_by_hash(accept_type, Path(txn_hash))
+            .await
+    }
+
     /// Get transaction by version
     ///
     /// Retrieves a transaction by a given version. If the version has been
@@ -233,6 +264,15 @@ impl TransactionsApi {
             api.get_transaction_by_version_inner(&accept_type, txn_version.0)
         })
         .await
+    }
+
+    pub async fn get_transaction_by_version_raw(
+        &self,
+        accept_type: AcceptType,
+        txn_version: U64,
+    ) -> BasicResultWith404<Transaction> {
+        self.get_transaction_by_version(accept_type, Path(txn_version))
+            .await
     }
 
     /// Get account transactions
@@ -273,6 +313,25 @@ impl TransactionsApi {
         );
         let api = self.clone();
         api_spawn_blocking(move || api.list_by_account(&accept_type, page, address.0)).await
+    }
+
+    pub async fn get_accounts_transactions_raw(
+        &self,
+        accept_type: AcceptType,
+        address: Address,
+        start: Option<U64>,
+        limit: Option<u16>,
+    ) -> BasicResultWith404<Vec<Transaction>> {
+        fail_point_poem("endpoint_get_accounts_transactions")?;
+        self.context
+            .check_api_output_enabled("Get account transactions", &accept_type)?;
+        let page = Page::new(
+            start.map(|v| v.0),
+            limit,
+            self.context.max_transactions_page_size(),
+        );
+        let api = self.clone();
+        api_spawn_blocking(move || api.list_by_account(&accept_type, page, address)).await
     }
 
     /// Submit transaction
@@ -342,6 +401,14 @@ impl TransactionsApi {
             .await
     }
 
+    pub async fn submit_transaction_raw(
+        &self,
+        accept_type: AcceptType,
+        data: SubmitTransactionPost,
+    ) -> SubmitTransactionResult<PendingTransaction> {
+        self.submit_transaction(accept_type, data).await
+    }
+
     /// Submit batch transactions
     ///
     /// This allows you to submit multiple transactions.  The response has three outcomes:
@@ -404,6 +471,14 @@ impl TransactionsApi {
         }
         self.create_batch(&accept_type, &ledger_info, signed_transactions_batch)
             .await
+    }
+
+    pub async fn submit_transactions_batch_raw(
+        &self,
+        accept_type: AcceptType,
+        data: SubmitTransactionsBatchPost,
+    ) -> SubmitTransactionsBatchResult<TransactionsBatchSubmissionResult> {
+        self.submit_transactions_batch(accept_type, data).await
     }
 
     /// Simulate transaction
@@ -547,6 +622,18 @@ impl TransactionsApi {
         .await
     }
 
+    pub async fn simulate_transaction_raw(
+        &self,
+        accept_type: AcceptType,
+        estimate_max_gas_amount: Option<bool>,
+        estimate_gas_unit_price: Option<bool>,
+        estimate_prioritized_gas_unit_price: Option<bool>,
+        data: SubmitTransactionPost,
+    ) -> SimulateTransactionResult<Vec<UserTransaction>> {
+        self.simulate_transaction(accept_type, Query(estimate_max_gas_amount), Query(estimate_gas_unit_price), 
+            Query(estimate_prioritized_gas_unit_price), data).await
+    }
+
     /// Encode submission
     ///
     /// This endpoint accepts an EncodeSubmissionRequest, which internally is a
@@ -596,6 +683,15 @@ impl TransactionsApi {
         let api = self.clone();
         api_spawn_blocking(move || api.get_signing_message(&accept_type, data.0)).await
     }
+
+    pub async fn encode_submission_raw(
+        &self,
+        accept_type: AcceptType,
+        data: EncodeSubmissionRequest,
+    ) -> BasicResult<HexEncodedBytes> {
+        self.encode_submission(accept_type, Json(data)).await
+    }
+
 
     pub fn log_gas_estimation(gas_estimation: &GasEstimation) {
         metrics::GAS_ESTIMATE
@@ -662,6 +758,10 @@ impl TransactionsApi {
             }
         })
         .await
+    }
+
+    pub async fn estimate_gas_price_raw(&self, accept_type: AcceptType) -> BasicResult<GasEstimation> {
+        self.estimate_gas_price(accept_type).await
     }
 }
 
