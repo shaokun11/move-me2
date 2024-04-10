@@ -1014,6 +1014,7 @@ impl Vm {
 
     async fn init_aptos(&mut self) {
         let (genesis, validators) = test_genesis_change_set_and_validators(Some(1));
+        log::info!("validator {:?}", validators[0].data);
         let signer = ValidatorSigner::new(
             validators[0].data.owner_address,
             validators[0].consensus_key.clone(),
