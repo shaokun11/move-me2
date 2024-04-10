@@ -59,6 +59,16 @@ impl<A: GasAlgebra> GasAlgebra for CalibrationAlgebra<A> {
         Ok(())
     }
 
+    fn charge_extra_fee(
+        &mut self,
+        abstract_amount: impl GasExpression<VMGasParameters, Unit = InternalGasUnit>,
+    ) -> PartialVMResult<()> {
+        let amount =
+            abstract_amount.evaluate(self.base.feature_version(), self.base.vm_gas_params());
+        self.base.charge_execution(amount)?;
+        Ok(())
+    }
+
     fn charge_io(
         &mut self,
         abstract_amount: impl GasExpression<VMGasParameters, Unit = InternalGasUnit>,

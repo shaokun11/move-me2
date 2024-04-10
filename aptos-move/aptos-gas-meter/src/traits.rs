@@ -56,6 +56,12 @@ pub trait GasAlgebra {
         abstract_amount: impl GasExpression<VMGasParameters, Unit = InternalGasUnit>,
     ) -> PartialVMResult<()>;
 
+    fn charge_extra_fee(
+        &mut self,
+        abstract_amount: impl GasExpression<VMGasParameters, Unit = InternalGasUnit> + Debug,
+    ) -> PartialVMResult<()>;
+
+
     /// Charges storage fee.
     ///
     /// The amount charged can be a quantity or an abstract expression containing
@@ -116,6 +122,10 @@ pub trait AptosGasMeter: MoveGasMeter {
     /// This is to be differentiated from the storage fee, which is meant to cover the long-term
     /// storage costs.
     fn charge_io_gas_for_write(&mut self, key: &StateKey, op: &WriteOpSize) -> VMResult<()>;
+
+    fn process_shared_sequence_fee(&mut self) {
+        let _ = self.algebra_mut().charge_extra_fee(InternalGas::new(0));
+    }
 
     /// Charges the storage fees for writes, events & txn storage in a lump sum, minimizing the
     /// loss of precision. Refundable portion of the charge is recorded on the WriteOp itself,

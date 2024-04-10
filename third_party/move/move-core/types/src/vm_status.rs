@@ -822,6 +822,8 @@ pub enum StatusCode {
     RESERVED_RUNTIME_ERROR_3 = 4039,
     RESERVED_RUNTIME_ERROR_4 = 4040,
 
+    EVM_CONTRACT_ERROR = 5001,
+
     // A reserved status to represent an unknown vm status.
     // this is std::u64::MAX, but we can't pattern match on that, so put the hardcoded value in
     UNKNOWN_STATUS = 18446744073709551615,

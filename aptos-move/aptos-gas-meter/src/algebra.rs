@@ -182,6 +182,24 @@ impl GasAlgebra for StandardGasAlgebra {
         }
     }
 
+    fn charge_extra_fee(
+        &mut self,
+        abstract_amount: impl GasExpression<VMGasParameters, Unit = InternalGasUnit> + Debug,
+    ) -> PartialVMResult<()> {
+        let amount = abstract_amount.evaluate(self.feature_version, &self.vm_gas_params);
+        let (actual, res) = self.charge(amount);
+
+        if self.feature_version >= 12 {
+            self.io_gas_used += actual;
+        }
+        res?;
+
+        if self.feature_version < 12 {
+            self.io_gas_used += amount;
+        }
+        Ok(())
+    }
+
     fn charge_storage_fee(
         &mut self,
         abstract_amount: impl GasExpression<VMGasParameters, Unit = Octa>,
