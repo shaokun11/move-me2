@@ -384,7 +384,7 @@ export async function getTransactionByHash(evm_hash) {
         gas: toHex(info.gas_used),
         gasPrice: toHex(+info.gas_unit_price * 1e10),
         maxFeePerGas: toHex(info.max_fee_per_gas),
-        maxPriorityFeePerGas: toHex(info.max_priority_fee_per_gas),
+        maxPriorityFeePerGas: toHex(1),
         hash: hash,
         input: data,
         type,
