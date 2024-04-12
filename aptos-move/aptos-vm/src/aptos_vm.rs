@@ -409,6 +409,7 @@ impl AptosVM {
             u64::from(gas_meter.io_gas_used()),
             u64::from(gas_meter.storage_fee_used()),
             storage_fee_refund,
+            u64::from(gas_meter.m1_gas_used()),
         )
     }
 
@@ -800,6 +801,9 @@ impl AptosVM {
                 change_set_configs,
                 txn_data,
             )?;
+
+            println!("txn_data: {:?}", txn_data.gas_unit_price());
+            gas_meter.process_shared_sequence_fee();
 
             self.success_transaction_cleanup(
                 respawned_session,

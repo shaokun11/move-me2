@@ -36,6 +36,8 @@ pub struct FeeStatement {
     storage_fee_octas: u64,
     /// Storage fee refund.
     storage_fee_refund_octas: u64,
+    /// Shared sequence fee
+    m1_gas_units: u64
 }
 
 impl FeeStatement {
@@ -46,6 +48,7 @@ impl FeeStatement {
             io_gas_units: 0,
             storage_fee_octas: 0,
             storage_fee_refund_octas: 0,
+            m1_gas_units: 0
         }
     }
 
@@ -55,6 +58,7 @@ impl FeeStatement {
         io_gas_units: u64,
         storage_fee_octas: u64,
         storage_fee_refund_octas: u64,
+        m1_gas_units: u64
     ) -> Self {
         Self {
             total_charge_gas_units,
@@ -62,6 +66,7 @@ impl FeeStatement {
             io_gas_units,
             storage_fee_octas,
             storage_fee_refund_octas,
+            m1_gas_units
         }
     }
 
@@ -89,11 +94,16 @@ impl FeeStatement {
         self.storage_fee_refund_octas
     }
 
+    pub fn m1_gas_used(&self) -> u64 {
+        self.m1_gas_units
+    }
+
     pub fn add_fee_statement(&mut self, other: &FeeStatement) {
         self.total_charge_gas_units += other.total_charge_gas_units;
         self.execution_gas_units += other.execution_gas_units;
         self.io_gas_units += other.io_gas_units;
         self.storage_fee_octas += other.storage_fee_octas;
         self.storage_fee_refund_octas += other.storage_fee_refund_octas;
+        self.m1_gas_units += other.m1_gas_units;
     }
 }

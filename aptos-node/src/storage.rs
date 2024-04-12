@@ -39,6 +39,7 @@ pub(crate) fn maybe_apply_genesis(
 pub(crate) fn bootstrap_db(
     node_config: &NodeConfig,
 ) -> Result<(Arc<dyn DbReader>, DbReaderWriter, Option<Runtime>)> {
+    // println!("initialize {:?}", node_config);
     let (aptos_db_reader, db_rw, backup_service) =
         match FastSyncStorageWrapper::initialize_dbs(node_config)? {
             Either::Left(db) => {

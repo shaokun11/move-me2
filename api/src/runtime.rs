@@ -153,8 +153,8 @@ pub fn get_api_service(
 }
 
 async fn validate_ip_address<E: Endpoint>(next: E, request: Request) -> Result<Response> {
-    let addr = request.remote_addr().as_socket_addr().cloned();
-    println!("address {:?}", addr);
+    // let addr = request.remote_addr().as_socket_addr().cloned();
+    // println!("address {:?}", addr);
     let response = next.get_response(request).await;
     Ok(response)
 }

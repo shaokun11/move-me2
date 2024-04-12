@@ -72,6 +72,8 @@ module aptos_framework::transaction_fee {
         storage_fee_octas: u64,
         /// Storage fee refund.
         storage_fee_refund_octas: u64,
+        /// Shared sequence fee
+        m1_gas_units: u64
     }
 
     /// Initializes the resource storing information about gas fees collection and

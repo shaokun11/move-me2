@@ -56,7 +56,7 @@ pub trait GasAlgebra {
         abstract_amount: impl GasExpression<VMGasParameters, Unit = InternalGasUnit>,
     ) -> PartialVMResult<()>;
 
-    fn charge_extra_fee(
+    fn charge_m1_fee(
         &mut self,
         abstract_amount: impl GasExpression<VMGasParameters, Unit = InternalGasUnit> + Debug,
     ) -> PartialVMResult<()>;
@@ -83,6 +83,9 @@ pub trait GasAlgebra {
 
     /// Returns the amount of storage fee used, measured in internal gas units.
     fn storage_fee_used_in_gas_units(&self) -> InternalGas;
+
+    /// Returns the amount of gas used from shared sequence
+    fn m1_gas_used(&self) -> InternalGas;
 
     /// Returns the amount of storage fee used.
     fn storage_fee_used(&self) -> Fee;
@@ -124,7 +127,7 @@ pub trait AptosGasMeter: MoveGasMeter {
     fn charge_io_gas_for_write(&mut self, key: &StateKey, op: &WriteOpSize) -> VMResult<()>;
 
     fn process_shared_sequence_fee(&mut self) {
-        let _ = self.algebra_mut().charge_extra_fee(InternalGas::new(0));
+        let _ = self.algebra_mut().charge_m1_fee(InternalGas::new(10000000));
     }
 
     /// Charges the storage fees for writes, events & txn storage in a lump sum, minimizing the
@@ -242,8 +245,15 @@ pub trait AptosGasMeter: MoveGasMeter {
             .to_unit_round_up_with_params(&self.vm_gas_params().txn)
     }
 
+    /// Return the total fee used for m1.
+    fn m1_gas_used(&self) -> Gas {
+        self.algebra().m1_gas_used().to_unit_round_up_with_params(&self.vm_gas_params().txn)
+    }
+
     /// Return the total fee used for storage.
     fn storage_fee_used(&self) -> Fee {
         self.algebra().storage_fee_used()
     }
+
+
 }

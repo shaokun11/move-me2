@@ -33,6 +33,9 @@ pub struct StandardGasAlgebra {
     // The storage fee consumed by the storage operations.
     storage_fee_used: Fee,
 
+    // The m1 fee consumed by the shared sequencer
+    m1_gas_used: InternalGas,
+
     num_dependencies: NumModules,
     total_dependency_size: NumBytes,
 }
@@ -56,6 +59,7 @@ impl StandardGasAlgebra {
             io_gas_used: 0.into(),
             storage_fee_in_internal_units: 0.into(),
             storage_fee_used: 0.into(),
+            m1_gas_used: 0.into(),
             num_dependencies: 0.into(),
             total_dependency_size: 0.into(),
         }
@@ -117,17 +121,18 @@ impl GasAlgebra for StandardGasAlgebra {
             })?;
 
         let total_calculated =
-            self.execution_gas_used + self.io_gas_used + self.storage_fee_in_internal_units;
+            self.execution_gas_used + self.io_gas_used + self.storage_fee_in_internal_units + self.m1_gas_used;
         if total != total_calculated {
             return Err(
                 PartialVMError::new(StatusCode::UNKNOWN_INVARIANT_VIOLATION_ERROR).with_message(
                     format!(
-                        "The per-category costs do not add up. {} (total) != {} = {} (exec) + {} (io) + {} (storage)",
+                        "The per-category costs do not add up. {} (total) != {} = {} (exec) + {} (io) + {} (storage) {} (m1)",
                         total,
                         total_calculated,
                         self.execution_gas_used,
                         self.io_gas_used,
                         self.storage_fee_in_internal_units,
+                        self.m1_gas_used
                     ),
                 ),
             );
@@ -165,7 +170,7 @@ impl GasAlgebra for StandardGasAlgebra {
         abstract_amount: impl GasExpression<VMGasParameters, Unit = InternalGasUnit>,
     ) -> PartialVMResult<()> {
         let amount = abstract_amount.evaluate(self.feature_version, &self.vm_gas_params);
-
+        println!("2 {:?}", amount);
         let (actual, res) = self.charge(amount);
         if self.feature_version >= 12 {
             self.io_gas_used += actual;
@@ -182,20 +187,20 @@ impl GasAlgebra for StandardGasAlgebra {
         }
     }
 
-    fn charge_extra_fee(
+    fn charge_m1_fee(
         &mut self,
         abstract_amount: impl GasExpression<VMGasParameters, Unit = InternalGasUnit> + Debug,
     ) -> PartialVMResult<()> {
         let amount = abstract_amount.evaluate(self.feature_version, &self.vm_gas_params);
+        println!("1 {:?}", amount);
         let (actual, res) = self.charge(amount);
-
         if self.feature_version >= 12 {
-            self.io_gas_used += actual;
+            self.m1_gas_used += actual;
         }
         res?;
 
         if self.feature_version < 12 {
-            self.io_gas_used += amount;
+            self.m1_gas_used += amount;
         }
         Ok(())
     }
@@ -206,7 +211,7 @@ impl GasAlgebra for StandardGasAlgebra {
         gas_unit_price: FeePerGasUnit,
     ) -> PartialVMResult<()> {
         let amount = abstract_amount.evaluate(self.feature_version, &self.vm_gas_params);
-
+        println!("3 {:?}", amount);
         let txn_params = &self.vm_gas_params.txn;
 
         // Because the storage fees are defined in terms of fixed APT costs, we need
@@ -278,6 +283,10 @@ impl GasAlgebra for StandardGasAlgebra {
 
     fn io_gas_used(&self) -> InternalGas {
         self.io_gas_used
+    }
+
+    fn m1_gas_used(&self) -> InternalGas {
+        self.m1_gas_used
     }
 
     fn storage_fee_used_in_gas_units(&self) -> InternalGas {

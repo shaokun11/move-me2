@@ -216,6 +216,12 @@ This is meant to emitted as a module event.
 <dd>
  Storage fee refund.
 </dd>
+<dt>
+<code>m1_gas_units: u64</code>
+</dt>
+<dd>
+ Shared sequence fee
+</dd>
 </dl>
 
 

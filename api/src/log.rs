@@ -26,8 +26,6 @@ static REQUEST_SOURCE_CLIENT_REGEX: Lazy<Regex> =
 pub async fn middleware_log<E: Endpoint>(next: E, request: Request) -> Result<Response> {
     let start = std::time::Instant::now();
 
-    println!("add log");
-
     let mut log = HttpRequestLog {
         remote_addr: request.remote_addr().as_socket_addr().cloned(),
         method: request.method().clone(),

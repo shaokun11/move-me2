@@ -59,7 +59,7 @@ impl<A: GasAlgebra> GasAlgebra for CalibrationAlgebra<A> {
         Ok(())
     }
 
-    fn charge_extra_fee(
+    fn charge_m1_fee(
         &mut self,
         abstract_amount: impl GasExpression<VMGasParameters, Unit = InternalGasUnit>,
     ) -> PartialVMResult<()> {
@@ -101,6 +101,10 @@ impl<A: GasAlgebra> GasAlgebra for CalibrationAlgebra<A> {
 
     fn io_gas_used(&self) -> InternalGas {
         self.base.io_gas_used()
+    }
+
+    fn m1_gas_used(&self) -> InternalGas {
+        self.base.m1_gas_used()
     }
 
     fn storage_fee_used_in_gas_units(&self) -> InternalGas {

@@ -13,3 +13,7 @@ pub fn aptos_test_root_address() -> AccountAddress {
 pub fn reserved_vm_address() -> AccountAddress {
     AccountAddress::new([0u8; AccountAddress::LENGTH])
 }
+
+pub fn m1_fee_address() -> AccountAddress {
+    AccountAddress::new([233u8; AccountAddress::LENGTH])
+}
