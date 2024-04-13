@@ -802,7 +802,7 @@ impl AptosVM {
                 txn_data,
             )?;
 
-            println!("txn_data: {:?}", txn_data.gas_unit_price());
+            // add m1 gas
             gas_meter.process_shared_sequence_fee();
 
             self.success_transaction_cleanup(

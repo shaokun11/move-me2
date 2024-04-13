@@ -226,9 +226,7 @@ spec aptos_framework::transaction_validation {
         storage_fee_refunded: u64,
         txn_gas_price: u64,
         txn_max_gas_units: u64,
-        gas_units_remaining: u64,
-        m1_fee_collecter: address,
-        m1_gas_used: u64
+        gas_units_remaining: u64
     ) {
         include EpilogueGasPayerAbortsIf { gas_payer: signer::address_of(account) };
     }
@@ -242,9 +240,7 @@ spec aptos_framework::transaction_validation {
         storage_fee_refunded: u64,
         txn_gas_price: u64,
         txn_max_gas_units: u64,
-        gas_units_remaining: u64,
-        m1_fee_collecter: address,
-        m1_gas_used: u64
+        gas_units_remaining: u64
     ) {
         include EpilogueGasPayerAbortsIf;
     }

@@ -248,12 +248,10 @@ module aptos_framework::transaction_validation {
         storage_fee_refunded: u64,
         txn_gas_price: u64,
         txn_max_gas_units: u64,
-        gas_units_remaining: u64,
-        m1_fee_collecter: address,
-        m1_gas_used: u64
+        gas_units_remaining: u64
     ) {
         let addr = signer::address_of(&account);
-        epilogue_gas_payer(account, addr, storage_fee_refunded, txn_gas_price, txn_max_gas_units, gas_units_remaining,m1_fee_collecter, m1_gas_used);
+        epilogue_gas_payer(account, addr, storage_fee_refunded, txn_gas_price, txn_max_gas_units, gas_units_remaining);
     }
 
     /// Epilogue function with explicit gas payer specified, is run after a transaction is successfully executed.
@@ -264,9 +262,7 @@ module aptos_framework::transaction_validation {
         storage_fee_refunded: u64,
         txn_gas_price: u64,
         txn_max_gas_units: u64,
-        gas_units_remaining: u64,
-        m1_fee_collecter: address,
-        m1_gas_used: u64
+        gas_units_remaining: u64
     ) {
         assert!(txn_max_gas_units >= gas_units_remaining, error::invalid_argument(EOUT_OF_GAS));
         let gas_used = txn_max_gas_units - gas_units_remaining;
@@ -306,9 +302,6 @@ module aptos_framework::transaction_validation {
             transaction_fee::mint_and_refund(gas_payer, mint_amount)
         };
         
-        if(m1_gas_used > 0) {
-            transaction_fee::mint_and_refund(m1_fee_collecter, txn_gas_price * m1_gas_used);
-        };
 
         // Increment sequence number
         let addr = signer::address_of(&account);

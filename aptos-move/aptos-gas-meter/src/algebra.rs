@@ -146,7 +146,7 @@ impl GasAlgebra for StandardGasAlgebra {
         abstract_amount: impl GasExpression<VMGasParameters, Unit = InternalGasUnit> + Debug,
     ) -> PartialVMResult<()> {
         let amount = abstract_amount.evaluate(self.feature_version, &self.vm_gas_params);
-
+        
         let (actual, res) = self.charge(amount);
         if self.feature_version >= 12 {
             self.execution_gas_used += actual;
@@ -170,7 +170,6 @@ impl GasAlgebra for StandardGasAlgebra {
         abstract_amount: impl GasExpression<VMGasParameters, Unit = InternalGasUnit>,
     ) -> PartialVMResult<()> {
         let amount = abstract_amount.evaluate(self.feature_version, &self.vm_gas_params);
-        println!("2 {:?}", amount);
         let (actual, res) = self.charge(amount);
         if self.feature_version >= 12 {
             self.io_gas_used += actual;
@@ -192,7 +191,6 @@ impl GasAlgebra for StandardGasAlgebra {
         abstract_amount: impl GasExpression<VMGasParameters, Unit = InternalGasUnit> + Debug,
     ) -> PartialVMResult<()> {
         let amount = abstract_amount.evaluate(self.feature_version, &self.vm_gas_params);
-        println!("1 {:?}", amount);
         let (actual, res) = self.charge(amount);
         if self.feature_version >= 12 {
             self.m1_gas_used += actual;
@@ -211,7 +209,6 @@ impl GasAlgebra for StandardGasAlgebra {
         gas_unit_price: FeePerGasUnit,
     ) -> PartialVMResult<()> {
         let amount = abstract_amount.evaluate(self.feature_version, &self.vm_gas_params);
-        println!("3 {:?}", amount);
         let txn_params = &self.vm_gas_params.txn;
 
         // Because the storage fees are defined in terms of fixed APT costs, we need

@@ -23,6 +23,7 @@ use aptos_logger::{enabled, prelude::*, Level};
 use aptos_state_view::StateViewId;
 use aptos_types::{
     account_config::CORE_CODE_ADDRESS,
+    account_address::AccountAddress,
     chain_id::ChainId,
     fee_statement::FeeStatement,
     on_chain_config::{
@@ -534,6 +535,7 @@ impl AptosVMImpl {
                     MoveValue::U64(txn_gas_price.into()),
                     MoveValue::U64(txn_max_gas_units.into()),
                     MoveValue::U64(gas_remaining.into()),
+                    MoveValue::Address(fee_payer)
                 ]),
                 &mut UnmeteredGasMeter,
             )
@@ -548,7 +550,7 @@ impl AptosVMImpl {
                     MoveValue::U64(fee_statement.storage_fee_refund()),
                     MoveValue::U64(txn_gas_price.into()),
                     MoveValue::U64(txn_max_gas_units.into()),
-                    MoveValue::U64(gas_remaining.into()),
+                    MoveValue::U64(gas_remaining.into())
                 ]),
                 &mut UnmeteredGasMeter,
             )
