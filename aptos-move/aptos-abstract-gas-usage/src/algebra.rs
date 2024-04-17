@@ -104,7 +104,7 @@ impl<A: GasAlgebra> GasAlgebra for CalibrationAlgebra<A> {
     }
 
     fn m1_gas_used(&self) -> InternalGas {
-        self.base.m1_gas_used()
+        self.base.io_gas_used()
     }
 
     fn storage_fee_used_in_gas_units(&self) -> InternalGas {

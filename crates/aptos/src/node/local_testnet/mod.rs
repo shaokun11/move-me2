@@ -10,7 +10,7 @@ mod node;
 mod postgres;
 mod processors;
 mod ready_server;
-mod traits;
+pub mod traits;
 mod utils;
 
 use self::{
