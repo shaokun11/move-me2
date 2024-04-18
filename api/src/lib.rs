@@ -10,7 +10,7 @@ mod basic;
 pub mod bcs_payload;
 mod blocks;
 mod check_size;
-mod context;
+pub mod context;
 mod error_converter;
 mod events;
 mod failpoint;
