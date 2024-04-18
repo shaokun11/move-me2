@@ -27,6 +27,8 @@ module aptos_framework::evm {
     use aptos_framework::precompile::{is_precompile_address, run_precompile};
     #[test_only]
     use std::features;
+    use aptos_std::simple_map;
+    use aptos_std::simple_map::SimpleMap;
 
     const ADDR_LENGTH: u64 = 10001;
     const SIGNATURE: u64 = 10002;
@@ -41,7 +43,7 @@ module aptos_framework::evm {
     const CONVERT_BASE: u256 = 10000000000;
     const CHAIN_ID: u64 = 0x150;
 
-
+    const U255_MAX: u256 = 57896044618658097711785492504343953926634992332820282019728792003956564819967;
     const U256_MAX: u256 = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
     const ZERO_ADDR: vector<u8> =      x"0000000000000000000000000000000000000000000000000000000000000000";
     const ONE_ADDR: vector<u8> =       x"0000000000000000000000000000000000000000000000000000000000000001";
@@ -162,7 +164,7 @@ module aptos_framework::evm {
         contract_addr = to_32bit(contract_addr);
         let contract_store = borrow_global_mut<Account>(create_resource_address(&@aptos_framework, contract_addr));
         sender = to_32bit(sender);
-        run(sender, sender, contract_addr, contract_store.code, data, true, 0)
+        run(sender, sender, contract_addr, contract_store.code, data, true, 0, &mut simple_map::new<u256, u256>())
     }
 
     #[view]
@@ -189,13 +191,14 @@ module aptos_framework::evm {
         create_account_if_not_exist(address_to);
         verify_nonce(address_from, nonce);
         let account_store_to = borrow_global_mut<Account>(address_to);
+        let transient = &mut simple_map::new<u256, u256>();
         if(evm_to == ZERO_ADDR) {
             let evm_contract = get_contract_address(evm_from, nonce);
             let address_contract = create_resource_address(&@aptos_framework, evm_contract);
             create_account_if_not_exist(address_contract);
             create_event_if_not_exist(address_contract);
             borrow_global_mut<Account>(address_contract).is_contract = true;
-            borrow_global_mut<Account>(address_contract).code = run(evm_from, evm_from, evm_contract, data, x"", false, value);
+            borrow_global_mut<Account>(address_contract).code = run(evm_from, evm_from, evm_contract, data, x"", false, value, transient);
             evm_contract
         } else if(evm_to == ONE_ADDR) {
             let amount = data_to_u256(data, 36, 32);
@@ -204,7 +207,7 @@ module aptos_framework::evm {
             x""
         } else {
             if(account_store_to.is_contract) {
-                run(evm_from, evm_from, evm_to, account_store_to.code, data, false, value)
+                run(evm_from, evm_from, evm_to, account_store_to.code, data, false, value, transient)
             } else {
                 transfer_to_evm_addr(evm_from, evm_to, value);
                 x""
@@ -227,7 +230,7 @@ module aptos_framework::evm {
     // - data: The input data for the execution.
     // - readOnly: A boolean flag indicating whether the execution should be read-only.
     // - value: The value to be transferred during the execution.
-    fun run(sender: vector<u8>, origin: vector<u8>, evm_contract_address: vector<u8>, code: vector<u8>, data: vector<u8>, readOnly: bool, value: u256): vector<u8> acquires Account, ContractEvent {
+    fun run(sender: vector<u8>, origin: vector<u8>, evm_contract_address: vector<u8>, code: vector<u8>, data: vector<u8>, readOnly: bool, value: u256, transient: &mut SimpleMap<u256, u256>): vector<u8> acquires Account, ContractEvent {
         if (is_precompile_address(evm_contract_address)) {
             return precompile(sender, evm_contract_address, value, data)
         };
@@ -239,6 +242,7 @@ module aptos_framework::evm {
         // Initialize an empty stack and memory for the EVM execution.
         let stack = &mut vector::empty<u256>();
         let memory = &mut vector::empty<u8>();
+        // let
         // Get the length of the bytecode.
         let len = vector::length(&code);
         // Initialize an empty vector for the runtime code.
@@ -483,6 +487,24 @@ module aptos_framework::evm {
                     vector::push_back(stack, 0);
                 } else {
                     vector::push_back(stack, a >> (b as u8));
+                };
+
+                i = i + 1;
+            }
+                //sar
+            else if(opcode == 0x1d) {
+                let b = vector::pop_back(stack);
+                let a = vector::pop_back(stack);
+                if(b >= 256) {
+                    vector::push_back(stack, 0);
+                } else {
+                    let(neg, num_a) = to_int256(a);
+                    if(neg) {
+                        let n = num_a >> (b as u8);
+                        vector::push_back(stack, n + U255_MAX + 1);
+                    } else {
+                        vector::push_back(stack, a >> (b as u8));
+                    }
                 };
 
                 i = i + 1;
@@ -766,6 +788,33 @@ module aptos_framework::evm {
             else if(opcode == 0x5b) {
                 i = i + 1
             }
+                //TLOAD
+            else if(opcode == 0x5c) {
+                let key = vector::pop_back(stack);
+                if(simple_map::contains_key(transient, &key)) {
+                    vector::push_back(stack, *simple_map::borrow(transient, &key));
+                } else {
+                    vector::push_back(stack, 0);
+                };
+
+                i = i + 1
+            }
+                //TSTORE
+            else if(opcode == 0x5d) {
+                let key = vector::pop_back(stack);
+                let value = vector::pop_back(stack);
+                simple_map::upsert(transient, key, value);
+                i = i + 1
+            }
+                //MCOPY
+            else if(opcode == 0x5e) {
+                let m_pos = vector::pop_back(stack);
+                let d_pos = vector::pop_back(stack);
+                let len = vector::pop_back(stack);
+                let bytes = slice(*memory, d_pos, len);
+                mstore(memory, m_pos, bytes);
+                i = i + 1;
+            }
                 //sha3
             else if(opcode == 0x20) {
                 let pos = vector::pop_back(stack);
@@ -800,7 +849,7 @@ module aptos_framework::evm {
 
                     let target = if (opcode == 0xf4) evm_contract_address else evm_dest_addr;
                     let from = if (opcode == 0xf4) sender else evm_contract_address;
-                    ret_bytes = run(from, sender, target, dest_code, params, readOnly, msg_value);
+                    ret_bytes = run(from, sender, target, dest_code, params, readOnly, msg_value, transient);
                     ret_size = (vector::length(&ret_bytes) as u256);
                     let index = 0;
                     // if(opcode == 0xf4) {
@@ -851,7 +900,7 @@ module aptos_framework::evm {
 
                 borrow_global_mut<Account>(new_move_contract_addr).nonce = 1;
                 borrow_global_mut<Account>(new_move_contract_addr).is_contract = true;
-                borrow_global_mut<Account>(new_move_contract_addr).code = run(evm_contract_address, sender, new_evm_contract_addr, new_codes, x"", false, msg_value);
+                borrow_global_mut<Account>(new_move_contract_addr).code = run(evm_contract_address, sender, new_evm_contract_addr, new_codes, x"", false, msg_value, transient);
 
                 debug::print(&utf8(b"create end"));
                 ret_size = 32;
@@ -892,7 +941,7 @@ module aptos_framework::evm {
                 // let new_contract_store = borrow_global_mut<Account>(new_move_contract_addr);
                 borrow_global_mut<Account>(new_move_contract_addr).nonce = 1;
                 borrow_global_mut<Account>(new_move_contract_addr).is_contract = true;
-                borrow_global_mut<Account>(new_move_contract_addr).code = run(evm_contract_address, sender, new_evm_contract_addr, new_codes, x"", false, msg_value);
+                borrow_global_mut<Account>(new_move_contract_addr).code = run(evm_contract_address, sender, new_evm_contract_addr, new_codes, x"", false, msg_value, transient);
                 // new_contract_store.code = code;
                 ret_size = 32;
                 ret_bytes = new_evm_contract_addr;

@@ -891,6 +891,7 @@ invalid chain id in raw tx
     // Initialize an empty stack and memory for the EVM execution.
     <b>let</b> stack = &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_empty">vector::empty</a>&lt;u256&gt;();
     <b>let</b> memory = &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_empty">vector::empty</a>&lt;u8&gt;();
+    // <b>let</b>
     // Get the length of the bytecode.
     <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&<a href="code.md#0x1_code">code</a>);
     // Initialize an empty <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a> for the runtime <a href="code.md#0x1_code">code</a>.
@@ -1131,6 +1132,19 @@ invalid chain id in raw tx
         <b>else</b> <b>if</b>(opcode == 0x1c) {
             <b>let</b> b = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
             <b>let</b> a = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>if</b>(b &gt;= 256) {
+                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 0);
+            } <b>else</b> {
+                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, a &gt;&gt; (b <b>as</b> u8));
+            };
+
+            i = i + 1;
+        }
+            //sar
+        <b>else</b> <b>if</b>(opcode == 0x1d) {
+            <b>let</b> b = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> a = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b>(sg_a, num_a) = to_int256(a);
             <b>if</b>(b &gt;= 256) {
                 <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 0);
             } <b>else</b> {
