@@ -109,6 +109,8 @@ module aptos_framework::evm {
         raw_tx: vector<u8>
     ): (u64, u64, vector<u8>, vector<u8>, u256, vector<u8>);
 
+    native fun mul_mod(a: u256, b: u256, n: u256): u256;
+
     public entry fun send_tx(
         sender: &signer,
         _evm_from: vector<u8>,
@@ -119,6 +121,9 @@ module aptos_framework::evm {
         let gas = to_u256(gas_bytes);
         let (chain_id, nonce, evm_from, evm_to, value, data) = decode_raw_tx(tx);
         assert!(chain_id == CHAIN_ID || chain_id == 0, INVALID_CHAINID);
+        debug::print(&chain_id);
+        debug::print(&evm_to);
+        debug::print(&data);
         execute(to_32bit(evm_from), to_32bit(evm_to), nonce, data, value);
         transfer_to_move_addr(to_32bit(evm_from), address_of(sender), gas * CONVERT_BASE);
     }
@@ -313,15 +318,15 @@ module aptos_framework::evm {
                 };
                 i = i + 1;
             }
-                //div && sdiv
-            else if(opcode == 0x04 || opcode == 0x05) {
+                //div
+            else if(opcode == 0x04) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
                 vector::push_back(stack, a / b);
                 i = i + 1;
             }
                 //mod && smod
-            else if(opcode == 0x06 || opcode == 0x07) {
+            else if(opcode == 0x06) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
                 vector::push_back(stack, a % b);
@@ -340,7 +345,7 @@ module aptos_framework::evm {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
                 let n = vector::pop_back(stack);
-                vector::push_back(stack, (a * b) % n);
+                vector::push_back(stack, mul_mod(a, b, n));
                 i = i + 1;
             }
                 //exp
@@ -501,7 +506,6 @@ module aptos_framework::evm {
                         c = U256_MAX;
                     }
                 } else {
-
                     if(neg) {
                         let n = num_a >> (b as u8);
                         c = U256_MAX - n + 1;
@@ -511,9 +515,6 @@ module aptos_framework::evm {
                 };
 
                 vector::push_back(stack, c);
-                debug::print(&b);
-                debug::print(&a);
-                debug::print(&c);
                 i = i + 1;
             }
                 //push0
@@ -1217,6 +1218,19 @@ module aptos_framework::evm {
         coin::destroy_freeze_cap(freeze_cap);
         coin::destroy_burn_cap(burn_cap);
         coin::destroy_mint_cap(mint_cap);
+    }
+
+    #[test]
+    fun test_mul_mod() {
+        debug::print(&mul_mod(U256_MAX, U256_MAX, 14232329));
+    }
+
+    #[test]
+    fun test_opcode() acquires Account, ContractEvent{
+        let tx = x"f885800a8404c4b40094cccccccccccccccccccccccccccccccccccccccc01a4693c613900000000000000000000000000000000000000000000000000000000000000001ba0e8ff56322287185f6afd3422a825b47bf5c1a4ccf0dc0389cdc03f7c1c32b7eaa0776b02f9f5773238d3ff36b74a123f409cd6420908d7855bbe4c8ff63e00d698";
+        let evm = account::create_account_for_test(@0x1);
+        let sender = x"054ecb78d0276cf182514211d0c21fe46590b654";
+        send_tx(&evm, sender, tx, u256_to_data(0), 1);
     }
 
     #[test]
