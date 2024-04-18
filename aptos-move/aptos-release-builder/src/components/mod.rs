@@ -94,6 +94,7 @@ fn default_url() -> String {
 pub enum ExecutionMode {
     MultiStep,
     RootSigner,
+    SingleStep
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
@@ -125,6 +126,7 @@ impl ReleaseEntry {
         let (is_testnet, is_multi_step) = match execution_mode {
             ExecutionMode::MultiStep => (false, true),
             ExecutionMode::RootSigner => (true, false),
+            ExecutionMode::SingleStep => (false, false),
         };
         match self {
             ReleaseEntry::Framework(framework_release) => {
