@@ -172,7 +172,7 @@ module aptos_framework::evm {
         contract_addr = to_32bit(contract_addr);
         let contract_store = borrow_global_mut<Account>(create_resource_address(&@aptos_framework, contract_addr));
         sender = to_32bit(sender);
-        let (res, bytes) = run2(sender, sender, contract_addr, contract_store.code, data, true, 0, &mut simple_map::new<u256, u256>());
+        let (res, bytes) = run(sender, sender, contract_addr, contract_store.code, data, true, 0, &mut simple_map::new<u256, u256>());
         handle_exdlecute_result(res, bytes)
     }
 
@@ -225,7 +225,7 @@ module aptos_framework::evm {
             create_account_if_not_exist(address_contract);
             create_event_if_not_exist(address_contract);
             borrow_global_mut<Account>(address_contract).is_contract = true;
-            let (res, code) = run2(evm_from, evm_from, evm_contract, data, x"", false, value, transient);
+            let (res, code) = run(evm_from, evm_from, evm_contract, data, x"", false, value, transient);
             borrow_global_mut<Account>(address_contract).code = code;
             handle_exdlecute_result(res, evm_contract)
         } else if(evm_to == ONE_ADDR) {
@@ -235,7 +235,7 @@ module aptos_framework::evm {
             x""
         } else {
             if(account_store_to.is_contract) {
-                let (res, bytes) = run2(evm_from, evm_from, evm_to, account_store_to.code, data, false, value, transient);
+                let (res, bytes) = run(evm_from, evm_from, evm_to, account_store_to.code, data, false, value, transient);
                 handle_exdlecute_result(res, bytes)
             } else {
                 transfer_to_evm_addr(evm_from, evm_to, value);
@@ -250,7 +250,20 @@ module aptos_framework::evm {
         run_precompile(to, calldata, CHAIN_ID)
     }
 
-    fun run2(sender: vector<u8>, origin: vector<u8>, evm_contract_address: vector<u8>, code: vector<u8>, data: vector<u8>, readOnly: bool, value: u256, transient: &mut SimpleMap<u256, u256>): (bool, vector<u8>) acquires Account, ContractEvent {
+    // fun exec_call(sender: vector<u8>, origin: vector<u8>, evm_contract_address: vector<u8>, code: vector<u8>, data: vector<u8>, readOnly: bool, value: u256, transient: &mut SimpleMap<u256, u256>): (bool, vector<u8>) acquires Account, ContractEvent {(sender: vector<u8>, origin: vector<u8>, evm_contract_address: vector<u8>, code: vector<u8>, data: vector<u8>, readOnly: bool, value: u256, transient: &mut SimpleMap<u256, u256>): (bool, vector<u8>) acquires Account, ContractEvent {
+    //
+    // }
+
+    // This function is used to execute EVM bytecode.
+    // Parameters:
+    // - sender: The address of the sender.
+    // - origin: The original invoker of the transaction.
+    // - evm_contract_address: The EVM address of the contract.
+    // - code: The EVM bytecode to be executed.
+    // - data: The input data for the execution.
+    // - readOnly: A boolean flag indicating whether the execution should be read-only.
+    // - value: The value to be transferred during the execution.
+    fun run(sender: vector<u8>, origin: vector<u8>, evm_contract_address: vector<u8>, code: vector<u8>, data: vector<u8>, readOnly: bool, value: u256, transient: &mut SimpleMap<u256, u256>): (bool, vector<u8>) acquires Account, ContractEvent {
         if (is_precompile_address(evm_contract_address)) {
             return (true, precompile(sender, evm_contract_address, value, data))
         };
@@ -889,7 +902,7 @@ module aptos_framework::evm {
 
                     let target = if (opcode == 0xf4) evm_contract_address else evm_dest_addr;
                     let from = if (opcode == 0xf4) sender else evm_contract_address;
-                    let(call_res, ret_bytes) = run2(from, sender, target, dest_code, params, readOnly, msg_value, transient);
+                    let(call_res, ret_bytes) = run(from, sender, target, dest_code, params, readOnly, msg_value, transient);
                     ret_size = (vector::length(&ret_bytes) as u256);
                     let index = 0;
                     // if(opcode == 0xf4) {
@@ -938,7 +951,7 @@ module aptos_framework::evm {
                 create_account_if_not_exist(new_move_contract_addr);
                 create_event_if_not_exist(new_move_contract_addr);
 
-                let (create_res, bytes) = run2(evm_contract_address, sender, new_evm_contract_addr, new_codes, x"", false, msg_value, transient);
+                let (create_res, bytes) = run(evm_contract_address, sender, new_evm_contract_addr, new_codes, x"", false, msg_value, transient);
                 if(create_res) {
                     borrow_global_mut<Account>(new_move_contract_addr).code = bytes;
                     borrow_global_mut<Account>(new_move_contract_addr).nonce = 1;
@@ -986,7 +999,7 @@ module aptos_framework::evm {
                 // debug::print(&new_codes);
                 // debug::print(&new_contract_addr);
                 borrow_global_mut<Account>(move_contract_address).nonce = borrow_global_mut<Account>(move_contract_address).nonce + 1;
-                let (create_res, bytes) = run2(evm_contract_address, sender, new_evm_contract_addr, new_codes, x"", false, msg_value, transient);
+                let (create_res, bytes) = run(evm_contract_address, sender, new_evm_contract_addr, new_codes, x"", false, msg_value, transient);
                 if(create_res) {
                     borrow_global_mut<Account>(new_move_contract_addr).nonce = 1;
                     borrow_global_mut<Account>(new_move_contract_addr).is_contract = true;
@@ -1118,19 +1131,6 @@ module aptos_framework::evm {
         };
         // simple_map::borrow_mut<vector<u8>, T>(&mut global.contracts, &contract_addr).storage = storage;
         (true, ret_bytes)
-    }
-
-    // This function is used to execute EVM bytecode.
-    // Parameters:
-    // - sender: The address of the sender.
-    // - origin: The original invoker of the transaction.
-    // - evm_contract_address: The EVM address of the contract.
-    // - code: The EVM bytecode to be executed.
-    // - data: The input data for the execution.
-    // - readOnly: A boolean flag indicating whether the execution should be read-only.
-    // - value: The value to be transferred during the execution.
-    fun run(_sender: vector<u8>, _origin: vector<u8>, _evm_contract_address: vector<u8>, _code: vector<u8>, _data: vector<u8>, _readOnly: bool, _value: u256, _transient: &mut SimpleMap<u256, u256>): vector<u8> {
-        x""
     }
 
     fun exist_contract(addr: address): bool acquires Account {
