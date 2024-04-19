@@ -159,7 +159,6 @@ owned.
 -  [Function `get_contract_address`](#0x1_evm_util_get_contract_address)
 -  [Function `power`](#0x1_evm_util_power)
 -  [Function `to_int256`](#0x1_evm_util_to_int256)
--  [Function `add_sign`](#0x1_evm_util_add_sign)
 -  [Function `to_u256`](#0x1_evm_util_to_u256)
 -  [Function `data_to_u256`](#0x1_evm_util_data_to_u256)
 -  [Function `u256_to_data`](#0x1_evm_util_u256_to_data)
@@ -375,34 +374,6 @@ owned.
         num = <a href="util.md#0x1_evm_util_U256_MAX">U256_MAX</a> - num + 1;
     };
     (neg, num)
-}
-</code></pre>
-
-
-
-</details>
-
-<a id="0x1_evm_util_add_sign"></a>
-
-## Function `add_sign`
-
-
-
-<pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_add_sign">add_sign</a>(value: u256, sign: bool): u256
-</code></pre>
-
-
-
-<details>
-<summary>Implementation</summary>
-
-
-<pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_add_sign">add_sign</a>(value: u256, sign: bool): u256 {
-    <b>if</b>(sign) {
-        <a href="util.md#0x1_evm_util_U256_MAX">U256_MAX</a> - value + 1
-    } <b>else</b> {
-        value
-    }
 }
 </code></pre>
 

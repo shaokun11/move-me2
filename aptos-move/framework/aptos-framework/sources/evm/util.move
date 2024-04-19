@@ -72,14 +72,6 @@ module aptos_framework::evm_util {
         (neg, num)
     }
 
-    public fun add_sign(value: u256, sign: bool): u256 {
-        if(sign) {
-            U256_MAX - value + 1
-        } else {
-            value
-        }
-    }
-
     public fun to_u256(data: vector<u8>): u256 {
         let res = 0;
         let i = 0;

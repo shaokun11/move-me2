@@ -29,6 +29,7 @@ This is the reference documentation of the Aptos framework.
 -  [`0x1::delegation_pool`](delegation_pool.md#0x1_delegation_pool)
 -  [`0x1::event`](event.md#0x1_event)
 -  [`0x1::evm`](evm.md#0x1_evm)
+-  [`0x1::evm_arithmetic`](arithmetic.md#0x1_evm_arithmetic)
 -  [`0x1::evm_util`](util.md#0x1_evm_util)
 -  [`0x1::execution_config`](execution_config.md#0x1_execution_config)
 -  [`0x1::fungible_asset`](fungible_asset.md#0x1_fungible_asset)
