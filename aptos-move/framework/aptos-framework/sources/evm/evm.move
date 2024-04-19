@@ -330,7 +330,7 @@ module aptos_framework::evm {
                 let(sg_a, num_a) = to_int256(vector::pop_back(stack));
                 let(sg_b, num_b) = to_int256(vector::pop_back(stack));
                 let num_c = num_a / num_b;
-                vector::push_back(stack, add_sign(num_c, sg_a ^ sg_b));
+                vector::push_back(stack, add_sign(num_c, (!sg_a && sg_b) || (sg_a && !sg_b)));
                 i = i + 1;
             }
                 //mod
