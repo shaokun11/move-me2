@@ -110,6 +110,7 @@ module aptos_framework::evm {
     ): (u64, u64, vector<u8>, vector<u8>, u256, vector<u8>);
 
     native fun mul_mod(a: u256, b: u256, n: u256): u256;
+    native fun mul(a: u256, b: u256): u256;
 
     public entry fun send_tx(
         sender: &signer,
@@ -304,7 +305,7 @@ module aptos_framework::evm {
             else if(opcode == 0x02) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
-                vector::push_back(stack, a * b);
+                vector::push_back(stack, mul(a, b));
                 i = i + 1;
             }
                 //sub
@@ -1239,6 +1240,7 @@ module aptos_framework::evm {
     #[test]
     fun test_mul_mod() {
         debug::print(&mul_mod(U256_MAX, U256_MAX, 14232329));
+        debug::print(&mul(3, U256_MAX));
     }
 
     #[test]
