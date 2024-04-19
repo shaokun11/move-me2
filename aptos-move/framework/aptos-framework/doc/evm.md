@@ -15,6 +15,7 @@
 -  [Constants](#@Constants_0)
 -  [Function `revert`](#0x1_evm_revert)
 -  [Function `decode_raw_tx`](#0x1_evm_decode_raw_tx)
+-  [Function `mul_mod`](#0x1_evm_mul_mod)
 -  [Function `send_tx`](#0x1_evm_send_tx)
 -  [Function `estimate_tx_gas`](#0x1_evm_estimate_tx_gas)
 -  [Function `deposit`](#0x1_evm_deposit)
@@ -392,15 +393,6 @@
 ## Constants
 
 
-<a id="0x1_evm_U255_MAX"></a>
-
-
-
-<pre><code><b>const</b> <a href="evm.md#0x1_evm_U255_MAX">U255_MAX</a>: u256 = 57896044618658097711785492504343953926634992332820282019728792003956564819967;
-</code></pre>
-
-
-
 <a id="0x1_evm_U256_MAX"></a>
 
 
@@ -585,6 +577,28 @@ invalid chain id in raw tx
 
 </details>
 
+<a id="0x1_evm_mul_mod"></a>
+
+## Function `mul_mod`
+
+
+
+<pre><code><b>fun</b> <a href="evm.md#0x1_evm_mul_mod">mul_mod</a>(a: u256, b: u256, n: u256): u256
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>native</b> <b>fun</b> <a href="evm.md#0x1_evm_mul_mod">mul_mod</a>(a: u256, b: u256, n: u256): u256;
+</code></pre>
+
+
+
+</details>
+
 <a id="0x1_evm_send_tx"></a>
 
 ## Function `send_tx`
@@ -610,6 +624,9 @@ invalid chain id in raw tx
     <b>let</b> gas = to_u256(gas_bytes);
     <b>let</b> (<a href="chain_id.md#0x1_chain_id">chain_id</a>, nonce, evm_from, evm_to, value, data) = <a href="evm.md#0x1_evm_decode_raw_tx">decode_raw_tx</a>(tx);
     <b>assert</b>!(<a href="chain_id.md#0x1_chain_id">chain_id</a> == <a href="evm.md#0x1_evm_CHAIN_ID">CHAIN_ID</a> || <a href="chain_id.md#0x1_chain_id">chain_id</a> == 0, <a href="evm.md#0x1_evm_INVALID_CHAINID">INVALID_CHAINID</a>);
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&<a href="chain_id.md#0x1_chain_id">chain_id</a>);
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&evm_to);
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&data);
     <a href="evm.md#0x1_evm_execute">execute</a>(to_32bit(evm_from), to_32bit(evm_to), nonce, data, value);
     <a href="evm.md#0x1_evm_transfer_to_move_addr">transfer_to_move_addr</a>(to_32bit(evm_from), address_of(sender), gas * <a href="evm.md#0x1_evm_CONVERT_BASE">CONVERT_BASE</a>);
 }
@@ -974,15 +991,23 @@ invalid chain id in raw tx
             };
             i = i + 1;
         }
-            //div && sdiv
-        <b>else</b> <b>if</b>(opcode == 0x04 || opcode == 0x05) {
+            //div
+        <b>else</b> <b>if</b>(opcode == 0x04) {
             <b>let</b> a = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
             <b>let</b> b = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
             <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, a / b);
             i = i + 1;
         }
+            //sdiv
+        <b>else</b> <b>if</b>(opcode == 0x05) {
+            <b>let</b> a = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> b = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b>(sg_a, num_a) = to_int256(a);
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, a / b);
+            i = i + 1;
+        }
             //mod && smod
-        <b>else</b> <b>if</b>(opcode == 0x06 || opcode == 0x07) {
+        <b>else</b> <b>if</b>(opcode == 0x06) {
             <b>let</b> a = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
             <b>let</b> b = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
             <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, a % b);
@@ -1001,7 +1026,7 @@ invalid chain id in raw tx
             <b>let</b> a = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
             <b>let</b> b = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
             <b>let</b> n = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
-            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, (a * b) % n);
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, <a href="evm.md#0x1_evm_mul_mod">mul_mod</a>(a, b, n));
             i = i + 1;
         }
             //exp
@@ -1155,18 +1180,22 @@ invalid chain id in raw tx
         <b>else</b> <b>if</b>(opcode == 0x1d) {
             <b>let</b> b = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
             <b>let</b> a = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
-            <b>if</b>(b &gt;= 256) {
-                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 0);
+            <b>let</b>(neg, num_a) = to_int256(a);
+            <b>let</b> c = 0;
+            <b>if</b>(b == 0 || b &gt;= 256) {
+                <b>if</b>(neg) {
+                    c = <a href="evm.md#0x1_evm_U256_MAX">U256_MAX</a>;
+                }
             } <b>else</b> {
-                <b>let</b>(neg, num_a) = to_int256(a);
                 <b>if</b>(neg) {
                     <b>let</b> n = num_a &gt;&gt; (b <b>as</b> u8);
-                    <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, n + <a href="evm.md#0x1_evm_U255_MAX">U255_MAX</a> + 1);
+                    c = <a href="evm.md#0x1_evm_U256_MAX">U256_MAX</a> - n + 1;
                 } <b>else</b> {
-                    <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, a &gt;&gt; (b <b>as</b> u8));
+                    c = a &gt;&gt; (b <b>as</b> u8);
                 }
             };
 
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, c);
             i = i + 1;
         }
             //push0

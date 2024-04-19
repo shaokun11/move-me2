@@ -13,7 +13,7 @@ module aptos_framework::evm {
     use aptos_framework::aptos_account::create_account;
     use aptos_std::debug;
     use std::signer::address_of;
-    use aptos_framework::evm_util::{slice, to_32bit, get_contract_address, power, to_int256, data_to_u256, u256_to_data, mstore, to_u256};
+    use aptos_framework::evm_util::{slice, to_32bit, get_contract_address, power, to_int256, data_to_u256, u256_to_data, mstore, to_u256, add_sign};
     use aptos_framework::timestamp::now_microseconds;
     use aptos_framework::block;
     use std::string::utf8;
@@ -325,11 +325,27 @@ module aptos_framework::evm {
                 vector::push_back(stack, a / b);
                 i = i + 1;
             }
-                //mod && smod
+                //sdiv
+            else if(opcode == 0x05) {
+                let(sg_a, num_a) = to_int256(vector::pop_back(stack));
+                let(sg_b, num_b) = to_int256(vector::pop_back(stack));
+                let num_c = num_a / num_b;
+                vector::push_back(stack, add_sign(num_c, sg_a ^ sg_b));
+                i = i + 1;
+            }
+                //mod
             else if(opcode == 0x06) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
                 vector::push_back(stack, a % b);
+                i = i + 1;
+            }
+                //smod
+            else if(opcode == 0x07) {
+                let(sg_a, num_a) = to_int256(vector::pop_back(stack));
+                let(_sg_b, num_b) = to_int256(vector::pop_back(stack));
+                let num_c = num_a % num_b;
+                vector::push_back(stack, add_sign(num_c, sg_a));
                 i = i + 1;
             }
                 //addmod
