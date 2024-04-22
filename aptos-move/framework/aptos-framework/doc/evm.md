@@ -16,6 +16,8 @@
 -  [Function `revert`](#0x1_evm_revert)
 -  [Function `decode_raw_tx`](#0x1_evm_decode_raw_tx)
 -  [Function `mul_mod`](#0x1_evm_mul_mod)
+-  [Function `add`](#0x1_evm_add)
+-  [Function `sub`](#0x1_evm_sub)
 -  [Function `mul`](#0x1_evm_mul)
 -  [Function `send_tx`](#0x1_evm_send_tx)
 -  [Function `estimate_tx_gas`](#0x1_evm_estimate_tx_gas)
@@ -603,6 +605,50 @@ invalid chain id in raw tx
 
 </details>
 
+<a id="0x1_evm_add"></a>
+
+## Function `add`
+
+
+
+<pre><code><b>fun</b> <a href="evm.md#0x1_evm_add">add</a>(a: u256, b: u256): u256
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>native</b> <b>fun</b> <a href="evm.md#0x1_evm_add">add</a>(a: u256, b: u256): u256;
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_sub"></a>
+
+## Function `sub`
+
+
+
+<pre><code><b>fun</b> <a href="evm.md#0x1_evm_sub">sub</a>(a: u256, b: u256): u256
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>native</b> <b>fun</b> <a href="evm.md#0x1_evm_sub">sub</a>(a: u256, b: u256): u256;
+</code></pre>
+
+
+
+</details>
+
 <a id="0x1_evm_mul"></a>
 
 ## Function `mul`
@@ -1021,8 +1067,8 @@ invalid chain id in raw tx
         // Fetch the current opcode from the bytecode.
 
         <b>let</b> opcode = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&<a href="code.md#0x1_code">code</a>, i);
-        // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&i);
-        // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&opcode);
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&i);
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&opcode);
 
         // Handle each opcode according <b>to</b> the EVM specification.
         // The following is a simplified <a href="version.md#0x1_version">version</a> of the EVM execution engine,
@@ -1857,8 +1903,8 @@ invalid chain id in raw tx
         <b>else</b> {
             <b>assert</b>!(<b>false</b>, (opcode <b>as</b> u64));
         };
-        // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(stack);
-        // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack));
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(stack);
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack));
     };
     // <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_borrow_mut">simple_map::borrow_mut</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, T&gt;(&<b>mut</b> <b>global</b>.contracts, &contract_addr).storage = storage;
     (<b>true</b>, ret_bytes)
