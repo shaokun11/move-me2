@@ -57,7 +57,7 @@
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="arithmetic.md#0x1_evm_arithmetic_add_sign">add_sign</a>(value: u256, sign: bool): u256 {
-    <b>if</b>(sign) {
+    <b>if</b>(sign && value &gt; 0) {
         <a href="arithmetic.md#0x1_evm_arithmetic_U256_MAX">U256_MAX</a> - value + 1
     } <b>else</b> {
         value

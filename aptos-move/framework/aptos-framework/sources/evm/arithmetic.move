@@ -5,7 +5,7 @@ module aptos_framework::evm_arithmetic {
     const U255_MAX: u256 = 57896044618658097711785492504343953926634992332820282019728792003956564819967;
 
     public fun add_sign(value: u256, sign: bool): u256 {
-        if(sign) {
+        if(sign && value > 0) {
             U256_MAX - value + 1
         } else {
             value
