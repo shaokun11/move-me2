@@ -1,6 +1,6 @@
 {
   "name": "movement-explorer",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "private": true,
   "homepage": "./",
   "packageManager": "pnpm@7.32.4",
@@ -68,7 +68,8 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
+    "start:pro": "react-scripts start --env=pro",
+    "build": "react-scripts build --env=pro",
     "fmt": "prettier --write '**/*.(js|jsx|ts|tsx|json|css|scss|md)'",
     "test": "react-scripts test",
     "eject": "react-scripts eject",

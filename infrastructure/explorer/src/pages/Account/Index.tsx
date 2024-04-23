@@ -46,7 +46,9 @@ export default function AccountPage() {
       <Grid item xs={12} md={4} lg={3} marginTop={{md: 0, xs: 2}}>
         <BalanceCard address={addressHex} />
       </Grid>
-      {/*<Grid item xs={12} md={8} lg={12} marginTop={4} alignSelf="center">
+
+      
+      <Grid item xs={12} md={8} lg={12} marginTop={4} alignSelf="center">
         {state.network_name === Network.MAINNET && <AptosNamesBanner />}
       </Grid>
       
@@ -61,7 +63,8 @@ export default function AccountPage() {
           />
         )}
       </Grid> 
-       */}
+       
+       
     </Grid>
   );
 }

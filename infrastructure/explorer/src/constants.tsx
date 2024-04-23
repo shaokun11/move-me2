@@ -3,15 +3,13 @@
  */
 export const devnetUrl =
   process.env.APTOS_DEVNET_URL || "https://fullnode.devnet.aptoslabs.com/";
+
 export const networks = {
   mainnet: "https://fullnode.mainnet.aptoslabs.com/",
   testnet: "https://fullnode.testnet.aptoslabs.com",
   devnet: devnetUrl,
-  local:
-    process.env.REACT_APP_MOVE_ENDPOINT ||
-    "https://devnet.m1.movementlabs.xyz/v1",
-  // local: "https://seed-node1.movementlabs.xyz",
-  // local: "https://submove-fuji.bbd.sh/v1",
+  // local: "https://devnet.internal.m1.movementlabs.xyz",
+  local: process.env.REACT_APP_MOVE_ENDPOINT||"https://devnet.m1.movementlabs.xyz",
   previewnet: "https://fullnode-0.previewnet.gcp.aptosdev.com/v1",
 };
 
@@ -36,6 +34,7 @@ for (const key of Object.keys(networks)) {
     networks[networkName] = networks[networkName].slice(0, -1);
   }
 }
+
 
 export const defaultNetworkName: NetworkName = "local" as const;
 
