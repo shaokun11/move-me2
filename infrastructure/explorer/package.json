@@ -67,15 +67,9 @@
     "typescript": "^5.0.2"
   },
   "scripts": {
-<<<<<<< HEAD
     "start": "react-scripts start --env=dev",
     "start:pro": "react-scripts start --env=pro",
     "build": "react-scripts build --env=pro",
-=======
-    "start": "react-scripts start",
-    "start:pro": "react-scripts start",
-    "build": "react-scripts build",
->>>>>>> 7e5bfb0559d7c7790966aaf32703c8566428968b
     "fmt": "prettier --write '**/*.(js|jsx|ts|tsx|json|css|scss|md)'",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
