@@ -5,6 +5,7 @@
   "scripts": {
     "start:dev": "npm run serve --mode=development",
     "start:pro": "npm run serve --mode=production",
+    "serve": "vue-cli-service serve --open",
     "build": "vue-cli-service build --mode=production",
     "lint": "stylelint '**/*.{css,less,html,vue}' --fix && vue-cli-service lint",
     "dist": "node ./static-server.js"
