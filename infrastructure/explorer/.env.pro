@@ -1,1 +1,0 @@
-REACT_APP_MOVE_ENDPOINT=https://devnet.m1.movementlabs.xyz
