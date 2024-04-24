@@ -9,5 +9,6 @@ declare namespace NodeJS {
 
     readonly VUE_APP_ENABLE_DOCS: 'true' | 'false'
     readonly VUE_APP_MOCK: 'true' | 'false'
+
   }
 }

@@ -36,10 +36,11 @@ export async function post(url, query) {
     }).then(response => response.json())
 }
 export async function getMov(puk_key) {
-  const p = (puk_key + '').slice(2)
-  const url = 'https://devnet.m1.movementlabs.xyz/v1/mint?address=' + puk_key
-  const res = await post(url)
-  return res
+    const env = process.env;
+    const p = (puk_key + '').slice(2)
+    const url = env.VUE_APP_MOVE_RPC+'/mint?address=' + puk_key;
+    const res = await post(url)
+    return res
 }
 
 

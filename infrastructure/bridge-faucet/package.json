@@ -3,12 +3,9 @@
   "version": "1.0.8",
   "private": true,
   "scripts": {
-    "start": "set NODE_OPTIONS=--openssl-legacy-provider && npm run serve",
-    "serve": "vue-cli-service serve --open",
-    "build:stage": "vue-cli-service build --mode=production-stage --modern",
-    "build:prod": "vue-cli-service build --modern",
-    "build": "set NODE_OPTIONS=--openssl-legacy-provider && npm run build:prod",
-    "test:unit": "vue-cli-service test:unit",
+    "start:dev": "npm run serve --mode=development",
+    "start:pro": "npm run serve --mode=production",
+    "build": "vue-cli-service build --mode=production",
     "lint": "stylelint '**/*.{css,less,html,vue}' --fix && vue-cli-service lint",
     "dist": "node ./static-server.js"
   },
@@ -37,7 +34,7 @@
     "vuex": "^3.6.2",
     "whatwg-fetch": "^3.6.2"
   },
-  "//devDependencies说明": "@H5: postcss-pxtorem",
+  "//devDependencies": "@H5: postcss-pxtorem",
   "devDependencies": {
     "@indexed-finance/multicall": "^2.0.0",
     "@types/lodash": "^4.14.168",
@@ -74,7 +71,7 @@
     "web3": "^1.6.0",
     "web3modal": "^1.9.5"
   },
-  "//browserslist说明": "@PC & @H5",
+  "//browserslist": "@PC & @H5",
   "browserslist": [
     "> 1%",
     "last 2 versions",

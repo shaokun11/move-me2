@@ -5,11 +5,10 @@ import dateFns_format from 'date-fns/format'
 import download from './download'
 
 export {
-  download, // 附件下载
+  download, 
 }
 
 /**
- * 将列表转成对象
  * @param {object[]} list
  * @param {string} [valueKey]
  * @param {string} [labelKey]
@@ -25,12 +24,7 @@ export const listToMap = function(list, valueKey, labelKey) {
   return map
 }
 
-/**
- * 时间格式化
- * @param {string | number | Date} date
- * @param {string} [format] 官方文档：https://date-fns.org/v1.30.1/docs/format#description
- * @example dateFormat('YYYY年MM月DD日 HH时mm分ss秒SSS毫秒 Z时区 Q季度 X秒时间戳 x毫秒时间戳')
- */
+
 export const dateFormat = function(date, format = 'YYYY-MM-DD') {
   if (!date) return ''
   if (format === '@iso') format = 'YYYY-MM-DDTHH:mm:ss.SSSZ'
@@ -38,7 +32,6 @@ export const dateFormat = function(date, format = 'YYYY-MM-DD') {
 }
 
 /**
- * 将对象序列化成参数
  * @param {object} data
  * @param {Parameters<qs.stringify>[1]} [options]
  */
@@ -48,7 +41,6 @@ export const qsStringify = function(data, options) {
 }
 
 /**
- * 将对象转成 formData
  * @typedef {string | number | boolean | File | Blob} Val
  * @param {{[key: string]: Val | Val[]}} data
  * @param {'repeat' | 'brackets' | 'indices'} [arrayFormat]
@@ -74,6 +66,5 @@ export const toFormData = function(data, arrayFormat = 'repeat') {
 }
 
 /**
- * 判断是否为 axios 取消的请求
  */
 export const isCancel = axios.isCancel

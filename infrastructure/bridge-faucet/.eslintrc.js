@@ -3,9 +3,9 @@ module.exports = {
   env: { node: true },
 
   extends: [
-    'plugin:vue/strongly-recommended', // 使用严谨模式
+    'plugin:vue/strongly-recommended', 
     'eslint:recommended',
-    '@vue/prettier', // 结合 .prettierrc.js
+    '@vue/prettier', //  .prettierrc.js
   ],
 
   rules: {
@@ -14,8 +14,8 @@ module.exports = {
     'no-unused-vars': [
       'warn',
       {
-        ignoreRestSiblings: true /* 解构剩余变量时不检查 */,
-        varsIgnorePattern: '^h$', // 支持 JSX 的 h 变量
+        ignoreRestSiblings: true ,
+        varsIgnorePattern: '^h$', 
       },
     ],
     'no-var': 'warn',

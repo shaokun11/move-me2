@@ -1,7 +1,7 @@
 import { Loading } from 'element-ui' // @PC.element-ui
 import { Toast } from 'vant' // @H5.vant
 
-let instance = null // 单例模式
+let instance = null 
 let count = 0
 
 /**

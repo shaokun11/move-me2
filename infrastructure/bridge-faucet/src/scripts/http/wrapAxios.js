@@ -30,10 +30,9 @@ const complete = (promise, exHooks, config) => {
 }
 
 /**
- * 包装所有请求方法，实现相关钩子
  * @typedef {import('axios').AxiosInstance} AxiosInstance
- * @param {AxiosInstance} instance 输入旧的实例
- * @returns {AxiosInstance} 输出新的实例
+ * @param {AxiosInstance} instance 
+ * @returns {AxiosInstance} 
  */
 export default function wrapAxios(instance) {
   const wrap = function(...args) {

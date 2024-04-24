@@ -9,9 +9,9 @@ export default {
 <template>
   <div>
     <div :class="$style.title">
-      - 图标集中放置在 @/components/SvgIcon/icons/ 目录里<br />
-      - 单色模式(非'mt-'前缀)，大小继承至 font-size，颜色继承至 color<br />
-      - 多色模式('mt-'前缀)，大小继承至 font-size，颜色则原始显示
+      - The icon set is located in the @/components/SvgIcon/icons/ directory.<br/>
+      - For single-color mode (without the 'mt-' prefix), the size is inherited from the font-size, and the color is inherited from the color property.<br/>
+      - For multi-color mode (with the 'mt-' prefix), the size is inherited from the font-size, and the color is displayed as originally intended.<br/>
     </div>
     <div :class="$style.items_box">
       <el-tooltip v-for="name in names" :key="name">

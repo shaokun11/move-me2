@@ -5,7 +5,6 @@ import {fetch as fetch2} from 'whatwg-fetch'
 
 
 /**
- * 获取新闻列表
  * @param {object} [params]
  * @param {string} [params.keyword]
  * @param {number | string | Array<number | string>} [params.status]

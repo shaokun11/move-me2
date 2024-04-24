@@ -1,18 +1,15 @@
-<!-- svg-sprite 图标 -->
-<!-- 单色模式(非'mt-'前缀)，大小继承至 font-size，颜色继承至 color -->
-<!-- 多色模式('mt-'前缀)，大小继承至 font-size，颜色则原始显示 -->
+
 
 <script>
 let requireCtx
 try {
   requireCtx = require.context(
     './icons/',
-    false, // 不解析子文件夹
+    false, 
     /\.svg$/,
   )
 } catch (err) {
   if (
-    /* 允许文件夹缺失（处理 git 无法提交空文件夹的情况） */
     err.code === 'MODULE_NOT_FOUND'
   ) {
     requireCtx = () => {}
@@ -71,11 +68,9 @@ export default {
 }
 
 [id^='svgSpriteIcon__']:not([id^='svgSpriteIcon__mt-']) {
-  // svgo-loader 会自动计算内联样式并应用到 fill 属性上
   [fill]:not([fill='none']):not([fill='transparent']) {
     fill: currentColor;
   }
-  // svgo-loader 会自动计算内联样式并应用到 stroke 属性上
   [stroke]:not([stroke='none']):not([stroke='transparent']) {
     stroke: currentColor;
   }

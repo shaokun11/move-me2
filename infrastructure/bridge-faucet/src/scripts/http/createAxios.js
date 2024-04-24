@@ -1,9 +1,4 @@
-/**
- * 这里的配置项及拦截器通常和业务无关
- * 请求拦截器的执行顺序：最后注册--->最先注册
- * 响应拦截器的执行顺序：最先注册--->最后注册--->then
- * 根据顺序做好数据及状态的传递
- */
+
 
 import _ from 'lodash'
 import axios from 'axios'
@@ -14,7 +9,6 @@ import exShowLoading from './exShowLoading'
 import * as exCancel from './exCancel'
 
 /**
- * 发送前拦截 (全局)
  * @param {Parameters<axios['create']>[0]} config
  */
 const requestHandle = config => {
@@ -22,13 +16,11 @@ const requestHandle = config => {
   return config
 }
 
-/* 发送失败拦截 (全局) */
 const requestErrHandle = err => {
   throw err
 }
 
 /**
- * 响应成功拦截 (全局)
  * @param {import('axios').AxiosResponse} res
  */
 const responseHandle = res => {
@@ -36,15 +28,13 @@ const responseHandle = res => {
   return res
 }
 
-/* 响应失败拦截 (全局) */
 const responseErrHandle = err => {
   if (err.response) {
     err.response.exData = _.get(err.response.data, 'data')
   }
-  // 非 200 类失败 (无响应 | 响应体解析后不是 json 对象)
   if (!err.response || !_.isPlainObject(err.response.data)) {
     if (!_.get(err.config, 'exNoErrorMassage') && !axios.isCancel(err)) {
-      window.console.error(err.message) // TODO: 使用其它组件弹出消息
+      window.console.error(err.message) 
     }
   }
   throw err
@@ -56,7 +46,7 @@ const responseErrHandle = err => {
  */
 export const createAxios = (requestConfig, callback) => {
   const defaults = {
-    /* 默认配置 */
+    /* default config */
     paramsSerializer: params => qsStringify(params, { arrayFormat: 'comma' }),
   }
   const instance = wrapAxios(axios.create(mergeConfig(defaults, requestConfig)))

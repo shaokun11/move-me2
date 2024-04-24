@@ -4,7 +4,6 @@ const { CancelToken, Cancel } = axios
 const tokens = {}
 
 /**
- * 请求前处理 config（尽可能在最先注册的拦截器中调用）
  * @param {import('axios').AxiosRequestConfig} config
  */
 export const setConfig = function(config) {
@@ -36,12 +35,11 @@ export const setConfig = function(config) {
 }
 
 /**
- * 钩子函数
  * @type {import('axios').AxiosInstance['exHooks'][0]}
  */
 export const hooks = Object.freeze({
   onBefore(config) {
-    config._exCancel = {} // 钩子与拦截器之间的通信对象
+    config._exCancel = {} 
     if (config.exCancel) {
       const { method, baseURL = '', url, exCancel } = config
       const path = url.replace(/\?.*$/, '')
@@ -70,8 +68,7 @@ export const hooks = Object.freeze({
 })
 
 /**
- * 取消未完成的请求
- * @param {string | string[]} name exCancelName 参数值对应的名称
+ * @param {string | string[]} name exCancelName 
  */
 export const cancel = function(name) {
   const names = Array.isArray(name) ? name : [name]

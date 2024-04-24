@@ -1,4 +1,3 @@
-/* dev 环境的移动端直接启用 */
 if (process.env.VUE_APP_ENV === 'dev') {
   if (/\bMobile\b/i.test(navigator.userAgent)) {
     if (!localStorage._vConsole_close) {

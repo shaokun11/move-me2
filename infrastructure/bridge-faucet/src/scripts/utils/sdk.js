@@ -339,7 +339,6 @@ export async function isETHAddress(token_address) {
 
 export async function getBalance(address) {
 
-    //获取gas token 余额
     var balance = await web3.eth.getBalance(address);
     return balance*1e-18;
 

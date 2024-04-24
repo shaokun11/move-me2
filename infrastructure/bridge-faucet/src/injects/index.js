@@ -12,6 +12,7 @@ const SvgIcon = function() {
     /* webpackChunkName: "low-priority" */ '@/components/SvgIcon/index.vue'
   )
 }
+console.log('process.env==',process.env)
 
 /* Prototype properties/methods Vue.prototype (prefixed with $) */
 Vue.prototype.$env = Object.freeze(process.env)

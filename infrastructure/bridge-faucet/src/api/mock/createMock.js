@@ -12,7 +12,7 @@ export const createMock = (baseURL, isGroupOpened = false) =>
   /**
    * @typedef {'get' | 'delete' | 'post' | 'put' | 'patch'} Method
    * @typedef {(opts, query, body) => any} Template
-   * @param {string} url 用 reg: 前缀表示正则
+   * @param {string} url 
    * @param {Method | Template} method
    * @param {Template} [tplFn]
    */
@@ -60,7 +60,6 @@ export const createMock = (baseURL, isGroupOpened = false) =>
     })
   }
 
-// 移除原型，让控制台显示更清爽
 const removeProto = value => {
   if (typeof Map === 'undefined' || !Object.setPrototypeOf) return value
   const map = new Map()
@@ -75,7 +74,6 @@ const removeProto = value => {
   return loop(value)
 }
 
-// 使用原始的 console.log（打印没有原型的对象时不会报错）
 const console = (() => {
   const _console = window.console
   if (_console.log.toString().includes('[native code]')) {
@@ -87,7 +85,6 @@ const console = (() => {
   return iframe.contentWindow.console
 })()
 
-// 修复 mockjs 相关 bug
 Mock.XHR.prototype.send = (() => {
   const _send = Mock.XHR.prototype.send
   return function() {

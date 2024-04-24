@@ -31,7 +31,7 @@ export function numFT(value, minLen, maxLen, cen) {
 
 }
 /**
- * 输出语句
+ * console.log
  */
 export function trace(message, ...optionalParams) {
      console.log(message, ...optionalParams);
@@ -96,7 +96,6 @@ export function toFixedChange(value, len) {
     }
 }
 /**
- * 保留2位有效数据
  * @param value （string/Number）
  */
 export function toFixed2(value) {
@@ -109,7 +108,6 @@ export function toFixed2(value) {
 
 
 /**
- * 保留4位有效数据
  * @param value （string/Number）
  */
 export function toFixed4(value) {
@@ -121,7 +119,6 @@ export function toFixed4(value) {
 }
 
 /**
- * 保留6位有效数据
  * @param value （string/Number）
  */
 export function toFixed6(value) {
@@ -132,7 +129,6 @@ export function toFixed6(value) {
 }
 
 /**
- * 保留8位有效数据
  * @param value （string/Number）
  */
 export function toFixed8(value) {
@@ -143,7 +139,6 @@ export function toFixed8(value) {
 }
 
 /**
- * 保留12位有效数据
  * @param value （string/Number）
  */
 export function toFixed12(value) {
@@ -154,7 +149,6 @@ export function toFixed12(value) {
 }
 
 /**
- * 保留16位有效数据
  * @param value （string/Number）
  */
 export function toFixed16(value) {
@@ -254,7 +248,6 @@ export function toThousands(num) {
 }
 
 /**
- * 剩余时间毫秒
  * @param lefttime
  * @returns {string}   01:25:22
  */
@@ -262,17 +255,16 @@ export function hkGetTime(lefttime,fstr=':') {
     if (('' + lefttime).length === 10) {
         lefttime = parseInt(lefttime) * 1000
     } 
-    // var leftd = Math.floor(lefttime / (1000 * 60 * 60 * 24)),  //计算天数
-    var lefth = Math.floor(lefttime / (1000 * 60 * 60) % 24),  //计算小时数
-    leftm = Math.floor(lefttime / (1000 * 60) % 60), //计算分钟数
-    lefts = Math.floor(lefttime / 1000 % 60);  //计算秒数
+    // var leftd = Math.floor(lefttime / (1000 * 60 * 60 * 24)), 
+    var lefth = Math.floor(lefttime / (1000 * 60 * 60) % 24), 
+    leftm = Math.floor(lefttime / (1000 * 60) % 60), 
+    lefts = Math.floor(lefttime / 1000 % 60);  
     if(lefth.toString().length==1) lefth = '0'+lefth;
     if(leftm.toString().length==1) leftm = '0'+leftm;
     if(lefts.toString().length==1) lefts = '0'+lefts;
-    return lefth + fstr + leftm + fstr + lefts;  //返回倒计时的字符串
+    return lefth + fstr + leftm + fstr + lefts;  
 }
 
-//替换字符串中间字符为'.'
 export function replaceStr(str,startlen=4,endLen=4,replaceStr='...') {
    const a = str.slice(0,startlen);
    const b = str.slice(str.length-endLen);

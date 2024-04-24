@@ -7,9 +7,9 @@ export default { components: { HelloWorld } }
   <div :class="$style.box">
     <HelloWorld msg="HelloWorldExample" />
     <div :class="$style.right">
-      <div>获取源码方式：require('!raw-loader!xxx.xxx').default</div>
+      <div>require('!raw-loader!xxx.xxx').default</div>
       <div>
-        高亮源码方式：v-highlight:xml="require('!raw-loader!xxx.xxx').default"
+        v-highlight:xml="require('!raw-loader!xxx.xxx').default"
       </div>
       <div
         :class="$style.code"

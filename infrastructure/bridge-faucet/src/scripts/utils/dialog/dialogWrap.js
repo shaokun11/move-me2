@@ -5,14 +5,13 @@ import Vue from 'vue'
 import root from '@/main'
 
 /**
- * 用 js 方式调用包装了 el-dialog 组件的组件。适用情况：无需缓存，关闭即销毁 & title、main、footer 之间有联动，如 disabled、loading 等
  * @param {import('vue').VNode} vNode
  * @returns {Function}
  * @example
-   const h = dialogWrap.h // 支持 JSX 的 h 变量。在 vue 组件中可省略 (除 function 关键字及箭头函数外)
-   dialogWrap(<CreateOrEdit props={props} />) // 推荐 (内部的 el-dialog 组件 visible 属性需要加 .sync)
+   const h = dialogWrap.h 
+   dialogWrap(<CreateOrEdit props={props} />) 
    // or
-   const close = dialogWrap(<CreateOrEdit props={{ ...props, close: () => close() }} />) // 不推荐
+   const close = dialogWrap(<CreateOrEdit props={{ ...props, close: () => close() }} />) 
  */
 export default function dialogWrap(vNode) {
   if (!root) {
@@ -24,7 +23,7 @@ export default function dialogWrap(vNode) {
   }
 
   const instance = new Vue({
-    parent: root, // 让子孙组件可以使用 $store、$router、$route 等特性，因为这些特性是从根组件注入的
+    parent: root, 
     render: () => vNode,
   }).$mount()
   let dialogInstance = findDialogInstance(instance.$children)
@@ -33,7 +32,6 @@ export default function dialogWrap(vNode) {
     return _.noop
   }
 
-  // 关闭后销毁
   dialogInstance.$on('update:visible', visible => {
     setProps(dialogInstance, { visible })
   })
@@ -45,19 +43,18 @@ export default function dialogWrap(vNode) {
     dialogInstance = null
   })
 
-  // 显示
   document.body.appendChild(instance.$el)
   Object.defineProperties(dialogInstance, {
     destroyOnClose: {
-      get: () => false, // 重写 props：不能为 true，否则 dialog 插槽会被实例化多次（官方 bug）
+      get: () => false, 
       enumerable: true,
     },
     appendToBody: {
-      get: () => true, // 重写 props
+      get: () => true, 
       enumerable: true,
     },
     modalAppendToBody: {
-      get: () => true, // 重写 props
+      get: () => true, 
       enumerable: true,
     },
   })
@@ -65,7 +62,6 @@ export default function dialogWrap(vNode) {
   setProps(dialogInstance, { visible: true })
   oldVisible !== true && dialogInstance.$emit('update:visible', true)
 
-  // 返回可关闭弹窗的方法
   return () => {
     if (dialogInstance) {
       setProps(dialogInstance, { visible: false })

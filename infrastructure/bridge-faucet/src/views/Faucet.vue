@@ -31,12 +31,14 @@
 import {getMov} from '../scripts/utils/petra'
 import {trace,replaceStr} from '../scripts/utils/tools'
 import {mapGetters} from 'vuex'
+const env = process.env;
 export default {
     name: 'faucet',
     data() {
         return{
             isLoading:false,
             publicKey:'',
+            Env:env,
             success:{
                 isShow:false,
                 from:'optos',//  optos/evm
@@ -71,7 +73,8 @@ export default {
                 });
         },
         isFaucet(){
-            return !this.publicKey||this.publicKey.length!=66;
+            const str = this.publicKey.trim();
+            return !str||str.length!=66;
         },
         async getMove(){
             this.isLoading = true;
@@ -90,10 +93,8 @@ export default {
         },
         jump(){
             if(this.success.isShow){
-                window.open('https://explorer.devnet.m1.movementlabs.xyz/#/txn/'+this.success.hash+'?network=local');
-                // if(this.success.from=='optos'){
-                // window.open('https://explorer.devnet.m1.movementlabs.xyz/#/txn/'+this.success.hash+'?network=local');
-                // }
+                window.open(Env.VUE_APP_EXPLORER+'/#/txn/'+this.success.hash+'?network=local');
+               
             }
         },
     }

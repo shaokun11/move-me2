@@ -4,7 +4,7 @@ const checkName = function(name) {
   const keys = Array.isArray(name) ? name : [name]
   const errKeys = keys.filter(k => /^hook:/.test(k))
   if (errKeys.length > 0) {
-    throw new Error(`事件名 ${errKeys} 不符合规范`)
+    throw new Error(`The event name ${errKeys} does not comply with the specifications.`)
   }
 }
 

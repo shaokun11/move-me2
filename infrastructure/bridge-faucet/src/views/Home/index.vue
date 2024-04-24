@@ -11,6 +11,7 @@ import {getBalance,withdraw} from '../../scripts/utils/sdk'
 
 
 // import { Web3ModalAuth } from "@web3modal/auth-html"
+const env = process.env;
 
 export default {
   name: 'Home',
@@ -22,6 +23,7 @@ export default {
       isGeLoading:false,
       gas:0.02,
       toFixed4:toFixed4,
+      Env:env,
       success:{
         isShow:false,
         from:'optos',//  optos/evm
@@ -78,6 +80,7 @@ export default {
   created() {
     this.upChain = this.chain1;
     this.downChain = this.chain2;
+    
    
     this.checkInfo();
     setInterval(() => {
@@ -85,6 +88,7 @@ export default {
     }, 3500);
   },
   mounted(){
+    console.log("Env=",this.Env);
   },
   methods:{
 
@@ -236,10 +240,8 @@ export default {
     },
     jump(){
       if(this.success.isShow){
-        window.open('https://explorer.devnet.m1.movementlabs.xyz/#/txn/'+this.success.hash+'?network=local');
-        // if(this.success.from=='optos'){
-          // window.open('https://explorer.devnet.m1.movementlabs.xyz/#/txn/'+this.success.hash+'?network=local');
-        // }
+        window.open(Env.VUE_APP_EXPLORER+'/#/txn/'+this.success.hash+'?network=local');
+       
       }
     },
     showSuccessDev(hash){
@@ -267,26 +269,26 @@ export default {
           <div style="font-weight: bold;">Petra wallet config:</div>
           <div>
             <span class="p1-t1">Rpc Url:</span>
-            <span class="p1-t2" >https://devnet.m1.movementlabs.xyz/v1</span>
+            <span class="p1-t2" >{{Env.VUE_APP_MOVE_RPC}}</span>
           </div>
           <div>
             <span class="p1-t1">Symbol:</span>
-            <span class="p1-t3">MOV-Move</span>
+            <span class="p1-t3">{{Env.VUE_APP_MOVE_SYMBOL||"MOV-Move"}}</span>
           </div>
         </span>
         <span>
           <div >EVM wallet config:</div>
           <div>
             <span class="p1-t1">Rpc Url:</span>
-            <span class="p1-t2" >https://mevm.devnet.m1.movementlabs.xyz/v1</span>
+            <span class="p1-t2" >{{Env.VUE_APP_EVM_RPC}}</span>
           </div>
           <div>
             <span class="p1-t1">Chain ID:</span>
-            <span >336</span>
+            <span >{{Env.VUE_APP_EVM_CHAINID||"336"}}</span>
           </div>
           <div>
             <span class="p1-t1">Symbol:</span>
-            <span class="p1-t3">MOV EVM</span>
+            <span class="p1-t3">{{Env.VUE_APP_EVM_SYMBOL||"MOV EVM"}}</span>
           </div>
         </span>
       </div>
@@ -320,7 +322,7 @@ export default {
        
       </div>
 
-      <div style="position: absolute;margin-top: 2px;text-align: center;z-index: 1;width: 100%;left: 0;">
+      <div style="position: absolute;margin-top: 10px;text-align: center;z-index: 1;width: 100%;left: 0;">
         <el-button type="primary" plain class="swi-btn"  @click="switchNet()">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" class="text-dark"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7.5L7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5"></path></svg>
         </el-button>
@@ -483,7 +485,7 @@ export default {
       border-radius: 24px;
       border: 1px solid #FFD016;
       padding: 28px 32px;
-      margin-top: 64px;
+      margin-top: 80px;
 
       display: flex;
       justify-content: space-between;

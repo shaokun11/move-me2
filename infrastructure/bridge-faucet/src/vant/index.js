@@ -1,4 +1,3 @@
-/* 后期优化：手动把不需要用到的组件注释掉 */
 
 import Vue from 'vue'
 import {
@@ -176,24 +175,22 @@ Vue.use(Toast)
 // Vue.use(TreeSelect)
 // Vue.use(Uploader)
 
-/**
- * 默认值处理
- */
+
 function setDefault() {
   /* Toast */
   Toast.setDefaultOptions('loading', {
-    message: '加载中...',
+    message: 'loading...',
     forbidClick: true,
     duration: 0,
   })
   Toast.setDefaultOptions = function() {
     setTimeout(() => {
-      throw new Error('Toast.setDefaultOptions 功能被禁用（只能集中处理）')
+      throw new Error('Toast.setDefaultOptions The feature is disabled (can only be centrally processed).')
     })
   }
   Toast.resetDefaultOptions = function() {
     setTimeout(() => {
-      throw new Error('Toast.resetDefaultOptions 功能被禁用')
+      throw new Error('Toast.resetDefaultOptions The feature is disabled')
     })
   }
 }

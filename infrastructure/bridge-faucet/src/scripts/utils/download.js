@@ -7,7 +7,6 @@ const getDownloadjs = function() {
 }
 
 /**
- * 附件下载，用法参考：https://www.npmjs.com/package/downloadjs
  *
  * @typedef {import('axios').AxiosResponse} AxiosResponse
  * @param {string | File | Blob | Uint8Array | AxiosResponse} data
@@ -16,21 +15,6 @@ const getDownloadjs = function() {
  * @returns {Promise<void>}
  * @example
  *
- * download(url) // 相当于 a 标签的 href 属性（支持外链）
- *
- * download(axiosResponse)           // 请求时要配上 responseType，响应头中的附件名规范：https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Content-Disposition
- * download(axiosResponse, fileName) // 请求时要配上 responseType
- *
- * download(file)
- * download(file, fileName)
- *
- * download(data, fileName, 'text/plain')
- * download(data, fileName, 'text/html')
- * ...
- *
- * download(...args)
- *   .then(() => console.log('成功调用下载器'))
- *   .catch(() => console.log('下载失败 | 无法调用下载器'))
  */
 export const download = async function(data, fileName, mimeType) {
   const downloadjs = await getDownloadjs()
@@ -56,7 +40,6 @@ export const download = async function(data, fileName, mimeType) {
     const url = data
     const anchor = document.createElement('a')
     anchor.href = url
-    /// 同源
     if (anchor.origin === window.location.origin) {
       const axiosIns = axios.create({ responseType: 'blob' })
       return axiosIns.get(url).then(res => {
@@ -64,7 +47,6 @@ export const download = async function(data, fileName, mimeType) {
         return createPromise(downloadjs(res.data, fileName))
       })
     }
-    /// 非同源
     else {
       return createPromise(window.open(url))
     }

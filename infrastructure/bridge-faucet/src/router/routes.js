@@ -37,20 +37,20 @@ export const routes = [
 ]
 
 if (process.env.VUE_APP_ENABLE_DOCS === 'true') {
-  routes.unshift({
-    path: '/component-examples',
-    name: 'component-examples',
-    meta: { title: 'Develop related documents' },
-    component: () => import('@/components/ComponentExamples/index.vue'),
-    beforeEnter(to, from, next) {
-      if (from.matched.length === 0 && from.path === '/') {
-        next()
-        return
-      }
-      next(false)
-      window.open(router.resolve(to.fullPath).href)
-    },
-  })
+  // routes.unshift({
+  //   path: '/component-examples',
+  //   name: 'component-examples',
+  //   meta: { title: 'Develop related documents' },
+  //   component: () => import('@/components/ComponentExamples/index.vue'),
+  //   beforeEnter(to, from, next) {
+  //     if (from.matched.length === 0 && from.path === '/') {
+  //       next()
+  //       return
+  //     }
+  //     next(false)
+  //     window.open(router.resolve(to.fullPath).href)
+  //   },
+  // })
 }
 
 export default routes
