@@ -1,9 +1,5 @@
 # Movement Explorer
 
-
-
-
-
 ## How to use
 
 Clone the repo. Requires [pnpm](https://pnpm.io/installation)
@@ -23,5 +19,6 @@ pnpm build
 Run below to start the app:
 
 ```sh
+cp .env.pro .env
 pnpm start
 ```
