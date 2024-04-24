@@ -67,13 +67,12 @@
     "typescript": "^5.0.2"
   },
   "scripts": {
-    "start": "react-scripts start --port=3000",
-    "start:pro": "react-scripts start  --port=3000 --env=pro",
+    "start": "react-scripts start --env=dev",
+    "start:pro": "react-scripts start --env=pro",
     "build": "react-scripts build --env=pro",
     "fmt": "prettier --write '**/*.(js|jsx|ts|tsx|json|css|scss|md)'",
     "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "postinstall": "husky install"
+    "eject": "react-scripts eject"
   },
   "lint-staged": {
     "src/**/*.{js,jsx,ts,tsx,json,css,scss,md}": [

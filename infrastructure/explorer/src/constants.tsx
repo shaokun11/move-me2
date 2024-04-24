@@ -35,7 +35,6 @@ for (const key of Object.keys(networks)) {
   }
 }
 
-
 export const defaultNetworkName: NetworkName = "local" as const;
 
 if (!(defaultNetworkName in networks)) {

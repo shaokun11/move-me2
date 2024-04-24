@@ -1,5 +1,4 @@
 import React from "react";
-import ReactDOM from "react-dom";
 // import { createRoot } from 'react-dom/client';
 
 import {BrowserRouter,HashRouter} from "react-router-dom";
@@ -15,9 +14,6 @@ import {MartianWallet} from "@martianwallet/aptos-wallet-adapter";
 import {RiseWallet} from "@rise-wallet/wallet-adapter";
 import {FewchaWallet} from "fewcha-plugin-wallet-adapter";
 // import {MSafeWalletAdapter} from "msafe-plugin-wallet-adapter";
-
-import {MSafeWalletAdapter} from "msafe-plugin-wallet-adapter";
-
 import {StatsigProvider} from "statsig-react";
 import {BloctoWallet} from "@blocto/aptos-wallet-adapter-plugin";
 import {NightlyWallet} from "@nightlylabs/aptos-wallet-adapter-plugin";
@@ -32,6 +28,7 @@ import {BrowserTracing} from "@sentry/tracing";
 import ReactGA from "react-ga4";
 import {initGTM} from "./api/hooks/useGoogleTagManager";
 import {GTMEvents} from "./dataConstants";
+import ReactDOM from "react-dom";
 
 initGTM({
   events: {
