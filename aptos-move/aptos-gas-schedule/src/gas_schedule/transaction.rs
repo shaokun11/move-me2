@@ -65,7 +65,7 @@ crate::gas_schedule::macros::define_gas_parameters!(
         [
             max_transaction_size_in_bytes: NumBytes,
             "max_transaction_size_in_bytes",
-            64 * 1024
+            512 * 1024
         ],
         [
             gas_unit_scaling_factor: GasScalingFactor,
@@ -116,6 +116,16 @@ crate::gas_schedule::macros::define_gas_parameters!(
             legacy_write_data_per_byte_in_val: InternalGasPerByte,
             { 0..=9 => "write_data.per_byte_in_val" },
             10_000
+        ],
+        [
+            storage_io_per_event_byte_write: InternalGasPerByte,
+            { 16.. => "storage_io_per_event_byte_write" },
+            0,
+        ],
+        [
+            storage_io_per_transaction_byte_write: InternalGasPerByte,
+            { 16.. => "storage_io_per_transaction_byte_write" },
+            0,
         ],
         [memory_quota: AbstractValueSize, { 1.. => "memory_quota" }, 10_000_000],
         [

@@ -1,7 +1,7 @@
 // Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::utils::*;
+use crate::{components::get_signer_arg, utils::*};
 use anyhow::Result;
 use aptos_types::on_chain_config::{FeatureFlag as AptosFeatureFlag, Features as AptosFeatures};
 use move_model::{code_writer::CodeWriter, emit, emitln, model::Loc};
@@ -105,6 +105,8 @@ pub enum FeatureFlag {
     ObjectCodeDeployment,
     MaxObjectNestingCheck,
     KeylessAccountsWithPasskeys,
+    MultisigV2Enhancement,
+    DelegationPoolAllowlisting,
 }
 
 fn generate_features_blob(writer: &CodeWriter, data: &[u64]) {
@@ -130,6 +132,7 @@ pub fn generate_feature_upgrade_proposal(
     is_testnet: bool,
     next_execution_hash: Vec<u8>,
 ) -> Result<Vec<(String, String)>> {
+    let signer_arg = get_signer_arg(is_testnet, &next_execution_hash);
     let mut result = vec![];
 
     let enabled = features
@@ -167,19 +170,12 @@ pub fn generate_feature_upgrade_proposal(
             generate_features_blob(writer, &disabled);
             emitln!(writer, ";\n");
 
-            if is_testnet && next_execution_hash.is_empty() {
-                emitln!(
-                    writer,
-                    "features::change_feature_flags(framework_signer, enabled_blob, disabled_blob);"
-                );
-                emitln!(writer, "aptos_governance::reconfigure(framework_signer);");
-            } else {
-                emitln!(
-                    writer,
-                    "features::change_feature_flags(&framework_signer, enabled_blob, disabled_blob);"
-                );
-                emitln!(writer, "aptos_governance::reconfigure(&framework_signer);");
-            }
+            emitln!(
+                writer,
+                "features::change_feature_flags_for_next_epoch({}, enabled_blob, disabled_blob);",
+                signer_arg
+            );
+            emitln!(writer, "aptos_governance::reconfigure({});", signer_arg);
         },
     );
 
@@ -270,6 +266,10 @@ impl From<FeatureFlag> for AptosFeatureFlag {
             FeatureFlag::KeylessAccountsWithPasskeys => {
                 AptosFeatureFlag::KEYLESS_ACCOUNTS_WITH_PASSKEYS
             },
+            FeatureFlag::MultisigV2Enhancement => AptosFeatureFlag::MULTISIG_V2_ENHANCEMENT,
+            FeatureFlag::DelegationPoolAllowlisting => {
+                AptosFeatureFlag::DELEGATION_POOL_ALLOWLISTING
+            },
         }
     }
 }
@@ -357,6 +357,10 @@ impl From<AptosFeatureFlag> for FeatureFlag {
             AptosFeatureFlag::MAX_OBJECT_NESTING_CHECK => FeatureFlag::MaxObjectNestingCheck,
             AptosFeatureFlag::KEYLESS_ACCOUNTS_WITH_PASSKEYS => {
                 FeatureFlag::KeylessAccountsWithPasskeys
+            },
+            AptosFeatureFlag::MULTISIG_V2_ENHANCEMENT => FeatureFlag::MultisigV2Enhancement,
+            AptosFeatureFlag::DELEGATION_POOL_ALLOWLISTING => {
+                FeatureFlag::DelegationPoolAllowlisting
             },
         }
     }

@@ -95,6 +95,7 @@ pub enum KeptVMStatus {
         location: AbortLocation,
         function: u16,
         code_offset: u16,
+        message: Option<String>,
     },
     MiscellaneousError,
 }
@@ -226,14 +227,18 @@ impl VMStatus {
                 location,
                 function,
                 code_offset,
+                message,
                 ..
             } => Ok(KeptVMStatus::ExecutionFailure {
                 location,
                 function,
                 code_offset,
+                message,
             }),
             VMStatus::Error {
-                status_code: code, ..
+                status_code: code,
+                message,
+                ..
             } => {
                 match code.status_type() {
                     // Any unknown error should be discarded
@@ -255,6 +260,7 @@ impl VMStatus {
                         location: AbortLocation::Script,
                         function: 0,
                         code_offset: 0,
+                        message,
                     }),
                 }
             },
@@ -307,10 +313,11 @@ impl fmt::Display for KeptVMStatus {
                 location,
                 function,
                 code_offset,
+                message,
             } => write!(
                 f,
-                "EXECUTION_FAILURE at bytecode offset {} in function index {} in {}",
-                code_offset, function, location
+                "EXECUTION_FAILURE at bytecode offset {} in function index {} in {} with error message {:?}",
+                code_offset, function, location, message
             ),
         }
     }
@@ -369,11 +376,13 @@ impl fmt::Debug for KeptVMStatus {
                 location,
                 function,
                 code_offset,
+                message,
             } => f
                 .debug_struct("EXECUTION_FAILURE")
                 .field("location", location)
                 .field("function_definition", function)
                 .field("code_offset", code_offset)
+                .field("message", message)
                 .finish(),
             KeptVMStatus::MiscellaneousError => write!(f, "MISCELLANEOUS_ERROR"),
         }
@@ -507,7 +516,8 @@ pub enum StatusCode {
     SEQUENCE_NUMBER_TOO_OLD = 3,
     // Sequence number is too new
     SEQUENCE_NUMBER_TOO_NEW = 4,
-    // Insufficient balance to pay minimum transaction fee
+    // Insufficient balance to pay for max_gas specified in the transaction.
+    // Balance needs to be above max_gas_amount * gas_unit_price to proceed.
     INSUFFICIENT_BALANCE_FOR_TRANSACTION_FEE = 5,
     // The transaction has expired
     TRANSACTION_EXPIRED = 6,
@@ -744,11 +754,14 @@ pub enum StatusCode {
     // be re-executed.
     // Should never be committed on chain
     SPECULATIVE_EXECUTION_ABORT_ERROR = 2024,
+    ACCESS_CONTROL_INVARIANT_VIOLATION = 2025,
 
     // Reserved error code for future use
-    RESERVED_INVARIANT_VIOLATION_ERROR_3 = 2025,
-    RESERVED_INVARIANT_VIOLATION_ERROR_4 = 2026,
-    RESERVED_INVARIANT_VIOLATION_ERROR_5 = 2027,
+    RESERVED_INVARIANT_VIOLATION_ERROR_1 = 2026,
+    RESERVED_INVARIANT_VIOLATION_ERROR_2 = 2027,
+    RESERVED_INVARIANT_VIOLATION_ERROR_3 = 2028,
+    RESERVED_INVARIANT_VIOLATION_ERROR_4 = 2039,
+    RESERVED_INVARIANT_VIOLATION_ERROR_5 = 2040,
 
     // Errors that can arise from binary decoding (deserialization)
     // Deserialization Errors: 3000-3999
