@@ -35,7 +35,6 @@ impl EmptyStateComputer {
 }
 
 #[async_trait::async_trait]
-<<<<<<< HEAD
 impl StateComputer for MockStateComputer {
     async fn compute(
         &self,
