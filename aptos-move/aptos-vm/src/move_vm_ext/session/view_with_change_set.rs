@@ -38,7 +38,6 @@ use std::{
     sync::Arc,
 };
 
-<<<<<<< HEAD:aptos-move/aptos-vm/src/move_vm_ext/respawned_session.rs
 fn unwrap_or_invariant_violation<T>(value: Option<T>, msg: &str) -> Result<T, VMStatus> {
     value
         .ok_or_else(|| VMStatus::error(StatusCode::UNKNOWN_INVARIANT_VIOLATION_ERROR, err_msg(msg)))
