@@ -162,7 +162,7 @@ export async function getBlockByHash(hash, withTx) {
         },
     });
     if (!info) {
-        throw 'This block not found';
+        return null;
     }
     return getBlockByNumber(info.id, withTx);
 }
