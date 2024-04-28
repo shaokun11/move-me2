@@ -266,22 +266,6 @@ impl Payload {
                         .map(|(_, txns)| txns.len())
                         .sum::<usize>()
             },
-            Payload::QuorumStoreInlineHybrid(
-                inline_batches,
-                proof_with_data,
-                max_txns_to_execute,
-            ) => {
-                let num_txns = proof_with_data.len()
-                    + inline_batches
-                        .iter()
-                        .map(|(_, txns)| txns.len())
-                        .sum::<usize>();
-                if max_txns_to_execute.is_some() {
-                    min(max_txns_to_execute.unwrap(), num_txns)
-                } else {
-                    num_txns
-                }
-            },
         }
     }
 
@@ -420,21 +404,6 @@ impl Payload {
             ),
             (true, Payload::QuorumStoreInlineHybrid(inline_batches, proof_with_data, _)) => {
                 Self::verify_with_cache(&proof_with_data.proofs, validator, proof_cache)?;
-                for (batch, payload) in inline_batches.iter() {
-                    // TODO: Can cloning be avoided here?
-                    if BatchPayload::new(batch.author(), payload.clone()).hash() != *batch.digest()
-                    {
-                        return Err(anyhow::anyhow!(
-                            "Hash of the received inline batch doesn't match the digest value",
-                        ));
-                    }
-                }
-                Ok(())
-            },
-            (true, Payload::QuorumStoreInlineHybrid(inline_batches, proof_with_data, _)) => {
-                for proof in proof_with_data.proofs.iter() {
-                    proof.verify(validator)?;
-                }
                 for (batch, payload) in inline_batches.iter() {
                     // TODO: Can cloning be avoided here?
                     if BatchPayload::new(batch.author(), payload.clone()).hash() != *batch.digest()
