@@ -864,7 +864,7 @@ module aptos_framework::fungible_asset {
     fun test_fungible_asset_upgrade(
         fx: &signer,
         creator: &signer
-    ) acquires Supply, ConcurrentSupply, FungibleStore, FungibleAssetEvents {
+    ) acquires Supply, ConcurrentSupply, FungibleAssetEvents, FungibleStore {
         let feature = features::get_concurrent_fungible_assets_feature();
         let agg_feature = features::get_aggregator_v2_api_feature();
         features::change_feature_flags_for_testing(fx, vector[], vector[feature, agg_feature]);
