@@ -110,7 +110,7 @@ export const rpc = {
      * @returns {Promise} - A promise that resolves to the transaction object
      */
     eth_getTransactionByHash: async function (args) {
-        return getTransactionByHash(args[0]);
+        return getTransactionByHash(args[0], args[1]);
     },
 
     /**

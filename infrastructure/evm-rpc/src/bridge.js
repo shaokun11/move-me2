@@ -10,8 +10,8 @@ import {
     FAUCET_SENDER_ADDRESS,
     FAUCET_SENDER_ACCOUNT,
 } from './const.js';
-import { parseRawTx, sleep, toHex, toNumber,toHexStrict } from './helper.js';
-import { TxEvents, getMoveHash, saveMoveEvmTxHash, saveTx } from './db.js';
+import { parseRawTx, sleep, toHex, toNumber, toHexStrict } from './helper.js';
+import { TxEvents, getMoveHash, saveMoveEvmTxHash, saveTx, Block2Hash } from './db.js';
 import { ZeroAddress, ethers, isHexString, toBeHex, keccak256 } from 'ethers';
 import BigNumber from 'bignumber.js';
 import Lock from 'async-lock';
@@ -155,8 +155,16 @@ export async function getBlockByNumber(block, withTx) {
     };
 }
 
-export async function getBlockByHash(hash) {
-    return {};
+export async function getBlockByHash(hash, withTx) {
+    let info = await Block2Hash.findOne({
+        where: {
+            hash,
+        },
+    });
+    if (!info) {
+        throw 'This block not found';
+    }
+    return getBlockByNumber(info.id, withTx);
 }
 /**
  * Get the code at a specific address.
@@ -274,7 +282,8 @@ export async function sendRawTx(tx) {
             gas_unit_price: gasPrice,
         })
             .then(hash => {
-                saveTx(tx, hash, JSON.stringify(info));
+                // no need any more
+                // saveTx(tx, hash, JSON.stringify(info));
                 saveMoveEvmTxHash(hash, info.hash).then(() => {
                     done(null, info.hash);
                 });
