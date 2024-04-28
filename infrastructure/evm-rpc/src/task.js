@@ -97,7 +97,7 @@ async function syncTxBlock2hash() {
         attributes: ["id"]
     });
     let start_block = 0;
-    if (block_info) {
+    if (block_info.length > 0) {
         start_block = Math.max(...block_info.map(it => it.id));
     }
     start_block++;
