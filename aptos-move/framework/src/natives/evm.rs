@@ -106,6 +106,7 @@ fn native_decode_raw_tx(
         };
 
         Ok(smallvec![
+            Value::vector_u8(tx.hash),
             Value::u64(chain_id),
             Value::u64(U256::as_u64(&data.nonce)),
             Value::vector_u8(from),
