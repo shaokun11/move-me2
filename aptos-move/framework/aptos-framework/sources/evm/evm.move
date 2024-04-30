@@ -353,7 +353,7 @@ module aptos_framework::evm {
             else if(opcode == 0x04) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
-                vector::push_back(stack, a / b);
+                vector::push_back(stack, if(b == 0) 0 else a / b);
                 i = i + 1;
             }
                 //sdiv
