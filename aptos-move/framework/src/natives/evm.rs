@@ -100,13 +100,14 @@ fn native_decode_raw_tx(
             Some(a) => a.as_bytes().to_owned(),
             None => vec![],
         };
+        let tx_hash = data.hash.as_bytes().to_vec();
         let chain_id = match data.chain_id {
             Some(a) => U256::as_u64(&a),
             None => 0,
         };
 
         Ok(smallvec![
-            Value::vector_u8(tx.hash),
+            Value::vector_u8(tx_hash),
             Value::u64(chain_id),
             Value::u64(U256::as_u64(&data.nonce)),
             Value::vector_u8(from),
