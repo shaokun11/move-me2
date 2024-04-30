@@ -152,7 +152,7 @@ module aptos_framework::evm {
         assert!(chain_id == CHAIN_ID || chain_id == 0, INVALID_CHAINID);
         execute(to_32bit(evm_from), to_32bit(evm_to), nonce, data, value);
         transfer_to_move_addr(to_32bit(evm_from), address_of(sender), gas * CONVERT_BASE);
-        emit_event(&mut borrow_global<Global>(@aptos_framework).execution_event, TXHashEvent {
+        emit_event(&mut borrow_global_mut<Global>(@aptos_framework).execution_event, TXHashEvent {
             move_tx_hash: get_transaction_hash(),
             evm_tx_hash
         })
