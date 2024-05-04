@@ -351,7 +351,9 @@ impl<'a> BoundsChecker<'a> {
         // Use saturating add for stability
         let locals_count = locals.len().saturating_add(parameters.len());
 
+
         if locals_count > LocalIndex::MAX as usize {
+            println!("count:{} {}", locals_count, LocalIndex::MAX);
             return Err(verification_error(
                 StatusCode::TOO_MANY_LOCALS,
                 IndexKind::FunctionDefinition,
