@@ -519,7 +519,7 @@ fn native_drop_unchecked_box(
 // =========================================================================================
 // Helpers
 
-fn get_table_handle(table: &StructRef) -> PartialVMResult<TableHandle> {
+pub fn get_table_handle(table: &StructRef) -> PartialVMResult<TableHandle> {
     let handle = table
         .borrow_field(HANDLE_FIELD_INDEX)?
         .value_as::<Reference>()?

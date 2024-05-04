@@ -21,6 +21,7 @@ aptos-gas-schedule = { workspace = true }
 aptos-move-stdlib = { workspace = true }
 aptos-native-interface = { workspace = true }
 aptos-sdk-builder = { workspace = true }
+aptos-table-natives ={ workspace = true }
 aptos-types = { workspace = true }
 aptos-vm-types = { workspace = true }
 ark-bls12-381 = { workspace = true }
@@ -43,6 +44,7 @@ curve25519-dalek = { package = "curve25519-dalek-ng", version = "4" }
 either = { workspace = true }
 ethers = { workspace = true }
 flate2 = { workspace = true }
+keccak-hash = { workspace = true }
 hex = { workspace = true }
 itertools = { workspace = true }
 libsecp256k1 = { workspace = true }
@@ -65,6 +67,7 @@ move-vm-runtime = { workspace = true }
 move-vm-types = { workspace = true }
 num-traits = { workspace = true }
 once_cell = { workspace = true }
+parity-bytes = { workspace = true }
 rand = { workspace = true }
 rand_core = { workspace = true }
 ripemd = { workspace = true }

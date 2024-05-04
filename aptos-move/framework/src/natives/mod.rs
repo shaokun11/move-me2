@@ -10,7 +10,7 @@ pub mod create_signer;
 pub mod cryptography;
 pub mod debug;
 pub mod event;
-pub mod evm;
+pub mod evm_natives;
 pub mod hash;
 pub mod object;
 pub mod object_code_deployment;
@@ -23,6 +23,7 @@ pub mod util;
 
 use crate::natives::cryptography::multi_ed25519;
 use aggregator_natives::{aggregator, aggregator_factory, aggregator_v2};
+use evm_natives::{evm};
 use aptos_native_interface::SafeNativeBuilder;
 use cryptography::ed25519;
 use move_core_types::account_address::AccountAddress;

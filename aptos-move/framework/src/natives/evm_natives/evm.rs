@@ -15,6 +15,8 @@ use ethers::types::{Transaction};
 use ethers::utils::rlp::{Rlp, Decodable};
 use ethers::types::{U256, U512};
 
+use aptos_table_natives::{NativeTableContext, TableChangeSet};
+
 fn native_revert(
     _context: &mut SafeNativeContext,
     _ty_args: Vec<Type>,
@@ -25,6 +27,20 @@ fn native_revert(
 	let message_bytes = safely_pop_arg!(args, Vec<u8>);
 	let message_string = String::from_utf8(message_bytes).unwrap();
 	return Err(SafeNativeError::InvariantViolation(PartialVMError::new(StatusCode::EVM_CONTRACT_ERROR).with_message(message_string)));
+}
+
+fn native_test(
+    _context: &mut SafeNativeContext,
+    _ty_args: Vec<Type>,
+    mut args: VecDeque<Value>
+) -> SafeNativeResult<SmallVec<[Value; 1]>> {
+    // let mut params = ActionParams::default();
+    // let mut ext = Ext::new();
+    // let vm = factory.create(params, ext.schedule(), ext.depth());
+
+    let from_bytes = safely_pop_arg!(args, Vec<u8>);
+
+    Ok(smallvec![])
 }
 
 fn native_mul(

@@ -1007,7 +1007,7 @@ dependencies = [
  "signature 2.2.0",
  "static_assertions",
  "thiserror",
- "tiny-keccak",
+ "tiny-keccak 2.0.2",
  "trybuild",
  "x25519-dalek",
 ]
@@ -1697,6 +1697,7 @@ dependencies = [
  "aptos-move-stdlib",
  "aptos-native-interface",
  "aptos-sdk-builder",
+ "aptos-table-natives",
  "aptos-types",
  "aptos-vm",
  "aptos-vm-types",
@@ -1720,6 +1721,7 @@ dependencies = [
  "flate2",
  "hex",
  "itertools 0.12.1",
+ "keccak-hash",
  "libsecp256k1",
  "log",
  "lru 0.7.8",
@@ -1741,6 +1743,7 @@ dependencies = [
  "move-vm-types",
  "num-traits",
  "once_cell",
+ "parity-bytes",
  "rand 0.7.3",
  "rand_core 0.5.1",
  "ripemd",
@@ -1753,7 +1756,7 @@ dependencies = [
  "smallvec",
  "tempfile",
  "thiserror",
- "tiny-keccak",
+ "tiny-keccak 2.0.2",
 ]
 
 [[package]]
@@ -7332,7 +7335,7 @@ dependencies = [
  "serde_json",
  "sha3 0.10.8",
  "thiserror",
- "uint",
+ "uint 0.9.5",
 ]
 
 [[package]]
@@ -7349,7 +7352,7 @@ dependencies = [
  "serde_json",
  "sha3 0.10.8",
  "thiserror",
- "uint",
+ "uint 0.9.5",
 ]
 
 [[package]]
@@ -7363,7 +7366,7 @@ dependencies = [
  "impl-codec 0.5.1",
  "impl-rlp",
  "scale-info 1.0.0",
- "tiny-keccak",
+ "tiny-keccak 2.0.2",
 ]
 
 [[package]]
@@ -7376,7 +7379,7 @@ dependencies = [
  "fixed-hash 0.7.0",
  "impl-rlp",
  "impl-serde 0.3.2",
- "tiny-keccak",
+ "tiny-keccak 2.0.2",
 ]
 
 [[package]]
@@ -7391,7 +7394,7 @@ dependencies = [
  "impl-rlp",
  "impl-serde 0.4.0",
  "scale-info 2.10.0",
- "tiny-keccak",
+ "tiny-keccak 2.0.2",
 ]
 
 [[package]]
@@ -7443,7 +7446,7 @@ dependencies = [
  "impl-rlp",
  "primitive-types 0.10.1",
  "scale-info 1.0.0",
- "uint",
+ "uint 0.9.5",
 ]
 
 [[package]]
@@ -7457,7 +7460,7 @@ dependencies = [
  "impl-rlp",
  "impl-serde 0.3.2",
  "primitive-types 0.11.1",
- "uint",
+ "uint 0.9.5",
 ]
 
 [[package]]
@@ -7473,7 +7476,7 @@ dependencies = [
  "impl-serde 0.4.0",
  "primitive-types 0.12.2",
  "scale-info 2.10.0",
- "uint",
+ "uint 0.9.5",
 ]
 
 [[package]]
@@ -7589,7 +7592,7 @@ dependencies = [
  "syn 2.0.48",
  "tempfile",
  "thiserror",
- "tiny-keccak",
+ "tiny-keccak 2.0.2",
  "unicode-xid 0.2.4",
 ]
 
@@ -7717,7 +7720,7 @@ dependencies = [
  "solang-parser",
  "svm-rs",
  "thiserror",
- "tiny-keccak",
+ "tiny-keccak 2.0.2",
  "tokio",
  "tracing",
  "walkdir",
@@ -8067,6 +8070,15 @@ dependencies = [
  "bytemuck",
  "half 2.2.1",
  "typenum",
+]
+
+[[package]]
+name = "fixed-hash"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3367952ceb191f4ab95dd5685dc163ac539e36202f9fcfd0cb22f9f9c542fefc"
+dependencies = [
+ "static_assertions",
 ]
 
 [[package]]
@@ -9892,6 +9904,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "keccak-hash"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4f0e55d8f242fdc281c21c4cd70960a25db6dd17cc6232d8b38b564b5b18c784"
+dependencies = [
+ "primitive-types 0.6.2",
+ "tiny-keccak 1.5.0",
+]
+
+[[package]]
 name = "kube"
 version = "0.65.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9995,7 +10017,7 @@ dependencies = [
  "regex-syntax 0.6.29",
  "string_cache",
  "term",
- "tiny-keccak",
+ "tiny-keccak 2.0.2",
  "unicode-xid 0.2.4",
 ]
 
@@ -10015,7 +10037,7 @@ dependencies = [
  "regex-syntax 0.8.2",
  "string_cache",
  "term",
- "tiny-keccak",
+ "tiny-keccak 2.0.2",
  "unicode-xid 0.2.4",
  "walkdir",
 ]
@@ -10972,7 +10994,7 @@ dependencies = [
  "serde_bytes",
  "serde_json",
  "thiserror",
- "uint",
+ "uint 0.9.5",
 ]
 
 [[package]]
@@ -12239,6 +12261,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "parity-bytes"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "16b56e3a2420138bdb970f84dfb9c774aea80fa0e7371549eedec0d80c209c67"
+
+[[package]]
 name = "parity-scale-codec"
 version = "2.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -13180,6 +13208,16 @@ dependencies = [
 
 [[package]]
 name = "primitive-types"
+version = "0.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e4336f4f5d5524fa60bcbd6fe626f9223d8142a50e7053e979acdf0da41ab975"
+dependencies = [
+ "fixed-hash 0.5.2",
+ "uint 0.8.5",
+]
+
+[[package]]
+name = "primitive-types"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "05e4722c697a58a99d5d06a08c30821d7c082a4632198de1eaa5a6c22ef42373"
@@ -13189,7 +13227,7 @@ dependencies = [
  "impl-rlp",
  "impl-serde 0.3.2",
  "scale-info 1.0.0",
- "uint",
+ "uint 0.9.5",
 ]
 
 [[package]]
@@ -13202,7 +13240,7 @@ dependencies = [
  "impl-codec 0.6.0",
  "impl-rlp",
  "impl-serde 0.3.2",
- "uint",
+ "uint 0.9.5",
 ]
 
 [[package]]
@@ -13216,7 +13254,7 @@ dependencies = [
  "impl-rlp",
  "impl-serde 0.4.0",
  "scale-info 2.10.0",
- "uint",
+ "uint 0.9.5",
 ]
 
 [[package]]
@@ -16065,6 +16103,15 @@ dependencies = [
 
 [[package]]
 name = "tiny-keccak"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1d8a021c69bb74a44ccedb824a046447e2c84a01df9e5c20779750acb38e11b2"
+dependencies = [
+ "crunchy",
+]
+
+[[package]]
+name = "tiny-keccak"
 version = "2.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2c9d3793400a45f954c52e73d068316d76b6f4e36977e3fcebb13a2721e80237"
@@ -16816,6 +16863,18 @@ name = "ucd-trie"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed646292ffc8188ef8ea4d1e0e0150fb15a5c2e12ad9b8fc191ae7a8a7f3c4b9"
+
+[[package]]
+name = "uint"
+version = "0.8.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9db035e67dfaf7edd9aebfe8676afcd63eed53c8a4044fed514c8cccf1835177"
+dependencies = [
+ "byteorder",
+ "crunchy",
+ "rustc-hex",
+ "static_assertions",
+]
 
 [[package]]
 name = "uint"
