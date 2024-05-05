@@ -1,5 +1,4 @@
 import { HexString } from 'aptos';
-import { Op } from 'sequelize';
 import {
     EVM_CONTRACT,
     SENDER_ACCOUNT,
@@ -11,7 +10,7 @@ import {
     FAUCET_SENDER_ACCOUNT,
 } from './const.js';
 import { parseRawTx, sleep, toHex, toNumber, toHexStrict } from './helper.js';
-import { TxEvents, getMoveHash, saveMoveEvmTxHash, saveTx, Block2Hash } from './db.js';
+import { getMoveHash, getBlockHeightByHash, getEvmLogs } from './db.js';
 import { ZeroAddress, ethers, isHexString, toBeHex, keccak256 } from 'ethers';
 import BigNumber from 'bignumber.js';
 import Lock from 'async-lock';
@@ -156,15 +155,12 @@ export async function getBlockByNumber(block, withTx) {
 }
 
 export async function getBlockByHash(hash, withTx) {
-    let info = await Block2Hash.findOne({
-        where: {
-            hash,
-        },
-    });
-    if (!info) {
+    try {
+        const height = await getBlockHeightByHash(hash);
+        return getBlockByNumber(height, withTx);
+    } catch (error) {
         return null;
     }
-    return getBlockByNumber(info.id, withTx);
 }
 /**
  * Get the code at a specific address.
@@ -201,7 +197,7 @@ async function checkAddressNonce(info) {
         try {
             const accInfo = await Promise.race([
                 getAccountInfo(info.from),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000)),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10 * 1000)),
             ]);
             if (parseInt(accInfo.nonce) === parseInt(info.nonce)) {
                 return true;
@@ -221,14 +217,7 @@ async function checkAddressNonce(info) {
 // We can directly read it from the blockchain instead of relying on user input.
 export async function sendRawTx(tx) {
     const info = parseRawTx(tx);
-    console.log('raw tx info', info);
-    // let v = info.v;
-    // if (v === 27 || v === 28) {
-    //     throw 'only replay-protected (EIP-155) transactions allowed over RPC';
-    // }
-    // if (v !== 707 && v !== 708) {
-    //     throw 'chain id error';
-    // }
+
     checkTxQueue();
     // this guarantee the nonce order for same from address
     await checkAddressNonce(info);
@@ -282,11 +271,7 @@ export async function sendRawTx(tx) {
             gas_unit_price: gasPrice,
         })
             .then(hash => {
-                // no need any more
-                // saveTx(tx, hash, JSON.stringify(info));
-                saveMoveEvmTxHash(hash, info.hash).then(() => {
-                    done(null, info.hash);
-                });
+                done(null, info.hash);
             })
             .catch(err => {
                 done(err.message || 'sendTx error');
@@ -571,40 +556,13 @@ export async function getLogs(obj) {
     const toBlock = isHexString(obj.toBlock) ? toNumber(obj.toBlock) : toNumber(nowBlock);
     const address = Array.isArray(obj.address) ? obj.address : [obj.address];
     const topics = obj.topics;
-    const topicsWhere = {};
-    if (topics && topics.length > 0 && topics.length <= 4) {
-        for (let i = 0; i < topics.length; i++) {
-            const item = Array.isArray(topics[i]) ? topics[i] : [topics[i]];
-            topicsWhere[`topic${i}`] = {
-                [Op.in]: item,
-            };
-        }
-    }
-    const ret = await TxEvents.findAll({
-        attributes: [
-            'address',
-            'topics',
-            'data',
-            'blockNumber',
-            'transactionHash',
-            'transactionIndex',
-            'blockHash',
-            'logIndex',
-        ],
-        where: {
-            blockNumber: {
-                [Op.gte]: fromBlock,
-                [Op.lte]: toBlock,
-            },
-            address: {
-                [Op.in]: address,
-            },
-            ...topicsWhere,
-        },
-        limit: 10000,
+    const ret = await getEvmLogs({
+        from: fromBlock,
+        to: toBlock,
+        address,
+        topics,
     });
     return ret.map(it => {
-        it = it.dataValues;
         return {
             ...it,
             topics: JSON.parse(it.topics),
@@ -615,6 +573,7 @@ export async function getLogs(obj) {
 }
 
 function parseLogs(info, blockNumber, blockHash, evm_hash) {
+    // this could from indexer get, but we could get them from the tx hash
     let logs = [];
     let events = info.events || [];
     let evmLogs = [0, 1, 2, 3, 4].map(it => `${EVM_CONTRACT}::evm::Log${it}Event`);
