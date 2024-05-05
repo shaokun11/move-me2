@@ -1,7 +1,8 @@
 import { getTransactionReceipt } from './bridge.js';
-import { GLobalState, RawTx, TxEvents } from './db.js';
+import { Block2Hash, GLobalState, RawTx, TxEvents } from './db.js';
 import { sleep } from './helper.js';
 import { Op } from 'sequelize';
+import { getRequest } from './provider.js';
 async function saveEvents(tx) {
     const receipt = await getTransactionReceipt(tx);
     let logs = receipt.logs;
@@ -83,10 +84,53 @@ async function startSyncEventsTask() {
         try {
             await syncTxEvents();
         } catch (e) {
-            console.log(e);
+            console.log("sync tx events error", e);
         }
         await sleep(0.1);
     }
 }
 
+async function syncTxBlock2hash() {
+    const block_info = await Block2Hash.findAll({
+        order: [['id', 'DESC']],
+        limit: 100,
+        attributes: ["id"]
+    });
+    let start_block = 0;
+    if (block_info.length > 0) {
+        start_block = Math.max(...block_info.map(it => it.id));
+    }
+    start_block++;
+    // the max limit is 100 
+    const query = `/accounts/0x1/events/0x1::block::BlockResource/new_block_events?limit=100&start=${start_block}`;
+    const res = await getRequest(query);
+    const blocks = res
+        .map(it => {
+            return {
+                id: +it.data.height,
+                hash: it.data.hash,
+            };
+        })
+        .filter(it => it.id >= start_block)
+        // Must sort , for we think the latest block is the last one
+        .sort((a, b) => a.id - b.id);
+    if (blocks.length > 0) {
+        // console.log('found block info', blocks);
+        await Block2Hash.bulkCreate(blocks);
+    } else {
+        await sleep(1);
+    }
+}
+
+async function startSyncBlockTask() {
+    while (true) {
+        try {
+            await syncTxBlock2hash();
+        } catch (e) {
+            console.log('sync block info error', e);
+        }
+        await sleep(0.1);
+    }
+}
+startSyncBlockTask()
 startSyncEventsTask();

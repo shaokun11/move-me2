@@ -175,3 +175,18 @@ export const GLobalState = sequelize.define('GLobalState', {
     },
 });
 await GLobalState.sync();
+
+export const Block2Hash = sequelize.define('Block2Hash', {
+    id: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        primaryKey: true,
+        comment: 'block number',
+    },
+    hash: {
+        type: DataTypes.STRING(66),
+        allowNull: false,
+        unique: true,
+        comment: 'block hash',
+    },
+});
+await Block2Hash.sync();
