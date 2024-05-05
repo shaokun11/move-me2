@@ -24,38 +24,49 @@ let lastBlockTime = Date.now();
 let lastBlock = '0x1';
 await getBlock();
 
-traceTransaction("0xfd49a5c1915231e723287a6fa31fa57a01250e859b19a49f5ab9d120b824da0b")
+// traceTransaction("0xfd49a5c1915231e723287a6fa31fa57a01250e859b19a49f5ab9d120b824da0b").then(res => {
+//     console.log("--res-", res)
+// })
 export async function traceTransaction(hash) {
+    // const move_hash = "0x83a8a2eb32f51ef6fa9b49409c47caf292aef31737b8be479ae3c12cec6884cb"
     const move_hash = await getMoveHash(hash);
-    let info = await client.getTransactionByHash(move_hash);
-    const callType = ["CALL"]
+    const info = await client.getTransactionByHash(move_hash);
+    const callType = ["CALL", "STATIC_CALL", "DELEGATE_CALL"]
     const toEtherAddress = (addr) => "0x" + addr.slice(-40)
     const format_item = (data) => ({
+
         from: toEtherAddress(data.from),
         gas: toHex(data.gas),
-        gasUsed: toHex(data.gasUsed),
+        gasUsed: toHex(data.gas_used),
         to: toEtherAddress(data.to),
         input: data.input,
-        output: "0x0",// TODOE
-        value: toHex(data.vlaue),
+        // output: "0x0",// TODOE
+        value: toHex(data.value),
         type: callType[data.type]
     })
     const traces = info.events
         .filter(it => it.type === "0x1::evm::CallEvent")
         .sort((a, b) => parseInt(a.sequence_number) - parseInt(b.sequence_number))
-    const trace_call = format_item(traces.unshift())
+    const trace_call = format_item(traces.shift().data)
     const find_caller = (item, trace) => {
-        if (trace.from === item.to) {
+        if (trace.to === item.from) {
             if (!trace.calls) trace["calls"] = []
             trace.calls.push(item)
-            return
         } else {
-            for (let call of trace.calls) {
-                find_caller(item, call)
+            if (!trace_call.calls) {
+                // now we think it top level,
+                if (!trace_call.calls) trace["calls"] = []
+                trace_call.calls.push(item)
+            } else {
+                for (let call of trace.calls) {
+                    find_caller(item, call)
+                }
             }
         }
     }
-    traces.forEach(({ data }) => find_caller(format_item(data), trace_call));
+    traces.forEach(({ data }) => {
+        find_caller(format_item(data), trace_call)
+    });
     return trace_call
 
 }
