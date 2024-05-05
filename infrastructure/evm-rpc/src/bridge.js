@@ -24,6 +24,42 @@ let lastBlockTime = Date.now();
 let lastBlock = '0x1';
 await getBlock();
 
+traceTransaction("0xfd49a5c1915231e723287a6fa31fa57a01250e859b19a49f5ab9d120b824da0b")
+export async function traceTransaction(hash) {
+    const move_hash = await getMoveHash(hash);
+    let info = await client.getTransactionByHash(move_hash);
+    const callType = ["CALL"]
+    const toEtherAddress = (addr) => "0x" + addr.slice(-40)
+    const format_item = (data) => ({
+        from: toEtherAddress(data.from),
+        gas: toHex(data.gas),
+        gasUsed: toHex(data.gasUsed),
+        to: toEtherAddress(data.to),
+        input: data.input,
+        output: "0x0",// TODOE
+        value: toHex(data.vlaue),
+        type: callType[data.type]
+    })
+    const traces = info.events
+        .filter(it => it.type === "0x1::evm::CallEvent")
+        .sort((a, b) => parseInt(a.sequence_number) - parseInt(b.sequence_number))
+    const trace_call = format_item(traces.unshift())
+    const find_caller = (item, trace) => {
+        if (trace.from === item.to) {
+            if (!trace.calls) trace["calls"] = []
+            trace.calls.push(item)
+            return
+        } else {
+            for (let call of trace.calls) {
+                find_caller(item, call)
+            }
+        }
+    }
+    traces.forEach(({ data }) => find_caller(format_item(data), trace_call));
+    return trace_call
+
+}
+
 export async function faucet(addr) {
     const payload = {
         function: `${EVM_CONTRACT}::evm::deposit`,
