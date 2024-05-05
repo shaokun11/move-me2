@@ -372,7 +372,7 @@ export async function getTransactionByHash(evm_hash) {
     let block = await client.getBlockByVersion(info.version);
     const { to, from, data, nonce, value, v, r, s, hash, type } = parseMoveTxPayload(info);
     return {
-        blockHash: ZERO_HASH,
+        blockHash: block.block_hash,
         blockNumber: toHex(block.block_height),
         from: from,
         gas: toHex(info.gas_used),
