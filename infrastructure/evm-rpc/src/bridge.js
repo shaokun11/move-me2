@@ -600,7 +600,8 @@ export async function getLogs(obj) {
     const fromBlock = isHexString(obj.fromBlock) ? toNumber(obj.fromBlock) : toNumber(nowBlock);
     const toBlock = isHexString(obj.toBlock) ? toNumber(obj.toBlock) : toNumber(nowBlock);
     const address = Array.isArray(obj.address) ? obj.address : [obj.address];
-    // if(toBlock - fromBlock > 2000) throw new Error('block range too large, max 2000 blocks');
+    if (toBlock < fromBlock) throw new Error('block range error');
+    if (toBlock - fromBlock > 2000) throw new Error('block range too large, max 2000 blocks');
     const ret = await getEvmLogs({
         from: fromBlock,
         to: toBlock,
