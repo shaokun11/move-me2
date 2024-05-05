@@ -2,17 +2,17 @@ import { gql } from '@urql/core';
 import { indexer_client } from './const.js';
 
 setTimeout(() => {
-    getMoveHash('0x44e623b81b26d27198f9aa05df51d9614629649b2a5b892535a828ab5ab4f68e').then(console.log);
+    // getMoveHash('0x44e623b81b26d27198f9aa05df51d9614629649b2a5b892535a828ab5ab4f68e').then(console.log);
     // getBlockHeightByHash("0xf8c3af27597d5f80821bfa29a6dda5b2b30d8b892dd85dd6cdb29be17d7bf0a1").then(console.log)
     // getEvmLogs({
     //     from: 1,
-    //     to: 18779,
+    //     to: 50490,
     //     address: ["0xfda50a0ba843c14125efaab5bca4ed860b7a3c88"],
-    //     topics: [
-    //         "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
-    //         null,
-    //         "0x000000000000000000000000fca2fba9427f9100c14c6c2f175bc9ec744a77cf"
-    //     ],
+    // topics: [
+    //     "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+    //     null,
+    //     "0x000000000000000000000000fca2fba9427f9100c14c6c2f175bc9ec744a77cf"
+    // ],
     // }).then(console.log)
 }, 1000);
 
@@ -81,8 +81,10 @@ export async function getEvmLogs(obj) {
                     data
                     address
                     block_number
+                    block_hash
                     transaction_hash
                     transaction_index
+                    log_index
                 }
             }
     `;
@@ -98,9 +100,11 @@ export async function getEvmLogs(obj) {
             topics,
             data: it.data,
             address: it.address,
-            block_number: it.block_number,
-            transaction_hash: it.transaction_hash,
-            transaction_index: it.transaction_index,
+            blockHash: it.block_hash,
+            blockNumber: it.block_number,
+            transactionHash: it.transaction_hash,
+            transactionIndex: it.transaction_index,
+            logIndex: it.log_index,
         };
     });
 }

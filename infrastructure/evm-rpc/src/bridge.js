@@ -412,8 +412,8 @@ export async function getGasPrice() {
  *   - s: string - The s value of the transaction's signature
  */
 export async function getTransactionByHash(evm_hash) {
-    let tx = await getMoveHash(evm_hash);
-    let info = await client.getTransactionByHash(tx);
+    let move_hash = await getMoveHash(evm_hash);
+    let info = await client.getTransactionByHash(move_hash);
     let block = await client.getBlockByVersion(info.version);
     const { to, from, data, nonce, value, v, r, s, hash, type } = parseMoveTxPayload(info);
     return {
@@ -438,8 +438,8 @@ export async function getTransactionByHash(evm_hash) {
 }
 
 export async function getTransactionReceipt(evm_hash) {
-    let tx = await getMoveHash(evm_hash);
-    let info = await client.getTransactionByHash(tx);
+    let move_hash = await getMoveHash(evm_hash);
+    let info = await client.getTransactionByHash(move_hash);
     let block = await client.getBlockByVersion(info.version);
     const { to, from, type } = parseMoveTxPayload(info);
     let contractAddress = await getDeployedContract(info);
@@ -600,17 +600,16 @@ export async function getLogs(obj) {
     const fromBlock = isHexString(obj.fromBlock) ? toNumber(obj.fromBlock) : toNumber(nowBlock);
     const toBlock = isHexString(obj.toBlock) ? toNumber(obj.toBlock) : toNumber(nowBlock);
     const address = Array.isArray(obj.address) ? obj.address : [obj.address];
-    const topics = obj.topics;
+    // if(toBlock - fromBlock > 2000) throw new Error('block range too large, max 2000 blocks');
     const ret = await getEvmLogs({
         from: fromBlock,
         to: toBlock,
         address,
-        topics,
+        topics: obj.topics,
     });
     return ret.map(it => {
         return {
             ...it,
-            topics: JSON.parse(it.topics),
             blockNumber: toHex(it.blockNumber),
             removed: false,
         };
