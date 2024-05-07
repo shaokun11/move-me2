@@ -29,7 +29,7 @@ export async function faucet(addr) {
     const payload = {
         function: `${EVM_CONTRACT}::evm::deposit`,
         type_arguments: [],
-        arguments: [toBuffer(addr), toBuffer(toBeHex((1e18).toString()))],
+        arguments: [toBuffer(addr), toBuffer(toBeHex((1e17).toString()))],
     };
     const txnRequest = await client.generateTransaction(FAUCET_SENDER_ADDRESS, payload);
     const signedTxn = await client.signTransaction(FAUCET_SENDER_ACCOUNT, txnRequest);

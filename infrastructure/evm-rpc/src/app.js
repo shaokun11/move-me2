@@ -36,6 +36,12 @@ app.get('/v1/eth_faucet', async function (req, res, next) {
         });
         return;
     }
+    if(canRequest(address) === false) {
+        res.status(400).json({
+            error: 'rate limit, every address could faucet 0.1 per day',
+        });
+        return;
+    }
     try {
         let hash = await faucet(address);
         res.json({

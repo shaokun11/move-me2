@@ -1,14 +1,14 @@
 let request = new Map();
-
-export function canRequest(ip) {
-    let callTime = request.get(ip);
+const limit = 24 * 60 * 60 * 1000;
+export function canRequest(key) {
+    let callTime = request.get(key);
     if (!callTime) {
-        request.set(ip, Date.now());
+        request.set(key, Date.now());
         return true;
     }
-    if (Date.now() - callTime < 10 * 1000) {
+    if (Date.now() - callTime < limit) {
         return false;
     }
-    request.set(ip, Date.now());
+    request.set(key, Date.now());
     return true;
 }
