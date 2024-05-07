@@ -31,10 +31,9 @@ export async function traceTransaction(hash) {
     // const move_hash = "0x83a8a2eb32f51ef6fa9b49409c47caf292aef31737b8be479ae3c12cec6884cb"
     const move_hash = await getMoveHash(hash);
     const info = await client.getTransactionByHash(move_hash);
-    const callType = ["CALL", "STATIC_CALL", "DELEGATE_CALL"]
-    const toEtherAddress = (addr) => "0x" + addr.slice(-40)
-    const format_item = (data) => ({
-
+    const callType = ['CALL', 'STATIC_CALL', 'DELEGATE_CALL'];
+    const toEtherAddress = addr => '0x' + addr.slice(-40);
+    const format_item = data => ({
         from: toEtherAddress(data.from),
         gas: toHex(data.gas),
         gasUsed: toHex(data.gas_used),
@@ -42,33 +41,32 @@ export async function traceTransaction(hash) {
         input: data.input,
         // output: "0x0",// TODOE
         value: toHex(data.value),
-        type: callType[data.type]
-    })
+        type: callType[data.type],
+    });
     const traces = info.events
-        .filter(it => it.type === "0x1::evm::CallEvent")
-        .sort((a, b) => parseInt(a.sequence_number) - parseInt(b.sequence_number))
-    const trace_call = format_item(traces.shift().data)
+        .filter(it => it.type === '0x1::evm::CallEvent')
+        .sort((a, b) => parseInt(a.sequence_number) - parseInt(b.sequence_number));
+    const trace_call = format_item(traces.shift().data);
     const find_caller = (item, trace) => {
         if (trace.to === item.from) {
-            if (!trace.calls) trace["calls"] = []
-            trace.calls.push(item)
+            if (!trace.calls) trace['calls'] = [];
+            trace.calls.push(item);
         } else {
             if (!trace_call.calls) {
                 // now we think it top level,
-                if (!trace_call.calls) trace["calls"] = []
-                trace_call.calls.push(item)
+                if (!trace_call.calls) trace['calls'] = [];
+                trace_call.calls.push(item);
             } else {
                 for (let call of trace.calls) {
-                    find_caller(item, call)
+                    find_caller(item, call);
                 }
             }
         }
-    }
+    };
     traces.forEach(({ data }) => {
-        find_caller(format_item(data), trace_call)
+        find_caller(format_item(data), trace_call);
     });
-    return trace_call
-
+    return trace_call;
 }
 
 export async function faucet(addr) {
@@ -414,8 +412,8 @@ export async function getGasPrice() {
  *   - s: string - The s value of the transaction's signature
  */
 export async function getTransactionByHash(evm_hash) {
-    let tx = await getMoveHash(evm_hash);
-    let info = await client.getTransactionByHash(tx);
+    let move_hash = await getMoveHash(evm_hash);
+    let info = await client.getTransactionByHash(move_hash);
     let block = await client.getBlockByVersion(info.version);
     const { to, from, data, nonce, value, v, r, s, hash, type } = parseMoveTxPayload(info);
     return {
@@ -440,8 +438,8 @@ export async function getTransactionByHash(evm_hash) {
 }
 
 export async function getTransactionReceipt(evm_hash) {
-    let tx = await getMoveHash(evm_hash);
-    let info = await client.getTransactionByHash(tx);
+    let move_hash = await getMoveHash(evm_hash);
+    let info = await client.getTransactionByHash(move_hash);
     let block = await client.getBlockByVersion(info.version);
     const { to, from, type } = parseMoveTxPayload(info);
     let contractAddress = await getDeployedContract(info);
@@ -602,21 +600,23 @@ export async function getLogs(obj) {
     const fromBlock = isHexString(obj.fromBlock) ? toNumber(obj.fromBlock) : toNumber(nowBlock);
     const toBlock = isHexString(obj.toBlock) ? toNumber(obj.toBlock) : toNumber(nowBlock);
     const address = Array.isArray(obj.address) ? obj.address : [obj.address];
-    const topics = obj.topics;
+    // if(toBlock - fromBlock > 2000) throw new Error('block range too large, max 2000 blocks');
     const ret = await getEvmLogs({
         from: fromBlock,
         to: toBlock,
         address,
-        topics,
+        topics: obj.topics,
     });
-    return ret.map(it => {
+    console.log('getLogs0', ret)
+    const r = ret.map(it => {
         return {
             ...it,
-            topics: JSON.parse(it.topics),
             blockNumber: toHex(it.blockNumber),
             removed: false,
         };
     });
+    console.log('getLogs1', r)
+    return r
 }
 
 function parseLogs(info, blockNumber, blockHash, evm_hash) {
