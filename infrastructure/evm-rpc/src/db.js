@@ -8,11 +8,11 @@ setTimeout(() => {
     //     from: 1,
     //     to: 50490,
     //     address: ["0xfda50a0ba843c14125efaab5bca4ed860b7a3c88"],
-        // topics: [
-        //     "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
-        //     null,
-        //     "0x000000000000000000000000fca2fba9427f9100c14c6c2f175bc9ec744a77cf"
-        // ],
+    //     topics: [
+    //         "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+    //         null,
+    //         "0x000000000000000000000000fca2fba9427f9100c14c6c2f175bc9ec744a77cf"
+    //     ],
     // }).then(console.log)
 }, 1000);
 
