@@ -7,6 +7,7 @@ const cors = require('cors');
 const { request } = require('./provider');
 const { sleep } = require('./utils');
 const { PORT } = require('./const');
+const { canRequest } = require("./rate")
 const app = express();
 // app.use(
 //     cors({
@@ -313,6 +314,14 @@ async function checkAccount(option) {
 }
 
 async function handleMint(req, res) {
+    if (!canRequest(req.ip)) {
+        res.status(404);
+        res.json({
+            error_code: 'account_not_found',
+            message: 'rate limit, please try after 1 day',
+        });
+        return
+    }
     const address = req.query.address;
     const option = {
         data: address,
@@ -380,7 +389,7 @@ app.use('/v1', bcs_formatter, router);
 app.use('/', bcs_formatter, router);
 
 app.use((err, req, res, next) => {
-    console.error('--------err---------', err);
+    // console.error('--------err---------', err);
     res.status(404);
     res.json({
         error_code: 'account_not_found',

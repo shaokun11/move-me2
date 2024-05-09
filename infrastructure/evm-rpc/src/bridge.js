@@ -26,10 +26,11 @@ let lastBlock = '0x1';
 await getBlock();
 
 export async function faucet(addr) {
+    console.log("faucet to ", addr)
     const payload = {
         function: `${EVM_CONTRACT}::evm::deposit`,
         type_arguments: [],
-        arguments: [toBuffer(addr), toBuffer(toBeHex((1e18).toString()))],
+        arguments: [toBuffer(addr), toBuffer(toBeHex((1e17).toString()))],
     };
     const txnRequest = await client.generateTransaction(FAUCET_SENDER_ADDRESS, payload);
     const signedTxn = await client.signTransaction(FAUCET_SENDER_ACCOUNT, txnRequest);
@@ -221,7 +222,7 @@ async function checkAddressNonce(info) {
 // We can directly read it from the blockchain instead of relying on user input.
 export async function sendRawTx(tx) {
     const info = parseRawTx(tx);
-    console.log('raw tx info', info);
+    // console.log('raw tx info', info);
     // let v = info.v;
     // if (v === 27 || v === 28) {
     //     throw 'only replay-protected (EIP-155) transactions allowed over RPC';

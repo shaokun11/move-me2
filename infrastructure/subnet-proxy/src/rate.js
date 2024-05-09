@@ -1,6 +1,6 @@
 let request = new Map();
 const limit = 24 * 60 * 60 * 1000;
-export function canRequest(key) {
+function canRequest(key) {
     let callTime = request.get(key);
     if (!callTime) {
         request.set(key, Date.now());
@@ -11,4 +11,7 @@ export function canRequest(key) {
     }
     request.set(key, Date.now());
     return true;
+}
+module.exports = {
+    canRequest
 }
