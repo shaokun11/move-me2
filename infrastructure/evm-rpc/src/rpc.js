@@ -150,7 +150,7 @@ export const rpc = {
      * @returns {Promise} - A promise that resolves to the block object
      */
     eth_getBlockByHash: async function (args) {
-        return getBlockByHash(args[0]);
+        return getBlockByHash(args[0],args[1]);
     },
 
     /**
