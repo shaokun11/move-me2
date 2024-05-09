@@ -27,6 +27,26 @@ fn native_revert(
 	return Err(SafeNativeError::InvariantViolation(PartialVMError::new(StatusCode::EVM_CONTRACT_ERROR).with_message(message_string)));
 }
 
+fn native_exp(
+    _context: &mut SafeNativeContext,
+    _ty_args: Vec<Type>,
+    mut args: VecDeque<Value>
+) -> SafeNativeResult<SmallVec<[Value; 1]>> {
+    let b = safely_pop_arg!(args, move_u256);
+    let a = safely_pop_arg!(args, move_u256);
+
+    let a_u256 = U256::from_little_endian(&a.to_le_bytes());
+    let b_u256 = U256::from_little_endian(&b.to_le_bytes());
+    let n_u256 = a_u256.overflowing_pow(b_u256).0;
+
+    let mut array: [u8; 32] = [0; 32];
+    n_u256.to_little_endian(&mut array);
+
+    Ok(smallvec![
+        Value::u256(move_u256::from_le_bytes(&array))
+    ])
+}
+
 fn native_mul(
     _context: &mut SafeNativeContext,
     _ty_args: Vec<Type>,
@@ -130,6 +150,7 @@ pub fn make_all(
         ("revert", native_revert as RawSafeNative),
         ("decode_raw_tx", native_decode_raw_tx as RawSafeNative),
         ("mul", native_mul as RawSafeNative),
+        ("exp", native_exp as RawSafeNative),
         ("mul_mod", native_mul_mod as RawSafeNative)
     ];
 

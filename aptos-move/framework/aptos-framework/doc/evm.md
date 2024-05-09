@@ -19,6 +19,7 @@
 -  [Function `add`](#0x1_evm_add)
 -  [Function `sub`](#0x1_evm_sub)
 -  [Function `mul`](#0x1_evm_mul)
+-  [Function `exp`](#0x1_evm_exp)
 -  [Function `send_tx`](#0x1_evm_send_tx)
 -  [Function `estimate_tx_gas`](#0x1_evm_estimate_tx_gas)
 -  [Function `deposit`](#0x1_evm_deposit)
@@ -37,6 +38,7 @@
 -  [Function `transfer_to_evm_addr`](#0x1_evm_transfer_to_evm_addr)
 -  [Function `transfer_to_move_addr`](#0x1_evm_transfer_to_move_addr)
 -  [Function `create_event_if_not_exist`](#0x1_evm_create_event_if_not_exist)
+-  [Function `create2_address`](#0x1_evm_create2_address)
 -  [Function `create_account_if_not_exist`](#0x1_evm_create_account_if_not_exist)
 -  [Function `verify_nonce`](#0x1_evm_verify_nonce)
 -  [Function `verify_signature`](#0x1_evm_verify_signature)
@@ -671,6 +673,28 @@ invalid chain id in raw tx
 
 </details>
 
+<a id="0x1_evm_exp"></a>
+
+## Function `exp`
+
+
+
+<pre><code><b>fun</b> <a href="evm.md#0x1_evm_exp">exp</a>(a: u256, b: u256): u256
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>native</b> <b>fun</b> <a href="evm.md#0x1_evm_exp">exp</a>(a: u256, b: u256): u256;
+</code></pre>
+
+
+
+</details>
+
 <a id="0x1_evm_send_tx"></a>
 
 ## Function `send_tx`
@@ -1126,7 +1150,7 @@ invalid chain id in raw tx
         <b>else</b> <b>if</b>(opcode == 0x04) {
             <b>let</b> a = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
             <b>let</b> b = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
-            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, a / b);
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, <b>if</b>(b == 0) 0 <b>else</b> a / b);
             i = i + 1;
         }
             //sdiv
@@ -1172,7 +1196,7 @@ invalid chain id in raw tx
         <b>else</b> <b>if</b>(opcode == 0x0a) {
             <b>let</b> a = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
             <b>let</b> b = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
-            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, power(a, b));
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, <a href="evm.md#0x1_evm_exp">exp</a>(a, b));
             i = i + 1;
         }
             //signextend
@@ -1660,7 +1684,7 @@ invalid chain id in raw tx
             // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"sha3"));
             // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&bytes);
             <b>let</b> value = data_to_u256(keccak256(bytes), 0, 32);
-            // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&value);
+            // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&keccak256(bytes));
             <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, value);
             i = i + 1
         }
@@ -1722,14 +1746,14 @@ invalid chain id in raw tx
             <b>let</b> nonce = contract_store.nonce;
             // must be 20 bytes
 
-            <b>let</b> new_evm_contract_addr = get_contract_address(evm_contract_address, nonce);
-            <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"create start"));
-            <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&nonce);
-            <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&new_evm_contract_addr);
+            <b>let</b> new_evm_contract_addr = get_contract_address(sender, nonce);
+            // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"create start"));
+            // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&nonce);
+            // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&new_evm_contract_addr);
             <b>let</b> new_move_contract_addr = create_resource_address(&@aptos_framework, new_evm_contract_addr);
             contract_store.nonce = contract_store.nonce + 1;
 
-            <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&<b>exists</b>&lt;<a href="evm.md#0x1_evm_Account">Account</a>&gt;(new_move_contract_addr));
+            // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&<b>exists</b>&lt;<a href="evm.md#0x1_evm_Account">Account</a>&gt;(new_move_contract_addr));
             <b>assert</b>!(!<a href="evm.md#0x1_evm_exist_contract">exist_contract</a>(new_move_contract_addr), <a href="evm.md#0x1_evm_CONTRACT_DEPLOYED">CONTRACT_DEPLOYED</a>);
             <a href="evm.md#0x1_evm_create_account_if_not_exist">create_account_if_not_exist</a>(new_move_contract_addr);
             <a href="evm.md#0x1_evm_create_event_if_not_exist">create_event_if_not_exist</a>(new_move_contract_addr);
@@ -1766,14 +1790,16 @@ invalid chain id in raw tx
             // <b>let</b> contract_store = ;
             <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> p, x"ff");
             // must be 20 bytes
-            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> p, slice(evm_contract_address, 12, 20));
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> p, slice(sender, 12, 20));
             <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> p, salt);
             <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> p, keccak256(new_codes));
             <b>let</b> new_evm_contract_addr = to_32bit(slice(keccak256(p), 12, 20));
             <b>let</b> new_move_contract_addr = create_resource_address(&@aptos_framework, new_evm_contract_addr);
             <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"create2 start"));
+            <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&evm_contract_address);
+            <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&sender);
+            <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&p);
             <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&new_evm_contract_addr);
-            <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&<b>exists</b>&lt;<a href="evm.md#0x1_evm_Account">Account</a>&gt;(new_move_contract_addr));
             <b>assert</b>!(!<a href="evm.md#0x1_evm_exist_contract">exist_contract</a>(new_move_contract_addr), <a href="evm.md#0x1_evm_CONTRACT_DEPLOYED">CONTRACT_DEPLOYED</a>);
             <a href="evm.md#0x1_evm_create_account_if_not_exist">create_account_if_not_exist</a>(new_move_contract_addr);
             <a href="evm.md#0x1_evm_create_event_if_not_exist">create_event_if_not_exist</a>(new_move_contract_addr);
@@ -2099,6 +2125,41 @@ invalid chain id in raw tx
             log4Event: new_event_handle&lt;<a href="evm.md#0x1_evm_Log4Event">Log4Event</a>&gt;(&<a href="../../aptos-stdlib/../move-stdlib/doc/signer.md#0x1_signer">signer</a>),
         })
     }
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_create2_address"></a>
+
+## Function `create2_address`
+
+
+
+<pre><code><b>fun</b> <a href="evm.md#0x1_evm_create2_address">create2_address</a>(sender: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, t1: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, t2: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, fee: u256, <a href="../../aptos-stdlib/../move-stdlib/doc/hash.md#0x1_hash">hash</a>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="evm.md#0x1_evm_create2_address">create2_address</a>(sender: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, t1: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, t2: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, fee: u256, <a href="../../aptos-stdlib/../move-stdlib/doc/hash.md#0x1_hash">hash</a>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt; {
+    <b>let</b> salt = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_empty">vector::empty</a>&lt;u8&gt;();
+    <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> salt, t1);
+    <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> salt, t2);
+    <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> salt, u256_to_data(fee));
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&salt);
+    <b>let</b> p = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_empty">vector::empty</a>&lt;u8&gt;();
+    <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> p, x"ff");
+    // must be 20 bytes
+    <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> p, slice(sender, 12, 20));
+    <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> p, keccak256(salt));
+    <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> p, <a href="../../aptos-stdlib/../move-stdlib/doc/hash.md#0x1_hash">hash</a>);
+    to_32bit(slice(keccak256(p), 12, 20))
 }
 </code></pre>
 
