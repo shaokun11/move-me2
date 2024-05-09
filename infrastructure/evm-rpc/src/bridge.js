@@ -295,9 +295,16 @@ export async function sendRawTx(tx) {
     });
 }
 
-export function callContract(from, contract, calldata) {
+export async function callContract(from, contract, calldata, block) {
     from = from || ZeroAddress;
-    return view(from, contract, calldata);
+    if(isHexString(block)){
+        let info = await client.getBlockByHeight(toNumber(block), false);
+        block = info.last_version
+    }else {
+        // it maybe latest
+        block = undefined
+    }
+    return view(from, contract, calldata, block);
 }
 /**
  * Estimate the gas needed for a transaction.
@@ -450,8 +457,8 @@ export async function getNonce(sender) {
  * @returns {Promise<string>} The balance in hexadecimal format.
  * @throws Will throw an error if the account information cannot be retrieved.
  */
-export async function getBalance(sender) {
-    let info = await getAccountInfo(sender);
+export async function getBalance(sender,block) {
+    let info = await getAccountInfo(sender,block);
     return toHex(info.balance);
 }
 
@@ -463,7 +470,7 @@ const CACHE_ETH_ADDRESS_TO_MOVE = {};
  * @returns {Promise<Object>} An object containing the account's balance, nonce, and code.
  * @throws Will not throw an error if the Ethereum address has not been deposited from Move.
  */
-async function getAccountInfo(acc) {
+async function getAccountInfo(acc,block) {
     const ret = {
         balance: '0x0',
         nonce: 0,
@@ -482,7 +489,13 @@ async function getAccountInfo(acc) {
             moveAddress = result[0];
             CACHE_ETH_ADDRESS_TO_MOVE[acc] = moveAddress;
         }
-        const resource = await client.getAccountResource(moveAddress, `${EVM_CONTRACT}::evm::Account`);
+        if(isHexString(block)){
+            let info = await client.getBlockByHeight(toNumber(block), false);
+            block = info.last_version
+        }else {
+            block = undefined
+        }
+        const resource = await client.getAccountResource(moveAddress, `${EVM_CONTRACT}::evm::Account`,{ledgerVersion:block});
         ret.balance = resource.data.balance;
         ret.nonce = +resource.data.nonce;
         ret.code = resource.data.code;
@@ -523,14 +536,14 @@ async function getDeployedContract(info) {
     return null;
 }
 
-async function view(from, contract, calldata) {
+async function view(from, contract, calldata, version) {
     let payload = {
         function: EVM_CONTRACT + `::evm::query`,
         type_arguments: [],
         arguments: [from, contract, calldata],
     };
     try {
-        let result = await client.view(payload);
+        let result = await client.view(payload,version);
         return result[0];
     } catch (error) {
         throw error.message;

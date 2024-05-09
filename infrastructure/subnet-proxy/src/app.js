@@ -227,6 +227,9 @@ router.post('/view', async (req, res) => {
         data: JSON.stringify(body),
         is_bcs_format: req.is_bcs_format,
     };
+    if(req.query.ledger_version) {
+        option["ledger_version"] = req.query.ledger_version
+    }
     const result = await request('viewFunction', option);
     res.sendData(result);
 });

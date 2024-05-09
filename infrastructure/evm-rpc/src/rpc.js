@@ -89,7 +89,7 @@ export const rpc = {
         let { to, data: data_, from } = args[0];
         if (args[0].gasPrice) return {};
         try {
-            return await callContract(from, to, data_);
+            return await callContract(from, to, data_,args[1]);
         } catch (error) {
             throw new JSONRPCErrorException('execution reverted', -32000);
         }
@@ -160,7 +160,7 @@ export const rpc = {
      * @returns {Promise} - A promise that resolves to the balance
      */
     eth_getBalance: async function (args) {
-        return getBalance(args[0]);
+        return getBalance(args[0],args[1]);
     },
 
     /**
