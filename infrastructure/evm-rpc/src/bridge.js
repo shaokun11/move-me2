@@ -26,7 +26,7 @@ let lastBlock = '0x1';
 await getBlock();
 
 export async function faucet(addr) {
-    console.log("faucet to ", addr)
+    console.log('faucet to ', addr);
     const payload = {
         function: `${EVM_CONTRACT}::evm::deposit`,
         type_arguments: [],
@@ -297,12 +297,12 @@ export async function sendRawTx(tx) {
 
 export async function callContract(from, contract, calldata, block) {
     from = from || ZeroAddress;
-    if(isHexString(block)){
+    if (isHexString(block)) {
         let info = await client.getBlockByHeight(toNumber(block), false);
-        block = info.last_version
-    }else {
+        block = info.last_version;
+    } else {
         // it maybe latest
-        block = undefined
+        block = undefined;
     }
     return view(from, contract, calldata, block);
 }
@@ -457,8 +457,8 @@ export async function getNonce(sender) {
  * @returns {Promise<string>} The balance in hexadecimal format.
  * @throws Will throw an error if the account information cannot be retrieved.
  */
-export async function getBalance(sender,block) {
-    let info = await getAccountInfo(sender,block);
+export async function getBalance(sender, block) {
+    let info = await getAccountInfo(sender, block);
     return toHex(info.balance);
 }
 
@@ -470,7 +470,7 @@ const CACHE_ETH_ADDRESS_TO_MOVE = {};
  * @returns {Promise<Object>} An object containing the account's balance, nonce, and code.
  * @throws Will not throw an error if the Ethereum address has not been deposited from Move.
  */
-async function getAccountInfo(acc,block) {
+async function getAccountInfo(acc, block) {
     const ret = {
         balance: '0x0',
         nonce: 0,
@@ -489,13 +489,15 @@ async function getAccountInfo(acc,block) {
             moveAddress = result[0];
             CACHE_ETH_ADDRESS_TO_MOVE[acc] = moveAddress;
         }
-        if(isHexString(block)){
+        if (isHexString(block)) {
             let info = await client.getBlockByHeight(toNumber(block), false);
-            block = info.last_version
-        }else {
-            block = undefined
+            block = info.last_version;
+        } else {
+            block = undefined;
         }
-        const resource = await client.getAccountResource(moveAddress, `${EVM_CONTRACT}::evm::Account`,{ledgerVersion:block});
+        const resource = await client.getAccountResource(moveAddress, `${EVM_CONTRACT}::evm::Account`, {
+            ledgerVersion: block,
+        });
         ret.balance = resource.data.balance;
         ret.nonce = +resource.data.nonce;
         ret.code = resource.data.code;
@@ -543,7 +545,7 @@ async function view(from, contract, calldata, version) {
         arguments: [from, contract, calldata],
     };
     try {
-        let result = await client.view(payload,version);
+        let result = await client.view(payload, version);
         return result[0];
     } catch (error) {
         throw error.message;

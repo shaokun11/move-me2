@@ -77,7 +77,7 @@ app.use('/v1', checkFaucetLimit, async function (req, res, next) {
 
 // check faucet rate limit
 function checkFaucetLimit(req, res, next) {
-    if (req.body.method === "eth_faucet" || req.path === '/v1/eth_faucet') {
+    if (req.body.method === 'eth_faucet' || req.path === '/v1/eth_faucet') {
         if (!canRequest(req.ip)) {
             res.status(400).json({
                 error: 'rate limit, please try after 1 day',
@@ -85,7 +85,7 @@ function checkFaucetLimit(req, res, next) {
             return;
         }
     }
-    next()
+    next();
 }
 
 app.use('/', checkFaucetLimit, async function (req, res, next) {
