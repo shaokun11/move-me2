@@ -20,23 +20,33 @@ const locker = new Lock({
     maxExecutionTime: 30 * 1000,
 });
 
+const lockerFaucet = new Lock({
+    maxExecutionTime: 30 * 1000,
+    maxPending: 3,
+});
+
 const LOCKER_KEY_SEND_TX = 'sendTx';
 let lastBlockTime = Date.now();
 let lastBlock = '0x1';
 await getBlock();
 
 export async function faucet(addr) {
+    if (!ethers.isAddress(addr)) {
+        throw 'address format error';
+    }
     console.log('faucet to ', addr);
     const payload = {
         function: `${EVM_CONTRACT}::evm::deposit`,
         type_arguments: [],
-        arguments: [toBuffer(addr), toBuffer(toBeHex((1e17).toString()))],
+        arguments: [toBuffer(addr), toBuffer(toBeHex((1e16).toString()))],
     };
     const txnRequest = await client.generateTransaction(FAUCET_SENDER_ADDRESS, payload);
     const signedTxn = await client.signTransaction(FAUCET_SENDER_ACCOUNT, txnRequest);
     const transactionRes = await client.submitTransaction(signedTxn);
     await client.waitForTransaction(transactionRes.hash);
-    return transactionRes.hash;
+    return await lockerFaucet.acquire('faucetTx', function (done) {
+        done(null, transactionRes.hash);
+    });
 }
 
 export async function eth_feeHistory() {
