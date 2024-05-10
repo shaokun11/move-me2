@@ -78,8 +78,9 @@ app.use('/v1', checkFaucetLimit, async function (req, res, next) {
 // check faucet rate limit
 function checkFaucetLimit(req, res, next) {
     if (req.method.toLowerCase() === 'post' && req.body?.method === 'eth_faucet') {
-        if (!canRequest(req.ip)) {
-            console.log('request faucet limit ', req.ip);
+        const faucet_ip2 = req.headers['x-real-ip']
+        if (!canRequest(faucet_ip2)) {
+            console.log('request faucet limit ', faucet_ip2);
             res.status(400).json({
                 error: 'rate limit, please try after 1 day',
             });
