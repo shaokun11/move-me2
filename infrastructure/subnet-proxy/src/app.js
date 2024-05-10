@@ -227,7 +227,7 @@ router.post('/view', async (req, res) => {
         data: JSON.stringify(body),
         is_bcs_format: req.is_bcs_format,
     };
-    if(req.query.ledger_version) {
+    if (req.query.ledger_version) {
         option["ledger_version"] = req.query.ledger_version
     }
     const result = await request('viewFunction', option);
@@ -317,7 +317,8 @@ async function checkAccount(option) {
 }
 
 async function handleMint(req, res) {
-    if (!canRequest(req.ip)) {
+    const ip = req.headers['x-real-ip']
+    if (!canRequest(ip)) {
         res.status(404);
         res.json({
             error_code: 'account_not_found',
