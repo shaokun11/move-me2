@@ -28,36 +28,23 @@ server.applyMiddleware(async function (next, request, serverParams) {
         return err;
     }
 });
-app.get('/v1/eth_faucet', async function (req, res, next) {
-    const address = req.query.address;
-    if (!ethers.isAddress(address)) {
-        res.status(400).json({
-            error: 'invalid address',
-        });
-        return;
-    }
-    try {
-        let hash = await faucet(address);
-        res.json({
-            data: hash,
-        });
-    } catch (error) {
-        res.status(400).json({
-            error: 'please try again after 10 minutes',
-        });
-    }
-});
 
-app.get('/v1/move_hash', async function (req, res, next) {
-    const hash = req.query?.hash?.toLowerCase() ?? '0x1';
-    const move_hash = await getMoveHash(hash);
-    res.status(200).json({
-        data: move_hash,
-    });
-});
+function faucet_limiter(req, res, next) {
+    if (req.method.toLowerCase() === 'post' && req.body?.method === 'eth_faucet') {
+        const faucet_ip2 = req.headers['x-real-ip'];
+        if (!canRequest(faucet_ip2)) {
+            console.log('request faucet limit ', faucet_ip2);
+            res.status(400).json({
+                error: 'rate limit, please try after 1 day',
+            });
+            return;
+        }
+    }
+    next();
+}
 
-app.use('/', async function (req, res, next) {
-    const context = { ip: req.ip };
+app.use('/', faucet_limiter, async function (req, res, next) {
+    const context = { ip: req.headers['x-real-ip'] };
     console.log('>>> %s %s', context.ip, req.body.method);
     let str_req = `<<< ${JSON.stringify(req.body)}`;
     server.receive(req.body).then(jsonRPCResponse => {

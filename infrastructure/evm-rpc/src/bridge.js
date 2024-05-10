@@ -18,11 +18,25 @@ const LOCKER_MAX_PENDING = 20;
 const locker = new Lock({
     maxExecutionTime: 30 * 1000,
 });
+const lockerFaucet = new Lock({
+    maxExecutionTime: 10 * 1000,
+    maxPending: 3,
+});
 
 const LOCKER_KEY_SEND_TX = 'sendTx';
 let lastBlockTime = Date.now();
 let lastBlock = '0x1';
 await getBlock();
+
+export async function get_move_hash(evm_hash) {
+    if (evm_hash?.length !== 66) {
+        throw 'query evm hash format error';
+    }
+    try {
+        return await getMoveHash(hash);
+    } catch (error) {}
+    throw 'Not found this hash at move evm';
+}
 
 // traceTransaction("0xfd49a5c1915231e723287a6fa31fa57a01250e859b19a49f5ab9d120b824da0b").then(res => {
 //     console.log("--res-", res)
@@ -70,16 +84,22 @@ export async function traceTransaction(hash) {
 }
 
 export async function faucet(addr) {
+    if (!ethers.isAddress(addr)) {
+        throw 'address format error';
+    }
+    // console.log('faucet to ', addr);
     const payload = {
         function: `${EVM_CONTRACT}::evm::deposit`,
         type_arguments: [],
-        arguments: [toBuffer(addr), toBuffer(toBeHex((1e18).toString()))],
+        arguments: [toBuffer(addr), toBuffer(toBeHex((1e16).toString()))],
     };
     const txnRequest = await client.generateTransaction(FAUCET_SENDER_ADDRESS, payload);
     const signedTxn = await client.signTransaction(FAUCET_SENDER_ACCOUNT, txnRequest);
     const transactionRes = await client.submitTransaction(signedTxn);
     await client.waitForTransaction(transactionRes.hash);
-    return transactionRes.hash;
+    return await lockerFaucet.acquire('faucetTx', function (done) {
+        done(null, transactionRes.hash);
+    });
 }
 
 export async function eth_feeHistory() {
@@ -324,9 +344,16 @@ export async function sendRawTx(tx) {
     });
 }
 
-export function callContract(from, contract, calldata) {
+export async function callContract(from, contract, calldata, block) {
     from = from || ZeroAddress;
-    return view(from, contract, calldata);
+    if (isHexString(block)) {
+        let info = await client.getBlockByHeight(toNumber(block), false);
+        block = info.last_version;
+    } else {
+        // it maybe latest
+        block = undefined;
+    }
+    return view(from, contract, calldata, block);
 }
 /**
  * Estimate the gas needed for a transaction.
@@ -479,8 +506,8 @@ export async function getNonce(sender) {
  * @returns {Promise<string>} The balance in hexadecimal format.
  * @throws Will throw an error if the account information cannot be retrieved.
  */
-export async function getBalance(sender) {
-    let info = await getAccountInfo(sender);
+export async function getBalance(sender, block) {
+    let info = await getAccountInfo(sender, block);
     return toHex(info.balance);
 }
 
@@ -492,7 +519,7 @@ const CACHE_ETH_ADDRESS_TO_MOVE = {};
  * @returns {Promise<Object>} An object containing the account's balance, nonce, and code.
  * @throws Will not throw an error if the Ethereum address has not been deposited from Move.
  */
-async function getAccountInfo(acc) {
+async function getAccountInfo(acc, block) {
     const ret = {
         balance: '0x0',
         nonce: 0,
@@ -511,7 +538,15 @@ async function getAccountInfo(acc) {
             moveAddress = result[0];
             CACHE_ETH_ADDRESS_TO_MOVE[acc] = moveAddress;
         }
-        const resource = await client.getAccountResource(moveAddress, `${EVM_CONTRACT}::evm::Account`);
+        if (isHexString(block)) {
+            let info = await client.getBlockByHeight(toNumber(block), false);
+            block = info.last_version;
+        } else {
+            block = undefined;
+        }
+        const resource = await client.getAccountResource(moveAddress, `${EVM_CONTRACT}::evm::Account`, {
+            ledgerVersion: block,
+        });
         ret.balance = resource.data.balance;
         ret.nonce = +resource.data.nonce;
         ret.code = resource.data.code;
@@ -552,14 +587,14 @@ async function getDeployedContract(info) {
     return null;
 }
 
-async function view(from, contract, calldata) {
+async function view(from, contract, calldata, version) {
     let payload = {
         function: EVM_CONTRACT + `::evm::query`,
         type_arguments: [],
         arguments: [from, contract, calldata],
     };
     try {
-        let result = await client.view(payload);
+        let result = await client.view(payload, version);
         return result[0];
     } catch (error) {
         throw error.message;
@@ -608,7 +643,6 @@ export async function getLogs(obj) {
         address,
         topics: obj.topics,
     });
-    console.log('getLogs0', ret)
     const r = ret.map(it => {
         return {
             ...it,
@@ -616,8 +650,8 @@ export async function getLogs(obj) {
             removed: false,
         };
     });
-    console.log('getLogs1', r)
-    return r
+    // console.log('getLogs1', r);
+    return r;
 }
 
 function parseLogs(info, blockNumber, blockHash, evm_hash) {
