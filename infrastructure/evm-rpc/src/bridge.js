@@ -12,6 +12,7 @@ import {
 import { parseRawTx, sleep, toHex, toNumber, toHexStrict } from './helper.js';
 import { getMoveHash, getBlockHeightByHash, getEvmLogs } from './db.js';
 import { ZeroAddress, ethers, isHexString, toBeHex, keccak256 } from 'ethers';
+import {canRequest} from "./rate.js"
 import BigNumber from 'bignumber.js';
 import Lock from 'async-lock';
 const LOCKER_MAX_PENDING = 20;
@@ -83,11 +84,14 @@ export async function traceTransaction(hash) {
     return trace_call;
 }
 
-export async function faucet(addr) {
+export async function faucet(addr, ip) {
     if (!ethers.isAddress(addr)) {
         throw 'address format error';
     }
-    // console.log('faucet to ', addr);
+    if (!canRequest(faucet_ip2)) {
+        throw 'rate limit, please try after 1 day';
+    }
+    console.log('faucet to ', addr);
     const payload = {
         function: `${EVM_CONTRACT}::evm::deposit`,
         type_arguments: [],
@@ -691,4 +695,3 @@ function checkTxQueue() {
         throw new Error('system busy');
     }
 }
-

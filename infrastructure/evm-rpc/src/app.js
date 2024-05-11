@@ -26,25 +26,11 @@ server.applyMiddleware(async function (next, request, serverParams) {
     }
 });
 
-function faucet_limiter(req, res, next) {
-    if (req.method.toLowerCase() === 'post' && req.body?.method === 'eth_faucet') {
-        const faucet_ip2 = req.headers['x-real-ip'];
-        if (!canRequest(faucet_ip2)) {
-            console.log('request faucet limit ', faucet_ip2);
-            res.status(400).json({
-                error: 'rate limit, please try after 1 day',
-            });
-            return;
-        }
-    }
-    next();
-}
-
-app.use('/', faucet_limiter, async function (req, res, next) {
+app.use('/', async function (req, res, next) {
     const context = { ip: req.headers['x-real-ip'] };
     console.log('>>> %s %s', context.ip, req.body.method);
     let str_req = `<<< ${JSON.stringify(req.body)}`;
-    server.receive(req.body).then(jsonRPCResponse => {
+    server.receive(req.body, context).then(jsonRPCResponse => {
         if (jsonRPCResponse.error) {
             // console.error(str_req, jsonRPCResponse);
         } else {
