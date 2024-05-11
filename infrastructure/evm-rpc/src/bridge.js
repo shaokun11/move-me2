@@ -27,6 +27,10 @@ const lockerFaucet = new Lock({
 const LOCKER_KEY_SEND_TX = 'sendTx';
 let lastBlockTime = Date.now();
 let lastBlock = '0x1';
+
+const CACHE_ETH_ADDRESS_TO_MOVE = {};
+const CACHE_MOVE_HASH_TO_BLOCK_HEIGHT = {};
+
 await getBlock();
 
 export async function get_move_hash(evm_hash) {
@@ -42,6 +46,10 @@ export async function get_move_hash(evm_hash) {
 // traceTransaction("0xfd49a5c1915231e723287a6fa31fa57a01250e859b19a49f5ab9d120b824da0b").then(res => {
 //     console.log("--res-", res)
 // })
+// setTimeout(() => {
+//     getBlockByHash("0x2cb0fe2d778db93d49419c484e29b0d51aa306a1027792561bf8f8f9d8f42e11",false).then(console.log)
+// }, 1000);
+
 export async function traceTransaction(hash) {
     // const move_hash = "0x83a8a2eb32f51ef6fa9b49409c47caf292aef31737b8be479ae3c12cec6884cb"
     const move_hash = await getMoveHash(hash);
@@ -88,7 +96,7 @@ export async function faucet(addr, ip) {
     if (!ethers.isAddress(addr)) {
         throw 'address format error';
     }
-    if (!canRequest(faucet_ip2)) {
+    if (!canRequest(ip)) {
         throw 'rate limit, please try after 1 day';
     }
     console.log('faucet to ', addr);
@@ -225,7 +233,11 @@ export async function getBlockByNumber(block, withTx) {
 
 export async function getBlockByHash(hash, withTx) {
     try {
-        const height = await getBlockHeightByHash(hash);
+        let height = CACHE_MOVE_HASH_TO_BLOCK_HEIGHT[hash]
+        if (!height) {
+            height = await getBlockHeightByHash(hash);
+            CACHE_MOVE_HASH_TO_BLOCK_HEIGHT[hash] = [height]
+        }
         return getBlockByNumber(height, withTx);
     } catch (error) {
         return null;
@@ -515,7 +527,7 @@ export async function getBalance(sender, block) {
     return toHex(info.balance);
 }
 
-const CACHE_ETH_ADDRESS_TO_MOVE = {};
+
 
 /**
  * Retrieves account information for a given Ethereum address.

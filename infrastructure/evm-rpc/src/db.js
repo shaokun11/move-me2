@@ -3,7 +3,7 @@ import { indexer_client } from './const.js';
 
 setTimeout(() => {
     // getMoveHash('0x44e623b81b26d27198f9aa05df51d9614629649b2a5b892535a828ab5ab4f68e').then(console.log);
-    // getBlockHeightByHash("0xf8c3af27597d5f80821bfa29a6dda5b2b30d8b892dd85dd6cdb29be17d7bf0a1").then(console.log)
+    // getBlockHeightByHash("0x2cb0fe2d778db93d49419c484e29b0d51aa306a1027792561bf8f8f9d8f42e11").then(console.log)
     // getEvmLogs({
     //     from: 1,
     //     to: 50490,

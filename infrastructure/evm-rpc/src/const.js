@@ -1,5 +1,5 @@
 import { AptosClient, AptosAccount } from 'aptos';
-import { Client, cacheExchange, fetchExchange } from '@urql/core';
+import { Client, fetchExchange } from '@urql/core';
 export const SERVER_PORT = process.env.SERVER_PORT || 3044;
 
 /**
@@ -58,5 +58,5 @@ export const FAUCET_SENDER_ADDRESS = FAUCET_SENDER_ACCOUNT.address().hexString;
 
 export const indexer_client = new Client({
     url: process.env.INDEXER_URL,
-    exchanges: [cacheExchange, fetchExchange],
+    exchanges: [fetchExchange],
 });
