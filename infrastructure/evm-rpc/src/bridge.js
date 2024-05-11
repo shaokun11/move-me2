@@ -472,7 +472,7 @@ export async function getTransactionByHash(evm_hash) {
         nonce: toHex(nonce),
         to: to,
         accessList:[],
-        transactionIndex: toHex(BigNumber(block.last_version).sub(1).sub(info.version)),
+        transactionIndex: toHex(BigNumber(block.last_version).minus(1).minus(info.version)),
         value: toHex(value),
         v: toHex(v),
         r: r,
@@ -506,7 +506,7 @@ export async function getTransactionReceipt(evm_hash) {
         logsBloom: LOG_BLOOM,
         status: info.success ? '0x1' : '0x0',
         transactionHash: evm_hash,
-        transactionIndex: toHex(BigNumber(block.last_version).sub(1).sub(info.version)),
+        transactionIndex: toHex(BigNumber(block.last_version).minus(1).minus(info.version)),
         type,
     };
     return recept;
