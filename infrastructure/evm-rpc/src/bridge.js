@@ -8,6 +8,7 @@ import {
     LOG_BLOOM,
     FAUCET_SENDER_ADDRESS,
     FAUCET_SENDER_ACCOUNT,
+    CHAIN_ID
 } from './const.js';
 import { parseRawTx, sleep, toHex, toNumber, toHexStrict } from './helper.js';
 import { getMoveHash, getBlockHeightByHash, getEvmLogs } from './db.js';
@@ -459,25 +460,30 @@ export async function getTransactionByHash(evm_hash) {
     let info = await client.getTransactionByHash(move_hash);
     let block = await client.getBlockByVersion(info.version);
     const { to, from, data, nonce, value, v, r, s, hash, type } = parseMoveTxPayload(info);
-    return {
+    const ret =  {
         blockHash: block.block_hash,
         blockNumber: toHex(block.block_height),
         from: from,
         gas: toHex(info.gas_used),
         gasPrice: toHex(+info.gas_unit_price * 1e10),
-        maxFeePerGas: toHex(+info.gas_unit_price + 1),
-        maxPriorityFeePerGas: toHex(1),
         hash: hash,
         input: data,
         type,
         nonce: toHex(nonce),
         to: to,
-        transactionIndex: '0x0',
+        accessList:[],
+        transactionIndex: toHex(BigNumber(block.last_version).sub(1).sub(info.version)),
         value: toHex(value),
         v: toHex(v),
         r: r,
         s: s,
+        chainId : toHex(CHAIN_ID)
     };
+    if(type === 2) {
+        ret["maxFeePerGas"] = toHex(+info.gas_unit_price + 1)
+        ret["maxPriorityFeePerGas"]= toHex(1)
+    }
+    return ret
 }
 
 export async function getTransactionReceipt(evm_hash) {
@@ -500,7 +506,7 @@ export async function getTransactionReceipt(evm_hash) {
         logsBloom: LOG_BLOOM,
         status: info.success ? '0x1' : '0x0',
         transactionHash: evm_hash,
-        transactionIndex: '0x0',
+        transactionIndex: toHex(BigNumber(block.last_version).sub(1).sub(info.version)),
         type,
     };
     return recept;
