@@ -8,12 +8,12 @@ import {
     LOG_BLOOM,
     FAUCET_SENDER_ADDRESS,
     FAUCET_SENDER_ACCOUNT,
-    CHAIN_ID
+    CHAIN_ID,
 } from './const.js';
 import { parseRawTx, sleep, toHex, toNumber, toHexStrict } from './helper.js';
 import { getMoveHash, getBlockHeightByHash, getEvmLogs } from './db.js';
 import { ZeroAddress, ethers, isHexString, toBeHex, keccak256 } from 'ethers';
-import {canRequest} from "./rate.js"
+import { canRequest } from './rate.js';
 import BigNumber from 'bignumber.js';
 import Lock from 'async-lock';
 const LOCKER_MAX_PENDING = 20;
@@ -176,7 +176,7 @@ export async function getBlockByNumber(block, withTx) {
         block = info.block_height;
     }
     block = BigNumber(block).toNumber();
-    let info = await client.getBlockByHeight(block, true);
+    let info = await client.getBlockByHeight(block, false);
     let parentHash = ZERO_HASH;
     if (block > 2) {
         let info = await client.getBlockByHeight(block - 1);
@@ -187,11 +187,7 @@ export async function getBlockByNumber(block, withTx) {
     for (let i = 0; i < transactions.length; i++) {
         let it = transactions[i];
         if (it.type === 'user_transaction' && it?.payload?.function?.startsWith('0x1::evm::send_tx')) {
-            let evm_hash = parseMoveTxPayload(it).hash;
-            let move_hash = await getMoveHash(evm_hash);
-            if (evm_hash !== move_hash) {
-                evm_tx.push(evm_hash);
-            }
+            evm_tx.push(await getMoveHash(evm_hash));
         }
     }
     const genHash = c => {
@@ -203,7 +199,6 @@ export async function getBlockByNumber(block, withTx) {
         }
         return hash;
     };
-
     if (withTx && evm_tx.length > 0) {
         evm_tx = await Promise.all(evm_tx.map(it => getTransactionByHash(it)));
     }
@@ -234,10 +229,10 @@ export async function getBlockByNumber(block, withTx) {
 
 export async function getBlockByHash(hash, withTx) {
     try {
-        let height = CACHE_MOVE_HASH_TO_BLOCK_HEIGHT[hash]
+        let height = CACHE_MOVE_HASH_TO_BLOCK_HEIGHT[hash];
         if (!height) {
             height = await getBlockHeightByHash(hash);
-            CACHE_MOVE_HASH_TO_BLOCK_HEIGHT[hash] = [height]
+            CACHE_MOVE_HASH_TO_BLOCK_HEIGHT[hash] = [height];
         }
         return getBlockByNumber(height, withTx);
     } catch (error) {
@@ -436,6 +431,18 @@ export async function getGasPrice() {
     // enlarge this gas price to fit eth decimals
     return toHex(BigNumber(info.prioritized_gas_estimate).times(1e10));
 }
+
+async function getTransactionIndex(block, hash) {
+    const block = await getBlockByNumber(block, false);
+    let transactionIndex = 0;
+    for (let i = 0; i < block.transactions.length; i++) {
+        if (transactions.transactions[i].hash === hash) {
+            transactionIndex = i;
+            break;
+        }
+    }
+    return transactionIndex;
+}
 /**
  * Get a transaction by its hash.
  * @param {string} tx - The hash of the transaction.
@@ -456,13 +463,13 @@ export async function getGasPrice() {
  *   - s: string - The s value of the transaction's signature
  */
 export async function getTransactionByHash(evm_hash) {
-    let move_hash = await getMoveHash(evm_hash);
-    let info = await client.getTransactionByHash(move_hash);
-    let block = await client.getBlockByVersion(info.version);
+    const move_hash = await getMoveHash(evm_hash);
+    const info = await client.getTransactionByHash(move_hash);
+    const block_raw = await client.getBlockByVersion(info.version);
     const { to, from, data, nonce, value, v, r, s, hash, type } = parseMoveTxPayload(info);
-    const ret =  {
-        blockHash: block.block_hash,
-        blockNumber: toHex(block.block_height),
+    const ret = {
+        blockHash: block_raw.block_hash,
+        blockNumber: toHex(block_raw.block_height),
         from: from,
         gas: toHex(info.gas_used),
         gasPrice: toHex(+info.gas_unit_price * 1e10),
@@ -471,19 +478,19 @@ export async function getTransactionByHash(evm_hash) {
         type,
         nonce: toHex(nonce),
         to: to,
-        accessList:[],
-        transactionIndex: toHex(BigNumber(block.last_version).minus(1).minus(info.version)),
+        accessList: [],
+        transactionIndex: toHex(await getTransactionIndex(block_raw.block_height, evm_hash)),
         value: toHex(value),
         v: toHex(v),
         r: r,
         s: s,
-        chainId : toHex(CHAIN_ID)
+        chainId: toHex(CHAIN_ID),
     };
-    if(type === 2) {
-        ret["maxFeePerGas"] = toHex(+info.gas_unit_price + 1)
-        ret["maxPriorityFeePerGas"]= toHex(1)
+    if (type === 2) {
+        ret['maxFeePerGas'] = toHex(+info.gas_unit_price + 1);
+        ret['maxPriorityFeePerGas'] = toHex(1);
     }
-    return ret
+    return ret;
 }
 
 export async function getTransactionReceipt(evm_hash) {
@@ -492,7 +499,8 @@ export async function getTransactionReceipt(evm_hash) {
     let block = await client.getBlockByVersion(info.version);
     const { to, from, type } = parseMoveTxPayload(info);
     let contractAddress = await getDeployedContract(info);
-    const logs = parseLogs(info, block.block_height, block.block_hash, evm_hash);
+    const transactionIndex = toHex(await getTransactionIndex(block_raw.block_height, evm_hash));
+    const logs = parseLogs(info, block.block_height, block.block_hash, evm_hash, transactionIndex);
     let recept = {
         blockHash: block.block_hash,
         blockNumber: toHex(block.block_height),
@@ -506,7 +514,7 @@ export async function getTransactionReceipt(evm_hash) {
         logsBloom: LOG_BLOOM,
         status: info.success ? '0x1' : '0x0',
         transactionHash: evm_hash,
-        transactionIndex: toHex(BigNumber(block.last_version).minus(1).minus(info.version)),
+        transactionIndex: transactionIndex,
         type,
     };
     return recept;
@@ -532,8 +540,6 @@ export async function getBalance(sender, block) {
     let info = await getAccountInfo(sender, block);
     return toHex(info.balance);
 }
-
-
 
 /**
  * Retrieves account information for a given Ethereum address.
@@ -676,7 +682,7 @@ export async function getLogs(obj) {
     return r;
 }
 
-function parseLogs(info, blockNumber, blockHash, evm_hash) {
+function parseLogs(info, blockNumber, blockHash, evm_hash, transactionIndex) {
     // this could from indexer get, but we could get them from the tx hash
     let logs = [];
     let events = info.events || [];
@@ -696,7 +702,7 @@ function parseLogs(info, blockNumber, blockHash, evm_hash) {
             data: event.data.data,
             blockNumber: toHex(blockNumber),
             transactionHash: evm_hash,
-            transactionIndex: toHex(event.sequence_number),
+            transactionIndex,
             blockHash: blockHash,
             logIndex: toHex(i),
             removed: false,
