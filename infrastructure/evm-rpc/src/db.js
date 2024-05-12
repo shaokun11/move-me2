@@ -1,6 +1,6 @@
 import { gql } from '@urql/core';
 import { indexer_client } from './const.js';
-
+import { group, mapValues, sort } from 'radash';
 setTimeout(() => {
     // getMoveHash('0x44e623b81b26d27198f9aa05df51d9614629649b2a5b892535a828ab5ab4f68e').then(console.log);
     // getBlockHeightByHash("0x2cb0fe2d778db93d49419c484e29b0d51aa306a1027792561bf8f8f9d8f42e11").then(console.log)
@@ -81,15 +81,20 @@ export async function getEvmLogs(obj) {
                     data
                     address
                     block_number
+                    version
                     block_hash
                     transaction_hash
-                    transaction_index
                     log_index
                 }
             }
     `;
     const res = await indexer_client.query(query).toPromise();
-    return res.data.evm_logs.map(it => {
+    const logs = res.data.evm_logs;
+    const blockGroup = chain(
+        group(logs, it => parseInt(it.block_number)),
+        mapValues(v, v => sort(v, it => parseInt(it.version))),
+    );
+    return logs.map(it => {
         const topics = [];
         for (let i = 0; i < 5; i++) {
             if (it[`topic${i}`].length === 66) {
@@ -103,7 +108,7 @@ export async function getEvmLogs(obj) {
             blockHash: it.block_hash,
             blockNumber: it.block_number,
             transactionHash: it.transaction_hash,
-            transactionIndex: it.transaction_index,
+            transactionIndex: blockGroup[it.block_number].indexOf(it.transaction_hash),
             logIndex: it.log_index,
         };
     });
