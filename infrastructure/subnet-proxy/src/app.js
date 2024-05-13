@@ -322,7 +322,7 @@ async function handleMint(req, res) {
         res.status(404);
         res.json({
             error_code: 'account_not_found',
-            message: 'rate limit, please try after 1 day',
+            message: 'Too Many Requests, please try after 1 day',
         });
         return
     }

@@ -79,7 +79,7 @@ function checkFaucetLimit(req, res, next) {
         const faucet_ip = req.headers['x-real-ip']
         if (!canRequest(faucet_ip)) {
             console.log('request faucet limit ', faucet_ip);
-            res.json(createJSONRPCErrorResponse(req.body.id ?? 1, -32000, 'request faucet limit, please try after 1 day'));
+            res.json(createJSONRPCErrorResponse(req.body.id ?? 1, -32000, 'Too Many Requests, please try after 1 day'));
             return
         }
     }
