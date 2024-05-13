@@ -84,7 +84,7 @@ Then, run the following command to start the server:
 ```bash
 npn run start
 
-# This will start a server on port 3044
+# This will start a server on port 8999
 ```
 
 ### Add RPC to MetaMask
@@ -93,7 +93,7 @@ npn run start
 2. Go to settings ![png](static/KhoOwatzms.png)
 3. Go to network settings ![png](static/d5L1LFOLZR.png)
 4. Add a network ![png](static/nwzl29YTEb.png)
-5. Add network information (if it's local development, replace RPC with <http://127.0.0.1:3044/v1>) ![png](static/chrome_xvlAxtXOYq.png)
+5. Add network information (if it's local development, replace RPC with <http://127.0.0.1:8999>) ![png](static/chrome_xvlAxtXOYq.png)
 
 ### Connect MetaMask to Remix and Interact with Contracts
 
