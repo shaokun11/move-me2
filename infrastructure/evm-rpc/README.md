@@ -2,7 +2,7 @@
 
 This project demonstrates how to:
 
-- Call with [EVM runtime](https://github.com/movemntdev/movement-v2/blob/main/aptos-move/framework/aptos-framework/sources/evm/evm.move) on Movement Subnet.
+- Call with [EVM runtime](../../aptos-move/framework/aptos-framework/sources/evm/evm.move) on Movement EVM.
 - Implement partial Ethereum RPC methods to interact with Solidity contracts using MetaMask and Remix.
 - Deploy Solidity contracts using Remix.
 - Perform contract read and write operations.
@@ -12,7 +12,7 @@ This project demonstrates how to:
 The following RPC methods have been implemented to ensure interaction with Solidity contracts using MetaMask and Remix:
 
 - `eth_chainId`: Get the chain ID, currently fixed at 336.
-- `net_version`: Get the version number.
+- `net_version`: Returns fixed value for meet ETH network rpc requirement.
 - `eth_gasPrice`: Get the current gas price.
 - `eth_blockNumber`: Get the latest block number. Updated every 2 seconds.
 - `eth_sendRawTransaction`: Send signed raw transaction data. This checks the correctness of the signature.
@@ -29,13 +29,14 @@ The following RPC methods have been implemented to ensure interaction with Solid
 - `eth_getLogs`: Returns an array of all logs matching a given filter object.
 - `web3_clientVersion`: Returns the current client version.
 - `eth_feeHistory`: Returns fixed value for meet eip1159 requirement.
+- `debug_traceTransaction`: Returns all traces of a given transaction .
 
 ### New Rpc for Move Evm
 
 - `eth_faucet`: For get test token
 
 ```bash
-curl --location 'http://127.0.0.1:8999' \
+curl --location 'http://127.0.0.1:8998' \
 --header 'Content-Type: application/json' \
 --data '{
     "id": "1",
@@ -47,15 +48,15 @@ curl --location 'http://127.0.0.1:8999' \
 }'
 ```
 
-- `eth_move_hash`:Return the move evm hash by evm hash, this could use for query details at move explorer
+- `debug_move_hash`:Return the move evm hash by evm hash, this could use for query details at move explorer
 
 ```bash
-curl --location 'http://127.0.0.1:3044' \
+curl --location 'http://127.0.0.1:8999' \
 --header 'Content-Type: application/json' \
 --data '{
     "id": "1",
     "jsonrpc": "2.0",
-    "method": "eth_move_hash",
+    "method": "debug_move_hash",
     "params": [
         "0x3dc7fc5be27c5a5f92d35590ebe2a671ca0e98c22aeb09e3036ae94b6fedf81a"
     ]

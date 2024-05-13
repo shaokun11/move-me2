@@ -18,10 +18,21 @@ import {
     getLogs,
     eth_feeHistory,
     get_move_hash,
+    traceTransaction,
 } from './bridge.js';
 import JsonRpc from 'json-rpc-2.0';
 const { JSONRPCErrorException } = JsonRpc;
 export const rpc = {
+    debug_traceTransaction: async function (args) {
+        const caller = args[1]?.tracer || 'callTracer';
+        if (caller !== 'callTracer') {
+            throw 'Only callTracer is supported';
+        }
+        return traceTransaction(args[0]);
+    },
+    debug_move_hash: async function (args) {
+        return get_move_hash(args[0]);
+    },
     eth_feeHistory: async function (args) {
         return eth_feeHistory();
     },
@@ -184,8 +195,5 @@ export const rpc = {
 
     eth_faucet: async function (args, ctx) {
         return faucet(args[0], ctx.ip);
-    },
-    eth_move_hash: async function (args) {
-        return get_move_hash(args[0]);
     },
 };

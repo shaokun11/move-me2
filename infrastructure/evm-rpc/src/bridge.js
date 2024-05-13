@@ -39,20 +39,12 @@ export async function get_move_hash(evm_hash) {
         throw 'query evm hash format error';
     }
     try {
-        return await getMoveHash(hash);
+        return await getMoveHash(evm_hash);
     } catch (error) {}
-    throw 'Not found this hash at move evm';
+    throw 'Not found move hash for ' + evm_hash;
 }
 
-// traceTransaction("0xfd49a5c1915231e723287a6fa31fa57a01250e859b19a49f5ab9d120b824da0b").then(res => {
-//     console.log("--res-", res)
-// })
-// setTimeout(() => {
-//     getBlockByHash("0x2cb0fe2d778db93d49419c484e29b0d51aa306a1027792561bf8f8f9d8f42e11",false).then(console.log)
-// }, 1000);
-
 export async function traceTransaction(hash) {
-    // const move_hash = "0x83a8a2eb32f51ef6fa9b49409c47caf292aef31737b8be479ae3c12cec6884cb"
     const move_hash = await getMoveHash(hash);
     const info = await client.getTransactionByHash(move_hash);
     const callType = ['CALL', 'STATIC_CALL', 'DELEGATE_CALL'];
@@ -95,10 +87,11 @@ export async function traceTransaction(hash) {
 
 export async function faucet(addr, ip) {
     if (!ethers.isAddress(addr)) {
-        throw 'address format error';
+        throw 'Eth address format error';
     }
-    if (!canRequest(ip)) {
-        throw 'rate limit, please try after 1 day';
+    const [pass, leftSeconds] = canRequest(ip);
+    if (!pass) {
+        throw `'Too Many Request, please try after ${leftSeconds} seconds `;
     }
     console.log('faucet to ', addr);
     const payload = {
@@ -437,7 +430,7 @@ async function getTransactionIndex(block, hash) {
     const block_info = await getBlockByNumber(block, false);
     let transactionIndex = 0;
     for (let i = 0; i < block_info.transactions.length; i++) {
-        if (block_info.transactions[i].hash === hash) {
+        if (block_info.transactions[i] === hash) {
             transactionIndex = i;
             break;
         }
