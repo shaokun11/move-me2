@@ -4,8 +4,6 @@ import cors from 'cors';
 import JsonRpc from 'json-rpc-2.0';
 import { rpc } from './rpc.js';
 import { SERVER_PORT } from './const.js';
-import { ethers } from 'ethers';
-import { faucet } from './bridge.js';
 import { getMoveHash } from './db.js';
 import { canRequest } from './rate.js';
 const { JSONRPCServer, createJSONRPCErrorResponse } = JsonRpc;
@@ -78,13 +76,11 @@ app.use('/v1', checkFaucetLimit, async function (req, res, next) {
 // check faucet rate limit
 function checkFaucetLimit(req, res, next) {
     if (req.method.toLowerCase() === 'post' && req.body?.method === 'eth_faucet') {
-        const faucet_ip2 = req.headers['x-real-ip']
-        if (!canRequest(faucet_ip2)) {
-            console.log('request faucet limit ', faucet_ip2);
-            res.status(400).json({
-                error: 'rate limit, please try after 1 day',
-            });
-            return;
+        const faucet_ip = req.headers['x-real-ip']
+        if (!canRequest(faucet_ip)) {
+            console.log('request faucet limit ', faucet_ip);
+            res.json(createJSONRPCErrorResponse(req.body.id ?? 1, -32000, 'request faucet limit, please try after 1 day'));
+            return
         }
     }
     next();
