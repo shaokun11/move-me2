@@ -319,10 +319,9 @@ async function checkAccount(option) {
 async function handleMint(req, res) {
     const ip = req.headers['x-real-ip']
     if (!canRequest(ip)) {
-        res.status(404);
+        res.status(429);
         res.json({
-            error_code: 'account_not_found',
-            message: 'Too Many Requests, please try after 1 day',
+            message: 'Too Many Requests, An IP can only make one request per day',
         });
         return
     }
