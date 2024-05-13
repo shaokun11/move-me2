@@ -321,7 +321,7 @@ async function handleMint(req, res) {
     if (!canRequest(ip)) {
         res.status(429);
         res.json({
-            message: 'Too Many Requests, An IP can only make one request per day',
+            message: 'Too Many Requests, an ip can only make one request per day',
         });
         return
     }
