@@ -18,6 +18,7 @@ server.applyMiddleware(async function (next, request, serverParams) {
     try {
         return await next(request, serverParams);
     } catch (error) {
+        // console.error('error', error);
         const message = typeof error === 'string' ? error : error?.message || 'Internal error';
         const err = createJSONRPCErrorResponse(request.id, error?.code || -32000, message, {
             message,
@@ -28,7 +29,7 @@ server.applyMiddleware(async function (next, request, serverParams) {
 
 app.use('/', async function (req, res, next) {
     const context = { ip: req.headers['x-real-ip'] || req.header('x-forwarded-for') || req.ip };
-    console.log('>>> %s %s', context.ip, req.body.method);
+    console.log('>>> %s %s', context.ip, req.body);
     let str_req = `<<< ${JSON.stringify(req.body)}`;
     server.receive(req.body, context).then(jsonRPCResponse => {
         if (jsonRPCResponse.error) {

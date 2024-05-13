@@ -91,7 +91,7 @@ export async function getEvmLogs(obj) {
     const res = await indexer_client.query(query).toPromise();
     const logs = res.data.evm_logs;
     const blockGroup = group(logs, it => parseInt(it.block_number));
-    mapValues(blockGroup, v => sort(v, it => parseInt(it.version)))
+    mapValues(blockGroup, v => sort(v, it => parseInt(it.version)));
     return logs.map(it => {
         const topics = [];
         for (let i = 0; i < 5; i++) {
@@ -99,7 +99,9 @@ export async function getEvmLogs(obj) {
                 topics.push(it[`topic${i}`]);
             }
         }
-        const transactionIndex = blockGroup[it.block_number].findIndex(ele => it.transaction_hash === ele.transaction_hash);
+        const transactionIndex = blockGroup[it.block_number].findIndex(
+            ele => it.transaction_hash === ele.transaction_hash,
+        );
         return {
             topics,
             data: it.data,

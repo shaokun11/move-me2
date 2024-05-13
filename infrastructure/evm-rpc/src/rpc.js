@@ -26,9 +26,7 @@ export const rpc = {
         return eth_feeHistory();
     },
     eth_getLogs: async function (args) {
-        const logs = await getLogs(args[0]);
-        console.log('get_logs,', args, logs);
-        return logs;
+        return getLogs(args[0]);
     },
     web3_clientVersion: async function () {
         return 'Geth/v1.11.6-omnibus-f83e1598/linux-.mdx64/go1.20.3';

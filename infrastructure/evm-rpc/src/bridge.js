@@ -176,10 +176,10 @@ export async function getBlockByNumber(block, withTx) {
         block = info.block_height;
     }
     block = BigNumber(block).toNumber();
-    let info = await client.getBlockByHeight(block, false);
+    let info = await client.getBlockByHeight(block, true);
     let parentHash = ZERO_HASH;
     if (block > 2) {
-        let info = await client.getBlockByHeight(block - 1);
+        let info = await client.getBlockByHeight(block - 1, false);
         parentHash = info.block_hash;
     }
     let transactions = info.transactions || [];
@@ -187,7 +187,8 @@ export async function getBlockByNumber(block, withTx) {
     for (let i = 0; i < transactions.length; i++) {
         let it = transactions[i];
         if (it.type === 'user_transaction' && it?.payload?.function?.startsWith('0x1::evm::send_tx')) {
-            evm_tx.push(await getMoveHash(evm_hash));
+            const { hash: evm_hash } = parseMoveTxPayload(it);
+            evm_tx.push(evm_hash);
         }
     }
     const genHash = c => {
@@ -436,7 +437,7 @@ async function getTransactionIndex(block, hash) {
     const block_info = await getBlockByNumber(block, false);
     let transactionIndex = 0;
     for (let i = 0; i < block_info.transactions.length; i++) {
-        if (transactions.transactions[i].hash === hash) {
+        if (block_info.transactions[i].hash === hash) {
             transactionIndex = i;
             break;
         }
@@ -499,7 +500,7 @@ export async function getTransactionReceipt(evm_hash) {
     let block = await client.getBlockByVersion(info.version);
     const { to, from, type } = parseMoveTxPayload(info);
     let contractAddress = await getDeployedContract(info);
-    const transactionIndex = toHex(await getTransactionIndex(block_raw.block_height, evm_hash));
+    const transactionIndex = toHex(await getTransactionIndex(block.block_height, evm_hash));
     const logs = parseLogs(info, block.block_height, block.block_hash, evm_hash, transactionIndex);
     let recept = {
         blockHash: block.block_hash,
@@ -675,6 +676,7 @@ export async function getLogs(obj) {
         return {
             ...it,
             blockNumber: toHex(it.blockNumber),
+            transactionIndex: toHex(it.transactionIndex),
             removed: false,
         };
     });
