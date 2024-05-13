@@ -433,9 +433,9 @@ export async function getGasPrice() {
 }
 
 async function getTransactionIndex(block, hash) {
-    const block = await getBlockByNumber(block, false);
+    const block_info = await getBlockByNumber(block, false);
     let transactionIndex = 0;
-    for (let i = 0; i < block.transactions.length; i++) {
+    for (let i = 0; i < block_info.transactions.length; i++) {
         if (transactions.transactions[i].hash === hash) {
             transactionIndex = i;
             break;
