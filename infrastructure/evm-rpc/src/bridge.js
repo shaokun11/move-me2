@@ -40,7 +40,7 @@ export async function get_move_hash(evm_hash) {
     }
     try {
         return await getMoveHash(evm_hash);
-    } catch (error) {}
+    } catch (error) { }
     throw 'Not found move hash for ' + evm_hash;
 }
 
@@ -55,23 +55,23 @@ export async function traceTransaction(hash) {
         gasUsed: toHex(data.gas_used),
         to: toEtherAddress(data.to),
         input: data.input,
-        // output: "0x0",// TODOE
+        // output: "0x0",// TODO
         value: toHex(data.value),
         type: callType[data.type],
     });
     const traces = info.events
         .filter(it => it.type === '0x1::evm::CallEvent')
         .sort((a, b) => parseInt(a.sequence_number) - parseInt(b.sequence_number));
-    const trace_call = format_item(traces.shift().data);
+    const root_call = format_item(traces.shift().data);
     const find_caller = (item, trace) => {
         if (trace.to === item.from) {
             if (!trace.calls) trace['calls'] = [];
             trace.calls.push(item);
         } else {
-            if (!trace_call.calls) {
+            if (!root_call.calls) {
                 // now we think it top level,
-                if (!trace_call.calls) trace['calls'] = [];
-                trace_call.calls.push(item);
+                if (!root_call.calls) root_call['calls'] = [];
+                root_call.calls.push(item);
             } else {
                 for (let call of trace.calls) {
                     find_caller(item, call);
@@ -80,9 +80,9 @@ export async function traceTransaction(hash) {
         }
     };
     traces.forEach(({ data }) => {
-        find_caller(format_item(data), trace_call);
+        find_caller(format_item(data), root_call);
     });
-    return trace_call;
+    return root_call;
 }
 
 export async function faucet(addr, ip) {
@@ -99,12 +99,17 @@ export async function faucet(addr, ip) {
         type_arguments: [],
         arguments: [toBuffer(addr), toBuffer(toBeHex((1e16).toString()))],
     };
-    const txnRequest = await client.generateTransaction(FAUCET_SENDER_ADDRESS, payload);
-    const signedTxn = await client.signTransaction(FAUCET_SENDER_ACCOUNT, txnRequest);
-    const transactionRes = await client.submitTransaction(signedTxn);
-    await client.waitForTransaction(transactionRes.hash);
-    return await lockerFaucet.acquire('faucetTx', function (done) {
-        done(null, transactionRes.hash);
+    return await lockerFaucet.acquire('faucetTx', async function (done) {
+        const txnRequest = await client.generateTransaction(FAUCET_SENDER_ADDRESS, payload);
+        const signedTxn = await client.signTransaction(FAUCET_SENDER_ACCOUNT, txnRequest);
+        const transactionRes = await client.submitTransaction(signedTxn);
+        await client.waitForTransaction(transactionRes.hash);
+        const res = await client.getTransactionByHash(transactionRes.hash);
+        if (res.success) {
+            done(null, transactionRes.hash);
+        } else {
+            done("System error, please try later");
+        }
     });
 }
 
@@ -480,7 +485,7 @@ export async function getTransactionByHash(evm_hash) {
         s: s,
         chainId: toHex(CHAIN_ID),
     };
-    if (type === 2) {
+    if (type === "0x2") {
         ret['maxFeePerGas'] = toHex(+info.gas_unit_price + 1);
         ret['maxPriorityFeePerGas'] = toHex(1);
     }
