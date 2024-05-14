@@ -328,7 +328,7 @@ async function handleMint(req, res) {
         });
         return
     }
-    const ip = req.headers['x-real-ip']
+    const ip = req.headers["cf-connecting-ip"] || req.headers['x-real-ip'] || req.ip
     const [pass, time] = await canRequest(ip)
     if (!pass) {
         console.log(`faucet limit ${ip} ${time} seconds`);

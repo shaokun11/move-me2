@@ -9,6 +9,7 @@ const { JSONRPCServer, createJSONRPCErrorResponse } = JsonRpc;
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
+im
 
 const server = new JSONRPCServer();
 for (const [key, value] of Object.entries(rpc)) {
@@ -35,27 +36,9 @@ app.get('/v1/move_hash', async function (req, res, next) {
     });
 });
 
-app.use('/v1', async function (req, res, next) {
-    const context = { ip: req.ip };
-    // console.log('>>> %s %s', context.ip, req.body.method);
-    let str_req = `<<< ${JSON.stringify(req.body)}`;
-    server.receive(req.body).then(jsonRPCResponse => {
-        if (jsonRPCResponse.error) {
-            // console.error(str_req, jsonRPCResponse);
-        } else {
-            // console.log(str_req, jsonRPCResponse);
-        }
-        if (Array.isArray(req.body) && req.body.length === 1) {
-            res.json([jsonRPCResponse]);
-        } else {
-            res.json(jsonRPCResponse);
-        }
-    });
-});
-
 app.use('/', async function (req, res, next) {
-    const context = { ip: req.headers['x-real-ip'] };
-    // console.log('>>> %s %s', context.ip, req.body.method);
+    const context = { ip: req.headers["cf-connecting-ip"] || req.headers['x-real-ip'] || req.ip};
+    // console.log('>>> %s %s %s', context.ip, req.body.method);
     let str_req = `<<< ${JSON.stringify(req.body)}`;
     server.receive(req.body, context).then(jsonRPCResponse => {
         if (jsonRPCResponse.error) {
@@ -71,7 +54,7 @@ app.use('/', async function (req, res, next) {
     });
 });
 
-app.set('trust proxy', true);
+app.set('trust proxy', 1);
 app.listen(SERVER_PORT, () => {
     console.log('server start at http://127.0.0.1:' + SERVER_PORT);
 });
