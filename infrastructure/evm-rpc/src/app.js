@@ -5,7 +5,6 @@ import JsonRpc from 'json-rpc-2.0';
 import { rpc } from './rpc.js';
 import { SERVER_PORT } from './const.js';
 import { getMoveHash } from './db.js';
-import { canRequest } from './rate.js';
 const { JSONRPCServer, createJSONRPCErrorResponse } = JsonRpc;
 const app = express();
 app.use(cors());
@@ -27,25 +26,6 @@ server.applyMiddleware(async function (next, request, serverParams) {
         return err;
     }
 });
-// app.get('/v1/eth_faucet', checkFaucetLimit, async function (req, res, next) {
-//     const address = req.query.address;
-//     if (!ethers.isAddress(address)) {
-//         res.status(400).json({
-//             error: 'invalid address',
-//         });
-//         return;
-//     }
-//     try {
-//         let hash = await faucet(address);
-//         res.json({
-//             data: hash,
-//         });
-//     } catch (error) {
-//         res.status(400).json({
-//             error: 'please try again after 10 minutes',
-//         });
-//     }
-// });
 
 app.get('/v1/move_hash', async function (req, res, next) {
     const hash = req.query?.hash?.toLowerCase() ?? '0x1';
@@ -55,7 +35,7 @@ app.get('/v1/move_hash', async function (req, res, next) {
     });
 });
 
-app.use('/v1', checkFaucetLimit, async function (req, res, next) {
+app.use('/v1', async function (req, res, next) {
     const context = { ip: req.ip };
     // console.log('>>> %s %s', context.ip, req.body.method);
     let str_req = `<<< ${JSON.stringify(req.body)}`;
@@ -73,21 +53,8 @@ app.use('/v1', checkFaucetLimit, async function (req, res, next) {
     });
 });
 
-// check faucet rate limit
-function checkFaucetLimit(req, res, next) {
-    if (req.method.toLowerCase() === 'post' && req.body?.method === 'eth_faucet') {
-        const faucet_ip = req.headers['x-real-ip']
-        if (!canRequest(faucet_ip)) {
-            console.log('request faucet limit ', faucet_ip);
-            res.json(createJSONRPCErrorResponse(req.body.id ?? 1, -32000, 'Too Many Requests, please try after 1 day'));
-            return
-        }
-    }
-    next();
-}
-
-app.use('/', checkFaucetLimit, async function (req, res, next) {
-    const context = { ip: req.ip };
+app.use('/', async function (req, res, next) {
+    const context = { ip: req.headers['x-real-ip'] };
     // console.log('>>> %s %s', context.ip, req.body.method);
     let str_req = `<<< ${JSON.stringify(req.body)}`;
     server.receive(req.body, context).then(jsonRPCResponse => {

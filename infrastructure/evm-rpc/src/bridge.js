@@ -11,18 +11,19 @@ import {
     FAUCET_SENDER_ACCOUNT,
 } from './const.js';
 import { parseRawTx, sleep, toHex, toNumber, toHexStrict } from './helper.js';
-import { TxEvents, getMoveHash, saveMoveEvmTxHash, saveTx, Block2Hash } from './db.js';
+import { TxEvents, getMoveHash, saveMoveEvmTxHash, Block2Hash } from './db.js';
 import { ZeroAddress, ethers, isHexString, toBeHex, keccak256 } from 'ethers';
 import BigNumber from 'bignumber.js';
 import Lock from 'async-lock';
 const LOCKER_MAX_PENDING = 20;
+import { canRequest, setRequest } from './rate.js';
 const locker = new Lock({
     maxExecutionTime: 30 * 1000,
 });
 
 const lockerFaucet = new Lock({
-    maxExecutionTime: 30 * 1000,
-    maxPending: 3,
+    maxExecutionTime: 10 * 1000,
+    maxPending: 2,
 });
 
 const LOCKER_KEY_SEND_TX = 'sendTx';
@@ -30,22 +31,33 @@ let lastBlockTime = Date.now();
 let lastBlock = '0x1';
 await getBlock();
 
-export async function faucet(addr) {
+export async function faucet(addr, ip) {
     if (!ethers.isAddress(addr)) {
-        throw 'address format error';
+        throw 'Address format error';
     }
-    console.log('faucet to ', addr);
+    const [pass, left] = await canRequest(ip);
+    if (!pass) {
+        console.log('request faucet limit ', ip, addr);
+        throw `Too Many Requests, please try after ${left} seconds`;
+    }
     const payload = {
         function: `${EVM_CONTRACT}::evm::deposit`,
         type_arguments: [],
-        arguments: [toBuffer(addr), toBuffer(toBeHex((1e16).toString()))],
+        arguments: [toBuffer(addr), toBuffer(toBeHex((1e18).toString()))],
     };
-    const txnRequest = await client.generateTransaction(FAUCET_SENDER_ADDRESS, payload);
-    const signedTxn = await client.signTransaction(FAUCET_SENDER_ACCOUNT, txnRequest);
-    const transactionRes = await client.submitTransaction(signedTxn);
-    await client.waitForTransaction(transactionRes.hash);
-    return await lockerFaucet.acquire('faucetTx', function (done) {
-        done(null, transactionRes.hash);
+    return await lockerFaucet.acquire('faucetTx', async function (done) {
+        const txnRequest = await client.generateTransaction(FAUCET_SENDER_ADDRESS, payload);
+        const signedTxn = await client.signTransaction(FAUCET_SENDER_ACCOUNT, txnRequest);
+        const transactionRes = await client.submitTransaction(signedTxn);
+        await client.waitForTransaction(transactionRes.hash);
+        const res = await client.getTransactionByHash(transactionRes.hash);
+        if (res.success) {
+            console.log('faucet to %s %s success', ip, addr);
+            await setRequest(ip);
+            done(null, transactionRes.hash);
+        } else {
+            done('System error, please try again after 5 min');
+        }
     });
 }
 

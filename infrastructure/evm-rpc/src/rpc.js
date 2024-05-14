@@ -181,7 +181,7 @@ export const rpc = {
         return getStorageAt(args[0], args[1]);
     },
 
-    eth_faucet: async function (args) {
-        return faucet(args[0]);
+    eth_faucet: async function (args, ctx) {
+        return faucet(args[0], ctx.ip);
     },
 };
