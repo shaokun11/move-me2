@@ -24,7 +24,6 @@ async function setRequest(key) {
     const user = await db.get("users").find({
         key
     })
-    console.log(user.value())
     if (user.value()) {
         await user.assign({
             time: Date.now()

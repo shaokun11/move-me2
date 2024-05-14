@@ -7,7 +7,7 @@ const cors = require('cors');
 const { request } = require('./provider');
 const { sleep } = require('./utils');
 const { PORT } = require('./const');
-const { canRequest } = require("./rate")
+const { canRequest,setRequest } = require("./rate")
 const app = express();
 // app.use(
 //     cors({
@@ -348,7 +348,7 @@ async function handleMint(req, res) {
         let faucet_res = await request('faucet', option);
         await sleep(1);
         await setRequest(ip)
-        console.log(`faucet limit ${ip} success`);
+        console.log(`faucet ${ip} success`);
         faucet_res.data = [faucet_res.data.hash];
         res.sendData(faucet_res);
     } catch (error) {
