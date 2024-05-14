@@ -7,7 +7,7 @@ const cors = require('cors');
 const { request } = require('./provider');
 const { sleep } = require('./utils');
 const { PORT } = require('./const');
-const { canRequest,setRequest } = require("./rate")
+const { canRequest, setRequest } = require("./rate")
 const app = express();
 // app.use(
 //     cors({
@@ -325,16 +325,16 @@ async function handleMint(req, res) {
     const [pass, time] = await canRequest(ip)
     if (!pass) {
         console.log(`faucet limit ${ip} ${time} seconds`);
-        res.status(429);
+        res.status(200)
         res.json({
-            message: `Too Many Requests, please try after ${time} seconds`,
+            error_message: `Too Many Requests, please try after ${time} seconds`,
         });
         return
     }
     if (IS_FAUCET_RUNNING) {
-        res.status(429);
+        res.status(200);
         res.json({
-            message: `System busy, please try again after 1 minute`,
+            error_message: `System busy, please try again after 1 minute`,
         });
         return
     }
