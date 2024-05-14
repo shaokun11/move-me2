@@ -321,13 +321,6 @@ let IS_FAUCET_RUNNING = false
 
 // for common faucet
 async function handleMint(req, res) {
-    if (IS_FAUCET_RUNNING) {
-        res.status(400);
-        res.json({
-            message: `System busy, please try again after 1 minute`,
-        });
-        return
-    }
     const ip = req.headers["cf-connecting-ip"] || req.headers['x-real-ip'] || req.ip
     const [pass, time] = await canRequest(ip)
     if (!pass) {
@@ -335,6 +328,13 @@ async function handleMint(req, res) {
         res.status(429);
         res.json({
             message: `Too Many Requests, please try after ${time} seconds`,
+        });
+        return
+    }
+    if (IS_FAUCET_RUNNING) {
+        res.status(429);
+        res.json({
+            message: `System busy, please try again after 1 minute`,
         });
         return
     }
