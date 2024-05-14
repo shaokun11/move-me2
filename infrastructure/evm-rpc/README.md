@@ -78,6 +78,8 @@ mv .env.example .env
 - `EVM_SENDER`: The private key of a account to send EVM transactions to the Move. Please ensure that the account has enough MOVE native token to pay for the gas fee.(At least 10)
 
 - `FAUCET_SENDER`: The private key of a account to send bridge move native token to evm native token. Please ensure that the account has enough MOVE native token to pay for the gas fee and bridge token.(At least 10)
+- `INDEXER_URL`: The aptos indexer graphql url
+- `SERVER_PORT`: The application running port
 
 Then, run the following command to start the server:
 
