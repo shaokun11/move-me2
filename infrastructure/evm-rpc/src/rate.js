@@ -1,16 +1,25 @@
-let request = new Map();
+import { JSONFilePreset } from 'lowdb/node';
+const db = await JSONFilePreset(`faucet.limiter.json`, []);
+const limit = 24 * 60 * 60 * 1000;
 
-const ONE_DAY_SECONDS = 24 * 60 * 60;
-
-export function canRequest(ip) {
-    let callTime = request.get(ip);
-    if (!callTime) {
-        request.set(ip, Date.now());
+export async function canRequest(key) {
+    const user = await db.data.find(it => it.key === key);
+    if (user) {
+        if (Date.now() - user.time < limit) {
+            return [false, Math.floor((limit - (Date.now() - user.time)) / 1000)];
+        }
         return [true, 0];
     }
-    if (Date.now() - callTime < ONE_DAY_SECONDS * 1000) {
-        return [false, Math.floor((ONE_DAY_SECONDS * 1000 - (Date.now() - callTime)) / 1000)];
-    }
-    request.set(ip, Date.now());
     return [true, 0];
+}
+
+export async function setRequest(key) {
+    await db.update(users => {
+        const item = users.find(it => it.key === key);
+        if (item) {
+            item[key] = Date.now();
+        } else {
+            users.push({ key, time: Date.now() });
+        }
+    });
 }

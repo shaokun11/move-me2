@@ -13,7 +13,7 @@ import {
 import { parseRawTx, sleep, toHex, toNumber, toHexStrict } from './helper.js';
 import { getMoveHash, getBlockHeightByHash, getEvmLogs } from './db.js';
 import { ZeroAddress, ethers, isHexString, toBeHex, keccak256 } from 'ethers';
-import { canRequest } from './rate.js';
+import { canRequest, setRequest } from './rate.js';
 import BigNumber from 'bignumber.js';
 import Lock from 'async-lock';
 const LOCKER_MAX_PENDING = 20;
@@ -89,11 +89,10 @@ export async function faucet(addr, ip) {
     if (!ethers.isAddress(addr)) {
         throw 'Eth address format error';
     }
-    const [pass, leftSeconds] = canRequest(ip);
+    const [pass, leftSeconds] = await canRequest(ip);
     if (!pass) {
         throw `'Too Many Request, please try after ${leftSeconds} seconds `;
     }
-    console.log('faucet to ', addr);
     const payload = {
         function: `${EVM_CONTRACT}::evm::deposit`,
         type_arguments: [],
@@ -107,6 +106,8 @@ export async function faucet(addr, ip) {
         const res = await client.getTransactionByHash(transactionRes.hash);
         if (res.success) {
             done(null, transactionRes.hash);
+            console.log('faucet success %s %s %s', transactionRes.hash, ip, addr);
+            await setRequest(ip);
         } else {
             done("System error, please try later");
         }
