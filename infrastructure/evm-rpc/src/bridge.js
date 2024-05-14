@@ -37,7 +37,7 @@ export async function faucet(addr, ip) {
     }
     const [pass, left] = await canRequest(ip);
     if (!pass) {
-        console.log('request faucet limit ', ip, addr);
+        console.log('faucet %s limit,left %s seconds ', ip, left);
         throw `Too Many Requests, please try after ${left} seconds`;
     }
     const payload = {
