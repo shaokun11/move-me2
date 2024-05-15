@@ -107,7 +107,7 @@ export async function faucet(addr, ip) {
         const res = await client.getTransactionByHash(transactionRes.hash);
         if (res.success) {
             done(null, transactionRes.hash);
-            console.log('faucet success %s %s %s', transactionRes.hash, ip, addr);
+            // console.log('faucet success %s %s %s', transactionRes.hash, ip, addr);
             await setRequest(ip);
         } else {
             done("System error, please try later");
