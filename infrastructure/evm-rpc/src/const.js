@@ -13,6 +13,8 @@ export const NODE_URL = process.env.NODE_URL;
 const EVM_SENDER = process.env.EVM_SENDER;
 const FAUCET_SENDER = process.env.FAUCET_SENDER;
 
+export const FAUCET_AMOUNT = process.env.FAUCET_AMOUNT || 1
+
 /**
  * EVM_CONTRACT is the contract address
  */

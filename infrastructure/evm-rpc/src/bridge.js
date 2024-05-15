@@ -9,6 +9,7 @@ import {
     FAUCET_SENDER_ADDRESS,
     FAUCET_SENDER_ACCOUNT,
     CHAIN_ID,
+    FAUCET_AMOUNT,
 } from './const.js';
 import { parseRawTx, sleep, toHex, toNumber, toHexStrict } from './helper.js';
 import { getMoveHash, getBlockHeightByHash, getEvmLogs } from './db.js';
@@ -96,7 +97,7 @@ export async function faucet(addr, ip) {
     const payload = {
         function: `${EVM_CONTRACT}::evm::deposit`,
         type_arguments: [],
-        arguments: [toBuffer(addr), toBuffer(toBeHex((1e16).toString()))],
+        arguments: [toBuffer(addr), toBuffer(toBeHex((BigNumber(FAUCET_AMOUNT).times(1e18)).toString()))],
     };
     return await lockerFaucet.acquire('faucetTx', async function (done) {
         const txnRequest = await client.generateTransaction(FAUCET_SENDER_ADDRESS, payload);
