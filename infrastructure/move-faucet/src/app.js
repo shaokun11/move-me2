@@ -37,7 +37,6 @@ app.post('/fund', async function (req, res) {
 });
 // for aptos cli faucet
 app.post('/mint', async function (req, res) {
-    opt.data.amount = parseInt(FAUCET_AMOUNT) * 1e8;
     await axios(make_req_option(req));
     res.send(response.data);
     res.status(response.status);
