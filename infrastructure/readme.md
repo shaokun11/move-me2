@@ -4,7 +4,6 @@
 ├── bridge-faucet
 ├── evm-rpc 
 ├── explorer 
-└── subnet-proxy 
 ```
 The Move Subnet infrastructure consists of the following components:
 
@@ -14,7 +13,6 @@ The Move Subnet infrastructure consists of the following components:
 
 - **Explorer**: An explorer specifically designed for the Move Subnet, allowing users to explore and navigate through its functionalities.
 
-- **Subnet Proxy**: This component acts as a converter, transforming the Move Subnet's JSON-RPC service into a RESTful API format using the Aptos SDK. This enables developers to interact with the Move Subnet using RESTful endpoints.
 
 
 

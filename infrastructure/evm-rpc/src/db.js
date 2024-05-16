@@ -1,177 +1,102 @@
-// User.js
-
-import { DataTypes, Sequelize } from 'sequelize';
-
-const sequelize = new Sequelize('database', null, null, {
-    dialect: 'sqlite',
-    storage: './db/database.db',
-    logging: false,
-});
-
-export const RawTx = sequelize.define('RawTx', {
-    id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-    },
-    tx: {
-        type: DataTypes.TEXT,
-        allowNull: false,
-    },
-    hash: {
-        type: DataTypes.STRING,
-        allowNull: false,
-    },
-    info: {
-        type: DataTypes.JSON,
-        allowNull: false,
-    },
-});
-await RawTx.sync();
-export function saveTx(tx, hash, info) {
-    RawTx.create({
-        tx,
-        hash,
-        info,
-    }).catch(err => {
-        // ignore
-    });
-}
-
-const MoveEvmTxHash = sequelize.define(
-    'MoveEvmTxHash',
-    {
-        id: {
-            type: DataTypes.INTEGER.UNSIGNED,
-            primaryKey: true,
-            autoIncrement: true,
-        },
-        move_hash: {
-            type: DataTypes.STRING,
-            allowNull: false,
-        },
-        evm_hash: {
-            type: DataTypes.STRING,
-            allowNull: false,
-        },
-    },
-    {
-        indexes: [
-            {
-                fields: ['move_hash'],
-            },
-            {
-                fields: ['evm_hash'],
-            },
-        ],
-    },
-);
-await MoveEvmTxHash.sync();
-
-export async function saveMoveEvmTxHash(move_hash, evm_hash) {
-    return MoveEvmTxHash.create({
-        move_hash,
-        evm_hash,
-    }).catch(err => {
-        // ignore
-    });
-}
+import { gql } from '@urql/core';
+import { indexer_client } from './const.js';
+import { group, mapValues, sort } from 'radash';
 
 export async function getMoveHash(evm_hash) {
-    let move_hash = await MoveEvmTxHash.findOne({
-        where: {
-            evm_hash,
-        },
-        order: [['id', 'desc']],
-    }).then(res => res?.move_hash ?? null);
-    return move_hash || evm_hash;
+    const query = gql`
+        {
+            evm_move_hash(where:{
+                evm_hash:{
+                _eq:"${evm_hash}"
+                }
+            }) {
+                move_hash
+                evm_hash
+            }
+        }
+    `;
+    const res = await indexer_client.query(query).toPromise();
+    return res.data.evm_move_hash[0].move_hash;
 }
 
-export const TxEvents = sequelize.define(
-    'TxEvents',
-    {
-        id: {
-            type: DataTypes.INTEGER.UNSIGNED,
-            primaryKey: true,
-            autoIncrement: true,
-        },
-        logIndex: {
-            type: DataTypes.STRING,
-            allowNull: false,
-        },
-        blockNumber: {
-            type: DataTypes.INTEGER.UNSIGNED,
-            allowNull: false,
-        },
-        blockHash: {
-            type: DataTypes.STRING(66),
-            allowNull: false,
-        },
-        transactionHash: {
-            type: DataTypes.STRING(66),
-            allowNull: false,
-        },
-        transactionIndex: {
-            type: DataTypes.STRING,
-            allowNull: false,
-        },
-        address: {
-            type: DataTypes.STRING(42),
-            allowNull: false,
-        },
-        data: {
-            type: DataTypes.TEXT('long'),
-            allowNull: false,
-        },
-        topic0: {
-            type: DataTypes.STRING(66),
-            allowNull: false,
-        },
-        topic1: {
-            type: DataTypes.STRING(66),
-            allowNull: false,
-        },
-        topic2: {
-            type: DataTypes.STRING(66),
-            allowNull: false,
-        },
-        topic3: {
-            type: DataTypes.STRING(66),
-            allowNull: false,
-        },
-        topics: {
-            type: DataTypes.TEXT('long'),
-            allowNull: false,
-            comment: 'topic json array',
-        },
-    },
-    {
-        indexes: [
-            {
-                fields: ['blockNumber', 'address', 'topic0'],
-                fields: ['blockNumber', 'address', 'topic0', 'topic1'],
-                fields: ['blockNumber', 'address', 'topic0', 'topic1', 'topic2'],
-                fields: ['blockNumber', 'address', 'topic0', 'topic1', 'topic2', 'topic3'],
-            },
-        ],
-    },
-);
-await TxEvents.sync();
+export async function getBlockHeightByHash(block_hash) {
+    const query = gql`
+        {
+            block_metadata_transactions(where: {id: {_eq: "${block_hash}"}}) {
+                block_height
+                id
+            }
+        }
 
-export const GLobalState = sequelize.define('GLobalState', {
-    id: {
-        type: DataTypes.INTEGER.UNSIGNED,
-        primaryKey: true,
-        autoIncrement: true,
-    },
-    key: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        unique: true,
-    },
-    value: {
-        type: DataTypes.TEXT,
-        allowNull: false,
-    },
-});
-await GLobalState.sync();
+    `;
+    const res = await indexer_client.query(query).toPromise();
+    if (res.data.block_metadata_transactions.length == 0) {
+        throw new Error('No block found');
+    }
+    return res.data.block_metadata_transactions[0].block_height;
+}
+
+export async function getEvmLogs(obj) {
+    let topicWhere = '';
+    if (obj.topics) {
+        for (let i = 0; i < 5; i++) {
+            if (obj.topics[i]) {
+                topicWhere += `topic${i}: {_eq: "${obj.topics[i]}"}\n`;
+            }
+        }
+    }
+    const query = gql`
+            {
+            evm_logs (where:{
+                _and:{
+                    block_number:{
+                        _gte:${obj.from},
+                        _lte:${obj.to}
+                    }
+                    address:{
+                        _in:${obj.address.map(x => `"${x}"`)}
+                    }
+                    ${topicWhere}
+                }
+            }) {
+                    topic0
+                    topic1
+                    topic2
+                    topic3
+                    topic4
+                    data
+                    address
+                    block_number
+                    version
+                    block_hash
+                    transaction_hash
+                    log_index
+                }
+            }
+    `;
+    const res = await indexer_client.query(query).toPromise();
+    const logs = res.data.evm_logs;
+    const blockGroup = group(logs, it => parseInt(it.block_number));
+    mapValues(blockGroup, v => sort(v, it => parseInt(it.version)));
+    return logs.map(it => {
+        const topics = [];
+        for (let i = 0; i < 5; i++) {
+            if (it[`topic${i}`].length === 66) {
+                topics.push(it[`topic${i}`]);
+            }
+        }
+        const transactionIndex = blockGroup[it.block_number].findIndex(
+            ele => it.transaction_hash === ele.transaction_hash,
+        );
+        return {
+            topics,
+            data: it.data,
+            address: it.address,
+            blockHash: it.block_hash,
+            blockNumber: it.block_number,
+            transactionHash: it.transaction_hash,
+            transactionIndex,
+            logIndex: it.log_index,
+        };
+    });
+}
