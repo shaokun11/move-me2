@@ -1,8 +1,9 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import { NODE_URL, SERVER_PORT } from './const.js';
+import { NODE_URL, SERVER_PORT, FAUCET_AMOUNT } from './const.js';
 const app = express();
+import axios from 'axios';
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
@@ -13,35 +14,31 @@ const get_ip = (req) => {
         req.ip;
 }
 
-const make_req_option = (req) => {
-    const opt = {
-        method: req.method,
-        url: NODE_URL + req.path,
-        params: req.query,
-        headers: req.headers
-    };
-    if (req.method.toLowerCase() === 'post' || req.method.toLowerCase() === 'put') {
-        opt.data = req.body;
-    }
-    delete opt.headers.host;
-    console.log("req opt", opt)
-    return opt
-}
-
 // for petra wallet faucet
 app.post('/fund', async function (req, res) {
+    const opt = {
+        url: NODE_URL + req.path,
+        headers: {
+            'content-type': req.headers['content-type'],
+            'accept': req.headers['accept'],
+        },
+        method: req.method,
+        data: req.body
+    };
     opt.data.amount = parseInt(FAUCET_AMOUNT) * 1e8;
-    await axios(make_req_option(req));
-    res.send(response.data);
+    const response = await axios(opt);
     res.status(response.status);
-    res.setHeader('Content-Type', req.headers['Accept'])
+    res.json(response.data);
 });
 // for aptos cli faucet
 app.post('/mint', async function (req, res) {
-    await axios(make_req_option(req));
-    res.send(response.data);
+    const response = await axios({
+        method: req.method,
+        url: NODE_URL + req.path,
+        params: req.query,
+    });
     res.status(response.status);
-    res.setHeader('Content-Type', req.headers['Accept'])
+    res.send(response.data);
 });
 
 app.set('trust proxy', true);
