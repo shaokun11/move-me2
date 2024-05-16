@@ -63,3 +63,6 @@ export const indexer_client = new Client({
     url: process.env.INDEXER_URL,
     exchanges: [fetchExchange],
 });
+
+
+export const AUTO_SEND_TX = process.env.AUTO_SEND_TX 
