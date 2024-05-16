@@ -4,6 +4,7 @@ import cors from 'cors';
 import { NODE_URL, SERVER_PORT, FAUCET_AMOUNT } from './const.js';
 const app = express();
 import axios from 'axios';
+import { canRequest, setRequest } from './rate.js';
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
@@ -16,6 +17,15 @@ const get_ip = (req) => {
 
 // for petra wallet faucet
 app.post('/fund', async function (req, res) {
+    const ip = get_ip(req);
+    const [pass, time] = await canRequest(ip)
+    if (!pass) {
+        res.status(200)
+        res.json({
+            error_message: `Too Many Requests, please try after ${time} seconds`,
+        });
+        return
+    }
     const opt = {
         url: NODE_URL + req.path,
         headers: {
@@ -27,9 +37,13 @@ app.post('/fund', async function (req, res) {
     };
     opt.data.amount = parseInt(FAUCET_AMOUNT) * 1e8;
     const response = await axios(opt);
+    if (response.status === 200) {
+        await setRequest(ip);
+    }
     res.status(response.status);
     res.json(response.data);
 });
+
 // for aptos cli faucet
 app.post('/mint', async function (req, res) {
     const response = await axios({
