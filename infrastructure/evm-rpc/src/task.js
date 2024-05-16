@@ -11,7 +11,7 @@ async function deposit() {
         arguments: [toBuffer(alice), toBuffer(toBeHex((1e12).toString()))],
     };
     let hash = await sendTx(payload);
-    console.log(' deposit to ', alice, hash)
+    console.log(' deposit to ', alice)
     await checkTxResult(hash);
 }
 
