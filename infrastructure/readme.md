@@ -13,6 +13,3 @@ The Move Subnet infrastructure consists of the following components:
 
 - **Explorer**: An explorer specifically designed for the Move Subnet, allowing users to explore and navigate through its functionalities.
 
-
-
-
