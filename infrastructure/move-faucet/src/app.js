@@ -24,6 +24,7 @@ const make_req_option = (req) => {
         opt.data = req.body;
     }
     delete opt.headers.host;
+    console.log("req opt", opt)
     return opt
 }
 
