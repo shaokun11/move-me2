@@ -48,7 +48,7 @@ curl --location 'http://127.0.0.1:8998' \
 }'
 ```
 
-- `debug_move_hash`:Return the move evm hash by evm hash, this could use for query details at move explorer
+- `debug_getMoveHash`:Return the move evm hash by evm hash, this could use for query details at move explorer
 
 ```bash
 curl --location 'http://127.0.0.1:8999' \
@@ -56,7 +56,7 @@ curl --location 'http://127.0.0.1:8999' \
 --data '{
     "id": "1",
     "jsonrpc": "2.0",
-    "method": "debug_move_hash",
+    "method": "debug_getMoveHash",
     "params": [
         "0x3dc7fc5be27c5a5f92d35590ebe2a671ca0e98c22aeb09e3036ae94b6fedf81a"
     ]

@@ -30,7 +30,7 @@ export const rpc = {
         }
         return traceTransaction(args[0]);
     },
-    debug_move_hash: async function (args) {
+    debug_getMoveHash: async function (args) {
         return get_move_hash(args[0]);
     },
     eth_feeHistory: async function (args) {
