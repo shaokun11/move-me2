@@ -1,7 +1,6 @@
-const aptos = require("aptos");
-const { toBeHex, ethers } = require("ethers");
-const HexString = aptos.HexString;
-import { AUTO_SEND_TX, SENDER_ACCOUNT, client } from "./const.js";
+import { HexString } from "aptos";
+import { toBeHex, ethers } from "ethers";
+import { AUTO_SEND_TX, ROBOT_SENDER_ACCOUNT, ROBOT_SENDER_ADDRESS, client } from "./const.js";
 
 async function deposit() {
     const wallet = ethers.Wallet.createRandom()
@@ -12,8 +11,10 @@ async function deposit() {
         arguments: [toBuffer(alice), toBuffer(toBeHex((1e12).toString()))],
     };
     let hash = await sendTx(payload);
+    console.log(' deposit to ', alice, hash)
     await checkTxResult(hash);
 }
+
 function toBuffer(hex) {
     return new HexString(hex).toUint8Array();
 }
@@ -24,8 +25,8 @@ async function checkTxResult(tx) {
 }
 
 async function sendTx(payload) {
-    const txnRequest = await client.generateTransaction(SENDER_ADDRESS, payload);
-    const signedTxn = await client.signTransaction(SENDER_ACCOUNT, txnRequest);
+    const txnRequest = await client.generateTransaction(ROBOT_SENDER_ADDRESS, payload);
+    const signedTxn = await client.signTransaction(ROBOT_SENDER_ACCOUNT, txnRequest);
     const transactionRes = await client.submitTransaction(signedTxn);
     await client.waitForTransaction(transactionRes.hash);
     return transactionRes.hash;
