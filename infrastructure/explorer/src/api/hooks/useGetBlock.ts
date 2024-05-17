@@ -11,12 +11,13 @@ export function useGetBlockByHeight({
   height: number;
   withTransactions?: boolean;
 }) {
-  const [state, _setState] = useGlobalState();
+  const [state] = useGlobalState();
 
-  const result = useQuery<Types.Block, ResponseError>(
-    ["block", height, state.network_value],
-    () => getBlockByHeight({height, withTransactions}, state.network_value),
-  );
+  const result = useQuery<Types.Block, ResponseError>({
+    queryKey: ["block", height, state.network_value],
+    queryFn: () =>
+      getBlockByHeight({height, withTransactions}, state.network_value),
+  });
 
   return result;
 }
@@ -28,12 +29,13 @@ export function useGetBlockByVersion({
   version: number;
   withTransactions?: boolean;
 }) {
-  const [state, _setState] = useGlobalState();
+  const [state] = useGlobalState();
 
-  const result = useQuery<Types.Block, ResponseError>(
-    ["block", version, state.network_value],
-    () => getBlockByVersion({version, withTransactions}, state.network_value),
-  );
+  const result = useQuery<Types.Block, ResponseError>({
+    queryKey: ["block", version, state.network_value],
+    queryFn: () =>
+      getBlockByVersion({version, withTransactions}, state.network_value),
+  });
 
   return result;
 }

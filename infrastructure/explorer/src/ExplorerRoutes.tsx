@@ -9,9 +9,9 @@ import BlockPage from "./pages/Block/Index";
 import TokenPage from "./pages/Token/Index";
 import TransactionsPage from "./pages/Transactions/Index";
 import BlocksPage from "./pages/Blocks/Index";
-// import ValidatorsPage from "./pages/Validators/Index";
-// import ValidatorPage from "./pages/DelegatoryValidator";
-// import AnalyticsPage from "./pages/Analytics/Index";
+import ValidatorsPage from "./pages/Validators/Index";
+import ValidatorPage from "./pages/DelegatoryValidator";
+import AnalyticsPage from "./pages/Analytics/Index";
 
 export default function ExplorerRoutes() {
   return (
@@ -19,17 +19,17 @@ export default function ExplorerRoutes() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/transactions" element={<TransactionsPage />} />
-        {/* <Route path="/validators" element={<ValidatorsPage />}>
+        <Route path="/validators" element={<ValidatorsPage />}>
           <Route path=":tab" element={<ValidatorsPage />} />
         </Route>
         <Route path="/validator">
           <Route path=":address" element={<ValidatorPage />} />
         </Route>
-         */}
         <Route path="/txn">
           <Route path=":txnHashOrVersion" element={<TransactionPage />} />
           <Route path=":txnHashOrVersion/:tab" element={<TransactionPage />} />
         </Route>
+
         <Route path="/account">
           <Route
             path=":address/modules/:modulesTab/:selectedModuleName"
@@ -42,19 +42,37 @@ export default function ExplorerRoutes() {
           <Route path=":address/:tab" element={<AccountPage />} />
           <Route path=":address" element={<AccountPage />} />
         </Route>
+
+        <Route path="/object">
+          <Route
+            path=":address/modules/:modulesTab/:selectedModuleName"
+            element={<AccountPage isObject={true} />}
+          />
+          <Route
+            path=":address/modules/:modulesTab/:selectedModuleName/:selectedFnName"
+            element={<AccountPage isObject={true} />}
+          />
+          <Route
+            path=":address/:tab"
+            element={<AccountPage isObject={true} />}
+          />
+          <Route path=":address" element={<AccountPage isObject={true} />} />
+        </Route>
+
         <Route path="/blocks" element={<BlocksPage />} />
         <Route path="/block">
           <Route path=":height" element={<BlockPage />} />
           <Route path=":height/:tab" element={<BlockPage />} />
         </Route>
         <Route path="/token">
+          <Route path=":tokenId" element={<TokenPage />} />
           <Route path=":tokenId/:propertyVersion" element={<TokenPage />} />
           <Route
             path=":tokenId/:propertyVersion/:tab"
             element={<TokenPage />}
           />
         </Route>
-        {/* <Route path="/analytics" element={<AnalyticsPage />} /> */}
+        <Route path="/analytics" element={<AnalyticsPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </ExplorerLayout>

@@ -64,16 +64,16 @@ const useAmountInput = (stakeOperation: StakeOperation) => {
             stakedAmount - Number(amount) < MINIMUM_APT_IN_POOL &&
             amount !== stakedAmount.toString()
           ) {
-            return `If you unlock ${amount} MVMTT, your total staked amount ${stakedAmountMVMTTPT will be unlocked.`;
+            return `If you unlock ${amount} MVMT, your total staked amount ${stakedAmount} MVMT will be unlocked.`;
           } else if (
             amount &&
             unlockedAmount + Number(amount) < MINIMUM_APT_IN_POOL &&
             amount !== stakedAmount.toString()
           ) {
             if (stakedAmount - MINIMUM_APT_IN_POOL > MINIMUM_APT_IN_POOL) {
-              return `If you unlock ${amount} MVMTT, ${MINIMUM_APT_IN_POOLMVMTPT will be unlocked.`;
+              return `If you unlock ${amount} MVMT, ${MINIMUM_APT_IN_POOL} MVMT will be unlocked.`;
             } else {
-              return `If you unlock ${amount} MVMT, your total staked amount ${stakedAmount}MVMTT will be unlocked.`;
+              return `If you unlock ${amount} MVMT, your total staked amount ${stakedAmount} MVMT will be unlocked.`;
             }
           }
           break;
@@ -90,7 +90,7 @@ const useAmountInput = (stakeOperation: StakeOperation) => {
             stakedAmount + Number(amount) < MINIMUM_APT_IN_POOL &&
             amount !== unlockedAmount.toString()
           ) {
-            return `If you restake ${amount} MVMT, your total unlocked amount ${unlockedAmount}MVMTTTT will be restaked.`;
+            return `If you restake ${amount} MVMT, your total unlocked amount ${unlockedAmount} MVMT will be restaked.`;
           } else if (
             amount &&
             unlockedAmount - Number(amount) < MINIMUM_APT_IN_POOL &&
@@ -103,9 +103,9 @@ const useAmountInput = (stakeOperation: StakeOperation) => {
             amount !== unlockedAmount.toString()
           ) {
             if (unlockedAmount - MINIMUM_APT_IN_POOL > MINIMUM_APT_IN_POOL) {
-              return `If you restake ${amount} MVMT, ${MINIMUM_APT_IN_POOL}MVMTTT will be restaked.`;
+              return `If you restake ${amount} MVMT, ${MINIMUM_APT_IN_POOL} MVMT will be restaked.`;
             } else {
-              return `If you restake ${amount} MVMTTT, your total unlocked amount ${unlockedAmounMVMTTAPT will be restaked.`;
+              return `If you restake ${amount} MVMT, your total unlocked amount ${unlockedAmount} MVMT will be restaked.`;
             }
           }
           break;

@@ -69,7 +69,7 @@ const primaryColorToned = primary["600"];
 
 const getDesignTokens = (mode: PaletteMode): ThemeOptions => ({
   shape: {
-    borderRadius: 12,
+    borderRadius: 0,
   },
   //
 
@@ -218,7 +218,7 @@ const getDesignTokens = (mode: PaletteMode): ThemeOptions => ({
     // Autocomplete overrides
     MuiAutocomplete: {
       styleOverrides: {
-        root: ({theme}) => ({
+        root: () => ({
           listbox: {
             padding: "0",
           },
@@ -240,7 +240,7 @@ const getDesignTokens = (mode: PaletteMode): ThemeOptions => ({
       styleOverrides: {
         root: ({theme}) => ({
           backgroundImage: "none",
-          borderRadius: theme.shape.borderRadius,
+          borderRadius: 0,
           transition: "none !important",
           boxShadow: "none",
         }),
@@ -268,8 +268,8 @@ const getDesignTokens = (mode: PaletteMode): ThemeOptions => ({
 
     MuiInput: {
       styleOverrides: {
-        root: ({theme}) => ({
-          borderRadius: 2,
+        root: () => ({
+          borderRadius: 0,
         }),
       },
     },
@@ -277,7 +277,7 @@ const getDesignTokens = (mode: PaletteMode): ThemeOptions => ({
     MuiFilledInput: {
       styleOverrides: {
         root: ({theme}) => ({
-          borderRadius: `${theme.shape.borderRadius}px`,
+          borderRadius: `${0}px`,
           backgroundColor: `${
             theme.palette.mode === "dark" ? grey[700] : grey[100]
           }`,
@@ -333,7 +333,7 @@ const getDesignTokens = (mode: PaletteMode): ThemeOptions => ({
     MuiSelect: {
       styleOverrides: {
         select: {
-          borderRadius: "8px",
+          borderRadius: "0",
         },
         outlined: {
           backgroundColor: "transparent",
@@ -351,7 +351,7 @@ const getDesignTokens = (mode: PaletteMode): ThemeOptions => ({
     MuiMenuItem: {
       styleOverrides: {
         root: ({theme}) => ({
-          borderRadius: theme.shape.borderRadius,
+          borderRadius: 0,
         }),
       },
     },
@@ -584,10 +584,10 @@ const getDesignTokens = (mode: PaletteMode): ThemeOptions => ({
           borderWidth: "0 0 0 0",
           borderColor: grey[700],
           "&:first-of-type": {
-            borderRadius: `${theme.shape.borderRadius}px 0 0 ${theme.shape.borderRadius}px`,
+            borderRadius: `${0}px 0 0 ${0}px`,
           },
           "&:last-of-type": {
-            borderRadius: `0 ${theme.shape.borderRadius}px ${theme.shape.borderRadius}px 0`,
+            borderRadius: `0 ${0}px ${0}px 0`,
           },
         }),
       },
@@ -624,7 +624,7 @@ const getDesignTokens = (mode: PaletteMode): ThemeOptions => ({
           style: ({theme}) => ({
             backgroundColor:
               theme.palette.mode === "dark" ? primaryColor : primary["500"],
-            color: "black",
+            color: "white",
             fontSize: "1.1rem",
             padding: "12px 34px",
             minWidth: "8rem",

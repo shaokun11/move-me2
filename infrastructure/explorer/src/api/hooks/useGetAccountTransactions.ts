@@ -9,14 +9,20 @@ export function useGetAccountTransactions(
   start?: number,
   limit?: number,
 ): UseQueryResult<Array<Types.Transaction>, ResponseError> {
-  const [state, _setState] = useGlobalState();
+  const [state] = useGlobalState();
 
   const accountTransactionsResult = useQuery<
     Array<Types.Transaction>,
     ResponseError
-  >(["accountTransactions", {address, start, limit}, state.network_value], () =>
-    getAccountTransactions({address, start, limit}, state.network_value),
-  );
+  >({
+    queryKey: [
+      "accountTransactions",
+      {address, start, limit},
+      state.network_value,
+    ],
+    queryFn: () =>
+      getAccountTransactions({address, start, limit}, state.network_value),
+  });
 
   return accountTransactionsResult;
 }

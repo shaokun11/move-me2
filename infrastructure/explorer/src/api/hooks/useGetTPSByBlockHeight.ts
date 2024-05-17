@@ -19,11 +19,7 @@ function calculateTps(startBlock: Types.Block, endBlock: Types.Block): number {
 }
 
 export function useGetTPSByBlockHeight(currentBlockHeight: number | undefined) {
-
-  
   const blockHeight = currentBlockHeight ?? TPS_FREQUENCY;
-
-  console.log("currentBlockHeight=",currentBlockHeight,blockHeight,TPS_FREQUENCY)
 
   const [tps, setTps] = useState<number | null>(null);
 

@@ -1,4 +1,4 @@
-import {AptosClient} from "aptos";
+import {AptosClient, IndexerClient} from "aptos";
 import React, {useMemo} from "react";
 import {
   FeatureName,
@@ -11,6 +11,12 @@ import {
   useFeatureSelector,
 } from "./feature-selection";
 import {useNetworkSelector} from "./network-selection";
+import {getGraphqlURI} from "../api/hooks/useGraphqlClient";
+import {Aptos, AptosConfig, NetworkToNetworkName} from "@aptos-labs/ts-sdk";
+
+const HEADERS = {
+  "x-indexer-client": "aptos-explorer",
+};
 
 export type GlobalState = {
   /** actual state */
@@ -21,6 +27,10 @@ export type GlobalState = {
   readonly network_value: string;
   /** derived from network_value */
   readonly aptos_client: AptosClient;
+  /** derived from network_value */
+  readonly indexer_client?: IndexerClient;
+  /** derived from network_value */
+  readonly sdk_v2_client?: Aptos;
 };
 
 type GlobalActions = {
@@ -35,11 +45,27 @@ function deriveGlobalState({
   feature_name: FeatureName;
   network_name: NetworkName;
 }): GlobalState {
+  const indexerUri = getGraphqlURI(network_name);
+  let indexerClient = undefined;
+  if (indexerUri) {
+    indexerClient = new IndexerClient(indexerUri, {HEADERS});
+  }
   return {
     feature_name,
     network_name,
     network_value: networks[network_name],
-    aptos_client: new AptosClient(networks[network_name]),
+    aptos_client: new AptosClient(networks[network_name], {
+      HEADERS,
+    }),
+    indexer_client: indexerClient,
+    sdk_v2_client: new Aptos(
+      new AptosConfig({
+        network: NetworkToNetworkName[network_name],
+        clientConfig: {
+          HEADERS,
+        },
+      }),
+    ),
   };
 }
 

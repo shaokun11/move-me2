@@ -18,6 +18,7 @@ import CoinsTab from "./Tabs/CoinsTab";
 import {Types} from "aptos";
 import {useParams} from "react-router-dom";
 import {useNavigate} from "../../routing";
+import {accountPagePath} from "./Index";
 
 const TAB_VALUES: TabValue[] = ["transactions", "resources", "modules", "info"];
 
@@ -73,29 +74,41 @@ function getTabIcon(value: TabValue): JSX.Element {
 type TabPanelProps = {
   value: TabValue;
   address: string;
-  accountData: Types.AccountData | undefined;
+  accountData: Types.AccountData | Types.MoveResource[] | undefined;
+  isObject: boolean;
 };
 
-function TabPanel({value, address, accountData}: TabPanelProps): JSX.Element {
+function TabPanel({
+  value,
+  address,
+  accountData,
+  isObject,
+}: TabPanelProps): JSX.Element {
   const TabComponent = TabComponents[value];
-  return <TabComponent address={address} accountData={accountData} />;
+  return (
+    <TabComponent
+      address={address}
+      accountData={accountData}
+      isObject={isObject}
+    />
+  );
 }
 
 type AccountTabsProps = {
   address: string;
-  accountData: Types.AccountData | undefined;
+  accountData: Types.AccountData | Types.MoveResource[] | undefined;
   tabValues?: TabValue[];
+  isObject?: boolean;
 };
 
 // TODO: create reusable Tabs for all pages
 export default function AccountTabs({
   address,
   accountData,
+  isObject = false,
   tabValues = TAB_VALUES,
 }: AccountTabsProps): JSX.Element {
   const {tab, modulesTab} = useParams();
-
-  
   const navigate = useNavigate();
   let effectiveTab: TabValue;
   if (modulesTab) {
@@ -107,7 +120,9 @@ export default function AccountTabs({
   }
 
   const handleChange = (event: React.SyntheticEvent, newValue: TabValue) => {
-    navigate(`/account/${address}/${newValue}`);
+    navigate(`/${accountPagePath(isObject)}/${address}/${newValue}`, {
+      replace: true,
+    });
   };
 
   return (
@@ -131,6 +146,7 @@ export default function AccountTabs({
           value={effectiveTab}
           address={address}
           accountData={accountData}
+          isObject={isObject}
         />
       </Box>
     </Box>

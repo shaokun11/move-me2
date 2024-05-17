@@ -13,6 +13,7 @@ import DailyUserTransactionsChart from "./Charts/DailyUserTransactionsChart";
 import NetworkInfo from "./NetworkInfo/NetworkInfo";
 import DailyGasConsumptionChart from "./Charts/DailyGasConsumptionChart";
 import DailyContractDeployersChart from "./Charts/DailyContractDeployersChart";
+import MonthlyActiveUserChart from "./Charts/MonthlyActiveUserChart";
 
 export default function MainnetAnalytics() {
   const [days, setDays] = useState<ChartRangeDays>(
@@ -28,9 +29,9 @@ export default function MainnetAnalytics() {
 
   return (
     <Grid container spacing={3} marginTop={3}>
-      {/* <Grid item xs={12} md={12} lg={12} marginBottom={2}>
+      <Grid item xs={12} md={12} lg={12} marginBottom={2}>
         <NetworkInfo />
-      </Grid> */}
+      </Grid>
       <Grid item xs={12} md={12} lg={12}>
         <ChartRangeDaysSelect days={days} setDays={setDays} />
       </Grid>
@@ -42,6 +43,9 @@ export default function MainnetAnalytics() {
       </Grid>
       <Grid item xs={12} md={6} lg={3}>
         <DailyPeakTPSChart data={data.daily_max_tps_15_blocks} days={days} />
+      </Grid>
+      <Grid item xs={12} md={6} lg={3}>
+        <MonthlyActiveUserChart data={data.mau_signers} days={days} />
       </Grid>
       <Grid item xs={12} md={6} lg={3}>
         <DailyActiveUserChart data={data.daily_active_users} days={days} />

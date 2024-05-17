@@ -1,4 +1,3 @@
-import React from "react";
 import {Stack, Grid, Alert} from "@mui/material";
 import {Types} from "aptos";
 import {useGlobalState} from "../../global-config/GlobalConfig";
@@ -12,14 +11,14 @@ import TransactionTabs from "./Tabs";
 import PageHeader from "../layout/PageHeader";
 
 export default function TransactionPage() {
-  const [state, _] = useGlobalState();
+  const [state] = useGlobalState();
   const {txnHashOrVersion: txnParam} = useParams();
   const txnHashOrVersion = txnParam ?? "";
 
-  const {isLoading, data, error} = useQuery<Types.Transaction, ResponseError>(
-    ["transaction", {txnHashOrVersion}, state.network_value],
-    () => getTransaction({txnHashOrVersion}, state.network_value),
-  );
+  const {isLoading, data, error} = useQuery<Types.Transaction, ResponseError>({
+    queryKey: ["transaction", {txnHashOrVersion}, state.network_value],
+    queryFn: () => getTransaction({txnHashOrVersion}, state.network_value),
+  });
 
   if (isLoading) {
     return null;
