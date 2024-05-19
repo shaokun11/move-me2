@@ -23,7 +23,7 @@ const locker = new Lock({
 });
 const lockerFaucet = new Lock({
     maxExecutionTime: 10 * 1000,
-    maxPending: 3,
+    maxPending: 30,
 });
 
 const LOCKER_KEY_SEND_TX = 'sendTx';
