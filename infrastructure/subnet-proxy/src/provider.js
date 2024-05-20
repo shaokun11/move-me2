@@ -1,5 +1,5 @@
 const fetch = require('node-fetch');
-const { URL } = require('./const');
+const { URL, RECAPTCHA_SECRET } = require('./const');
 const _ = require('lodash');
 let counter = 1;
 
@@ -80,4 +80,17 @@ function request(method, params) {
             return ret;
         });
 }
-module.exports = { request };
+
+async function googleRecaptcha(token) {
+    if (!token) return false;
+    return fetch('https://www.google.com/recaptcha/api/siteverify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `secret=${RECAPTCHA_SECRET}&response=${token}`,
+    })
+        .then(response => response.json())
+        .then(res => res.success)
+        .catch(() => false);
+}
+
+module.exports = { request, googleRecaptcha };

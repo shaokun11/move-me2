@@ -4,19 +4,12 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const rateLimit = require('express-rate-limit');
 const cors = require('cors');
-const { request } = require('./provider');
+const { request, googleRecaptcha } = require('./provider');
 const { sleep } = require('./utils');
 const { PORT } = require('./const');
-const { canRequest, setRequest } = require("./rate")
+const { canRequest, setRequest } = require('./rate');
+const { addFaucetTask } = require('./task');
 const app = express();
-// app.use(
-//     cors({
-//         origin: true,
-//         methods: ['GET', 'POST'],
-//         allowedHeaders: ['Content-Type', 'Authorization', 'x-aptos-client'],
-//         credentials: true,
-//     }),
-// );
 app.use(
     cors({
         credentials: true,
@@ -228,7 +221,7 @@ router.post('/view', async (req, res) => {
         is_bcs_format: req.is_bcs_format,
     };
     if (req.query.ledger_version) {
-        option["ledger_version"] = req.query.ledger_version
+        option['ledger_version'] = req.query.ledger_version;
     }
     const result = await request('viewFunction', option);
     res.sendData(result);
@@ -317,49 +310,70 @@ async function checkAccount(option) {
 }
 
 // only one account send , so we can use a global variable to control the faucet
-let IS_FAUCET_RUNNING = false
+let IS_FAUCET_RUNNING = false;
 
 // for common faucet
 async function handleMint(req, res) {
-    const ip = req.headers["cf-connecting-ip"] || req.headers['x-real-ip'] || req.ip
-    const [pass, time] = await canRequest(ip)
+    const ip = req.headers['cf-connecting-ip'] || req.headers['x-real-ip'] || req.ip;
+    const [pass, time] = await canRequest(ip);
     if (!pass) {
         console.log(`faucet limit ${ip} ${time} seconds`);
-        res.status(200)
+        res.status(200);
         res.json({
             error_message: `Too Many Requests, please try after ${time} seconds`,
         });
-        return
+        return;
     }
     if (IS_FAUCET_RUNNING) {
         res.status(200);
         res.json({
             error_message: `System busy, please try again after 1 minute`,
         });
-        return
+        return;
     }
     const address = req.query.address;
     const option = {
         data: address,
     };
-    IS_FAUCET_RUNNING = true
+    IS_FAUCET_RUNNING = true;
     try {
         await checkAccount(option);
         let faucet_res = await request('faucet', option);
         await sleep(1);
-        await setRequest(ip)
+        await setRequest(ip);
         console.log(`faucet ${ip} success`);
         faucet_res.data = [faucet_res.data.hash];
         res.sendData(faucet_res);
     } catch (error) {
-        IS_FAUCET_RUNNING = false
+        IS_FAUCET_RUNNING = false;
         throw error;
     } finally {
-        IS_FAUCET_RUNNING = false
+        IS_FAUCET_RUNNING = false;
     }
 }
 
+async function handleMint11(req, res) {
+    const ip = req.headers['cf-connecting-ip'] || req.headers['x-real-ip'] || req.ip;
+    const address = req.query.address;
+    if (address.length !== 66) {
+        throw new Error('invalid address');
+    }
+    if ((await googleRecaptcha(req.headers['token'])) === false) {
+        throw new Error('invalid recaptcha');
+    }
+    let res = await new Promise((resolve, reject) => {
+        addFaucetTask({
+            addr: address,
+            ip: ip,
+            resolve,
+            reject,
+        });
+    });
+    res.sendData(res);
+}
+
 router.get('/mint', handleMint);
+router.get('/mint11', handleMint11);
 
 const limiter = rateLimit({
     windowMs: 5 * 60 * 1000, // 5 minutes
