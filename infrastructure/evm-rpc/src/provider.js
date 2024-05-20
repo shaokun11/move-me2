@@ -20,3 +20,14 @@ export function getRequest(query) {
         method: 'get',
     }).then(response => response.json());
 }
+
+export async function googleRecaptcha(token) {
+    return fetch('https://www.google.com/recaptcha/api/siteverify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `secret=${process.env.RECAPTCHA_SECRET}&response=${token}`,
+    })
+        .then(response => response.json())
+        .then(res => res.success)
+        .catch(() => false);
+}

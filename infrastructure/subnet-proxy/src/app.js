@@ -7,7 +7,7 @@ const cors = require('cors');
 const { request } = require('./provider');
 const { sleep } = require('./utils');
 const { PORT } = require('./const');
-const { canRequest } = require("./rate")
+const { canRequest, setRequest } = require("./rate")
 const app = express();
 // app.use(
 //     cors({
@@ -227,6 +227,9 @@ router.post('/view', async (req, res) => {
         data: JSON.stringify(body),
         is_bcs_format: req.is_bcs_format,
     };
+    if (req.query.ledger_version) {
+        option["ledger_version"] = req.query.ledger_version
+    }
     const result = await request('viewFunction', option);
     res.sendData(result);
 });
@@ -313,12 +316,25 @@ async function checkAccount(option) {
     }
 }
 
+// only one account send , so we can use a global variable to control the faucet
+let IS_FAUCET_RUNNING = false
+
+// for common faucet
 async function handleMint(req, res) {
-    if (!canRequest(req.ip)) {
-        res.status(404);
+    const ip = req.headers["cf-connecting-ip"] || req.headers['x-real-ip'] || req.ip
+    const [pass, time] = await canRequest(ip)
+    if (!pass) {
+        console.log(`faucet limit ${ip} ${time} seconds`);
+        res.status(200)
         res.json({
-            error_code: 'account_not_found',
-            message: 'rate limit, please try after 1 day',
+            error_message: `Too Many Requests, please try after ${time} seconds`,
+        });
+        return
+    }
+    if (IS_FAUCET_RUNNING) {
+        res.status(200);
+        res.json({
+            error_message: `System busy, please try again after 1 minute`,
         });
         return
     }
@@ -326,17 +342,24 @@ async function handleMint(req, res) {
     const option = {
         data: address,
     };
-    await checkAccount(option);
-    let faucet_res = await request('faucet', option);
-    await sleep(1);
-    faucet_res.data = [faucet_res.data.hash];
-    res.sendData(faucet_res);
+    IS_FAUCET_RUNNING = true
+    try {
+        await checkAccount(option);
+        let faucet_res = await request('faucet', option);
+        await sleep(1);
+        await setRequest(ip)
+        console.log(`faucet ${ip} success`);
+        faucet_res.data = [faucet_res.data.hash];
+        res.sendData(faucet_res);
+    } catch (error) {
+        IS_FAUCET_RUNNING = false
+        throw error;
+    } finally {
+        IS_FAUCET_RUNNING = false
+    }
 }
 
 router.get('/mint', handleMint);
-router.post('/mint', handleMint);
-router.get('/faucet', handleMint);
-router.post('/faucet', handleMint);
 
 const limiter = rateLimit({
     windowMs: 5 * 60 * 1000, // 5 minutes
@@ -373,7 +396,7 @@ const bcs_formatter = (req, res, next) => {
     next();
 };
 
-// for aptos cli request faucet
+// for aptos cli request faucet , ths content is bsc format
 app.post('/mint', async function (req, res) {
     const address = req.query.auth_key;
     const option = {

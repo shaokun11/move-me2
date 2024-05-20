@@ -89,7 +89,7 @@ export const rpc = {
         let { to, data: data_, from } = args[0];
         if (args[0].gasPrice) return {};
         try {
-            return await callContract(from, to, data_);
+            return await callContract(from, to, data_, args[1]);
         } catch (error) {
             throw new JSONRPCErrorException('execution reverted', -32000);
         }
@@ -150,7 +150,7 @@ export const rpc = {
      * @returns {Promise} - A promise that resolves to the block object
      */
     eth_getBlockByHash: async function (args) {
-        return getBlockByHash(args[0]);
+        return getBlockByHash(args[0], args[1] || false);
     },
 
     /**
@@ -160,7 +160,7 @@ export const rpc = {
      * @returns {Promise} - A promise that resolves to the balance
      */
     eth_getBalance: async function (args) {
-        return getBalance(args[0]);
+        return getBalance(args[0], args[1]);
     },
 
     /**
@@ -181,7 +181,7 @@ export const rpc = {
         return getStorageAt(args[0], args[1]);
     },
 
-    eth_faucet: async function (args) {
-        return faucet(args[0]);
+    eth_faucet: async function (args, ctx) {
+        return faucet(args[0], ctx.ip, ctx.token || 'token');
     },
 };

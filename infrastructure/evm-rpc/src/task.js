@@ -84,7 +84,7 @@ async function startSyncEventsTask() {
         try {
             await syncTxEvents();
         } catch (e) {
-            console.log("sync tx events error", e);
+            console.log('sync tx events error', e);
         }
         await sleep(0.1);
     }
@@ -94,14 +94,14 @@ async function syncTxBlock2hash() {
     const block_info = await Block2Hash.findAll({
         order: [['id', 'DESC']],
         limit: 100,
-        attributes: ["id"]
+        attributes: ['id'],
     });
     let start_block = 0;
     if (block_info.length > 0) {
         start_block = Math.max(...block_info.map(it => it.id));
     }
     start_block++;
-    // the max limit is 100 
+    // the max limit is 100
     const query = `/accounts/0x1/events/0x1::block::BlockResource/new_block_events?limit=100&start=${start_block}`;
     const res = await getRequest(query);
     const blocks = res
@@ -132,5 +132,5 @@ async function startSyncBlockTask() {
         await sleep(0.1);
     }
 }
-startSyncBlockTask()
+startSyncBlockTask();
 startSyncEventsTask();

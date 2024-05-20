@@ -1746,7 +1746,7 @@ invalid chain id in raw tx
             <b>let</b> nonce = contract_store.nonce;
             // must be 20 bytes
 
-            <b>let</b> new_evm_contract_addr = get_contract_address(sender, nonce);
+            <b>let</b> new_evm_contract_addr = get_contract_address(evm_contract_address, nonce);
             // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"create start"));
             // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&nonce);
             // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&new_evm_contract_addr);
@@ -1790,7 +1790,7 @@ invalid chain id in raw tx
             // <b>let</b> contract_store = ;
             <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> p, x"ff");
             // must be 20 bytes
-            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> p, slice(sender, 12, 20));
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> p, slice(evm_contract_address, 12, 20));
             <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> p, salt);
             <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> p, keccak256(new_codes));
             <b>let</b> new_evm_contract_addr = to_32bit(slice(keccak256(p), 12, 20));

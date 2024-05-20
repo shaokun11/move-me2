@@ -11,13 +11,20 @@ import {
     FAUCET_SENDER_ACCOUNT,
 } from './const.js';
 import { parseRawTx, sleep, toHex, toNumber, toHexStrict } from './helper.js';
-import { TxEvents, getMoveHash, saveMoveEvmTxHash, saveTx, Block2Hash } from './db.js';
+import { TxEvents, getMoveHash, saveMoveEvmTxHash, Block2Hash } from './db.js';
 import { ZeroAddress, ethers, isHexString, toBeHex, keccak256 } from 'ethers';
 import BigNumber from 'bignumber.js';
 import Lock from 'async-lock';
 const LOCKER_MAX_PENDING = 20;
+import { canRequest, setRequest } from './rate.js';
+import { googleRecaptcha } from './provider.js';
 const locker = new Lock({
     maxExecutionTime: 30 * 1000,
+});
+
+const lockerFaucet = new Lock({
+    maxExecutionTime: 10 * 1000,
+    maxPending: 60,
 });
 
 const LOCKER_KEY_SEND_TX = 'sendTx';
@@ -25,18 +32,38 @@ let lastBlockTime = Date.now();
 let lastBlock = '0x1';
 await getBlock();
 
-export async function faucet(addr) {
-    console.log("faucet to ", addr)
+export async function faucet(addr, ip, token) {
+    // if (!ethers.isAddress(addr)) {
+    //     throw 'Address format error';
+    // }
+    // const [pass, left] = await canRequest(ip);
+    // if (!pass) {
+    //     console.log('faucet %s limit,left %s seconds ', ip, left);
+    //     throw `Too Many Requests, please try after ${left} seconds`;
+    // }
+
+    if ((await googleRecaptcha(token)) === false) {
+        throw 'recaptcha error';
+    }
     const payload = {
         function: `${EVM_CONTRACT}::evm::deposit`,
         type_arguments: [],
-        arguments: [toBuffer(addr), toBuffer(toBeHex((1e17).toString()))],
+        arguments: [toBuffer(addr), toBuffer(toBeHex((1e18).toString()))],
     };
-    const txnRequest = await client.generateTransaction(FAUCET_SENDER_ADDRESS, payload);
-    const signedTxn = await client.signTransaction(FAUCET_SENDER_ACCOUNT, txnRequest);
-    const transactionRes = await client.submitTransaction(signedTxn);
-    await client.waitForTransaction(transactionRes.hash);
-    return transactionRes.hash;
+    return await lockerFaucet.acquire('faucetTx', async function (done) {
+        const txnRequest = await client.generateTransaction(FAUCET_SENDER_ADDRESS, payload);
+        const signedTxn = await client.signTransaction(FAUCET_SENDER_ACCOUNT, txnRequest);
+        const transactionRes = await client.submitTransaction(signedTxn);
+        await client.waitForTransaction(transactionRes.hash);
+        const res = await client.getTransactionByHash(transactionRes.hash);
+        if (res.success) {
+            // console.log('faucet to %s %s success', ip, addr);
+            // await setRequest(ip);
+            done(null, transactionRes.hash);
+        } else {
+            done('System error, please try again after 5 min');
+        }
+    });
 }
 
 export async function eth_feeHistory() {
@@ -188,7 +215,7 @@ export async function getStorageAt(addr, pos) {
         let result = await client.view(payload);
         res = result[0];
     } catch (error) {
-        console.log('getStorageAt error', error);
+        // console.log('getStorageAt error', error);
     }
     return res;
 }
@@ -222,7 +249,6 @@ async function checkAddressNonce(info) {
 // We can directly read it from the blockchain instead of relying on user input.
 export async function sendRawTx(tx) {
     const info = parseRawTx(tx);
-    // console.log('raw tx info', info);
     // let v = info.v;
     // if (v === 27 || v === 28) {
     //     throw 'only replay-protected (EIP-155) transactions allowed over RPC';
@@ -277,8 +303,12 @@ export async function sendRawTx(tx) {
             return done(gasInfo.error);
         }
         fee = toBeHex(BigNumber(gasPrice).times(gasInfo.gas_used).decimalPlaces(0).toFixed(0));
-        console.log('nonce %s,fee:%s', info.nonce, fee);
+        // console.log('nonce %s,fee:%s', info.nonce, fee);
         payload.arguments[2] = toBuffer(fee);
+        const balance = await getBalance(info.from);
+        if (BigNumber(balance).lt(fee)) {
+            return done('insufficient funds');
+        }
         sendTx(payload, true, {
             gas_unit_price: gasPrice,
         })
@@ -295,9 +325,16 @@ export async function sendRawTx(tx) {
     });
 }
 
-export function callContract(from, contract, calldata) {
+export async function callContract(from, contract, calldata, block) {
     from = from || ZeroAddress;
-    return view(from, contract, calldata);
+    if (isHexString(block)) {
+        let info = await client.getBlockByHeight(toNumber(block), false);
+        block = info.last_version;
+    } else {
+        // it maybe latest
+        block = undefined;
+    }
+    return view(from, contract, calldata, block);
 }
 /**
  * Estimate the gas needed for a transaction.
@@ -450,8 +487,8 @@ export async function getNonce(sender) {
  * @returns {Promise<string>} The balance in hexadecimal format.
  * @throws Will throw an error if the account information cannot be retrieved.
  */
-export async function getBalance(sender) {
-    let info = await getAccountInfo(sender);
+export async function getBalance(sender, block) {
+    let info = await getAccountInfo(sender, block);
     return toHex(info.balance);
 }
 
@@ -463,7 +500,7 @@ const CACHE_ETH_ADDRESS_TO_MOVE = {};
  * @returns {Promise<Object>} An object containing the account's balance, nonce, and code.
  * @throws Will not throw an error if the Ethereum address has not been deposited from Move.
  */
-async function getAccountInfo(acc) {
+async function getAccountInfo(acc, block) {
     const ret = {
         balance: '0x0',
         nonce: 0,
@@ -482,7 +519,15 @@ async function getAccountInfo(acc) {
             moveAddress = result[0];
             CACHE_ETH_ADDRESS_TO_MOVE[acc] = moveAddress;
         }
-        const resource = await client.getAccountResource(moveAddress, `${EVM_CONTRACT}::evm::Account`);
+        if (isHexString(block)) {
+            let info = await client.getBlockByHeight(toNumber(block), false);
+            block = info.last_version;
+        } else {
+            block = undefined;
+        }
+        const resource = await client.getAccountResource(moveAddress, `${EVM_CONTRACT}::evm::Account`, {
+            ledgerVersion: block,
+        });
         ret.balance = resource.data.balance;
         ret.nonce = +resource.data.nonce;
         ret.code = resource.data.code;
@@ -502,7 +547,7 @@ async function sendTx(payload, wait = false, option = {}) {
         });
         const signedTxn = await client.signTransaction(SENDER_ACCOUNT, txnRequest);
         const transactionRes = await client.submitTransaction(signedTxn);
-        console.log('sendTx', transactionRes.hash);
+        // console.log('sendTx', transactionRes.hash);
         if (wait) await client.waitForTransaction(transactionRes.hash);
         return transactionRes.hash;
     } catch (error) {
@@ -523,14 +568,14 @@ async function getDeployedContract(info) {
     return null;
 }
 
-async function view(from, contract, calldata) {
+async function view(from, contract, calldata, version) {
     let payload = {
         function: EVM_CONTRACT + `::evm::query`,
         type_arguments: [],
         arguments: [from, contract, calldata],
     };
     try {
-        let result = await client.view(payload);
+        let result = await client.view(payload, version);
         return result[0];
     } catch (error) {
         throw error.message;

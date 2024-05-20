@@ -51,7 +51,7 @@ function request(method, params) {
         id: counter,
     };
     let body = JSON.stringify(rpcData);
-    console.log('-------rpcData-----', body);
+    // console.log('-------rpcData-----', body);
     return fetch(URL, {
         method: 'POST',
         body,
