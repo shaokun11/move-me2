@@ -76,7 +76,9 @@ async function faucet_task() {
             const payload = {
                 function: `${FAUCET_CONTRACT}::batch_transfer::batch_transfer_evm`,
                 type_arguments: [],
-                arguments: [send_accounts.map(it => toBuffer(it)), send_accounts.map(() => faucet_amount)],
+                arguments: [
+                    send_accounts.map(it => toBuffer(it.addr)),
+                    send_accounts.map(() => faucet_amount)],
             };
             try {
                 const txnRequest = await client.generateTransaction(FAUCET_SENDER_ADDRESS, payload);
@@ -106,10 +108,15 @@ async function faucet_task() {
                         it.reject('System error, please try again after 1 min');
                     }
                 }
-                FAUCET_QUEUE.splice(0, send_accounts.length);
+              
             } catch (e) {
                 // maybe network error
+                for (let it of send_accounts) {
+                    // we also need to remove the request 
+                    it.reject('System error, please try again after 1 min');
+                }
             }
+            FAUCET_QUEUE.splice(0, send_accounts.length);
         }
         await sleep(0.5);
     }
