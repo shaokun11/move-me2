@@ -5,7 +5,7 @@ const bodyParser = require('body-parser');
 const rateLimit = require('express-rate-limit');
 const cors = require('cors');
 const { request, googleRecaptcha } = require('./provider');
-const { sleep } = require('./utils');
+const { sleep, sha1 } = require('./utils');
 const { PORT } = require('./const');
 const { canRequest, setRequest } = require('./rate');
 const { addFaucetTask } = require('./task');
@@ -351,7 +351,7 @@ async function handleMint(req, res) {
         IS_FAUCET_RUNNING = false;
     }
 }
-
+const GOOGLE_TOKEN_SET = new Set();
 async function handleMint11(req, res) {
     const ip = req.headers['cf-connecting-ip'] || req.headers['x-real-ip'] || req.ip;
     const address = req.query.address;
@@ -370,16 +370,25 @@ async function handleMint11(req, res) {
         });
         return;
     }
-    let ret = await addFaucetTask(address, ip)
+    const t1 = sha1(token);
+    if (GOOGLE_TOKEN_SET.has(t1)) {
+        res.status(200);
+        res.json({
+            error_message: `repeat recaptcha`,
+        });
+        return;
+    }
+    GOOGLE_TOKEN_SET.add(t1);
+    let ret = await addFaucetTask(address, ip);
     if (ret.error) {
+        GOOGLE_TOKEN_SET.delete(t1);
         res.status(200);
         res.json({
             error_message: ret.error,
         });
         return;
     }
-    res.json([ret.data])
-
+    res.json([ret.data]);
 }
 
 router.get('/mint', handleMint);
