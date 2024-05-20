@@ -32,11 +32,16 @@ import {useGetDelegatorStakeInfo} from "../../api/hooks/useGetDelegatorStakeInfo
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import {Stack} from "@mui/material";
 import {useGetDelegatedStakingPoolList} from "../../api/hooks/useGetDelegatedStakingPoolList";
-import {Statsig} from "statsig-react";
 import ValidatorStatusIcon from "../DelegatoryValidator/Components/ValidatorStatusIcon";
-import {useNavigate} from "../../routing";
 import {ResponseError} from "../../api/client";
 import Error from "../Account/Error";
+import {
+  ValidatorStatus,
+  calculateNetworkPercentage,
+  getValidatorStatus,
+} from "../DelegatoryValidator/utils";
+import {useLogEventWithBasic} from "../Account/hooks/useLogEventWithBasic";
+import {useGetValidatorSet} from "../../api/hooks/useGetValidatorSet";
 
 function getSortedValidators(
   validators: ValidatorData[],
@@ -235,7 +240,7 @@ type ValidatorCellProps = {
   networkPercentage?: string;
   commission: number | undefined;
   connected: boolean;
-  validatorStatus: Types.MoveValue[] | undefined;
+  validatorStatus: ValidatorStatus | undefined;
 };
 
 function StatusCell({validatorStatus}: ValidatorCellProps) {
@@ -334,7 +339,7 @@ function MyDepositCell({validator}: ValidatorCellProps) {
         0,
       ),
     );
-  }, [stakes, account]);
+  }, [stakes]);
 
   return (
     <GeneralTableCell sx={{paddingRight: 5, textAlign: "right"}}>
@@ -362,36 +367,49 @@ function ValidatorRow({
   connected,
   setError,
 }: ValidatorRowProps) {
-  const navigate = useNavigate();
   const {account, wallet} = useWallet();
-
-  const {
-    commission,
-    delegatedStakeAmount,
-    networkPercentage,
-    validatorStatus,
-    error,
-  } = useGetDelegationNodeInfo({
+  const logEvent = useLogEventWithBasic();
+  const {totalVotingPower} = useGetValidatorSet();
+  const {commission, validatorStatus, error} = useGetDelegationNodeInfo({
     validatorAddress: validator.owner_address,
   });
+  const validatorVotingPower = validator.voting_power;
+  const networkPercentage = calculateNetworkPercentage(
+    validatorVotingPower,
+    totalVotingPower,
+  );
+
   const rowClick = (address: Types.Address) => {
-    Statsig.logEvent("delegation_validators_row_clicked", address, {
+    logEvent("delegation_validators_row_clicked", address, {
       commission: commission?.toString() ?? "",
-      delegated_stake_amount: delegatedStakeAmount ?? "",
+      delegated_stake_amount: validatorVotingPower ?? "",
       network_percentage: networkPercentage ?? "",
       wallet_address: account?.address ?? "",
       wallet_name: wallet?.name ?? "",
       validator_status: validatorStatus ? validatorStatus[0].toString() : "",
     });
-    navigate(`/validator/${address}`);
   };
 
   if (error) {
     setError(error);
   }
 
+  // Hide delegators that are inactive and have no delegated stake
+  // TODO: Don't show inactive validators unless the users have a deposit
+  // Would require some querying restructing to be efficient.
+  if (
+    validatorStatus &&
+    getValidatorStatus(validatorStatus) === "Inactive" &&
+    validatorVotingPower === "0"
+  ) {
+    return null;
+  }
+
   return (
-    <GeneralTableRow onClick={() => rowClick(validator.owner_address)}>
+    <GeneralTableRow
+      to={`/validator/${validator.owner_address}`}
+      onClick={() => rowClick(validator.owner_address)}
+    >
       {columns.map((column) => {
         const Cell = DelegationValidatorCells[column];
         return (
@@ -399,10 +417,12 @@ function ValidatorRow({
             key={column}
             validator={validator}
             commission={commission}
-            delegatedStakeAmount={delegatedStakeAmount}
+            delegatedStakeAmount={validatorVotingPower}
             networkPercentage={networkPercentage}
             connected={connected}
-            validatorStatus={validatorStatus}
+            validatorStatus={
+              validatorStatus ? getValidatorStatus(validatorStatus) : undefined
+            }
           />
         );
       })}
@@ -411,8 +431,8 @@ function ValidatorRow({
 }
 
 export function DelegationValidatorsTable() {
-  const [state, _] = useGlobalState();
-  const {validators} = useGetValidators(state.network_name);
+  const [state] = useGlobalState();
+  const {validators} = useGetValidators();
   const {connected} = useWallet();
   const columns = connected
     ? DEFAULT_COLUMNS
@@ -466,7 +486,7 @@ export function DelegationValidatorsTable() {
         ...delegatedStakingPoolsNotInValidators,
       ]);
     }
-  }, [validators, state.network_value, loading]);
+  }, [validators, state.network_value, loading, delegatedStakingPools]);
 
   if (error) {
     return <Error error={error} />;

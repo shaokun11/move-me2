@@ -8,6 +8,7 @@ import Box from "@mui/material/Box";
 import * as RRD from "react-router-dom";
 import {Stack} from "@mui/material";
 import TransactionsTable from "../Transactions/TransactionsTable";
+import {useAugmentToWithGlobalSearchParams} from "../../routing";
 
 const PREVIEW_LIMIT = 10;
 
@@ -21,11 +22,13 @@ function TransactionContent({data}: UseQueryResult<Array<Types.Transaction>>) {
 }
 
 export default function TransactionsPreview() {
-  const [state, _] = useGlobalState();
+  const [state] = useGlobalState();
   const limit = PREVIEW_LIMIT;
-  const result = useQuery(["transactions", {limit}, state.network_value], () =>
-    getTransactions({limit}, state.network_value),
-  );
+  const result = useQuery({
+    queryKey: ["transactions", {limit}, state.network_value],
+    queryFn: () => getTransactions({limit}, state.network_value),
+  });
+  const augmentTo = useAugmentToWithGlobalSearchParams();
 
   return (
     <>
@@ -37,9 +40,9 @@ export default function TransactionsPreview() {
         <Box sx={{display: "flex", justifyContent: "center"}}>
           <Button
             component={RRD.Link}
-            to="/transactions"
+            to={augmentTo("/transactions")}
             variant="primary"
-            sx={{margin: "0 auto", mt: 6,borderRadius:0,color:'white',backgroundColor:'#1737FF','&:hover':{backgroundColor:'rgb(16, 38, 178)'}}}
+            sx={{margin: "0 auto", mt: 6}}
           >
             View all Transactions
           </Button>

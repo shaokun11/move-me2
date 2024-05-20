@@ -5,12 +5,12 @@ import {ResponseError} from "../../api/client";
 import {useGlobalState} from "../../global-config/GlobalConfig";
 
 export function useGetTransaction(txnHashOrVersion: string) {
-  const [state, _setState] = useGlobalState();
+  const [state] = useGlobalState();
 
-  const result = useQuery<Types.Transaction, ResponseError>(
-    ["transaction", {txnHashOrVersion}, state.network_value],
-    () => getTransaction({txnHashOrVersion}, state.network_value),
-  );
+  const result = useQuery<Types.Transaction, ResponseError>({
+    queryKey: ["transaction", {txnHashOrVersion}, state.network_value],
+    queryFn: () => getTransaction({txnHashOrVersion}, state.network_value),
+  });
 
   return result;
 }

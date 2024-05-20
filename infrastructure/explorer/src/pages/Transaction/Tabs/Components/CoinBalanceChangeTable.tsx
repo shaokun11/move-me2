@@ -93,7 +93,7 @@ function AmountCell({balanceChange}: BalanceChangeCellProps) {
     <GeneralTableCell
       sx={{
         textAlign: "right",
-        color: isNegative ? negativeColor : primary[600],
+        color: isNegative ? negativeColor : primary[601],
       }}
     >
       {isNegative ? "-" : "+"}

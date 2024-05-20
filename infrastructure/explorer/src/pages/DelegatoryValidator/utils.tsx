@@ -1,14 +1,13 @@
 import {Types} from "aptos";
-import {
-  DelegatedStakingActivity,
-  useGetDelegatedStakeOperationActivities,
-} from "../../api/hooks/useGetDelegatedStakeOperationActivities";
+import {DelegatedStakingActivity} from "../../api/hooks/useGetDelegatedStakeOperationActivities";
 import {StakeOperation} from "../../api/hooks/useSubmitStakeOperation";
 import {OCTA} from "../../constants";
 import {
   MINIMUM_APT_IN_POOL_FOR_EXPLORER,
   MINIMUM_APT_IN_POOL,
 } from "./constants";
+import {ApolloError} from "@apollo/client";
+import {MoveValue} from "aptos/src/generated";
 
 interface AccountResourceData {
   locked_until_secs: bigint;
@@ -60,26 +59,22 @@ export type StakePrincipals = {
  *    Active_rewards = active - Active_principal
  *    Pending_inactive_rewards = pending_inactive - Pending_inactive_principal
  */
-export function getStakeOperationPrincipals(
-  delegatorAddress: Types.Address,
-  poolAddress: Types.Address,
-): {stakePrincipals: StakePrincipals | undefined; isLoading: boolean} {
-  const result = useGetDelegatedStakeOperationActivities(
-    delegatorAddress,
-    poolAddress,
-  );
-
-  if (result.error) {
+export function getStakeOperationPrincipals(activities: {
+  activities: DelegatedStakingActivity[] | undefined;
+  loading: boolean;
+  error: ApolloError | undefined;
+}) {
+  if (activities.error) {
     return {stakePrincipals: undefined, isLoading: false};
-  } else if (result.loading || !result.activities) {
-    return {stakePrincipals: undefined, isLoading: result.loading};
+  } else if (activities.loading || !activities.activities) {
+    return {stakePrincipals: undefined, isLoading: activities.loading};
   }
 
   let activePrincipals = 0;
   let pendingInactivePrincipals = 0;
 
   const activitiesCopy: DelegatedStakingActivity[] = JSON.parse(
-    JSON.stringify(result.activities!),
+    JSON.stringify(activities.activities!),
   );
 
   activitiesCopy
@@ -203,4 +198,37 @@ export function getStakeOperationAPTRequirement(
         disabled: false,
       };
   }
+}
+
+export type ValidatorStatus =
+  | "Pending Active"
+  | "Active"
+  | "Pending Inactive"
+  | "Inactive";
+
+export function getValidatorStatus(
+  validatorStatus: MoveValue[],
+): ValidatorStatus | undefined {
+  switch (Number(validatorStatus[0])) {
+    case 1:
+      return "Pending Active";
+    case 2:
+      return "Active";
+    case 3:
+      return "Pending Inactive";
+    case 4:
+      return "Inactive";
+    default:
+      return undefined;
+  }
+}
+
+export function calculateNetworkPercentage(
+  validatorVotingPower: string,
+  totalVotingPower: string | null,
+): string {
+  return (
+    (parseInt(validatorVotingPower!, 10) / parseInt(totalVotingPower!, 10)) *
+    100
+  ).toFixed(2);
 }

@@ -15,16 +15,18 @@ function getIsGraphqlClientSupportedFor(networkName: NetworkName): boolean {
   return typeof graphqlUri === "string" && graphqlUri.length > 0;
 }
 
-function getGraphqlURI(networkName: NetworkName): string | undefined {
+export function getGraphqlURI(networkName: NetworkName): string | undefined {
   switch (networkName) {
     case "mainnet":
-      return "https://indexer.mainnet.aptoslabs.com/v1/graphql";
+      return "https://api.mainnet.aptoslabs.com/v1/graphql";
     case "testnet":
-      return "https://indexer-testnet.staging.gcp.aptosdev.com/v1/graphql";
+      return "https://api.testnet.aptoslabs.com/v1/graphql";
     case "devnet":
-      return "https://indexer-devnet.staging.gcp.aptosdev.com/v1/graphql";
-    case "local":
-      return undefined;
+      return "https://api.devnet.aptoslabs.com/v1/graphql";
+    case "movement":
+      return "https://indexer.internal.devnet.m1.movementlabs.xyz/v1/graphql";
+    case "randomnet":
+      return "https://indexer.random.aptoslabs.com/v1/graphql";
     default:
       return undefined;
   }
@@ -42,7 +44,7 @@ function getGraphqlClient(
 }
 
 export function useGetGraphqlClient() {
-  const [state, _] = useGlobalState();
+  const [state] = useGlobalState();
   const [graphqlClient, setGraphqlClient] = useState<
     ApolloClient<NormalizedCacheObject>
   >(getGraphqlClient(state.network_name));
@@ -65,7 +67,7 @@ export function GraphqlClientProvider({children}: GraphqlClientProviderProps) {
 }
 
 export function useGetIsGraphqlClientSupported(): boolean {
-  const [state, _] = useGlobalState();
+  const [state] = useGlobalState();
   const [isGraphqlClientSupported, setIsGraphqlClientSupported] =
     useState<boolean>(getIsGraphqlClientSupportedFor(state.network_name));
 

@@ -26,7 +26,7 @@ export function TransactionStatus({success}: TransactionStatusProps) {
         backgroundColor: SUCCESS_BACKGROUND_COLOR,
         width: 114,
       }}
-      borderRadius={0}
+      borderRadius={1}
     >
       <CheckCircleIcon
         fontSize="small"
