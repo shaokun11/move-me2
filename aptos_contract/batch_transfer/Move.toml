@@ -1,0 +1,12 @@
+[package]
+name = "batch_transfer"
+version = "1.0.0"
+authors = []
+
+[addresses]
+batch_transfer = "_"
+
+[dependencies.AptosFramework]
+local = "../../aptos-move/framework/aptos-framework"
+
+[dev-dependencies]

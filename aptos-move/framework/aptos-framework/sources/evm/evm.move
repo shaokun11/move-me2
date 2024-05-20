@@ -45,8 +45,6 @@ module aptos_framework::evm {
     const ACCOUNT_NOT_EXIST: u64 = 10008;
     /// invalid chain id in raw tx
     const INVALID_CHAINID: u64 = 10009;
-    /// adderess and amount size not match
-    const SIZE_NOT_MATCH: u64 = 10010;
     const CONVERT_BASE: u256 = 10000000000;
     const CHAIN_ID: u64 = 0x150;
 
@@ -154,19 +152,6 @@ module aptos_framework::evm {
         let amount = to_u256(amount_bytes);
         assert!(vector::length(&evm_addr) == 20, ADDR_LENGTH);
         transfer_from_move_addr(sender, to_32bit(evm_addr), amount);
-    }
-
-    public entry fun batch_deposit(sender: &signer, evm_addr_list: vector<vector<u8>>, amount_bytes_list: vector<vector<u8>>) acquires Account {
-        let len = vector::length(&evm_addr_list);
-        assert!(vector::length(&evm_addr_list) == vector::length(&amount_bytes_list), SIZE_NOT_MATCH);
-        let i = 0;
-        while (i < len) {
-            let amount = to_u256(*vector::borrow(&amount_bytes_list, i));
-            let evm_addr = *vector::borrow(&evm_addr_list, i);
-            assert!(vector::length(&evm_addr) == 20, ADDR_LENGTH);
-            transfer_from_move_addr(sender, to_32bit(evm_addr), amount);
-            i = i + 1;
-        }
     }
 
     #[view]
