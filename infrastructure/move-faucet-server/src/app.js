@@ -49,7 +49,11 @@ app.post('/mint', async function (req, res) {
     const response = await axios({
         method: req.method,
         url: NODE_URL + req.path,
-        params: req.query,
+        params: {
+            ...req.query,
+            // reset the faucet amount
+            amount: "" + parseInt(FAUCET_AMOUNT) * 1e8,
+        },
     });
     res.status(response.status);
     res.send(response.data);
