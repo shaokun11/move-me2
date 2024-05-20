@@ -1,14 +1,26 @@
-# Aptos Processor SDK Changelog
+## Synchronizing the MEVM-related Indexer
 
-All notable changes to the Aptos Processer SDK will be captured in this file. This changelog is written by hand for now.
+> In the future, this can be implemented in Rust and automatically synchronized when the chain is started.
 
-## Unreleased
+### Usage
 
-## 0.2.0
-- Use @aptos-labs/aptos-protos instead of @aptos-labs/aptos-indexer-protos.
+1. Clone this repository.
 
-## 0.1.2
-- Bumped @aptos-labs/aptos-protos to 0.2.3.
+2. Install the dependencies:
+   ```bash
+   npm install
+   ```
 
-## 0.1.1
-- Initial release.
+3. Set up the environment variables, please refer to the [config.yaml](./config.yaml) file:
+   ```yaml
+   chain_id: 4
+   grpc_data_stream_endpoint: localhost:50051
+   grpc_data_stream_api_key: ""
+   starting_version: 1
+   db_connection_uri: "postgres://postgres@127.0.0.1:5433/local_testnet"
+   ```
+
+4. Start the server:
+   ```bash
+   npm run start
+   ```
