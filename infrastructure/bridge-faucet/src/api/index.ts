@@ -311,25 +311,17 @@ export async function requestFaucet(
   try {
     const response = await axios.get(url,{headers});
     if (response.status === 200) {
-      // return {success:response.data};
       if (response.data.error_message) {
         return {error: response.data.error_message};
       }
       return {success:response.data};
     } else {
-      //  return {error: {message:response.data.error_message}};
-      // return {success:response.data};
       throw new Error(`Faucet issue: ${response.status}`);
     }
   } catch (error) {
     console.error("Failed to fund account with faucet:", error);
     throw error;
   }
-
-  return {error:'error'};
-
-  // return Promise.all(txns.map((txn: string) => aptosClient.waitForTransaction(txn)))
-
 }
 
 // NOTE: this is a private key for the faucet account, do not use it for anything else
@@ -371,7 +363,7 @@ export async function mevmRequestFaucet(
   const requestData = {
     jsonrpc: "2.0",
     id: 1,
-    method: "eth_faucet",
+    method: "eth_faucet11",
     params: [
       address
     ]
