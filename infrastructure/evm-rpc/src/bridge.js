@@ -15,9 +15,10 @@ import { TxEvents, getMoveHash, saveMoveEvmTxHash, Block2Hash } from './db.js';
 import { ZeroAddress, ethers, isHexString, toBeHex, keccak256 } from 'ethers';
 import BigNumber from 'bignumber.js';
 import Lock from 'async-lock';
-const LOCKER_MAX_PENDING = 20;
+const LOCKER_MAX_PENDING = 30;
 import { canRequest, setRequest } from './rate.js';
 import { googleRecaptcha } from './provider.js';
+import { appendFile } from 'fs';
 const locker = new Lock({
     maxExecutionTime: 30 * 1000,
 });
@@ -32,18 +33,14 @@ let lastBlockTime = Date.now();
 let lastBlock = '0x1';
 await getBlock();
 
-export async function faucet(addr, ip, token) {
-    // if (!ethers.isAddress(addr)) {
-    //     throw 'Address format error';
-    // }
-    // const [pass, left] = await canRequest(ip);
-    // if (!pass) {
-    //     console.log('faucet %s limit,left %s seconds ', ip, left);
-    //     throw `Too Many Requests, please try after ${left} seconds`;
-    // }
-
-    if ((await googleRecaptcha(token)) === false) {
-        throw 'recaptcha error';
+export async function faucet(addr, ip) {
+    if (!ethers.isAddress(addr)) {
+        throw 'Address format error';
+    }
+    const [pass, left] = await canRequest(ip);
+    if (!pass) {
+        console.log('faucet %s limit,left %s seconds ', ip, left);
+        throw `Too Many Requests, please try after ${left} seconds`;
     }
     const payload = {
         function: `${EVM_CONTRACT}::evm::deposit`,
@@ -56,13 +53,79 @@ export async function faucet(addr, ip, token) {
         const transactionRes = await client.submitTransaction(signedTxn);
         await client.waitForTransaction(transactionRes.hash);
         const res = await client.getTransactionByHash(transactionRes.hash);
+        // sleep 1s , this method will remove after use the new faucet
+        await sleep(1);
         if (res.success) {
-            // console.log('faucet to %s %s success', ip, addr);
-            // await setRequest(ip);
+            console.log('faucet to %s %s success', ip, addr);
+            await setRequest(ip);
             done(null, transactionRes.hash);
         } else {
             done('System error, please try again after 5 min');
         }
+    });
+}
+
+const FAUCET_QUEUE = [];
+faucet_task();
+
+async function faucet_task() {
+    const faucet_amount = toBuffer(toHex((1e18).toString()));
+    while (1) {
+        const send_accounts = FAUCET_QUEUE.slice(0, 100);
+        if (send_accounts.length > 0) {
+            const payload = {
+                function: `${FAUCET_SENDER_ADDRESS}::batch_transfer::batch_transfer_evm`,
+                type_arguments: [],
+                arguments: [send_accounts.map(it => toBuffer(it)), send_accounts.map(() => faucet_amount)],
+            };
+            try {
+                const txnRequest = await client.generateTransaction(FAUCET_SENDER_ADDRESS, payload);
+                const signedTxn = await client.signTransaction(FAUCET_SENDER_ACCOUNT, txnRequest);
+                const transactionRes = await client.submitTransaction(signedTxn);
+                await client.waitForTransaction(transactionRes.hash);
+                const res = await client.getTransactionByHash(transactionRes.hash);
+                if (res.success) {
+                    for (let it of send_accounts) {
+                        it.resolve(res.hash);
+                    }
+                    appendFile(
+                        'faucet.log',
+                        JSON.stringify({
+                            hash: res.hash,
+                            time: Date.now(),
+                            data: send_accounts.map(it => ({
+                                addr: it.addr,
+                                ip: it.ip,
+                            })),
+                        }) + '\n',
+                        () => {},
+                    );
+                } else {
+                    // maybe not enough token to faucet
+                    for (let it of send_accounts) {
+                        it.reject('System error, please try again after 1 min');
+                    }
+                }
+                FAUCET_QUEUE.splice(0, send_accounts.length);
+            } catch (e) {
+                // maybe network error
+            }
+        }
+        await sleep(0.5);
+    }
+}
+
+export async function faucet11(addr, ip, token) {
+    if ((await googleRecaptcha(token)) === false) {
+        throw 'recaptcha error';
+    }
+    return new Promise((resolve, reject) => {
+        FAUCET_QUEUE.push({
+            addr,
+            ip,
+            resolve,
+            reject,
+        });
     });
 }
 
