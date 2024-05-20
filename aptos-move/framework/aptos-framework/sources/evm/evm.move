@@ -13,7 +13,7 @@ module aptos_framework::evm {
     use aptos_framework::aptos_account::create_account;
     use aptos_std::debug;
     use std::signer::address_of;
-    use aptos_framework::evm_util::{slice, to_32bit, get_contract_address, power, to_int256, data_to_u256, u256_to_data, mstore, to_u256};
+    use aptos_framework::evm_util::{slice, to_32bit, get_contract_address, to_int256, data_to_u256, u256_to_data, mstore, to_u256};
     use aptos_framework::timestamp::now_microseconds;
     use aptos_framework::block;
     use std::string::utf8;
@@ -47,6 +47,8 @@ module aptos_framework::evm {
     const ACCOUNT_NOT_EXIST: u64 = 10008;
     /// invalid chain id in raw tx
     const INVALID_CHAINID: u64 = 10009;
+    /// adderess and amount size not match
+    const SIZE_NOT_MATCH: u64 = 10010;
     const CONVERT_BASE: u256 = 10000000000;
     const CHAIN_ID: u64 = 0x150;
 
@@ -139,6 +141,7 @@ module aptos_framework::evm {
     native fun add(a: u256, b: u256): u256;
     native fun sub(a: u256, b: u256): u256;
     native fun mul(a: u256, b: u256): u256;
+    native fun exp(a: u256, b: u256): u256;
 
     public(friend) fun initialize(aptos_framework: &signer) {
         move_to(aptos_framework, Global {
@@ -183,6 +186,19 @@ module aptos_framework::evm {
         let amount = to_u256(amount_bytes);
         assert!(vector::length(&evm_addr) == 20, ADDR_LENGTH);
         transfer_from_move_addr(sender, to_32bit(evm_addr), amount);
+    }
+
+    public entry fun batch_deposit(sender: &signer, evm_addr_list: vector<vector<u8>>, amount_bytes_list: vector<vector<u8>>) acquires Account {
+        let len = vector::length(&evm_addr_list);
+        assert!(vector::length(&evm_addr_list) == vector::length(&amount_bytes_list), SIZE_NOT_MATCH);
+        let i = 0;
+        while (i < len) {
+            let amount = to_u256(*vector::borrow(&amount_bytes_list, i));
+            let evm_addr = *vector::borrow(&evm_addr_list, i);
+            assert!(vector::length(&evm_addr) == 20, ADDR_LENGTH);
+            transfer_from_move_addr(sender, to_32bit(evm_addr), amount);
+            i = i + 1;
+        }
     }
 
     #[view]
@@ -425,7 +441,7 @@ module aptos_framework::evm {
             else if(opcode == 0x0a) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
-                vector::push_back(stack, power(a, b));
+                vector::push_back(stack, exp(a, b));
                 i = i + 1;
             }
                 //signextend
