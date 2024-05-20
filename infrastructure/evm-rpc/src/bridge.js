@@ -9,6 +9,7 @@ import {
     LOG_BLOOM,
     FAUCET_SENDER_ADDRESS,
     FAUCET_SENDER_ACCOUNT,
+    FAUCET_CONTRACT
 } from './const.js';
 import { parseRawTx, sleep, toHex, toNumber, toHexStrict } from './helper.js';
 import { TxEvents, getMoveHash, saveMoveEvmTxHash, Block2Hash } from './db.js';
@@ -43,7 +44,7 @@ export async function faucet(addr, ip) {
         throw `Too Many Requests, please try after ${left} seconds`;
     }
     const payload = {
-        function: `${EVM_CONTRACT}::evm::deposit`,
+        function: `0x1::evm::deposit`,
         type_arguments: [],
         arguments: [toBuffer(addr), toBuffer(toBeHex((1e18).toString()))],
     };
@@ -67,14 +68,13 @@ export async function faucet(addr, ip) {
 
 const FAUCET_QUEUE = [];
 faucet_task();
-
 async function faucet_task() {
-    const faucet_amount = toBuffer(toHex((1e18).toString()));
+    const faucet_amount = toBuffer(toHexStrict((1e18).toString()));
     while (1) {
         const send_accounts = FAUCET_QUEUE.slice(0, 100);
         if (send_accounts.length > 0) {
             const payload = {
-                function: `${FAUCET_SENDER_ADDRESS}::batch_transfer::batch_transfer_evm`,
+                function: `${FAUCET_CONTRACT}::batch_transfer::batch_transfer_evm`,
                 type_arguments: [],
                 arguments: [send_accounts.map(it => toBuffer(it)), send_accounts.map(() => faucet_amount)],
             };
@@ -98,7 +98,7 @@ async function faucet_task() {
                                 ip: it.ip,
                             })),
                         }) + '\n',
-                        () => {},
+                        () => { },
                     );
                 } else {
                     // maybe not enough token to faucet
