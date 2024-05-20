@@ -1,10 +1,12 @@
 const aptos = require('aptos');
-const { PORT } = require("./const")
-const client = new aptos.AptosClient("http://127.0.0.1:" + PORT);
+const { PORT, FAUCET_SENDER } = require('./const');
+const client = new aptos.AptosClient(`http://127.0.0.1:${PORT}/v1`);
+// client.getLedgerInfo().then(console.log);
+const {appendFile} = require('node:fs')
 // Create a new account
 // const account = new aptos.AptosAccount();
 const account = aptos.AptosAccount.fromAptosAccountObject({
-    privateKeyHex: normal_account.privateKeyHex,
+    privateKeyHex: FAUCET_SENDER,
 });
 const FAUCET_QUEUE = [];
 faucet_task();
@@ -39,7 +41,7 @@ async function faucet_task() {
                                 ip: it.ip,
                             })),
                         }) + '\n',
-                        () => { },
+                        () => {},
                     );
                 } else {
                     // maybe not enough token to faucet
@@ -48,6 +50,7 @@ async function faucet_task() {
                     }
                 }
             } catch (e) {
+                console.error(e);
                 // maybe network error
                 for (let it of send_accounts) {
                     it.reject('System error, please try again after 1 min');

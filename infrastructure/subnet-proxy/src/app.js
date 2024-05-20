@@ -361,15 +361,8 @@ async function handleMint11(req, res) {
     if ((await googleRecaptcha(req.headers['token'])) === false) {
         throw new Error('invalid recaptcha');
     }
-    let res = await new Promise((resolve, reject) => {
-        addFaucetTask({
-            addr: address,
-            ip: ip,
-            resolve,
-            reject,
-        });
-    });
-    res.sendData(res);
+    let ret = await addFaucetTask(address, ip)
+    res.json([ret])
 }
 
 router.get('/mint', handleMint);
