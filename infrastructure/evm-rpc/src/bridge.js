@@ -17,13 +17,14 @@ import BigNumber from 'bignumber.js';
 import Lock from 'async-lock';
 const LOCKER_MAX_PENDING = 20;
 import { canRequest, setRequest } from './rate.js';
+import { googleRecaptcha } from './provider.js';
 const locker = new Lock({
     maxExecutionTime: 30 * 1000,
 });
 
 const lockerFaucet = new Lock({
     maxExecutionTime: 10 * 1000,
-    maxPending: 2,
+    maxPending: 60,
 });
 
 const LOCKER_KEY_SEND_TX = 'sendTx';
@@ -31,14 +32,18 @@ let lastBlockTime = Date.now();
 let lastBlock = '0x1';
 await getBlock();
 
-export async function faucet(addr, ip) {
-    if (!ethers.isAddress(addr)) {
-        throw 'Address format error';
-    }
-    const [pass, left] = await canRequest(ip);
-    if (!pass) {
-        console.log('faucet %s limit,left %s seconds ', ip, left);
-        throw `Too Many Requests, please try after ${left} seconds`;
+export async function faucet(addr, ip, token) {
+    // if (!ethers.isAddress(addr)) {
+    //     throw 'Address format error';
+    // }
+    // const [pass, left] = await canRequest(ip);
+    // if (!pass) {
+    //     console.log('faucet %s limit,left %s seconds ', ip, left);
+    //     throw `Too Many Requests, please try after ${left} seconds`;
+    // }
+
+    if ((await googleRecaptcha(token)) === false) {
+        throw 'recaptcha error';
     }
     const payload = {
         function: `${EVM_CONTRACT}::evm::deposit`,
@@ -52,8 +57,8 @@ export async function faucet(addr, ip) {
         await client.waitForTransaction(transactionRes.hash);
         const res = await client.getTransactionByHash(transactionRes.hash);
         if (res.success) {
-            console.log('faucet to %s %s success', ip, addr);
-            await setRequest(ip);
+            // console.log('faucet to %s %s success', ip, addr);
+            // await setRequest(ip);
             done(null, transactionRes.hash);
         } else {
             done('System error, please try again after 5 min');
@@ -210,7 +215,7 @@ export async function getStorageAt(addr, pos) {
         let result = await client.view(payload);
         res = result[0];
     } catch (error) {
-        console.log('getStorageAt error', error);
+        // console.log('getStorageAt error', error);
     }
     return res;
 }
@@ -244,7 +249,6 @@ async function checkAddressNonce(info) {
 // We can directly read it from the blockchain instead of relying on user input.
 export async function sendRawTx(tx) {
     const info = parseRawTx(tx);
-    // console.log('raw tx info', info);
     // let v = info.v;
     // if (v === 27 || v === 28) {
     //     throw 'only replay-protected (EIP-155) transactions allowed over RPC';
@@ -299,8 +303,12 @@ export async function sendRawTx(tx) {
             return done(gasInfo.error);
         }
         fee = toBeHex(BigNumber(gasPrice).times(gasInfo.gas_used).decimalPlaces(0).toFixed(0));
-        console.log('nonce %s,fee:%s', info.nonce, fee);
+        // console.log('nonce %s,fee:%s', info.nonce, fee);
         payload.arguments[2] = toBuffer(fee);
+        const balance = await getBalance(info.from);
+        if (BigNumber(balance).lt(fee)) {
+            return done('insufficient funds');
+        }
         sendTx(payload, true, {
             gas_unit_price: gasPrice,
         })
@@ -539,7 +547,7 @@ async function sendTx(payload, wait = false, option = {}) {
         });
         const signedTxn = await client.signTransaction(SENDER_ACCOUNT, txnRequest);
         const transactionRes = await client.submitTransaction(signedTxn);
-        console.log('sendTx', transactionRes.hash);
+        // console.log('sendTx', transactionRes.hash);
         if (wait) await client.waitForTransaction(transactionRes.hash);
         return transactionRes.hash;
     } catch (error) {

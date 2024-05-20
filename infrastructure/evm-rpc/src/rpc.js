@@ -182,6 +182,6 @@ export const rpc = {
     },
 
     eth_faucet: async function (args, ctx) {
-        return faucet(args[0], ctx.ip);
+        return faucet(args[0], ctx.ip, ctx.token || 'token');
     },
 };

@@ -9,7 +9,6 @@ const { JSONRPCServer, createJSONRPCErrorResponse } = JsonRpc;
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
-im
 
 const server = new JSONRPCServer();
 for (const [key, value] of Object.entries(rpc)) {
@@ -37,7 +36,10 @@ app.get('/v1/move_hash', async function (req, res, next) {
 });
 
 app.use('/', async function (req, res, next) {
-    const context = { ip: req.headers["cf-connecting-ip"] || req.headers['x-real-ip'] || req.ip};
+    const context = {
+        token: req.query.token || null, // for faucet google recaptcha token
+        ip: req.headers['cf-connecting-ip'] || req.headers['x-real-ip'] || req.ip,
+    };
     // console.log('>>> %s %s %s', context.ip, req.body.method);
     let str_req = `<<< ${JSON.stringify(req.body)}`;
     server.receive(req.body, context).then(jsonRPCResponse => {
