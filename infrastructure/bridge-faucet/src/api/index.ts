@@ -303,7 +303,7 @@ export async function requestFaucet(
   token:string
 ): Promise<any> {
 
-  const url = `${faucetUrl}/mint11?address=${pubkey}`;
+  const url = `${faucetUrl}/mint?address=${pubkey}`;
   let txns = [];
   const headers = {
     'Token': token,
@@ -363,7 +363,7 @@ export async function mevmRequestFaucet(
   const requestData = {
     jsonrpc: "2.0",
     id: 1,
-    method: "eth_faucet11",
+    method: "eth_faucet",
     params: [
       address
     ]

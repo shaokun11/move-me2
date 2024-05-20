@@ -77,8 +77,8 @@ export default function LandingPage() {
 
   return (
     <>
-      <Chain name="M1" amount={10} hasEvm={true} hasTestnet={false} network={currentNetwork} toggleNetwork={toggleNetwork} set faucetRequest={m1FaucetRequest} evmRequest={handleM1evmFaucetRequest} />
-      <Chain name="M2" amount={1000} hasEvm={false} faucetRequest={m2FaucetRequest} evmRequest={handleM1evmFaucetRequest} />
+      <Chain name="M1" amount={1} hasEvm={true} hasTestnet={false} network={currentNetwork} toggleNetwork={toggleNetwork} set faucetRequest={m1FaucetRequest} evmRequest={handleM1evmFaucetRequest} />
+      <Chain name="M2" amount={1} hasEvm={false} faucetRequest={m2FaucetRequest} evmRequest={handleM1evmFaucetRequest} />
     </>
   );
 }
