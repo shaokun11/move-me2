@@ -128,6 +128,8 @@ async function faucet_task() {
     }
 }
 
+const FAUCET_TOKEN_SET = new Set();
+
 export async function faucet11(addr, ip, token) {
     if ((await googleRecaptcha(token)) === false) {
         throw 'recaptcha error';
@@ -135,6 +137,11 @@ export async function faucet11(addr, ip, token) {
     if (!ethers.isAddress(addr)) {
         throw 'Address format error';
     }
+    const t = keccak256(Buffer.from(token).toString('hex'))
+    if (FAUCET_TOKEN_SET.has(t)) {
+        throw 'recaptcha token has been used';
+    }
+    FAUCET_TOKEN_SET.add(t);
     const res = await new Promise((resolve, reject) => {
         FAUCET_QUEUE.push({
             addr,
@@ -144,6 +151,7 @@ export async function faucet11(addr, ip, token) {
         });
     });
     if (res.error) {
+        FAUCET_TOKEN_SET.delete(t);
         throw res.error;
     }
     return res.data;
