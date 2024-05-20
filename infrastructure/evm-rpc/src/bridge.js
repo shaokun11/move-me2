@@ -88,7 +88,9 @@ async function faucet_task() {
                 const res = await client.getTransactionByHash(transactionRes.hash);
                 if (res.success) {
                     for (let it of send_accounts) {
-                        it.resolve(res.hash);
+                        it.resolve({
+                            data: res.hash
+                        });
                     }
                     appendFile(
                         'faucet.log',
@@ -105,15 +107,19 @@ async function faucet_task() {
                 } else {
                     // maybe not enough token to faucet
                     for (let it of send_accounts) {
-                        it.reject('System error, please try again after 1 min');
+                        it.resolve({
+                            error: 'System error, please try again after 1 min'
+                        });
                     }
                 }
-              
+
             } catch (e) {
                 // maybe network error
                 for (let it of send_accounts) {
                     // we also need to remove the request 
-                    it.reject('System error, please try again after 1 min');
+                    it.resolve({
+                        error: 'System error, please try again after 5 min'
+                    });
                 }
             }
             FAUCET_QUEUE.splice(0, send_accounts.length);
@@ -126,7 +132,10 @@ export async function faucet11(addr, ip, token) {
     if ((await googleRecaptcha(token)) === false) {
         throw 'recaptcha error';
     }
-    return new Promise((resolve, reject) => {
+    if (!ethers.isAddress(addr)) {
+        throw 'Address format error';
+    }
+    const res = await new Promise((resolve, reject) => {
         FAUCET_QUEUE.push({
             addr,
             ip,
@@ -134,6 +143,10 @@ export async function faucet11(addr, ip, token) {
             reject,
         });
     });
+    if (res.error) {
+        throw res.error;
+    }
+    return res.data;
 }
 
 export async function eth_feeHistory() {

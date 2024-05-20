@@ -356,14 +356,30 @@ async function handleMint11(req, res) {
     const ip = req.headers['cf-connecting-ip'] || req.headers['x-real-ip'] || req.ip;
     const address = req.query.address;
     if (address.length !== 66) {
-        throw new Error('invalid address');
+        res.status(200);
+        res.json({
+            error_message: `invalid address`,
+        });
+        return;
     }
     const token = req.headers['token'];
     if ((await googleRecaptcha(token)) === false) {
-        throw new Error('invalid recaptcha');
+        res.status(200);
+        res.json({
+            error_message: `invalid recaptcha`,
+        });
+        return;
     }
     let ret = await addFaucetTask(address, ip)
-    res.json([ret])
+    if (ret.error) {
+        res.status(200);
+        res.json({
+            error_message: ret.error,
+        });
+        return;
+    }
+    res.json([ret.data])
+
 }
 
 router.get('/mint', handleMint);

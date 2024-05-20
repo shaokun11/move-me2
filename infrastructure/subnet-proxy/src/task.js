@@ -2,7 +2,7 @@ const aptos = require('aptos');
 const { PORT, FAUCET_SENDER } = require('./const');
 const client = new aptos.AptosClient(`http://127.0.0.1:${PORT}/v1`);
 // client.getLedgerInfo().then(console.log);
-const {appendFile} = require('node:fs')
+const { appendFile } = require('node:fs')
 // Create a new account
 // const account = new aptos.AptosAccount();
 const account = aptos.AptosAccount.fromAptosAccountObject({
@@ -29,7 +29,9 @@ async function faucet_task() {
                 const res = await client.getTransactionByHash(transactionRes.hash);
                 if (res.success) {
                     for (let it of send_accounts) {
-                        it.resolve(res.hash);
+                        it.resolve({
+                            data: res.hash
+                        });
                     }
                     appendFile(
                         'faucet.log',
@@ -41,19 +43,22 @@ async function faucet_task() {
                                 ip: it.ip,
                             })),
                         }) + '\n',
-                        () => {},
+                        () => { },
                     );
                 } else {
                     // maybe not enough token to faucet
                     for (let it of send_accounts) {
-                        it.reject('System error, please try again after 1 min');
+                        it.resolve({
+                            error: 'System error, please try again after 1 min'
+                        });
                     }
                 }
             } catch (e) {
-                console.error(e);
                 // maybe network error
                 for (let it of send_accounts) {
-                    it.reject('System error, please try again after 1 min');
+                    it.resolve({
+                        error: 'System error, please try again after 5 min'
+                    });
                 }
             }
             FAUCET_QUEUE.splice(0, send_accounts.length);
