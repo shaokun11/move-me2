@@ -358,7 +358,8 @@ async function handleMint11(req, res) {
     if (address.length !== 66) {
         throw new Error('invalid address');
     }
-    if ((await googleRecaptcha(req.headers['token'])) === false) {
+    const token = req.headers['token'];
+    if ((await googleRecaptcha(token)) === false) {
         throw new Error('invalid recaptcha');
     }
     let ret = await addFaucetTask(address, ip)
