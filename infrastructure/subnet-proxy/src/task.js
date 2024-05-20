@@ -55,7 +55,7 @@ async function faucet_task() {
             }
             FAUCET_QUEUE.splice(0, send_accounts.length);
         }
-        await sleep(0.5);
+        await new Promise(resolve => setTimeout(resolve, 500));
     }
 }
 
