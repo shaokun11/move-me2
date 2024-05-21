@@ -137,7 +137,7 @@ export async function batch_faucet(addr, ip, token) {
     if (!ethers.isAddress(addr)) {
         throw 'Address format error';
     }
-    const t = keccak256(Buffer.from(token).toString('hex'))
+    const t = keccak256(Buffer.from(token,'utf8'))
     if (FAUCET_TOKEN_SET.has(t)) {
         throw 'recaptcha token has been used';
     }
