@@ -37,7 +37,7 @@ app.get('/v1/move_hash', async function (req, res, next) {
 
 app.use('/', async function (req, res, next) {
     const context = {
-        token: req.query.token || null, // for faucet google recaptcha token
+        token: req.headers["token"] || null, // for faucet google recaptcha token
         ip: req.headers['cf-connecting-ip'] || req.headers['x-real-ip'] || req.ip,
     };
     // console.log('>>> %s %s %s', context.ip, req.body.method);
