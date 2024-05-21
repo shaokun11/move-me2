@@ -1,9 +1,10 @@
 import { gql } from '@urql/core';
 import { indexer_client } from './const.js';
-import { group, mapValues, sort } from 'radash';
+import { group, mapValues, sort ,retry} from 'radash';
 
 export async function getMoveHash(evm_hash) {
-    const query = gql`
+    const run = async function () {
+        const query = gql`
         {
             evm_move_hash(where:{
                 evm_hash:{
@@ -15,8 +16,10 @@ export async function getMoveHash(evm_hash) {
             }
         }
     `;
-    const res = await indexer_client.query(query).toPromise();
-    return res.data.evm_move_hash[0].move_hash;
+        const res = await indexer_client.query(query).toPromise();
+        return res.data.evm_move_hash[0].move_hash;
+    }
+    return await retry({ times: 3, delay: 1000 }, run)
 }
 
 export async function getBlockHeightByHash(block_hash) {
