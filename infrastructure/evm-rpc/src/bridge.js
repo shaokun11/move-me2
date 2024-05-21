@@ -130,7 +130,7 @@ async function faucet_task() {
 
 const FAUCET_TOKEN_SET = new Set();
 
-export async function faucet11(addr, ip, token) {
+export async function batch_faucet(addr, ip, token) {
     if ((await googleRecaptcha(token)) === false) {
         throw 'recaptcha error';
     }
@@ -213,6 +213,11 @@ export async function getBlock() {
  *   - uncles: Array<string> - The uncle blocks of the block
  */
 export async function getBlockByNumber(block, withTx) {
+    let is_pending = false
+    if (block === 'pending') {
+        is_pending = true
+
+    }
     if (block === 'latest') {
         let info = await client.getLedgerInfo();
         block = info.block_height;
@@ -226,13 +231,17 @@ export async function getBlockByNumber(block, withTx) {
     }
     let transactions = info.transactions || [];
     let evm_tx = [];
-    for (let i = 0; i < transactions.length; i++) {
-        let it = transactions[i];
-        if (it.type === 'user_transaction' && it?.payload?.function?.startsWith('0x1::evm::send_tx')) {
-            let evm_hash = parseMoveTxPayload(it).hash;
-            let move_hash = await getMoveHash(evm_hash);
-            if (evm_hash !== move_hash) {
-                evm_tx.push(evm_hash);
+    if (is_pending) {
+        const txs = locker['queues'][LOCKER_KEY_SEND_TX] || [];
+    } else {
+        for (let i = 0; i < transactions.length; i++) {
+            let it = transactions[i];
+            if (it.type === 'user_transaction' && it?.payload?.function?.startsWith('0x1::evm::send_tx')) {
+                let evm_hash = parseMoveTxPayload(it).hash;
+                let move_hash = await getMoveHash(evm_hash);
+                if (evm_hash !== move_hash) {
+                    evm_tx.push(evm_hash);
+                }
             }
         }
     }

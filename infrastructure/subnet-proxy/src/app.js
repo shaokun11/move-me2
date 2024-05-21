@@ -352,7 +352,7 @@ async function handleMint(req, res) {
     }
 }
 const GOOGLE_TOKEN_SET = new Set();
-async function handleMint11(req, res) {
+async function handleBatchMint(req, res) {
     const ip = req.headers['cf-connecting-ip'] || req.headers['x-real-ip'] || req.ip;
     const address = req.query.address;
     if (address.length !== 66) {
@@ -392,7 +392,7 @@ async function handleMint11(req, res) {
 }
 
 router.get('/mint', handleMint);
-router.get('/mint11', handleMint11);
+router.get('/batch_mint', handleBatchMint);
 
 const limiter = rateLimit({
     windowMs: 5 * 60 * 1000, // 5 minutes

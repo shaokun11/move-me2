@@ -82,6 +82,8 @@ function request(method, params) {
 }
 
 async function googleRecaptcha(token) {
+    // no secret key provided, just skip and return true
+    if (!RECAPTCHA_SECRET) return true
     if (!token) return false;
     return fetch('https://www.google.com/recaptcha/api/siteverify', {
         method: 'POST',
