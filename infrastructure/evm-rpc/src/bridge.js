@@ -55,7 +55,7 @@ export async function faucet(addr, ip) {
         await client.waitForTransaction(transactionRes.hash);
         const res = await client.getTransactionByHash(transactionRes.hash);
         // sleep 1s , this method will remove after use the new faucet
-        await sleep(1);
+        await sleep(5);
         if (res.success) {
             console.log('faucet to %s %s success', ip, addr);
             await setRequest(ip);
