@@ -1,6 +1,6 @@
 import { gql } from '@urql/core';
 import { indexer_client } from './const.js';
-import { group, mapValues, sort ,retry} from 'radash';
+import { group, mapValues, sort, retry } from 'radash';
 
 export async function getMoveHash(evm_hash) {
     const run = async function () {
@@ -17,6 +17,9 @@ export async function getMoveHash(evm_hash) {
         }
     `;
         const res = await indexer_client.query(query).toPromise();
+        if (res.data.evm_move_hash.length == 0) {
+            throw new Error('Transaction not found');
+        }
         return res.data.evm_move_hash[0].move_hash;
     }
     return await retry({ times: 3, delay: 1000 }, run)
