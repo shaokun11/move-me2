@@ -1,15 +1,14 @@
 import { HexString } from 'aptos';
 import {
     EVM_CONTRACT,
-    SENDER_ACCOUNT,
-    SENDER_ADDRESS,
+    GET_SENDER_ACCOUNT,
     client,
     ZERO_HASH,
     LOG_BLOOM,
-    FAUCET_SENDER_ADDRESS,
     FAUCET_SENDER_ACCOUNT,
     CHAIN_ID,
     FAUCET_AMOUNT,
+    SENDER_ACCOUNT_COUNT,
 } from './const.js';
 import { parseRawTx, sleep, toHex, toNumber, toHexStrict } from './helper.js';
 import { getMoveHash, getBlockHeightByHash, getEvmLogs } from './db.js';
@@ -17,16 +16,15 @@ import { ZeroAddress, ethers, isHexString, toBeHex, keccak256 } from 'ethers';
 import { canRequest, setRequest } from './rate.js';
 import BigNumber from 'bignumber.js';
 import Lock from 'async-lock';
-const LOCKER_MAX_PENDING = 20;
 const locker = new Lock({
-    maxExecutionTime: 30 * 1000,
+    maxExecutionTime: 10 * 1000,
+    maxPending: SENDER_ACCOUNT_COUNT * 30,
 });
 const lockerFaucet = new Lock({
     maxExecutionTime: 10 * 1000,
     maxPending: 30,
 });
-
-const LOCKER_KEY_SEND_TX = 'sendTx';
+let SEND_TX_ACCOUNT_INDEX = 0;
 let lastBlockTime = Date.now();
 let lastBlock = '0x1';
 
@@ -41,7 +39,7 @@ export async function get_move_hash(evm_hash) {
     }
     try {
         return await getMoveHash(evm_hash);
-    } catch (error) {}
+    } catch (error) { }
     throw 'Not found move hash for ' + evm_hash;
 }
 
@@ -60,9 +58,8 @@ export async function traceTransaction(hash) {
         value: toHex(data.value),
         type: callType[data.type],
     });
-    const traces = info.events
-        .filter(it => it.type === '0x1::evm::CallEvent')
-        // .sort((a, b) => parseInt(a.sequence_number) - parseInt(b.sequence_number));
+    const traces = info.events.filter(it => it.type === '0x1::evm::CallEvent');
+    // .sort((a, b) => parseInt(a.sequence_number) - parseInt(b.sequence_number));
     const root_call = format_item(traces.shift().data);
     const find_caller = (item, trace) => {
         if (trace.to === item.from) {
@@ -100,7 +97,7 @@ export async function faucet(addr, ip) {
         arguments: [toBuffer(addr), toBuffer(toBeHex(BigNumber(FAUCET_AMOUNT).times(1e18).toString()))],
     };
     return await lockerFaucet.acquire('faucetTx', async function (done) {
-        const txnRequest = await client.generateTransaction(FAUCET_SENDER_ADDRESS, payload);
+        const txnRequest = await client.generateTransaction(FAUCET_SENDER_ACCOUNT.address(), payload);
         const signedTxn = await client.signTransaction(FAUCET_SENDER_ACCOUNT, txnRequest);
         const transactionRes = await client.submitTransaction(signedTxn);
         await client.waitForTransaction(transactionRes.hash);
@@ -295,12 +292,12 @@ async function checkAddressNonce(info) {
 // We can directly read it from the blockchain instead of relying on user input.
 export async function sendRawTx(tx) {
     const info = parseRawTx(tx);
-
-    checkTxQueue();
     // this guarantee the nonce order for same from address
     await checkAddressNonce(info);
+    const SENDER_ACCOUNT = GET_SENDER_ACCOUNT(SEND_TX_ACCOUNT_INDEX % SENDER_ACCOUNT_COUNT);
+    SEND_TX_ACCOUNT_INDEX++;
     // this guarantee the the sender address is order
-    return locker.acquire(LOCKER_KEY_SEND_TX, async function (done) {
+    return locker.acquire('sendTx:' + SEND_TX_ACCOUNT_INDEX, async function (done) {
         let fee = '0x01';
         let gasPrice = toNumber(BigNumber(info.gasPrice).div(1e10).decimalPlaces(0));
         // we don't need too large gasPrice for send tx
@@ -320,7 +317,7 @@ export async function sendRawTx(tx) {
         };
         let gasInfo;
         try {
-            const txnRequest = await client.generateTransaction(SENDER_ADDRESS, payload);
+            const txnRequest = await client.generateTransaction(SENDER_ACCOUNT.address(), payload);
             let res = await client.simulateTransaction(SENDER_ACCOUNT, txnRequest, {
                 estimatePrioritizedGasUnitPrice: true,
             });
@@ -345,7 +342,7 @@ export async function sendRawTx(tx) {
         fee = toBeHex(BigNumber(gasPrice).times(gasInfo.gas_used).decimalPlaces(0).toFixed(0));
         console.log('nonce %s,fee:%s', info.nonce, fee);
         payload.arguments[2] = toBuffer(fee);
-        sendTx(payload, true, {
+        sendTx(SENDER_ACCOUNT, payload, true, {
             gas_unit_price: gasPrice,
         })
             .then(hash => {
@@ -393,8 +390,9 @@ export async function estimateGas(info) {
     const error_gas = 1e6;
     let res;
     try {
-        const txnRequest = await client.generateTransaction(SENDER_ADDRESS, payload);
-        res = await client.simulateTransaction(SENDER_ACCOUNT, txnRequest, {
+        const sender = GET_SENDER_ACCOUNT(0);
+        const txnRequest = await client.generateTransaction(sender.address(), payload);
+        res = await client.simulateTransaction(sender, txnRequest, {
             estimatePrioritizedGasUnitPrice: true,
         });
         if (res[0].success) {
@@ -586,14 +584,14 @@ async function getAccountInfo(acc, block) {
     return ret;
 }
 
-async function sendTx(payload, wait = false, option = {}) {
+async function sendTx(sender, payload, wait = false, option = {}) {
     try {
-        const txnRequest = await client.generateTransaction(SENDER_ADDRESS, payload, {
+        const txnRequest = await client.generateTransaction(sender.address(), payload, {
             ...option,
             max_gas_amount: 2 * 1e6,
             expiration_timestamp_secs: Math.trunc(Date.now() / 1000) + 10,
         });
-        const signedTxn = await client.signTransaction(SENDER_ACCOUNT, txnRequest);
+        const signedTxn = await client.signTransaction(sender, txnRequest);
         const transactionRes = await client.submitTransaction(signedTxn);
         console.log('sendTx', transactionRes.hash);
         if (wait) await client.waitForTransaction(transactionRes.hash);
@@ -711,13 +709,4 @@ function parseLogs(info, blockNumber, blockHash, evm_hash, transactionIndex) {
         });
     }
     return logs;
-}
-
-function checkTxQueue() {
-    if (
-        locker['queues'][LOCKER_KEY_SEND_TX] &&
-        locker['queues'][LOCKER_KEY_SEND_TX].length > LOCKER_MAX_PENDING
-    ) {
-        throw new Error('system busy');
-    }
 }

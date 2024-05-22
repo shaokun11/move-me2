@@ -53,6 +53,6 @@ app.use('/', async function (req, res, next) {
 
 app.set('trust proxy', true);
 app.listen(SERVER_PORT, () => {
-    import('./task.js')
+    import('./task_bot.js');
     console.log('server start at http://127.0.0.1:' + SERVER_PORT);
 });

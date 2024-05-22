@@ -22,10 +22,12 @@
 -  [Function `add`](#0x1_evm_add)
 -  [Function `sub`](#0x1_evm_sub)
 -  [Function `mul`](#0x1_evm_mul)
+-  [Function `exp`](#0x1_evm_exp)
 -  [Function `initialize`](#0x1_evm_initialize)
 -  [Function `send_tx`](#0x1_evm_send_tx)
 -  [Function `estimate_tx_gas`](#0x1_evm_estimate_tx_gas)
 -  [Function `deposit`](#0x1_evm_deposit)
+-  [Function `batch_deposit`](#0x1_evm_batch_deposit)
 -  [Function `get_code`](#0x1_evm_get_code)
 -  [Function `get_move_address`](#0x1_evm_get_move_address)
 -  [Function `query`](#0x1_evm_query)
@@ -640,6 +642,16 @@ invalid chain id in raw tx
 
 
 
+<a id="0x1_evm_SIZE_NOT_MATCH"></a>
+
+adderess and amount size not match
+
+
+<pre><code><b>const</b> <a href="evm.md#0x1_evm_SIZE_NOT_MATCH">SIZE_NOT_MATCH</a>: u64 = 10010;
+</code></pre>
+
+
+
 <a id="0x1_evm_TX_NOT_SUPPORT"></a>
 
 
@@ -794,6 +806,28 @@ invalid chain id in raw tx
 
 </details>
 
+<a id="0x1_evm_exp"></a>
+
+## Function `exp`
+
+
+
+<pre><code><b>fun</b> <a href="evm.md#0x1_evm_exp">exp</a>(a: u256, b: u256): u256
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>native</b> <b>fun</b> <a href="evm.md#0x1_evm_exp">exp</a>(a: u256, b: u256): u256;
+</code></pre>
+
+
+
+</details>
+
 <a id="0x1_evm_initialize"></a>
 
 ## Function `initialize`
@@ -912,6 +946,39 @@ invalid chain id in raw tx
     <b>let</b> amount = to_u256(amount_bytes);
     <b>assert</b>!(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&evm_addr) == 20, <a href="evm.md#0x1_evm_ADDR_LENGTH">ADDR_LENGTH</a>);
     <a href="evm.md#0x1_evm_transfer_from_move_addr">transfer_from_move_addr</a>(sender, to_32bit(evm_addr), amount);
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_batch_deposit"></a>
+
+## Function `batch_deposit`
+
+
+
+<pre><code><b>public</b> entry <b>fun</b> <a href="evm.md#0x1_evm_batch_deposit">batch_deposit</a>(sender: &<a href="../../aptos-stdlib/../move-stdlib/doc/signer.md#0x1_signer">signer</a>, evm_addr_list: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;, amount_bytes_list: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> entry <b>fun</b> <a href="evm.md#0x1_evm_batch_deposit">batch_deposit</a>(sender: &<a href="../../aptos-stdlib/../move-stdlib/doc/signer.md#0x1_signer">signer</a>, evm_addr_list: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;, amount_bytes_list: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;) <b>acquires</b> <a href="evm.md#0x1_evm_Account">Account</a> {
+    <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&evm_addr_list);
+    <b>assert</b>!(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&evm_addr_list) == <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&amount_bytes_list), <a href="evm.md#0x1_evm_SIZE_NOT_MATCH">SIZE_NOT_MATCH</a>);
+    <b>let</b> i = 0;
+    <b>while</b> (i &lt; len) {
+        <b>let</b> amount = to_u256(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&amount_bytes_list, i));
+        <b>let</b> evm_addr = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&evm_addr_list, i);
+        <b>assert</b>!(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&evm_addr) == 20, <a href="evm.md#0x1_evm_ADDR_LENGTH">ADDR_LENGTH</a>);
+        <a href="evm.md#0x1_evm_transfer_from_move_addr">transfer_from_move_addr</a>(sender, to_32bit(evm_addr), amount);
+        i = i + 1;
+    }
 }
 </code></pre>
 
@@ -1300,7 +1367,7 @@ invalid chain id in raw tx
         <b>else</b> <b>if</b>(opcode == 0x0a) {
             <b>let</b> a = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
             <b>let</b> b = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
-            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, power(a, b));
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, <a href="evm.md#0x1_evm_exp">exp</a>(a, b));
             i = i + 1;
         }
             //signextend

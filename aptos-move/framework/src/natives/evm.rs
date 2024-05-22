@@ -1,4 +1,4 @@
-se move_binary_format::errors::PartialVMError;
+use move_binary_format::errors::PartialVMError;
 use aptos_types::{vm_status::StatusCode};
 use aptos_native_interface::{
     safely_pop_arg, SafeNativeContext, SafeNativeError, SafeNativeBuilder, RawSafeNative, SafeNativeResult

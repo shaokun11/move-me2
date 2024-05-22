@@ -405,6 +405,11 @@ pub enum EntryFunctionCall {
         amount: u64,
     },
 
+    EvmBatchDeposit {
+        evm_addr_list: Vec<Vec<u8>>,
+        amount_bytes_list: Vec<Vec<u8>>,
+    },
+
     EvmDeposit {
         evm_addr: Vec<u8>,
         amount_bytes: Vec<u8>,
@@ -1230,6 +1235,10 @@ impl EntryFunctionCall {
                 pool_address,
                 amount,
             } => delegation_pool_withdraw(pool_address, amount),
+            EvmBatchDeposit {
+                evm_addr_list,
+                amount_bytes_list,
+            } => evm_batch_deposit(evm_addr_list, amount_bytes_list),
             EvmDeposit {
                 evm_addr,
                 amount_bytes,
@@ -2669,6 +2678,27 @@ pub fn delegation_pool_withdraw(pool_address: AccountAddress, amount: u64) -> Tr
         vec![
             bcs::to_bytes(&pool_address).unwrap(),
             bcs::to_bytes(&amount).unwrap(),
+        ],
+    ))
+}
+
+pub fn evm_batch_deposit(
+    evm_addr_list: Vec<Vec<u8>>,
+    amount_bytes_list: Vec<Vec<u8>>,
+) -> TransactionPayload {
+    TransactionPayload::EntryFunction(EntryFunction::new(
+        ModuleId::new(
+            AccountAddress::new([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1,
+            ]),
+            ident_str!("evm").to_owned(),
+        ),
+        ident_str!("batch_deposit").to_owned(),
+        vec![],
+        vec![
+            bcs::to_bytes(&evm_addr_list).unwrap(),
+            bcs::to_bytes(&amount_bytes_list).unwrap(),
         ],
     ))
 }
@@ -5160,6 +5190,17 @@ mod decoder {
         }
     }
 
+    pub fn evm_batch_deposit(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
+        if let TransactionPayload::EntryFunction(script) = payload {
+            Some(EntryFunctionCall::EvmBatchDeposit {
+                evm_addr_list: bcs::from_bytes(script.args().get(0)?).ok()?,
+                amount_bytes_list: bcs::from_bytes(script.args().get(1)?).ok()?,
+            })
+        } else {
+            None
+        }
+    }
+
     pub fn evm_deposit(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
         if let TransactionPayload::EntryFunction(script) = payload {
             Some(EntryFunctionCall::EvmDeposit {
@@ -6469,6 +6510,10 @@ static SCRIPT_FUNCTION_DECODER_MAP: once_cell::sync::Lazy<EntryFunctionDecoderMa
         map.insert(
             "delegation_pool_withdraw".to_string(),
             Box::new(decoder::delegation_pool_withdraw),
+        );
+        map.insert(
+            "evm_batch_deposit".to_string(),
+            Box::new(decoder::evm_batch_deposit),
         );
         map.insert("evm_deposit".to_string(), Box::new(decoder::evm_deposit));
         map.insert(
