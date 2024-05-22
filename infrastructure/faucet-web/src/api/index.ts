@@ -303,7 +303,7 @@ export async function requestFaucet(
   token:string
 ): Promise<any> {
 
-  const url = `${faucetUrl}/batch_mint?address=${pubkey}`;
+  const url = `${faucetUrl}?address=${pubkey}`;
   let txns = [];
   const headers = {
     'Token': token,
