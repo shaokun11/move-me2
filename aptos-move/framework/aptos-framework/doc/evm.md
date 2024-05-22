@@ -926,7 +926,7 @@ invalid chain id in raw tx
 
 
 <pre><code><b>fun</b> <a href="evm.md#0x1_evm_handle_exdlecute_result">handle_exdlecute_result</a>(res: bool, bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt; {
-
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&res);
     <b>if</b>(!res) {
         <a href="evm.md#0x1_evm_throw_error">throw_error</a>(bytes);
         x""
@@ -1089,8 +1089,8 @@ invalid chain id in raw tx
         // Fetch the current opcode from the bytecode.
 
         <b>let</b> opcode = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&<a href="code.md#0x1_code">code</a>, i);
-        // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&i);
-        // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&opcode);
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&i);
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&opcode);
 
         // Handle each opcode according <b>to</b> the EVM specification.
         // The following is a simplified <a href="version.md#0x1_version">version</a> of the EVM execution engine,
@@ -1770,7 +1770,7 @@ invalid chain id in raw tx
                 <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 0);
             };
 
-            <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"create end"));
+            // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"create end"));
             ret_size = 32;
 
 
@@ -1831,11 +1831,7 @@ invalid chain id in raw tx
             <b>let</b> bytes = slice(*memory, pos, len);
             <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"revert"));
             <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&bytes);
-            // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&pos);
-            // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&len);
-            // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(memory);
-            // i = i + 1;
-            <b>return</b> (<b>false</b>, bytes)
+            <a href="evm.md#0x1_evm_revert">revert</a>(bytes);
         }
             //log0
         <b>else</b> <b>if</b>(opcode == 0xa0) {
