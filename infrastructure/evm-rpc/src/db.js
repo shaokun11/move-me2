@@ -21,8 +21,8 @@ export async function getMoveHash(evm_hash) {
             throw new Error('Transaction not found');
         }
         return res.data.evm_move_hash[0].move_hash;
-    }
-    return await retry({ times: 3, delay: 1000 }, run)
+    };
+    return await retry({ times: 3, delay: 1000 }, run);
 }
 
 export async function getBlockHeightByHash(block_hash) {
