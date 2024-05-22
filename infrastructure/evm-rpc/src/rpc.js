@@ -18,6 +18,7 @@ import {
     getLogs,
     eth_feeHistory,
     batch_faucet,
+    getBlockReceipts,
 } from './bridge.js';
 import JsonRpc from 'json-rpc-2.0';
 const { JSONRPCErrorException } = JsonRpc;
@@ -188,5 +189,9 @@ export const rpc = {
 
     eth_batch_faucet: async function (args, ctx) {
         return batch_faucet(args[0], ctx.ip, ctx.token);
+    },
+
+    eth_getBlockReceipts: async function (args) {
+        return getBlockReceipts(args[0]);
     },
 };

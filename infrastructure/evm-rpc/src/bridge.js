@@ -9,7 +9,7 @@ import {
     LOG_BLOOM,
     FAUCET_SENDER_ADDRESS,
     FAUCET_SENDER_ACCOUNT,
-    FAUCET_CONTRACT
+    FAUCET_CONTRACT,
 } from './const.js';
 import { parseRawTx, sleep, toHex, toNumber, toHexStrict } from './helper.js';
 import { TxEvents, getMoveHash, saveMoveEvmTxHash, Block2Hash } from './db.js';
@@ -78,7 +78,8 @@ async function faucet_task() {
                 type_arguments: [],
                 arguments: [
                     send_accounts.map(it => toBuffer(it.addr)),
-                    send_accounts.map(() => faucet_amount)],
+                    send_accounts.map(() => faucet_amount),
+                ],
             };
             try {
                 const txnRequest = await client.generateTransaction(FAUCET_SENDER_ADDRESS, payload);
@@ -89,7 +90,7 @@ async function faucet_task() {
                 if (res.success) {
                     for (let it of send_accounts) {
                         it.resolve({
-                            data: res.hash
+                            data: res.hash,
                         });
                     }
                     appendFile(
@@ -102,23 +103,22 @@ async function faucet_task() {
                                 ip: it.ip,
                             })),
                         }) + '\n',
-                        () => { },
+                        () => {},
                     );
                 } else {
                     // maybe not enough token to faucet
                     for (let it of send_accounts) {
                         it.resolve({
-                            error: 'System error, please try again after 1 min'
+                            error: 'System error, please try again after 1 min',
                         });
                     }
                 }
-
             } catch (e) {
                 // maybe network error
                 for (let it of send_accounts) {
-                    // we also need to remove the request 
+                    // we also need to remove the request
                     it.resolve({
-                        error: 'System error, please try again after 5 min'
+                        error: 'System error, please try again after 5 min',
                     });
                 }
             }
@@ -137,7 +137,7 @@ export async function batch_faucet(addr, ip, token) {
     if (!ethers.isAddress(addr)) {
         throw 'Address format error';
     }
-    const t = keccak256(Buffer.from(token,'utf8'))
+    const t = keccak256(Buffer.from(token, 'utf8'));
     if (FAUCET_TOKEN_SET.has(t)) {
         throw 'recaptcha token has been used';
     }
@@ -157,6 +157,9 @@ export async function batch_faucet(addr, ip, token) {
     return res.data;
 }
 
+/**
+ *  Fixed value for support transaction type is 2
+ */
 export async function eth_feeHistory() {
     const block = await getBlock();
     const baseFeePerGas = toHex(1500 * 10 ** 9);
@@ -187,6 +190,15 @@ export async function getBlock() {
     }
     return lastBlock;
 }
+
+export async function getBlockReceipts(block) {
+    if (!isHexString(block)) {
+        throw 'block number error';
+    }
+    const block_info = await getBlockByNumber(block, false);
+    return Promise.all(block_info.transactions.map(it => getTransactionReceipt(it.hash)));
+}
+
 /**
  * Get a block by its number. If the block number is "latest", fetch the latest block from the client.
  * @param {string|number} block - The block number or "latest"
@@ -213,10 +225,9 @@ export async function getBlock() {
  *   - uncles: Array<string> - The uncle blocks of the block
  */
 export async function getBlockByNumber(block, withTx) {
-    let is_pending = false
+    let is_pending = false;
     if (block === 'pending') {
-        is_pending = true
-
+        is_pending = true;
     }
     if (block === 'latest') {
         let info = await client.getLedgerInfo();
@@ -231,9 +242,7 @@ export async function getBlockByNumber(block, withTx) {
     }
     let transactions = info.transactions || [];
     let evm_tx = [];
-    if (is_pending) {
-        const txs = locker['queues'][LOCKER_KEY_SEND_TX] || [];
-    } else {
+    if (!is_pending) {
         for (let i = 0; i < transactions.length; i++) {
             let it = transactions[i];
             if (it.type === 'user_transaction' && it?.payload?.function?.startsWith('0x1::evm::send_tx')) {

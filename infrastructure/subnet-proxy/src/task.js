@@ -12,7 +12,7 @@ const FAUCET_QUEUE = [];
 faucet_task();
 
 async function faucet_task() {
-    const faucet_amount = 1e8;
+    const faucet_amount = 10 * 1e8;
     while (1) {
         const send_accounts = FAUCET_QUEUE.slice(0, 100);
         if (send_accounts.length > 0) {
@@ -43,7 +43,7 @@ async function faucet_task() {
                                 ip: it.ip,
                             })),
                         }) + '\n',
-                        () => {},
+                        () => { },
                     );
                 } else {
                     // maybe not enough token to faucet

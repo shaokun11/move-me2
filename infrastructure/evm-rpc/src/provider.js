@@ -22,8 +22,8 @@ export function getRequest(query) {
 }
 
 export async function googleRecaptcha(token) {
-    if(!process.env.RECAPTCHA_SECRET) return true
-    if(!token) return false
+    if (!process.env.RECAPTCHA_SECRET) return true;
+    if (!token) return false;
     return fetch('https://www.google.com/recaptcha/api/siteverify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
