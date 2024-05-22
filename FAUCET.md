@@ -1,7 +1,6 @@
 ### Instructions for the Movement Faucet
 
 > Please replace the `google_recaptcha_token` value in the following example requests with the actual token.  
-> Please obtain the key from the [Google reCAPTCHA website](https://developers.google.com/recaptcha/docs/display).
 
 ### M1
 
