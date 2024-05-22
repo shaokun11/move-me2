@@ -1,6 +1,13 @@
-### Instructions for the Movement Faucet
+# Instructions for the Movement Faucet
 
-> Please replace the `google_recaptcha_token` value in the following example requests with the actual token.  
+
+## Faucet 
+
+ https://faucet2.movementlabs.xyz
+
+## Customized UI
+* Please provide the domain name to Movement for using the following APIs.   
+* Please replace the `google_recaptcha_token` value in the following example requests with the actual token.
 
 ### M1
 
