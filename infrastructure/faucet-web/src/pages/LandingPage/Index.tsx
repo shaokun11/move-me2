@@ -97,9 +97,9 @@ export default function LandingPage() {
       <div style={{ width: "300px" }}>
           <h1 style={{ textAlign: "left" }}>Faucets</h1>
       </div>
-      <Chain name="Aptos" language={language} amount={1} isEvm={false} hasTestnet={false} network={currentNetwork} faucetRequest={m1FaucetRequest} /> 
-      <Chain name="MEVM" language={language} amount={1} isEvm={true} hasTestnet={false} network={currentNetwork}faucetRequest={handleM1evmFaucetRequest} />
-      <Chain name="Sui" language={language} amount={1} isEvm={false} hasTestnet={false} network={currentNetwork} faucetRequest={m2FaucetRequest} />
+      <Chain name="Aptos" eventName="m1_apt_request" language={language} amount={1} isEvm={false} hasTestnet={false} network={currentNetwork} faucetRequest={m1FaucetRequest} /> 
+      <Chain name="MEVM" eventName="m1_evm_request" language={language} amount={1} isEvm={true} hasTestnet={false} network={currentNetwork}faucetRequest={handleM1evmFaucetRequest} />
+      <Chain name="Sui" eventName="m2_sui_request" language={language} amount={1} isEvm={false} hasTestnet={false} network={currentNetwork} faucetRequest={m2FaucetRequest} />
             
       <ToggleButtonGroup
       color="primary"
