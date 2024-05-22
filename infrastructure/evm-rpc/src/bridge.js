@@ -454,6 +454,16 @@ export async function callContract(from, contract, calldata, block) {
  *   - show_gas: number - The amount of gas to show,
  */
 export async function estimateGas(info) {
+    // todo parse evm type
+    // {
+    //     id: 2,
+    //     jsonrpc: '2.0',
+    //     error: {
+    //       code: 3,
+    //       message: 'execution reverted',
+    //       data: '0x8c9053680000000000000000000000000000000000000000000000008ac7230489e800000000000000000000000000000000000000000000000000000000000000000001'
+    //     }
+    //   }
     if (!info.data && info.input) {
         // for cast cast 0.2.0 (23700c9 2024-05-22T00:16:24.627116943Z)
         // the data is in the input field
