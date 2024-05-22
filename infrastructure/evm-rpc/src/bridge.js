@@ -24,7 +24,7 @@ const lockerFaucet = new Lock({
     maxExecutionTime: 10 * 1000,
     maxPending: 30,
 });
-const SEND_TX_ACCOUNT_INDEX = 0;
+let SEND_TX_ACCOUNT_INDEX = 0;
 let lastBlockTime = Date.now();
 let lastBlock = '0x1';
 
@@ -39,7 +39,7 @@ export async function get_move_hash(evm_hash) {
     }
     try {
         return await getMoveHash(evm_hash);
-    } catch (error) {}
+    } catch (error) { }
     throw 'Not found move hash for ' + evm_hash;
 }
 
