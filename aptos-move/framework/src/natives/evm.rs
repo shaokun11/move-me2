@@ -14,6 +14,7 @@ use smallvec::{smallvec, SmallVec};
 use ethers::types::{Transaction};
 use ethers::utils::rlp::{Rlp, Decodable};
 use ethers::types::{U256, U512};
+use hex;
 
 fn native_revert(
     _context: &mut SafeNativeContext,
@@ -23,8 +24,7 @@ fn native_revert(
     debug_assert!(_ty_args.is_empty());
 
     let message_bytes = safely_pop_arg!(args, Vec<u8>);
-    let message_string = String::from_utf8(message_bytes).unwrap();
-    return Err(SafeNativeError::InvariantViolation(PartialVMError::new(StatusCode::EVM_CONTRACT_ERROR).with_message(message_string)));
+    return Err(SafeNativeError::InvariantViolation(PartialVMError::new(StatusCode::EVM_CONTRACT_ERROR).with_message(hex::encode(message_bytes))));
 }
 
 fn native_exp(

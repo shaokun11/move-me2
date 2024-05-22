@@ -1065,12 +1065,7 @@ module aptos_framework::evm {
                 let pos = vector::pop_back(stack);
                 let len = vector::pop_back(stack);
                 let bytes = slice(*memory, pos, len);
-                let message = if(vector::length(&bytes) == 0) x"" else {
-                    let len = to_u256(slice(bytes, 36, 32));
-                    slice(bytes, 68, len)
-                };
-                debug::print(&message);
-                revert(message);
+                revert(bytes);
                 return (false, bytes)
             }
                 //log0
