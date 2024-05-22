@@ -146,7 +146,16 @@ npm start
 # Get move test tokens to your move address
 curl http://127.0.0.1:3001/v1/mint?address=0xf8be0c08312090f3f9f17ec76d1575d94c032c78c235c3eee562cc5c7b332fcd
 # Get move-evm test token to your eth address, please ensure the FAUCET_SENDER account has move tokens
-curl http://127.0.0.1:3044/v1/eth_faucet?address=0x8661398C5fC7C55237E18134f53C4314fE563b28
+curl --location 'http://127.0.0.1:3044' \
+--header 'Content-Type: application/json' \
+--data '{
+    "id": "1",
+    "jsonrpc": "2.0",
+    "method": "eth_faucet",
+    "params": [
+        "0xfcA2FBA9427f9100c14c6c2f175BC9eC744a77cf"
+    ]
+}'
 ```
 
 11.  Deploy the browser:
