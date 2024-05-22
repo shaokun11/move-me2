@@ -14,7 +14,7 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import { Network } from "../utils";
 import ReCAPTCHA from "react-google-recaptcha";
 
-export default function Chains({ name, language, amount, isEvm, hasTestnet, network, faucetRequest }: any) {
+export default function Chains({ name,eventName, language, amount, isEvm, hasTestnet, network, faucetRequest }: any) {
 
     const [success, setSuccess] = useState(false);
     const [address, setAddress] = useState("");
@@ -52,16 +52,34 @@ export default function Chains({ name, language, amount, isEvm, hasTestnet, netw
 
 
     const handleRequest = async () => {
+
+
         setLoading(true);
         recaptchaRef.current?.reset();
-        setToken(null);
-       
+        
+        let status = false;
         const res = await faucetRequest(address,token);
+        
         if (res && res.success) {
             setSuccess(true);
+            status = true;
         } else{
             setErrorMessage(res.error || "Failed to fund account.");
         }
+
+        (window as any).dataLayer.push({'event':eventName,'request_success':status});
+
+        // (window as any).gtag('event', 'getmove', {
+        //     'gtagIP': (window as any).gtagIP,
+        //     'href': location.href,
+        //     'time': Date.now(),
+        //     'address': address,
+        //     'status': status,
+        //     'token': token,
+        //     'type': name,
+        //     'error': res.error||"none",
+        //   });
+        setToken(null);
         setLoading(false);
     };
 
