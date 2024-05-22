@@ -91,6 +91,9 @@ export const rpc = {
         let { to, data: data_, from } = args[0];
         if (args[0].gasPrice) return {};
         try {
+            // for cast cast 0.2.0 (23700c9 2024-05-22T00:16:24.627116943Z)
+            // the data is in the input field
+            if (!data_) data_ = args[0].input;
             return await callContract(from, to, data_, args[1]);
         } catch (error) {
             throw new JSONRPCErrorException('execution reverted', -32000);

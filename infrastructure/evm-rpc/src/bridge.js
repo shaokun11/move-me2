@@ -454,6 +454,11 @@ export async function callContract(from, contract, calldata, block) {
  *   - show_gas: number - The amount of gas to show,
  */
 export async function estimateGas(info) {
+    if (!info.data && info.input) {
+        // for cast cast 0.2.0 (23700c9 2024-05-22T00:16:24.627116943Z)
+        // the data is in the input field
+        info.data = info.input;
+    }
     if (!info.data) info.data = '0x';
     const payload = {
         function: `${EVM_CONTRACT}::evm::estimate_tx_gas`,
