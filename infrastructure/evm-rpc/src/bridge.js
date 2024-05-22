@@ -103,7 +103,7 @@ async function faucet_task() {
                                 ip: it.ip,
                             })),
                         }) + '\n',
-                        () => {},
+                        () => { },
                     );
                 } else {
                     // maybe not enough token to faucet
@@ -489,6 +489,9 @@ export async function estimateGas(info) {
             res[0].show_gas = error_gas;
             res[0].gas_used = error_gas;
             res[0].error = res[0].vm_status;
+            if (res[0].error.includes("0x2713")) {
+                res[0].error = "insufficient funds"
+            }
         }
     } catch (error) {
         res = [
