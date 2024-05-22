@@ -19,9 +19,9 @@ const NETWORK_URLS = {
   },
   devnet: {
     M1_URL: 'https://aptos.devnet.m1.movementlabs.xyz',
-    M1_FAUCET_URL: 'https://aptos.devnet.m1.movementlabs.xyz',
-    MEVM_M1_URL: 'https://mevm.devnet.m1.movementlabs.xyz',
-    M2_URL: 'https://sui.devnet.m2.movementlabs.xyz/faucet/web',
+    M1_FAUCET_URL: process.env.APTOS_DEVNET_M1_FAUCET_URL||'https://aptos.devnet.m1.movementlabs.xyz/batch_mint',
+    MEVM_M1_URL: process.env.APTOS_DEVNET_MEVM_M1_URL||'https://mevm.devnet.m1.movementlabs.xyz',
+    M2_URL: process.env.APTOS_DEVNET_M2_FAUCET_URL||'https://sui.devnet.m2.movementlabs.xyz/faucet/web',
   },
 };
 
@@ -44,7 +44,7 @@ export default function LandingPage() {
   // URLs based on the current network
   const { M1_URL, M1_FAUCET_URL, MEVM_M1_URL, M2_URL } = NETWORK_URLS[currentNetwork] || NETWORK_URLS.devnet;
 
-  const faucetClient = new FaucetClient(M1_URL, M1_FAUCET_URL);
+  // const faucetClient = new FaucetClient(M1_URL, M1_FAUCET_URL);
   const aptosClient = new AptosClient(M1_URL);
   const coinClient = new CoinClient(aptosClient);
 
