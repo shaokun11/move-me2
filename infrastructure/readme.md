@@ -5,7 +5,7 @@
 > The default faucet amount has been changed to 1
 
 ```bash
-curl --location http://127.0.0.1:3001/funds?address=0x6a3fe01b215038663e4bdeaeb41e18047695c4f5e2affd74f343447a4a94d3ab
+curl --location http://127.0.0.1:3001/fund?address=0x6a3fe01b215038663e4bdeaeb41e18047695c4f5e2affd74f343447a4a94d3ab
 ```
 
 ### Aptos CLI
