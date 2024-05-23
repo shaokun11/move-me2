@@ -19,6 +19,7 @@ import {
     eth_feeHistory,
     batch_faucet,
     getBlockReceipts,
+    getMoveAddress,
 } from './bridge.js';
 import JsonRpc from 'json-rpc-2.0';
 import { getMoveHash } from './db.js';
@@ -198,8 +199,11 @@ export const rpc = {
     eth_getBlockReceipts: async function (args) {
         return getBlockReceipts(args[0]);
     },
-    
+
     debug_getMoveHash: async function (args) {
         return getMoveHash(args[0]);
+    },
+    debug_getMoveAddress: async function (args) {
+        return getMoveAddress(args[0]);
     },
 };

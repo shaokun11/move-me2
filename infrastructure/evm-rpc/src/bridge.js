@@ -621,6 +621,27 @@ export async function getBalance(sender, block) {
 
 const CACHE_ETH_ADDRESS_TO_MOVE = {};
 
+
+export async function getMoveAddress(acc) {
+    acc = acc.toLowerCase();
+    let moveAddress = CACHE_ETH_ADDRESS_TO_MOVE[acc];
+    try {
+        if (!moveAddress) {
+            let payload = {
+                function: `${EVM_CONTRACT}::evm::get_move_address`,
+                type_arguments: [],
+                arguments: [acc],
+            };
+            let result = await client.view(payload);
+            moveAddress = result[0];
+            CACHE_ETH_ADDRESS_TO_MOVE[acc] = moveAddress;
+        }
+    } catch (error) {
+        // maybe error so the account not found in move
+    }
+    return moveAddress || "0x0";
+}
+
 /**
  * Retrieves account information for a given Ethereum address.
  * @param {string} acc - The Ethereum address.
@@ -632,20 +653,10 @@ async function getAccountInfo(acc, block) {
         balance: '0x0',
         nonce: 0,
         code: '0x',
+        moveAddress: "0x0"
     };
     acc = acc.toLowerCase();
     try {
-        let moveAddress = CACHE_ETH_ADDRESS_TO_MOVE[acc];
-        if (!moveAddress) {
-            let payload = {
-                function: `${EVM_CONTRACT}::evm::get_move_address`,
-                type_arguments: [],
-                arguments: [acc],
-            };
-            let result = await client.view(payload);
-            moveAddress = result[0];
-            CACHE_ETH_ADDRESS_TO_MOVE[acc] = moveAddress;
-        }
         if (isHexString(block)) {
             let info = await client.getBlockByHeight(toNumber(block), false);
             block = info.last_version;
@@ -655,6 +666,7 @@ async function getAccountInfo(acc, block) {
         const resource = await client.getAccountResource(moveAddress, `${EVM_CONTRACT}::evm::Account`, {
             ledgerVersion: block,
         });
+        ret.moveAddress = await getMoveAddress(acc);
         ret.balance = resource.data.balance;
         ret.nonce = +resource.data.nonce;
         ret.code = resource.data.code;
