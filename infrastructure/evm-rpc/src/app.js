@@ -34,6 +34,7 @@ app.use('/', async function (req, res, next) {
             req.headers['x-real-ip'] ||
             req.header('x-forwarded-for') ||
             req.ip,
+        token: req.headers['token'] || null, // for faucet google recaptcha token
     };
     // console.log('>>> %s %s', context.ip, req.body.method);
     // let str_req = `<<< ${JSON.stringify(req.body)}`;
@@ -54,5 +55,6 @@ app.use('/', async function (req, res, next) {
 app.set('trust proxy', true);
 app.listen(SERVER_PORT, () => {
     import('./task_bot.js');
+    import('./task_faucet.js');
     console.log('server start at http://127.0.0.1:' + SERVER_PORT);
 });

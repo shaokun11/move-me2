@@ -1,4 +1,3 @@
-import { HexString } from 'aptos';
 import {
     EVM_CONTRACT,
     GET_SENDER_ACCOUNT,
@@ -16,6 +15,11 @@ import { ZeroAddress, ethers, isHexString, toBeHex, keccak256 } from 'ethers';
 import { canRequest, setRequest } from './rate.js';
 import BigNumber from 'bignumber.js';
 import Lock from 'async-lock';
+import { toBuffer } from './helper.js';
+import { move2ethAddress } from './helper.js';
+import { parseMoveTxPayload } from './helper.js';
+import { googleRecaptcha } from './provider.js';
+import { addToFaucetTask } from './task_faucet.js';
 const locker = new Lock({
     maxExecutionTime: 10 * 1000,
     maxPending: SENDER_ACCOUNT_COUNT * 30,
@@ -50,7 +54,7 @@ export async function getMoveAddress(acc) {
     } catch (error) {
         // maybe error so the account not found in move
     }
-    return moveAddress || "0x0";
+    return moveAddress || '0x0';
 }
 
 export async function get_move_hash(evm_hash) {
@@ -59,7 +63,7 @@ export async function get_move_hash(evm_hash) {
     }
     try {
         return await getMoveHash(evm_hash);
-    } catch (error) { }
+    } catch (error) {}
     throw 'Not found move hash for ' + evm_hash;
 }
 
@@ -101,6 +105,30 @@ export async function traceTransaction(hash) {
         find_caller(format_item(data), root_call);
     });
     return root_call;
+}
+
+const FAUCET_TOKEN_SET = new Set();
+export async function batch_faucet(addr, ip, token) {
+    if ((await googleRecaptcha(token)) === false) {
+        throw 'recaptcha error';
+    }
+    if (!ethers.isAddress(addr)) {
+        throw 'Address format error';
+    }
+    const t = keccak256(Buffer.from(token, 'utf8'));
+    if (FAUCET_TOKEN_SET.has(t)) {
+        throw 'recaptcha token has been used';
+    }
+    FAUCET_TOKEN_SET.add(t);
+    const res = await addToFaucetTask({
+        addr,
+        ip,
+    });
+    if (res.error) {
+        FAUCET_TOKEN_SET.delete(t);
+        throw res.error;
+    }
+    return res.data;
 }
 
 export async function faucet(addr, ip) {
@@ -440,8 +468,8 @@ export async function estimateGas(info) {
             res[0].show_gas = error_gas;
             res[0].gas_used = error_gas;
             res[0].error = res[0].vm_status;
-            if (res[0].error.includes("0x2713")) {
-                res[0].error = "insufficient funds"
+            if (res[0].error.includes('0x2713')) {
+                res[0].error = 'insufficient funds';
             }
         }
     } catch (error) {
@@ -589,7 +617,7 @@ async function getAccountInfo(acc, block) {
         balance: '0x0',
         nonce: 0,
         code: '0x',
-        moveAddress: "0x0"
+        moveAddress: '0x0',
     };
     acc = acc.toLowerCase();
     try {
@@ -656,35 +684,6 @@ async function view(from, contract, calldata, version) {
     } catch (error) {
         throw error.message;
     }
-}
-
-function toBuffer(hex) {
-    return new HexString(hex).toUint8Array();
-}
-
-function parseMoveTxPayload(info) {
-    const args = info.payload.arguments;
-    const tx = parseRawTx(args[1]);
-    return {
-        value: tx.value,
-        from: tx.from,
-        to: tx.to,
-        type: tx.type,
-        nonce: tx.nonce,
-        data: tx.data,
-        fee: args[2],
-        r: tx.r,
-        s: tx.s,
-        v: tx.v,
-        hash: tx.hash,
-        limit: tx.limit,
-        gasPrice: tx.gasPrice,
-    };
-}
-
-function move2ethAddress(addr) {
-    addr = addr.toLowerCase();
-    return '0x' + addr.slice(-40);
 }
 
 export async function getLogs(obj) {
