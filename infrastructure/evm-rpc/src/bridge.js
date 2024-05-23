@@ -147,6 +147,7 @@ export async function faucet(addr, ip) {
         const transactionRes = await client.submitTransaction(signedTxn);
         await client.waitForTransaction(transactionRes.hash);
         const res = await client.getTransactionByHash(transactionRes.hash);
+        await sleep(5);
         if (res.success) {
             done(null, transactionRes.hash);
             // console.log('faucet success %s %s %s', transactionRes.hash, ip, addr);
