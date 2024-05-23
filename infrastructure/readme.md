@@ -1,17 +1,24 @@
+### Proxy movement faucet token
 
-### Move Evm Infrastructure
+### Petra wallet
+>
+> The default faucet amount has been changed to 1
+
 ```bash
-├── evm-indexer
-├── evm-rpc 
-├── explorer 
-├── move-faucet-server
-├── faucet-web
+curl --location http://127.0.0.1:3001/funds?address=0x6a3fe01b215038663e4bdeaeb41e18047695c4f5e2affd74f343447a4a94d3ab
 ```
-The Move Evm infrastructure consists of the following components:
 
-- **evm-indexer**: Used to synchronize Move data to the indexer, in coordination to implement EVM functionality.
-- **evm-rpc**: A service that offers RPC capabilities for the Move Subnet. It can be used by projects in the EVM ecosystem, such as Metamask, ethers, and others.
-- **explorer**: An explorer specifically designed for the Move Chain, allowing users to explore and navigate through its functionalities.
-- **move-faucet-server**: Server implementation of the Move faucet.
-- **faucet-web**: Web page for the Move faucet.
+### Aptos CLI
+>
+> The default faucet amount has been changed to 1
 
+```bash
+curl -X POST --location http://127.0.0.1:3001/mint?address=0x6a3fe01b215038663e4bdeaeb41e18047695c4f5e2affd74f343447a4a94d3ab
+```
+
+### Faucet with Google Captcha
+
+```bash
+curl --location 'http://127.0.0.1:3001/batch_mint?address=0x6a3fe01b215038663e4bdeaeb41e18047695c4f5e2affd74f343447a4a94d3ab' \
+--header 'token: google_token'
+```

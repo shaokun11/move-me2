@@ -1,12 +1,10 @@
 import { appendFile } from 'node:fs';
-import { FAUCET_AMOUNT, FAUCET_CONTRACT, FAUCET_SENDER_ACCOUNT, client } from './const.js';
-import { toBuffer, toHexStrict } from './helper.js';
-
+import { FAUCET_AMOUNT, FAUCET_SENDER_ACCOUNT, NODE_URL } from './const.js';
+import { toHexStrict } from './helper.js';
+import { AptosClient } from 'aptos';
 const FAUCET_QUEUE = [];
+const client = new AptosClient(NODE_URL)
 
-/**
- * Start the faucet task
- */
 export async function startFaucetTask() {
     const faucet_amount = toBuffer(toHexStrict((FAUCET_AMOUNT * 1e18).toString()));
     while (1) {
@@ -30,9 +28,9 @@ async function run(faucet_amount, batch = 100) {
     const send_accounts = FAUCET_QUEUE.slice(0, batch);
     if (send_accounts.length > 0) {
         const payload = {
-            function: `${FAUCET_CONTRACT}::batch_transfer::batch_transfer_evm`,
+            function: `0x1::aptos_account::batch_transfer`,
             type_arguments: [],
-            arguments: [send_accounts.map(it => toBuffer(it.addr)), send_accounts.map(() => faucet_amount)],
+            arguments: [send_accounts.map(it => it.addr), send_accounts.map(() => faucet_amount)],
         };
         const ret_msg = {};
         try {
@@ -53,7 +51,7 @@ async function run(faucet_amount, batch = 100) {
                             ip: it.ip,
                         })),
                     }) + '\n',
-                    () => {},
+                    () => { },
                 );
             } else {
                 // maybe not enough token to faucet
