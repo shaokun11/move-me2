@@ -394,6 +394,21 @@ export async function callContract(from, contract, calldata, block) {
  *   - show_gas: number - The amount of gas to show,
  */
 export async function estimateGas(info) {
+    // TODO parse evm type
+    // {
+    //     id: 2,
+    //     jsonrpc: '2.0',
+    //     error: {
+    //       code: 3,
+    //       message: 'execution reverted',
+    //       data: '0x8c9053680000000000000000000000000000000000000000000000008ac7230489e800000000000000000000000000000000000000000000000000000000000000000001'
+    //     }
+    //   }
+    if (!info.data && info.input) {
+        // for cast cast 0.2.0 (23700c9 2024-05-22T00:16:24.627116943Z)
+        // the data is in the input field
+        info.data = info.input;
+    }
     if (!info.data) info.data = '0x';
     const payload = {
         function: `${EVM_CONTRACT}::evm::estimate_tx_gas`,
@@ -425,6 +440,9 @@ export async function estimateGas(info) {
             res[0].show_gas = error_gas;
             res[0].gas_used = error_gas;
             res[0].error = res[0].vm_status;
+            if (res[0].error.includes("0x2713")) {
+                res[0].error = "insufficient funds"
+            }
         }
     } catch (error) {
         res = [
