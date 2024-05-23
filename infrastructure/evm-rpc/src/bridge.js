@@ -657,6 +657,7 @@ async function getAccountInfo(acc, block) {
     };
     acc = acc.toLowerCase();
     try {
+        const moveAddress = await getMoveAddress(acc)
         if (isHexString(block)) {
             let info = await client.getBlockByHeight(toNumber(block), false);
             block = info.last_version;
@@ -666,7 +667,7 @@ async function getAccountInfo(acc, block) {
         const resource = await client.getAccountResource(moveAddress, `${EVM_CONTRACT}::evm::Account`, {
             ledgerVersion: block,
         });
-        ret.moveAddress = await getMoveAddress(acc);
+        ret.moveAddress = moveAddress;
         ret.balance = resource.data.balance;
         ret.nonce = +resource.data.nonce;
         ret.code = resource.data.code;
