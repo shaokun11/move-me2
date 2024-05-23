@@ -4,7 +4,6 @@ import cors from 'cors';
 import JsonRpc from 'json-rpc-2.0';
 import { rpc } from './rpc.js';
 import { SERVER_PORT } from './const.js';
-import { getMoveHash } from './db.js';
 const { JSONRPCServer, createJSONRPCErrorResponse } = JsonRpc;
 const app = express();
 app.use(cors());
@@ -27,13 +26,6 @@ server.applyMiddleware(async function (next, request, serverParams) {
     }
 });
 
-app.get('/v1/move_hash', async function (req, res, next) {
-    const hash = req.query?.hash?.toLowerCase() ?? '0x1';
-    const move_hash = await getMoveHash(hash);
-    res.status(200).json({
-        data: move_hash,
-    });
-});
 
 app.use('/', async function (req, res, next) {
     const context = {

@@ -21,6 +21,7 @@ import {
     getBlockReceipts,
 } from './bridge.js';
 import JsonRpc from 'json-rpc-2.0';
+import { getMoveHash } from './db.js';
 const { JSONRPCErrorException } = JsonRpc;
 export const rpc = {
     eth_feeHistory: async function (args) {
@@ -196,5 +197,9 @@ export const rpc = {
 
     eth_getBlockReceipts: async function (args) {
         return getBlockReceipts(args[0]);
+    },
+    
+    debug_getMoveHash: async function (args) {
+        return getMoveHash(args[0]);
     },
 };
