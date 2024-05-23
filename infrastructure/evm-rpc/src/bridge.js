@@ -21,7 +21,7 @@ import { parseMoveTxPayload } from './helper.js';
 import { googleRecaptcha } from './provider.js';
 import { addToFaucetTask } from './task_faucet.js';
 const locker = new Lock({
-    maxExecutionTime: 10 * 1000,
+    maxExecutionTime: 15 * 1000,
     maxPending: SENDER_ACCOUNT_COUNT * 30,
 });
 const lockerFaucet = new Lock({
@@ -655,24 +655,13 @@ async function getAccountInfo(acc, block) {
     return ret;
 }
 
-const SEND_TX_NONCE = {}
-async function getNonceBySender(sender) {
-    if (sender in SEND_TX_NONCE) {
-        SEND_TX_NONCE[sender]++
-    } else {
-        let account = await client.getAccount(sender)
-        SEND_TX_NONCE[sender] = account.sequence_number + 1
-    }
-    return SEND_TX_NONCE[sender]
-}
-
 async function sendTx(sender, payload, wait = false, option = {}) {
     try {
-        const nonce = await getNonceBySender(sender.address())
+        const account = await client.getAccount(sender.address())
         const txnRequest = await client.generateTransaction(sender.address(), payload, {
             ...option,
             max_gas_amount: 1 * 1e6,
-            sequence_number: nonce,
+            sequence_number: account.sequence_number,
             expiration_timestamp_secs: Math.trunc(Date.now() / 1000) + 10,
         });
         const signedTxn = await client.signTransaction(sender, txnRequest);
