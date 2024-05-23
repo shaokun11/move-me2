@@ -33,6 +33,26 @@ const CACHE_MOVE_HASH_TO_BLOCK_HEIGHT = {};
 
 await getBlock();
 
+export async function getMoveAddress(acc) {
+    acc = acc.toLowerCase();
+    let moveAddress = CACHE_ETH_ADDRESS_TO_MOVE[acc];
+    try {
+        if (!moveAddress) {
+            let payload = {
+                function: `${EVM_CONTRACT}::evm::get_move_address`,
+                type_arguments: [],
+                arguments: [acc],
+            };
+            let result = await client.view(payload);
+            moveAddress = result[0];
+            CACHE_ETH_ADDRESS_TO_MOVE[acc] = moveAddress;
+        }
+    } catch (error) {
+        // maybe error so the account not found in move
+    }
+    return moveAddress || "0x0";
+}
+
 export async function get_move_hash(evm_hash) {
     if (evm_hash?.length !== 66) {
         throw 'query evm hash format error';
@@ -551,20 +571,11 @@ async function getAccountInfo(acc, block) {
         balance: '0x0',
         nonce: 0,
         code: '0x',
+        moveAddress: "0x0"
     };
     acc = acc.toLowerCase();
     try {
-        let moveAddress = CACHE_ETH_ADDRESS_TO_MOVE[acc];
-        if (!moveAddress) {
-            let payload = {
-                function: `${EVM_CONTRACT}::evm::get_move_address`,
-                type_arguments: [],
-                arguments: [acc],
-            };
-            let result = await client.view(payload);
-            moveAddress = result[0];
-            CACHE_ETH_ADDRESS_TO_MOVE[acc] = moveAddress;
-        }
+        let moveAddress = await getMoveAddress(acc);
         if (isHexString(block)) {
             let info = await client.getBlockByHeight(toNumber(block), false);
             block = info.last_version;
@@ -574,6 +585,7 @@ async function getAccountInfo(acc, block) {
         const resource = await client.getAccountResource(moveAddress, `${EVM_CONTRACT}::evm::Account`, {
             ledgerVersion: block,
         });
+        ret.moveAddress = moveAddress;
         ret.balance = resource.data.balance;
         ret.nonce = +resource.data.nonce;
         ret.code = resource.data.code;

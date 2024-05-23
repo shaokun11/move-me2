@@ -19,6 +19,7 @@ import {
     eth_feeHistory,
     get_move_hash,
     traceTransaction,
+    getMoveAddress,
 } from './bridge.js';
 import JsonRpc from 'json-rpc-2.0';
 const { JSONRPCErrorException } = JsonRpc;
@@ -32,6 +33,9 @@ export const rpc = {
     },
     debug_getMoveHash: async function (args) {
         return get_move_hash(args[0]);
+    },
+    debug_getMoveAddress: async function (args) {
+        return getMoveAddress(args[0]);
     },
     eth_feeHistory: async function (args) {
         return eth_feeHistory();

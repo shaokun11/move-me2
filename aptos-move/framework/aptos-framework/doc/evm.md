@@ -1991,12 +1991,7 @@ adderess and amount size not match
             <b>let</b> pos = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
             <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
             <b>let</b> bytes = slice(*memory, pos, len);
-            <b>let</b> message = <b>if</b>(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&bytes) == 0) x"" <b>else</b> {
-                <b>let</b> len = to_u256(slice(bytes, 36, 32));
-                slice(bytes, 68, len)
-            };
-            <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&message);
-            <a href="evm.md#0x1_evm_revert">revert</a>(message);
+            <a href="evm.md#0x1_evm_revert">revert</a>(bytes);
             <b>return</b> (<b>false</b>, bytes)
         }
             //log0
