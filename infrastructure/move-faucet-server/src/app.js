@@ -64,7 +64,7 @@ app.post('/mint', async function (req, res) {
 
 
 const GOOGLE_TOKEN_SET = new Set();
-router.get('/batch_mint', async function (req, res) {
+app.get('/batch_mint', async function (req, res) {
     res.status(200);
     const ip = req.headers['cf-connecting-ip'] || req.headers['x-real-ip'] || req.ip;
     const address = req.query.address;

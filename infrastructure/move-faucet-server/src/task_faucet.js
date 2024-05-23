@@ -9,7 +9,7 @@ export async function startFaucetTask() {
     const faucet_amount = BigNumber(FAUCET_AMOUNT * 1e8).toNumber()
     while (1) {
         await run(faucet_amount, 100);
-        await sleep(0.5);
+        await new Promise(resolve => setTimeout(resolve, 500));
     }
 }
 /**
