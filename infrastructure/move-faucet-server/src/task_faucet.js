@@ -1,12 +1,12 @@
 import { appendFile } from 'node:fs';
 import { FAUCET_AMOUNT, FAUCET_SENDER_ACCOUNT, NODE_URL } from './const.js';
-import { toHexStrict } from './helper.js';
 import { AptosClient } from 'aptos';
+import { BigNumber } from "bignumber.js"
 const FAUCET_QUEUE = [];
 const client = new AptosClient(NODE_URL)
-
+BigNumber.set({ EXPONENTIAL_AT: 100 });
 export async function startFaucetTask() {
-    const faucet_amount = toBuffer(toHexStrict((FAUCET_AMOUNT * 1e18).toString()));
+    const faucet_amount = BigNumber(FAUCET_AMOUNT * 1e8).toNumber()
     while (1) {
         await run(faucet_amount, 100);
         await sleep(0.5);

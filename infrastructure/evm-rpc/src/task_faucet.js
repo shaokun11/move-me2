@@ -1,6 +1,6 @@
 import { appendFile } from 'node:fs';
 import { FAUCET_AMOUNT, FAUCET_CONTRACT, FAUCET_SENDER_ACCOUNT, client } from './const.js';
-import { toBuffer, toHexStrict } from './helper.js';
+import { sleep, toBuffer, toHexStrict } from './helper.js';
 
 const FAUCET_QUEUE = [];
 
