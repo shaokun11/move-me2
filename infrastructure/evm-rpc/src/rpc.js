@@ -210,4 +210,7 @@ export const rpc = {
     eth_batch_faucet: async function (args, ctx) {
         return batch_faucet(args[0], ctx.ip, ctx.token);
     },
+    eth_accounts: async function (args) {
+        return [];
+    },
 };
