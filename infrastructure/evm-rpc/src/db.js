@@ -40,9 +40,8 @@ export async function getBlockHeightByHash(block_hash) {
             throw new Error('No block found by ' + block_hash);
         }
         return res.data.block_metadata_transactions[0].block_height;
-    }
+    };
     return await retry({ times: 3, delay: 1000 }, run);
-
 }
 
 export async function getEvmLogs(obj) {

@@ -21,6 +21,7 @@ import {
     traceTransaction,
     getMoveAddress,
     batch_faucet,
+    getBlockReceipts,
 } from './bridge.js';
 import JsonRpc from 'json-rpc-2.0';
 const { JSONRPCErrorException } = JsonRpc;
@@ -200,12 +201,13 @@ export const rpc = {
     eth_getStorageAt: async function (args) {
         return getStorageAt(args[0], args[1]);
     },
-
+    eth_getBlockReceipts: async function (args) {
+        return getBlockReceipts(args[0]);
+    },
     eth_faucet: async function (args, ctx) {
         return faucet(args[0], ctx.ip);
     },
     eth_batch_faucet: async function (args, ctx) {
         return batch_faucet(args[0], ctx.ip, ctx.token);
     },
-
 };

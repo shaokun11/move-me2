@@ -63,6 +63,36 @@ curl --location 'http://127.0.0.1:8999' \
 }'
 ```
 
+- `debug_getMoveAddress`:Return the move evm address map to move chain address, this could use for query details at move explorer
+
+```bash
+curl --location 'http://127.0.0.1:8999' \
+--header 'Content-Type: application/json' \
+--data '{
+    "id": "1",
+    "jsonrpc": "2.0",
+    "method": "debug_getMoveAddress",
+    "params": [
+        "0xB8f7166496996A7da21cF1f1b04d9B3E26a3d077"
+    ]
+}'
+```
+
+- `eth_batch_faucet`: use google recaptcha to protect to faucet token,to use this function, you should deploy [the contract](../../aptos_contract/example/) firstly.
+
+```bash
+curl --location 'http://127.0.0.1:8999' \
+--header 'Content-Type: application/json' \
+--data '{
+    "id": "1",
+    "jsonrpc": "2.0",
+    "method": "eth_batch_faucet",
+    "params": [
+        "0xB8f7166496996A7da21cF1f1b04d9B3E26a3d077"
+    ]
+}'
+```
+
 ### Start Your EVM RPC
 
 > If you don't want to start the EVM RPC yourself, you can found the link at `https://github.com/movemntdev/movement-v2`

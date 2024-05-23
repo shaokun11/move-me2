@@ -61,10 +61,7 @@ export async function get_move_hash(evm_hash) {
     if (evm_hash?.length !== 66) {
         throw 'query evm hash format error';
     }
-    try {
-        return await getMoveHash(evm_hash);
-    } catch (error) {}
-    throw 'Not found move hash for ' + evm_hash;
+    return getMoveHash(evm_hash);
 }
 
 export async function traceTransaction(hash) {
@@ -190,6 +187,14 @@ export async function getBlock() {
     }
     return lastBlock;
 }
+export async function getBlockReceipts(block) {
+    if (!isHexString(block)) {
+        throw 'block number error';
+    }
+    const block_info = await getBlockByNumber(block, false);
+    return Promise.all(block_info.transactions.map(it => getTransactionReceipt(it.hash)));
+}
+
 /**
  * Get a block by its number. If the block number is "latest", fetch the latest block from the client.
  * @param {string|number} block - The block number or "latest"
@@ -216,6 +221,10 @@ export async function getBlock() {
  *   - uncles: Array<string> - The uncle blocks of the block
  */
 export async function getBlockByNumber(block, withTx) {
+    let is_pending = false;
+    if (block === 'pending') {
+        is_pending = true;
+    }
     if (block === 'latest') {
         let info = await client.getLedgerInfo();
         block = info.block_height;
@@ -229,11 +238,13 @@ export async function getBlockByNumber(block, withTx) {
     }
     let transactions = info.transactions || [];
     let evm_tx = [];
-    for (let i = 0; i < transactions.length; i++) {
-        let it = transactions[i];
-        if (it.type === 'user_transaction' && it?.payload?.function?.startsWith('0x1::evm::send_tx')) {
-            const { hash: evm_hash } = parseMoveTxPayload(it);
-            evm_tx.push(evm_hash);
+    if (!is_pending) {
+        for (let i = 0; i < transactions.length; i++) {
+            let it = transactions[i];
+            if (it.type === 'user_transaction' && it?.payload?.function?.startsWith('0x1::evm::send_tx')) {
+                const { hash: evm_hash } = parseMoveTxPayload(it);
+                evm_tx.push(evm_hash);
+            }
         }
     }
     const genHash = c => {
@@ -530,11 +541,12 @@ async function getTransactionIndex(block, hash) {
 export async function getTransactionByHash(evm_hash) {
     const move_hash = await getMoveHash(evm_hash);
     const info = await client.getTransactionByHash(move_hash);
-    const block_raw = await client.getBlockByVersion(info.version);
+    const block = await client.getBlockByVersion(info.version);
     const { to, from, data, nonce, value, v, r, s, hash, type } = parseMoveTxPayload(info);
+    const transactionIndex = toHex(await getTransactionIndex(block.block_height, evm_hash));
     const ret = {
-        blockHash: block_raw.block_hash,
-        blockNumber: toHex(block_raw.block_height),
+        blockHash: block.block_hash,
+        blockNumber: toHex(block.block_height),
         from: from,
         gas: toHex(info.gas_used),
         gasPrice: toHex(+info.gas_unit_price * 1e10),
@@ -544,7 +556,7 @@ export async function getTransactionByHash(evm_hash) {
         nonce: toHex(nonce),
         to: to,
         accessList: [],
-        transactionIndex: toHex(await getTransactionIndex(block_raw.block_height, evm_hash)),
+        transactionIndex,
         value: toHex(value),
         v: toHex(v),
         r: r,
