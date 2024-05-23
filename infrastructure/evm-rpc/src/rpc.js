@@ -199,7 +199,9 @@ export const rpc = {
     eth_getBlockReceipts: async function (args) {
         return getBlockReceipts(args[0]);
     },
-
+    eth_accounts: async function () {
+        return [];
+    },
     debug_getMoveHash: async function (args) {
         return getMoveHash(args[0]);
     },
