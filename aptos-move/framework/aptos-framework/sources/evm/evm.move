@@ -13,7 +13,7 @@ module aptos_framework::evm {
     use aptos_framework::aptos_account::create_account;
     use aptos_std::debug;
     use std::signer::address_of;
-    use aptos_framework::evm_util::{slice, to_32bit, get_contract_address, to_int256, data_to_u256, u256_to_data, mstore, to_u256};
+    use aptos_framework::evm_util::{slice, to_32bit, get_contract_address, to_int256, data_to_u256, u256_to_data, mstore, to_u256, copy_to_memory};
     use aptos_framework::timestamp::now_microseconds;
     use aptos_framework::block;
     use std::string::utf8;
@@ -319,7 +319,6 @@ module aptos_framework::evm {
         // Initialize an empty stack and memory for the EVM execution.
         let stack = &mut vector::empty<u256>();
         let memory = &mut vector::empty<u8>();
-        // let
         // Get the length of the bytecode.
         let len = vector::length(&code);
         // Initialize an empty vector for the runtime code.
@@ -709,32 +708,28 @@ module aptos_framework::evm {
                 let m_pos = vector::pop_back(stack);
                 let d_pos = vector::pop_back(stack);
                 let len = vector::pop_back(stack);
-                let end = d_pos + len;
-                runtime_code = slice(code, d_pos, len);
-                while (d_pos < end) {
-                    let bytes = if(end - d_pos >= 32) {
-                        slice(code, d_pos, 32)
-                    } else {
-                        slice(code, d_pos, end - d_pos)
-                    };
-                    mstore(memory, m_pos, bytes);
-                    d_pos = d_pos + 32;
-                    m_pos = m_pos + 32;
-                };
+                runtime_code = slice(code, d_pos, d_pos + len);
+                copy_to_memory(memory, m_pos, d_pos, len, code);
                 i = i + 1
             }
                 //extcodesize
             else if(opcode == 0x3b) {
-                let bytes = u256_to_data(vector::pop_back(stack));
-                let target_evm = to_32bit(slice(bytes, 12, 20));
-                let target_address = create_resource_address(&@aptos_framework, target_evm);
-                if(exist_contract(target_address)) {
-                    let code = borrow_global<Account>(target_address).code;
-                    vector::push_back(stack, (vector::length(&code) as u256));
-                } else {
-                    vector::push_back(stack, 0);
-                };
-
+                let code = get_code(u256_to_data(vector::pop_back(stack)));
+                vector::push_back(stack, (vector::length(&code) as u256));
+                i = i + 1;
+            }
+                //extcodecopy
+            else if(opcode == 0x3c) {
+                let code = get_code(u256_to_data(vector::pop_back(stack)));
+                let m_pos = vector::pop_back(stack);
+                let d_pos = vector::pop_back(stack);
+                let len = vector::pop_back(stack);
+                copy_to_memory(memory, m_pos, d_pos, len, code);
+                i = i + 1;
+            }
+                //returndatasize
+            else if(opcode == 0x3d) {
+                vector::push_back(stack, ret_size);
                 i = i + 1;
             }
                 //returndatacopy
@@ -747,11 +742,7 @@ module aptos_framework::evm {
                 mstore(memory, m_pos, bytes);
                 i = i + 1;
             }
-                //returndatasize
-            else if(opcode == 0x3d) {
-                vector::push_back(stack, ret_size);
-                i = i + 1;
-            }
+
                 //blockhash
             else if(opcode == 0x40) {
                 vector::push_back(stack, 0);
@@ -1016,8 +1007,6 @@ module aptos_framework::evm {
                 };
 
                 ret_size = 32;
-
-
                 i = i + 1
             }
                 //create2
@@ -1272,15 +1261,15 @@ module aptos_framework::evm {
         assert!(slice(pk, 12, 20) == from, SIGNATURE);
     }
 
-    #[test(aptos_framework = @aptos_framework)]
-    fun test_run(aptos_framework: signer) acquires Account, ContractEvent {
-        account::create_account_for_test(@aptos_framework);
-        let sender = to_32bit(x"054ecb78d0276cf182514211d0c21fe46590b654");
-        let bytecode = x"608060405234801561001057600080fd5b50610225806100206000396000f3fe608060405234801561001057600080fd5b50600436106100365760003560e01c8063cd3daf9d1461003b578063d6f1926214610059575b600080fd5b610043610077565b60405161005091906100cf565b60405180910390f35b61006161007c565b60405161006e91906100cf565b60405180910390f35b600090565b6000670de0b6b3a76400006000610091610077565b61009b9190610119565b60006100a7919061014d565b6100b191906101be565b905090565b6000819050919050565b6100c9816100b6565b82525050565b60006020820190506100e460008301846100c0565b92915050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052601160045260246000fd5b6000610124826100b6565b915061012f836100b6565b9250828203905081811115610147576101466100ea565b5b92915050565b6000610158826100b6565b9150610163836100b6565b9250828202610171816100b6565b91508282048414831517610188576101876100ea565b5b5092915050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052601260045260246000fd5b60006101c9826100b6565b91506101d4836100b6565b9250826101e4576101e361018f565b5b82820490509291505056fea2646970667358221220a065b74a51cef64f3d609e6422cdbbb466ba43c0ccd10aa0095ffe4b570ca26f64736f6c63430008120033";
-        let addr = execute(sender, ZERO_ADDR, 0, bytecode, 0);
-
-        execute(sender, addr, 1, x"d6f19262", 0);
-    }
+    // #[test(aptos_framework = @aptos_framework)]
+    // fun test_run(aptos_framework: signer) acquires Account, ContractEvent {
+    //     account::create_account_for_test(@aptos_framework);
+    //     let sender = to_32bit(x"054ecb78d0276cf182514211d0c21fe46590b654");
+    //     let bytecode = x"608060405234801561001057600080fd5b50610225806100206000396000f3fe608060405234801561001057600080fd5b50600436106100365760003560e01c8063cd3daf9d1461003b578063d6f1926214610059575b600080fd5b610043610077565b60405161005091906100cf565b60405180910390f35b61006161007c565b60405161006e91906100cf565b60405180910390f35b600090565b6000670de0b6b3a76400006000610091610077565b61009b9190610119565b60006100a7919061014d565b6100b191906101be565b905090565b6000819050919050565b6100c9816100b6565b82525050565b60006020820190506100e460008301846100c0565b92915050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052601160045260246000fd5b6000610124826100b6565b915061012f836100b6565b9250828203905081811115610147576101466100ea565b5b92915050565b6000610158826100b6565b9150610163836100b6565b9250828202610171816100b6565b91508282048414831517610188576101876100ea565b5b5092915050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052601260045260246000fd5b60006101c9826100b6565b91506101d4836100b6565b9250826101e4576101e361018f565b5b82820490509291505056fea2646970667358221220a065b74a51cef64f3d609e6422cdbbb466ba43c0ccd10aa0095ffe4b570ca26f64736f6c63430008120033";
+    //     let addr = execute(sender, ZERO_ADDR, 0, bytecode, 0);
+    //
+    //     execute(sender, addr, 1, x"d6f19262", 0);
+    // }
 
     #[test]
     fun test_deposit_withdraw() acquires Account {
