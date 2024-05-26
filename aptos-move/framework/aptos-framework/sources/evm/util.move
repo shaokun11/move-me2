@@ -116,9 +116,8 @@ module aptos_framework::evm_util {
     }
 
     public fun copy_to_memory(memory: &mut vector<u8>, m_pos: u256, d_pos: u256, len: u256, data: vector<u8>) {
-        let i = 0;
         let end = d_pos + len;
-        while (i < len) {
+        while (d_pos < end) {
             let bytes = if(end - d_pos >= 32) {
                 slice(data, d_pos, 32)
             } else {
