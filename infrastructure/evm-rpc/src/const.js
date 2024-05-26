@@ -13,9 +13,10 @@ export const NODE_URL = process.env.NODE_URL;
 const EVM_SENDER = process.env.EVM_SENDER.split(',');
 const FAUCET_SENDER = process.env.FAUCET_SENDER;
 const ROBOT_SENDER = process.env.ROBOT_SENDER;
+export const FAUCET_CONTRACT = process.env.FAUCET_CONTRACT || '0x1';
 
 export const FAUCET_AMOUNT = process.env.FAUCET_AMOUNT || 1;
-export const FAUCET_LIMIT_DURATION = process.env.FAUCET_LIMIT_DURATION || 24 * 60 * 60;
+export const FAUCET_LIMIT_DURATION = process.env.FAUCET_LIMIT_DURATION || 1;
 
 /**
  * EVM_CONTRACT is the contract address

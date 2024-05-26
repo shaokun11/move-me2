@@ -1,22 +1,24 @@
-### Implementing the Move Faucet
+### Proxy movement faucet token
 
-> The faucet access frequency can be rate-limited based on the IP address, and the faucet amount can be configured.
+### Petra wallet
+>
+> The default faucet amount has been changed to 1
 
-### Usage
+```bash
+curl --location http://127.0.0.1:3001/fund?auth_key=0x6a3fe01b215038663e4bdeaeb41e18047695c4f5e2affd74f343447a4a94d3ab
+```
 
-1. Clone this repository.
+### Aptos CLI
+>
+> The default faucet amount has been changed to 1
 
-2. Install the dependencies:
-   ```bash
-   npm install
-   ```
+```bash
+curl -X POST --location http://127.0.0.1:3001/mint?auth_key=0x6a3fe01b215038663e4bdeaeb41e18047695c4f5e2affd74f343447a4a94d3ab
+```
 
-3. Set up the environment variables:
-   ```bash
-   cp .env.example .env
-   ```
+### Faucet with Google Captcha
 
-4. Start the server:
-   ```bash
-   node src/app.js
-   ```
+```bash
+curl --location 'http://127.0.0.1:3001/batch_mint?address=0x6a3fe01b215038663e4bdeaeb41e18047695c4f5e2affd74f343447a4a94d3ab' \
+--header 'token: google_token'
+```

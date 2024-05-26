@@ -5,17 +5,17 @@ import { group, mapValues, sort, retry } from 'radash';
 export async function getMoveHash(evm_hash) {
     const run = async function () {
         const query = gql`
-        {
-            evm_move_hash(where:{
-                evm_hash:{
-                _eq:"${evm_hash}"
+            {
+                evm_move_hash(where:{
+                    evm_hash:{
+                    _eq:"${evm_hash}"
+                    }
+                }) {
+                    move_hash
+                    evm_hash
                 }
-            }) {
-                move_hash
-                evm_hash
             }
-        }
-    `;
+        `;
         const res = await indexer_client.query(query).toPromise();
         if (res.data.evm_move_hash.length == 0) {
             throw new Error('Transaction not found');
@@ -26,20 +26,22 @@ export async function getMoveHash(evm_hash) {
 }
 
 export async function getBlockHeightByHash(block_hash) {
-    const query = gql`
-        {
-            block_metadata_transactions(where: {id: {_eq: "${block_hash}"}}) {
-                block_height
-                id
+    const run = async function () {
+        const query = gql`
+            {
+                block_metadata_transactions(where: {id: {_eq: "${block_hash}"}}) {
+                    block_height
+                    id
+                }
             }
+        `;
+        const res = await indexer_client.query(query).toPromise();
+        if (res.data.block_metadata_transactions.length == 0) {
+            throw new Error('No block found by ' + block_hash);
         }
-
-    `;
-    const res = await indexer_client.query(query).toPromise();
-    if (res.data.block_metadata_transactions.length == 0) {
-        throw new Error('No block found');
-    }
-    return res.data.block_metadata_transactions[0].block_height;
+        return res.data.block_metadata_transactions[0].block_height;
+    };
+    return await retry({ times: 3, delay: 1000 }, run);
 }
 
 export async function getEvmLogs(obj) {

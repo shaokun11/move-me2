@@ -35,17 +35,17 @@ async function sendTx(payload) {
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
+// https://github.com/Uniswap/deploy-v3.git
+// Since this project requires block generation to run, here I'm starting a script to generate a block every 2 seconds to achieve the purpose
 
-async function start() {
+export async function startBotTask() {
+    if (!AUTO_SEND_TX) {
+        return
+    }
     while (1) {
         try {
             await deposit();
-        } catch (e) {}
+        } catch (e) { }
         await sleep(2000);
     }
-}
-// https://github.com/Uniswap/deploy-v3.git
-// Since this project requires block generation to run, here I'm starting a script to generate a block every 2 seconds to achieve the purpose
-if (AUTO_SEND_TX) {
-    start();
 }

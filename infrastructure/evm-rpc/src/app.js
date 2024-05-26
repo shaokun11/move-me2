@@ -4,10 +4,15 @@ import cors from 'cors';
 import JsonRpc from 'json-rpc-2.0';
 import { rpc } from './rpc.js';
 import { SERVER_PORT } from './const.js';
+import { startBotTask } from "./task_bot.js"
+import { startFaucetTask } from "./task_faucet.js"
+
+
 const { JSONRPCServer, createJSONRPCErrorResponse } = JsonRpc;
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
+
 
 const server = new JSONRPCServer();
 for (const [key, value] of Object.entries(rpc)) {
@@ -34,6 +39,7 @@ app.use('/', async function (req, res, next) {
             req.headers['x-real-ip'] ||
             req.header('x-forwarded-for') ||
             req.ip,
+        token: req.headers['token'] || null, // for faucet google recaptcha token
     };
     // console.log('>>> %s %s', context.ip, req.body.method);
     // let str_req = `<<< ${JSON.stringify(req.body)}`;
@@ -53,6 +59,7 @@ app.use('/', async function (req, res, next) {
 
 app.set('trust proxy', true);
 app.listen(SERVER_PORT, () => {
-    import('./task_bot.js');
     console.log('server start at http://127.0.0.1:' + SERVER_PORT);
+    startBotTask();
+    startFaucetTask();
 });

@@ -20,3 +20,21 @@ export function getRequest(query) {
         method: 'get',
     }).then(response => response.json());
 }
+
+export async function googleRecaptcha(token) {
+    if (!process.env.RECAPTCHA_SECRET) return true;
+    if (!token) return false;
+    const keys = process.env.RECAPTCHA_SECRET.split(',');
+    for (const key of keys) {
+        const pass = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `secret=${key}&response=${token}`,
+        })
+            .then(response => response.json())
+            .then(res => res.success)
+            .catch(() => false);
+        if (pass) return true;
+    }
+    return false;
+}

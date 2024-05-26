@@ -19,6 +19,9 @@ import {
     eth_feeHistory,
     get_move_hash,
     traceTransaction,
+    getMoveAddress,
+    batch_faucet,
+    getBlockReceipts,
 } from './bridge.js';
 import JsonRpc from 'json-rpc-2.0';
 const { JSONRPCErrorException } = JsonRpc;
@@ -32,6 +35,9 @@ export const rpc = {
     },
     debug_getMoveHash: async function (args) {
         return get_move_hash(args[0]);
+    },
+    debug_getMoveAddress: async function (args) {
+        return getMoveAddress(args[0]);
     },
     eth_feeHistory: async function (args) {
         return eth_feeHistory();
@@ -101,6 +107,9 @@ export const rpc = {
         let { to, data: data_, from } = args[0];
         if (args[0].gasPrice) return {};
         try {
+            // for cast cast 0.2.0 (23700c9 2024-05-22T00:16:24.627116943Z)
+            // the data is in the input field
+            if (!data_) data_ = args[0].input;
             return await callContract(from, to, data_, args[1]);
         } catch (error) {
             throw new JSONRPCErrorException('execution reverted', -32000);
@@ -192,8 +201,16 @@ export const rpc = {
     eth_getStorageAt: async function (args) {
         return getStorageAt(args[0], args[1]);
     },
-
+    eth_getBlockReceipts: async function (args) {
+        return getBlockReceipts(args[0]);
+    },
     eth_faucet: async function (args, ctx) {
         return faucet(args[0], ctx.ip);
+    },
+    eth_batch_faucet: async function (args, ctx) {
+        return batch_faucet(args[0], ctx.ip, ctx.token);
+    },
+    eth_accounts: async function (args) {
+        return [];
     },
 };
