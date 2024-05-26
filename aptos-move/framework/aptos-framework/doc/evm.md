@@ -1089,8 +1089,8 @@ invalid chain id in raw tx
         // Fetch the current opcode from the bytecode.
 
         <b>let</b> opcode = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&<a href="code.md#0x1_code">code</a>, i);
-        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&i);
-        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&opcode);
+        // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&i);
+        // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&opcode);
 
         // Handle each opcode according <b>to</b> the EVM specification.
         // The following is a simplified <a href="version.md#0x1_version">version</a> of the EVM execution engine,
@@ -1795,11 +1795,11 @@ invalid chain id in raw tx
             <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> p, keccak256(new_codes));
             <b>let</b> new_evm_contract_addr = to_32bit(slice(keccak256(p), 12, 20));
             <b>let</b> new_move_contract_addr = create_resource_address(&@aptos_framework, new_evm_contract_addr);
-            <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"create2 start"));
-            <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&evm_contract_address);
-            <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&sender);
-            <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&p);
-            <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&new_evm_contract_addr);
+            // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"create2 start"));
+            // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&evm_contract_address);
+            // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&sender);
+            // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&p);
+            // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&new_evm_contract_addr);
             <b>assert</b>!(!<a href="evm.md#0x1_evm_exist_contract">exist_contract</a>(new_move_contract_addr), <a href="evm.md#0x1_evm_CONTRACT_DEPLOYED">CONTRACT_DEPLOYED</a>);
             <a href="evm.md#0x1_evm_create_account_if_not_exist">create_account_if_not_exist</a>(new_move_contract_addr);
             <a href="evm.md#0x1_evm_create_event_if_not_exist">create_event_if_not_exist</a>(new_move_contract_addr);

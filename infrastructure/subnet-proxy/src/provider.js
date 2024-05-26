@@ -83,16 +83,18 @@ function request(method, params) {
 
 async function googleRecaptcha(token) {
     // no secret key provided, just skip and return true
-    if (!RECAPTCHA_SECRET) return true
+    if (!RECAPTCHA_SECRET) return true;
     if (!token) return false;
-    return fetch('https://www.google.com/recaptcha/api/siteverify', {
+    const keys = RECAPTCHA_SECRET.split(',');
+    const result = await Promise.all(keys.map(key => fetch('https://www.google.com/recaptcha/api/siteverify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `secret=${RECAPTCHA_SECRET}&response=${token}`,
+        body: `secret=${key}&response=${token}`,
     })
         .then(response => response.json())
         .then(res => res.success)
-        .catch(() => false);
+        .catch(() => false)));
+    return result.some(r => r);
 }
 
 module.exports = { request, googleRecaptcha };

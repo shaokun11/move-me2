@@ -19,9 +19,9 @@ const NETWORK_URLS = {
   },
   devnet: {
     M1_URL: 'https://aptos.devnet.m1.movementlabs.xyz',
-    M1_FAUCET_URL: process.env.APTOS_DEVNET_M1_FAUCET_URL||'https://aptos.devnet.m1.movementlabs.xyz/batch_mint',
-    MEVM_M1_URL: process.env.APTOS_DEVNET_MEVM_M1_URL||'https://mevm.devnet.m1.movementlabs.xyz',
-    M2_URL: process.env.APTOS_DEVNET_M2_FAUCET_URL||'https://sui.devnet.m2.movementlabs.xyz/faucet/web',
+    M1_FAUCET_URL: process.env.REACT_APP_APTOS_DEVNET_M1_FAUCET_URL||'https://aptos.devnet.m1.movementlabs.xyz/batch_mint',
+    MEVM_M1_URL: process.env.REACT_APP_APTOS_DEVNET_MEVM_M1_URL||'https://mevm.devnet.m1.movementlabs.xyz',
+    M2_URL: process.env.REACT_APP_APTOS_DEVNET_M2_FAUCET_URL||'https://sui.devnet.m2.movementlabs.xyz/faucet/web',
   },
 };
 
@@ -97,9 +97,9 @@ export default function LandingPage() {
       <div style={{ width: "300px" }}>
           <h1 style={{ textAlign: "left" }}>Faucets</h1>
       </div>
-      <Chain name="Aptos" eventName="m1_apt_request" language={language} amount={1} isEvm={false} hasTestnet={false} network={currentNetwork} faucetRequest={m1FaucetRequest} /> 
-      <Chain name="MEVM" eventName="m1_evm_request" language={language} amount={1} isEvm={true} hasTestnet={false} network={currentNetwork}faucetRequest={handleM1evmFaucetRequest} />
-      <Chain name="Sui" eventName="m2_sui_request" language={language} amount={1} isEvm={false} hasTestnet={false} network={currentNetwork} faucetRequest={m2FaucetRequest} />
+      <Chain name="Aptos" btnText="Get MOVE" eventName="m1_apt_request" language={language} amount={1} isEvm={false} hasTestnet={false} network={currentNetwork} faucetRequest={m1FaucetRequest} /> 
+      <Chain name="MEVM" btnText="Get MOVE" eventName="m1_evm_request" language={language} amount={1} isEvm={true} hasTestnet={false} network={currentNetwork}faucetRequest={handleM1evmFaucetRequest} />
+      <Chain name="Sui" btnText="Get SUI" eventName="m2_sui_request" language={language} amount={1} isEvm={false} hasTestnet={false} network={currentNetwork} faucetRequest={m2FaucetRequest} />
             
       <ToggleButtonGroup
       color="primary"

@@ -14,7 +14,7 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import { Network } from "../utils";
 import ReCAPTCHA from "react-google-recaptcha";
 
-export default function Chains({ name,eventName, language, amount, isEvm, hasTestnet, network, faucetRequest }: any) {
+export default function Chains({ name,eventName,btnText, language, amount, isEvm, hasTestnet, network, faucetRequest }: any) {
 
     const [success, setSuccess] = useState(false);
     const [address, setAddress] = useState("");
@@ -67,18 +67,18 @@ export default function Chains({ name,eventName, language, amount, isEvm, hasTes
             setErrorMessage(res.error || "Failed to fund account.");
         }
 
-        (window as any).dataLayer.push({'event':eventName,'request_success':status});
+        // (window as any).dataLayer.push({'event':eventName,'request_success':status});
 
-        // (window as any).gtag('event', 'getmove', {
-        //     'gtagIP': (window as any).gtagIP,
-        //     'href': location.href,
-        //     'time': Date.now(),
-        //     'address': address,
-        //     'status': status,
-        //     'token': token,
-        //     'type': name,
-        //     'error': res.error||"none",
-        //   });
+        (window as any).gtag('event', eventName, {
+            'gtagIP': (window as any).gtagIP,
+            'href': location.href,
+            'time': Date.now(),
+            'address': address,
+            'value': status,
+            'token': token,
+            'type': name,
+            'error': res.error||"none",
+          });
         setToken(null);
         setLoading(false);
     };
@@ -145,13 +145,13 @@ export default function Chains({ name,eventName, language, amount, isEvm, hasTes
                         disabled={loading||token===null||!isValidHex(address, true)}
                     >
                         <WaterDropIcon sx={{ mr: 1}} />
-                        Get MOVE
+                        {btnText}
                     </Button>
                     <div>
                     {isDark &&
                         <ReCAPTCHA
                             ref={recaptchaRef}
-                            sitekey="6LeNltspAAAAAECHmsdf8w29UFF3ZiIrvscSkMTi"
+                            sitekey={process.env.REACT_APP_APTOS_DEVNET_SITEKEY?.toString()||" "}
                             // size="invisible"
                             hl="en"
                             onChange={onChangeRe}
@@ -160,7 +160,7 @@ export default function Chains({ name,eventName, language, amount, isEvm, hasTes
                         {!isDark &&
                             <ReCAPTCHA
                                 ref={recaptchaRef}
-                                sitekey="6LeNltspAAAAAECHmsdf8w29UFF3ZiIrvscSkMTi"
+                                sitekey={process.env.REACT_APP_APTOS_DEVNET_SITEKEY?.toString()||" "}
                                 // size="invisible"
                                 hl="en"
                                 onChange={onChangeRe}
