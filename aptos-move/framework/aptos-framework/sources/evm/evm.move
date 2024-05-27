@@ -598,8 +598,8 @@ module aptos_framework::evm {
             }
                 //balance
             else if(opcode == 0x31) {
-                let evm_addr = u256_to_data(vector::pop_back(stack));
-                let target_address = create_resource_address(&@aptos_framework, evm_addr);
+                let target = slice(u256_to_data(vector::pop_back(stack)), 12, 20);
+                let target_address = create_resource_address(&@aptos_framework, to_32bit(target));
                 if(exists<Account>(target_address)) {
                     let account_store = borrow_global<Account>(target_address);
                     vector::push_back(stack, account_store.balance);
