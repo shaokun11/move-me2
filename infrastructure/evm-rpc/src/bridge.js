@@ -29,13 +29,9 @@ const lockerFaucet = new Lock({
     maxPending: 30,
 });
 let SEND_TX_ACCOUNT_INDEX = 0;
-let lastBlockTime = Date.now();
-let lastBlock = '0x1';
 
 const CACHE_ETH_ADDRESS_TO_MOVE = {};
 const CACHE_MOVE_HASH_TO_BLOCK_HEIGHT = {};
-
-await getBlock();
 
 export async function getMoveAddress(acc) {
     acc = acc.toLowerCase();
@@ -180,14 +176,10 @@ export async function eth_feeHistory() {
  * @returns {Promise<string>} - A promise that resolves to the latest block
  */
 export async function getBlock() {
-    if (Date.now() - lastBlockTime >= 2000) {
-        let info = await client.getLedgerInfo();
-        lastBlockTime = Date.now();
-        lastBlock = toHex(info.block_height);
-        return lastBlock;
-    }
-    return lastBlock;
+    const info = await client.getLedgerInfo();
+    return toHex(info.block_height);
 }
+
 export async function getBlockReceipts(block) {
     if (!isHexString(block)) {
         throw 'block number error';
