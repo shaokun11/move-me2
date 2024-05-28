@@ -221,7 +221,7 @@ module aptos_framework::evm {
         contract_addr = to_32bit(contract_addr);
         let contract_store = borrow_global_mut<Account>(create_resource_address(&@aptos_framework, contract_addr));
         sender = to_32bit(sender);
-        let (_res, bytes) = run(sender, sender, contract_addr, contract_store.code, data, true, 0, &mut simple_map::new<u256, u256>());
+        let (_res, bytes) = run(sender, sender, contract_addr, contract_store.code, data, false, 0, &mut simple_map::new<u256, u256>());
         bytes
     }
 
@@ -636,8 +636,8 @@ module aptos_framework::evm {
             }
                 //balance
             else if(opcode == 0x31) {
-                let evm_addr = u256_to_data(vector::pop_back(stack));
-                let target_address = create_resource_address(&@aptos_framework, evm_addr);
+                let target = slice(u256_to_data(vector::pop_back(stack)), 12, 20);
+                let target_address = create_resource_address(&@aptos_framework, to_32bit(target));
                 if(exists<Account>(target_address)) {
                     let account_store = borrow_global<Account>(target_address);
                     vector::push_back(stack, account_store.balance);
@@ -714,13 +714,15 @@ module aptos_framework::evm {
             }
                 //extcodesize
             else if(opcode == 0x3b) {
-                let code = get_code(u256_to_data(vector::pop_back(stack)));
+                let target = slice(u256_to_data(vector::pop_back(stack)), 12, 20);
+                let code = get_code(to_32bit(target));
                 vector::push_back(stack, (vector::length(&code) as u256));
                 i = i + 1;
             }
                 //extcodecopy
             else if(opcode == 0x3c) {
-                let code = get_code(u256_to_data(vector::pop_back(stack)));
+                let target = slice(u256_to_data(vector::pop_back(stack)), 12, 20);
+                let code = get_code(to_32bit(target));
                 let m_pos = vector::pop_back(stack);
                 let d_pos = vector::pop_back(stack);
                 let len = vector::pop_back(stack);

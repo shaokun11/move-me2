@@ -116,16 +116,22 @@ module aptos_framework::evm_util {
     }
 
     public fun copy_to_memory(memory: &mut vector<u8>, m_pos: u256, d_pos: u256, len: u256, data: vector<u8>) {
-        let end = d_pos + len;
-        while (d_pos < end) {
-            let bytes = if(end - d_pos >= 32) {
-                slice(data, d_pos, 32)
+        let i = 0;
+        let m_idx = (m_pos as u64);
+        let d_idx = (d_pos as u64);
+        let m_len = vector::length(memory);
+        while(m_len < m_idx) {
+            vector::push_back(memory, 0);
+            m_len = m_len + 1
+        };
+
+        while (i < (len as u64)) {
+            if(m_idx + i >= m_len) {
+                vector::push_back(memory, *vector::borrow(&data, d_idx + i));
             } else {
-                slice(data, d_pos, end - d_pos)
+                *vector::borrow_mut(memory, m_idx + i) = *vector::borrow(&data, d_idx + i);
             };
-            mstore(memory, m_pos, bytes);
-            d_pos = d_pos + 32;
-            m_pos = m_pos + 32;
+            i = i + 1;
         };
     }
 
