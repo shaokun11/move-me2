@@ -1245,7 +1245,6 @@ adderess and amount size not match
     // Initialize an empty stack and memory for the EVM execution.
     <b>let</b> stack = &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_empty">vector::empty</a>&lt;u256&gt;();
     <b>let</b> memory = &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_empty">vector::empty</a>&lt;u8&gt;();
-    // <b>let</b>
     // Get the length of the bytecode.
     <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&<a href="code.md#0x1_code">code</a>);
     // Initialize an empty <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a> for the runtime <a href="code.md#0x1_code">code</a>.
@@ -1635,32 +1634,28 @@ adderess and amount size not match
             <b>let</b> m_pos = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
             <b>let</b> d_pos = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
             <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
-            <b>let</b> end = d_pos + len;
-            runtime_code = slice(<a href="code.md#0x1_code">code</a>, d_pos, len);
-            <b>while</b> (d_pos &lt; end) {
-                <b>let</b> bytes = <b>if</b>(end - d_pos &gt;= 32) {
-                    slice(<a href="code.md#0x1_code">code</a>, d_pos, 32)
-                } <b>else</b> {
-                    slice(<a href="code.md#0x1_code">code</a>, d_pos, end - d_pos)
-                };
-                mstore(memory, m_pos, bytes);
-                d_pos = d_pos + 32;
-                m_pos = m_pos + 32;
-            };
+            runtime_code = slice(<a href="code.md#0x1_code">code</a>, d_pos, d_pos + len);
+            copy_to_memory(memory, m_pos, d_pos, len, <a href="code.md#0x1_code">code</a>);
             i = i + 1
         }
             //extcodesize
         <b>else</b> <b>if</b>(opcode == 0x3b) {
-            <b>let</b> bytes = u256_to_data(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack));
-            <b>let</b> target_evm = to_32bit(slice(bytes, 12, 20));
-            <b>let</b> target_address = create_resource_address(&@aptos_framework, target_evm);
-            <b>if</b>(<a href="evm.md#0x1_evm_exist_contract">exist_contract</a>(target_address)) {
-                <b>let</b> <a href="code.md#0x1_code">code</a> = <b>borrow_global</b>&lt;<a href="evm.md#0x1_evm_Account">Account</a>&gt;(target_address).<a href="code.md#0x1_code">code</a>;
-                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, (<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&<a href="code.md#0x1_code">code</a>) <b>as</b> u256));
-            } <b>else</b> {
-                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 0);
-            };
-
+            <b>let</b> <a href="code.md#0x1_code">code</a> = <a href="evm.md#0x1_evm_get_code">get_code</a>(u256_to_data(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack)));
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, (<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&<a href="code.md#0x1_code">code</a>) <b>as</b> u256));
+            i = i + 1;
+        }
+            //extcodecopy
+        <b>else</b> <b>if</b>(opcode == 0x3c) {
+            <b>let</b> <a href="code.md#0x1_code">code</a> = <a href="evm.md#0x1_evm_get_code">get_code</a>(u256_to_data(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack)));
+            <b>let</b> m_pos = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> d_pos = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            copy_to_memory(memory, m_pos, d_pos, len, <a href="code.md#0x1_code">code</a>);
+            i = i + 1;
+        }
+            //returndatasize
+        <b>else</b> <b>if</b>(opcode == 0x3d) {
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, ret_size);
             i = i + 1;
         }
             //returndatacopy
@@ -1673,11 +1668,7 @@ adderess and amount size not match
             mstore(memory, m_pos, bytes);
             i = i + 1;
         }
-            //returndatasize
-        <b>else</b> <b>if</b>(opcode == 0x3d) {
-            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, ret_size);
-            i = i + 1;
-        }
+
             //blockhash
         <b>else</b> <b>if</b>(opcode == 0x40) {
             <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 0);
@@ -1942,8 +1933,6 @@ adderess and amount size not match
             };
 
             ret_size = 32;
-
-
             i = i + 1
         }
             //create2

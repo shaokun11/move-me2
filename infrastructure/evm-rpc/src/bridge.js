@@ -416,6 +416,7 @@ export async function sendRawTx(tx) {
 
 export async function callContract(from, contract, calldata, block) {
     from = from || ZeroAddress;
+    contract = contract || ZeroAddress;
     if (isHexString(block)) {
         let info = await client.getBlockByHeight(toNumber(block), false);
         block = info.last_version;
