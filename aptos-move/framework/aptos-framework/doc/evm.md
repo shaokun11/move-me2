@@ -1061,7 +1061,7 @@ adderess and amount size not match
     contract_addr = to_32bit(contract_addr);
     <b>let</b> contract_store = <b>borrow_global_mut</b>&lt;<a href="evm.md#0x1_evm_Account">Account</a>&gt;(create_resource_address(&@aptos_framework, contract_addr));
     sender = to_32bit(sender);
-    <b>let</b> (_res, bytes) = <a href="evm.md#0x1_evm_run">run</a>(sender, sender, contract_addr, contract_store.<a href="code.md#0x1_code">code</a>, data, <b>true</b>, 0, &<b>mut</b> <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_new">simple_map::new</a>&lt;u256, u256&gt;());
+    <b>let</b> (_res, bytes) = <a href="evm.md#0x1_evm_run">run</a>(sender, sender, contract_addr, contract_store.<a href="code.md#0x1_code">code</a>, data, <b>false</b>, 0, &<b>mut</b> <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_new">simple_map::new</a>&lt;u256, u256&gt;());
     bytes
 }
 </code></pre>
@@ -1562,8 +1562,8 @@ adderess and amount size not match
         }
             //balance
         <b>else</b> <b>if</b>(opcode == 0x31) {
-            <b>let</b> evm_addr = u256_to_data(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack));
-            <b>let</b> target_address = create_resource_address(&@aptos_framework, evm_addr);
+            <b>let</b> target = slice(u256_to_data(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack)), 12, 20);
+            <b>let</b> target_address = create_resource_address(&@aptos_framework, to_32bit(target));
             <b>if</b>(<b>exists</b>&lt;<a href="evm.md#0x1_evm_Account">Account</a>&gt;(target_address)) {
                 <b>let</b> account_store = <b>borrow_global</b>&lt;<a href="evm.md#0x1_evm_Account">Account</a>&gt;(target_address);
                 <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, account_store.balance);
@@ -1640,13 +1640,15 @@ adderess and amount size not match
         }
             //extcodesize
         <b>else</b> <b>if</b>(opcode == 0x3b) {
-            <b>let</b> <a href="code.md#0x1_code">code</a> = <a href="evm.md#0x1_evm_get_code">get_code</a>(u256_to_data(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack)));
+            <b>let</b> target = slice(u256_to_data(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack)), 12, 20);
+            <b>let</b> <a href="code.md#0x1_code">code</a> = <a href="evm.md#0x1_evm_get_code">get_code</a>(to_32bit(target));
             <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, (<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&<a href="code.md#0x1_code">code</a>) <b>as</b> u256));
             i = i + 1;
         }
             //extcodecopy
         <b>else</b> <b>if</b>(opcode == 0x3c) {
-            <b>let</b> <a href="code.md#0x1_code">code</a> = <a href="evm.md#0x1_evm_get_code">get_code</a>(u256_to_data(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack)));
+            <b>let</b> target = slice(u256_to_data(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack)), 12, 20);
+            <b>let</b> <a href="code.md#0x1_code">code</a> = <a href="evm.md#0x1_evm_get_code">get_code</a>(to_32bit(target));
             <b>let</b> m_pos = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
             <b>let</b> d_pos = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
             <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);

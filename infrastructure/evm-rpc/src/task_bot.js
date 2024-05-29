@@ -8,7 +8,7 @@ async function deposit() {
     let payload = {
         function: `0x1::evm::deposit`,
         type_arguments: [],
-        arguments: [toBuffer(alice), toBuffer(toBeHex((1e12).toString()))],
+        arguments: [toBuffer(alice), toBuffer(toBeHex((1e10).toString()))],
     };
     let hash = await sendTx(payload);
     // console.log(' deposit to ', alice)
@@ -39,7 +39,7 @@ function sleep(ms) {
 // Since this project requires block generation to run, here I'm starting a script to generate a block every 2 seconds to achieve the purpose
 
 export async function startBotTask() {
-    if (!AUTO_SEND_TX) {
+    if (!!AUTO_SEND_TX === false) {
         return
     }
     while (1) {

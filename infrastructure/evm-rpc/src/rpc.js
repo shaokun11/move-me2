@@ -111,7 +111,7 @@ export const rpc = {
             if (!data_) data_ = args[0].input;
             return await callContract(from, to, data_, args[1]);
         } catch (error) {
-            throw new JSONRPCErrorException('execution reverted', -32000);
+            throw new JSONRPCErrorException(error.message || 'execution reverted', -32000);
         }
     },
 
