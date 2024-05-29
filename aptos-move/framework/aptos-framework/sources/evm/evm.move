@@ -16,7 +16,6 @@ module aptos_framework::evm {
     use aptos_framework::evm_util::{slice, to_32bit, get_contract_address, to_int256, data_to_u256, u256_to_data, mstore, to_u256, copy_to_memory};
     use aptos_framework::timestamp::now_microseconds;
     use aptos_framework::block;
-    use std::string::utf8;
     use aptos_framework::event::{EventHandle, emit_event};
     use aptos_framework::event;
     use aptos_std::table;
@@ -31,7 +30,6 @@ module aptos_framework::evm {
     use aptos_std::simple_map::SimpleMap;
     use aptos_framework::evm_arithmetic::add_sign;
     #[test_only]
-    use aptos_framework::timestamp;
     use aptos_framework::account;
     use aptos_framework::transaction_context::get_transaction_hash;
     // #[test_only]
