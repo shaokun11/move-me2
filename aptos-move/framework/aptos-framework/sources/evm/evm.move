@@ -1367,7 +1367,7 @@ module aptos_framework::evm {
         vector::append(get_pool_data, weth9);
         vector::append(get_pool_data, tokenA);
         vector::append(get_pool_data, u256_to_data(3000));
-        debug::print(&query(sender, factory, *get_pool_data));
+        debug::print(&query(sender, factory, *get_pool_data, x""));
 
         debug::print(&utf8(b"add liquidity"));
         let add_liquidity_data = &mut x"88316456";
