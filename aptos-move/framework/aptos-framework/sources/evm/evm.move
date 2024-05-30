@@ -219,12 +219,21 @@ module aptos_framework::evm {
     }
 
     #[view]
-    public fun query(sender:vector<u8>, contract_addr: vector<u8>, data: vector<u8>, value_bytes:vector<u8>): vector<u8> acquires Account, ContractEvent, Global {
+    public fun query2(sender:vector<u8>, contract_addr: vector<u8>, data: vector<u8>, value_bytes:vector<u8>): vector<u8> acquires Account, ContractEvent, Global {
         let value = to_u256(value_bytes);
         contract_addr = to_32bit(contract_addr);
         let contract_store = borrow_global_mut<Account>(create_resource_address(&@aptos_framework, contract_addr));
         sender = to_32bit(sender);
         let (_res, bytes) = run(sender, sender, contract_addr, contract_store.code, data, false, value, &mut simple_map::new<u256, u256>());
+        bytes
+    }
+
+    #[view]
+    public fun query(sender:vector<u8>, contract_addr: vector<u8>, data: vector<u8>): vector<u8> acquires Account, ContractEvent, Global {
+        contract_addr = to_32bit(contract_addr);
+        let contract_store = borrow_global_mut<Account>(create_resource_address(&@aptos_framework, contract_addr));
+        sender = to_32bit(sender);
+        let (_res, bytes) = run(sender, sender, contract_addr, contract_store.code, data, false, 0, &mut simple_map::new<u256, u256>());
         bytes
     }
 
