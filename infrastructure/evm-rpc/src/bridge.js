@@ -716,14 +716,18 @@ async function callContractImpl(from, contract, calldata, value, version) {
         type_arguments: [],
         arguments: [from, contract, calldata, toBeHex(value)],
     };
-    // payload = {
-    //     function: EVM_CONTRACT + `::evm::query`,
-    //     type_arguments: [],
-    //     arguments: [from, contract, calldata],
-    // };
-    let result = await client.view(payload, version);
-    return result[0];
-
+    try {
+        let result = await client.view(payload, version);
+        return result[0];
+    } catch (error_raw) {
+        let message = error_raw.message
+        try {
+            // the error type maybe is json 
+            const json = JSON.parse(error_raw.message)
+            message = json.message
+        } catch (error) {}
+        throw new Error(message);
+    }
 }
 
 function toBuffer(hex) {
