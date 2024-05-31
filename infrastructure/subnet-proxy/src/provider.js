@@ -21,6 +21,18 @@ function parseRustString(rustString) {
         let match = rustString.match(regex);
         result[field] = match ? match[1].trim() : null;
     }
+    // for eth error type 
+    const parse_evm_type_error_message = (str) => {
+        let errorMessage = str.replace(/\\/g, '');
+        if(errorMessage.includes("EVM_CONTRACT_ERROR")) {
+            const regex = /message: Some\("([a-f0-9]+)"\)/;
+            const match = errorMessage.match(regex);
+            if (match) {
+                result["message"] = "EVM_CONTRACT_ERROR:"+match[1];
+            }
+        }
+    }
+    parse_evm_type_error_message(rustString)
     let someValues = rustString.match(/Some\((.*?)\)/g);
     if (someValues) {
         const headers = someValues.map(value => {
