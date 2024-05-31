@@ -455,7 +455,7 @@ export async function callContract(from, contract, calldata, value, block) {
  *   - show_gas: number - The amount of gas to show,
  */
 export async function estimateGas(info) {
-    console.log('estimateGas error 0',  info)
+    console.log('estimateGas error 0', info)
     // todo parse evm type
     // {
     //     id: 2,
@@ -554,7 +554,7 @@ export async function getTransactionByHash(evm_hash) {
     let block = await client.getBlockByVersion(info.version);
     const { to, from, data, nonce, value, v, r, s, hash, type } = parseMoveTxPayload(info);
     return {
-        blockHash: ZERO_HASH,
+        blockHash: block.block_hash,
         blockNumber: toHex(block.block_height),
         from: from,
         gas: toHex(info.gas_used),
