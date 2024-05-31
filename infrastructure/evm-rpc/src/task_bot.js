@@ -40,12 +40,12 @@ function sleep(ms) {
 
 export async function startBotTask() {
     if (!!AUTO_SEND_TX === false) {
-        return
+        return;
     }
     while (1) {
         try {
             await deposit();
-        } catch (e) { }
+        } catch (e) {}
         await sleep(2000);
     }
 }

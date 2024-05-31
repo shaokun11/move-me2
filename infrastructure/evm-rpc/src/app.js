@@ -4,15 +4,13 @@ import cors from 'cors';
 import JsonRpc from 'json-rpc-2.0';
 import { rpc } from './rpc.js';
 import { SERVER_PORT } from './const.js';
-import { startBotTask } from "./task_bot.js"
-import { startFaucetTask } from "./task_faucet.js"
-
+import { startBotTask } from './task_bot.js';
+import { startFaucetTask } from './task_faucet.js';
 
 const { JSONRPCServer, createJSONRPCErrorResponse } = JsonRpc;
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
-
 
 const server = new JSONRPCServer();
 for (const [key, value] of Object.entries(rpc)) {

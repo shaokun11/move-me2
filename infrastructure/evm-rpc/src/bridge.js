@@ -406,7 +406,7 @@ export async function sendRawTx(tx) {
     });
 }
 
-export async function callContract(from, contract, calldata, block) {
+export async function callContract(from, contract, calldata, value, block) {
     from = from || ZeroAddress;
     contract = contract || ZeroAddress;
     if (isHexString(block)) {
@@ -416,7 +416,7 @@ export async function callContract(from, contract, calldata, block) {
         // it maybe latest
         block = undefined;
     }
-    return view(from, contract, calldata, block);
+    return callContractImpl(from, contract, calldata, value, block);
 }
 /**
  * Estimate the gas needed for a transaction.
@@ -650,7 +650,7 @@ async function getAccountInfo(acc, block) {
 
 async function sendTx(sender, payload, wait = false, option = {}) {
     try {
-        const account = await client.getAccount(sender.address())
+        const account = await client.getAccount(sender.address());
         const txnRequest = await client.generateTransaction(sender.address(), payload, {
             ...option,
             max_gas_amount: 1 * 1e6,
@@ -680,11 +680,11 @@ async function getDeployedContract(info) {
     return null;
 }
 
-async function view(from, contract, calldata, version) {
+async function callContractImpl(from, contract, calldata, value, version) {
     let payload = {
-        function: EVM_CONTRACT + `::evm::query`,
+        function: EVM_CONTRACT + `::evm::query2`,
         type_arguments: [],
-        arguments: [from, contract, calldata],
+        arguments: [from, contract, calldata, toBeHex(value)],
     };
     try {
         let result = await client.view(payload, version);
