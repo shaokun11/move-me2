@@ -23,9 +23,7 @@ server.applyMiddleware(async function (next, request, serverParams) {
     } catch (error) {
         // console.error('error', error);
         const message = typeof error === 'string' ? error : error?.message || 'Internal error';
-        const err = createJSONRPCErrorResponse(request.id, error?.code || -32000, message, {
-            message,
-        });
+        const err = createJSONRPCErrorResponse(request.id, error?.code || -32000, message, request.params);
         return err;
     }
 });

@@ -690,7 +690,20 @@ async function callContractImpl(from, contract, calldata, value, version) {
         let result = await client.view(payload, version);
         return result[0];
     } catch (error) {
-        throw error.message;
+        let message = error.message;
+        try {
+            const errorMessage = JSON.parse(error.message).message;
+            if (errorMessage.includes("EVM_CONTRACT_ERROR")) {
+                const regex = /message: Some\("([a-f0-9]+)"\)/;
+                const match = errorMessage.match(regex);
+                if (match) {
+                    message = "reverted:" + match[1];
+                }else {
+                    message = "reverted"
+                }
+            }
+        } catch (error) { }
+        throw new Error(message);
     }
 }
 
