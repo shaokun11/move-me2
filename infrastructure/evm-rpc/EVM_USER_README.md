@@ -76,7 +76,7 @@ curl --location 'https://mevm.devnet.m1.movementlabs.xyz' \
 
 ![png](static/chrome_pYvMkfcefO.png)
 
-` Events ` display list of trigger Events in the deal, for the evm entry contracts issued by the original log data, the type of `0x1::evm::Log0Event, 0x1::evm::Log1Event, 0x1::evm::Log2Event, 0x1::evm::Log3Event, 0x1::evm entry::Log3Event`, you can use the `eth_getTransactionReceipt` get the parsed evm forms of logs
+` Events ` display list of trigger Events in the transaction, for the evm contracts issued by the original log data, the type of `0x1::evm::Log0Event, 0x1::evm::Log1Event, 0x1::evm::Log2Event, 0x1::evm::Log3Event, 0x1::evm entry::Log3Event`, you can use the `eth_getTransactionReceipt` get the parsed evm forms of logs
 
 ![png](static/chrome_EgMJoclYgk.png)
 
