@@ -68,7 +68,7 @@ curl --location 'https://mevm.devnet.m1.movementlabs.xyz' \
 
 ![png](static/chrome_edmzeYfyaQ.png)
 
-`overview` display the status of the transaction and the use of gas
+`Overview` display the status of the transaction and the use of gas
 
 ![png](static/chrome_ACoVZgcGgv.png)
 
