@@ -113,7 +113,8 @@ curl --location 'https://mevm.devnet.m1.movementlabs.xyz' \
 
 ![png](static/chrome_ZJWkYOX5ra.png)
 
-`Resources` displays the account info, include evm account `nonce`, `balance`, `code`
+* `Resources` displays the account info, include evm account `nonce`, `balance`, `code`
+
 ![png](static/FlbhOTy0J3.png)
 
 ### Add RPC to MetaMask
