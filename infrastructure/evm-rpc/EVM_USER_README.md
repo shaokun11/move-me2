@@ -123,11 +123,20 @@ curl --location 'https://mevm.devnet.m1.movementlabs.xyz' \
 
 ### Connect MetaMask to Remix and Interact with Contracts
 
-1. Open [Remix IDE](http://remix.ethereum.org/), and open the built-in _Storage_ contract ![png](static/chrome_ci8sbs7hKq.png)
-2. Compile the contract ![png](static/chrome_YU6sTLmcb3.png)
-3. Deploy the contract (make sure to select the network environment provided by MetaMask). After successful deployment, the contract address will appear in the bottom left corner for interaction.![png](static/chrome_WIbIq1LHp5.png)
+1. Open [Remix IDE](http://remix.ethereum.org/), and open the built-in _Storage_ contract  
 
-4. Interact with the contract![png](static/chrome_pYLDdKbT6Z.png)
+![png](static/chrome_ci8sbs7hKq.png)
+
+2. Compile the contract
+
+![png](static/chrome_YU6sTLmcb3.png)
+
+3. Deploy the contract (make sure to select the network environment provided by MetaMask). After successful deployment, the contract address will appear in the bottom left corner for interaction.
+
+![png](static/chrome_WIbIq1LHp5.png)
+
+4. Interact with the contract
+![png](static/chrome_pYLDdKbT6Z.png)
 
 ### Possible Issues
 
