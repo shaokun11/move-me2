@@ -15,7 +15,7 @@ The following RPC methods have been implemented to ensure interaction with Solid
 - `eth_chainId`: Get the chain ID, currently fixed at 336.
 - `net_version`: Get the version number.
 - `eth_gasPrice`: Get the current gas price.
-- `eth_blockNumber`: Get the latest block number. Updated every 2 seconds.
+- `eth_blockNumber`: Get the latest block number.
 - `eth_sendRawTransaction`: Send signed raw transaction data. This checks the correctness of the signature.
 - `eth_call`: Invoke methods of smart contracts.
 - `eth_getTransactionCount`: Get the transaction count for a specific address.
@@ -23,7 +23,7 @@ The following RPC methods have been implemented to ensure interaction with Solid
 - `eth_getTransactionReceipt`: Get the transaction receipt based on the transaction hash.
 - `eth_estimateGas`: Estimate the gas consumption for a transaction. For successful transactions, if the gas is less than 21,000, it will return 21,000, but the actual consumed gas will be used when sending the transaction.
 - `eth_getBlockByNumber`: Get block information based on the block number.
-- `eth_getBlockByHash`: Get block information based on the block hash. Currently returns empty.
+- `eth_getBlockByHash`: Get block information based on the block hash.
 - `eth_getBalance`: Get the balance of a specific address
 - `eth_getCode`: Get the code of a specific contract address.
 - `eth_getStorageAt`: Get the storage at a specific position in a specific address
