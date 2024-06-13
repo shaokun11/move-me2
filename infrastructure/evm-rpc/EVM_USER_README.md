@@ -115,11 +115,25 @@ curl --location 'https://mevm.devnet.m1.movementlabs.xyz' \
 
 ### Add RPC to MetaMask
 
-1. Open MetaMask ![png](static/d17J7RxpqC.png)
-2. Go to settings ![png](static/KhoOwatzms.png)
-3. Go to network settings ![png](static/d5L1LFOLZR.png)
-4. Add a network ![png](static/nwzl29YTEb.png)
-5. Add network information ![png](static/chrome_xvlAxtXOYq.png)
+1. Open MetaMask 
+
+![png](static/d17J7RxpqC.png)
+
+2. Go to settings
+
+![png](static/KhoOwatzms.png)
+
+3. Go to network settings 
+
+![png](static/d5L1LFOLZR.png)
+
+4. Add a network 
+
+![png](static/nwzl29YTEb.png)
+
+5. Add network information 
+
+![png](static/chrome_xvlAxtXOYq.png)
 
 ### Connect MetaMask to Remix and Interact with Contracts
 
