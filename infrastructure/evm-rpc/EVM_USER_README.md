@@ -109,9 +109,12 @@ curl --location 'https://mevm.devnet.m1.movementlabs.xyz' \
     }
 ```
 
-- Check the details of this account in your browser
+- Click the details of this account in your browser
 
-![png](static/chrome_axNYt4uafS.png)
+![png](static/chrome_ZJWkYOX5ra.png)
+
+`Resources` displays the account info, include evm account `nonce`, `balance`, `code`
+![png](static/FlbhOTy0J3.png)
 
 ### Add RPC to MetaMask
 
