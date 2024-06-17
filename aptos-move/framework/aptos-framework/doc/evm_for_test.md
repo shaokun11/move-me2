@@ -1,0 +1,2036 @@
+
+<a id="0x1_evm_for_test"></a>
+
+# Module `0x1::evm_for_test`
+
+
+
+-  [Struct `TestAccount`](#0x1_evm_for_test_TestAccount)
+-  [Resource `Account`](#0x1_evm_for_test_Account)
+-  [Struct `Log0Event`](#0x1_evm_for_test_Log0Event)
+-  [Struct `Log1Event`](#0x1_evm_for_test_Log1Event)
+-  [Struct `Log2Event`](#0x1_evm_for_test_Log2Event)
+-  [Struct `Log3Event`](#0x1_evm_for_test_Log3Event)
+-  [Struct `Log4Event`](#0x1_evm_for_test_Log4Event)
+-  [Resource `ContractEvent`](#0x1_evm_for_test_ContractEvent)
+-  [Constants](#@Constants_0)
+-  [Function `revert`](#0x1_evm_for_test_revert)
+-  [Function `calculate_root`](#0x1_evm_for_test_calculate_root)
+-  [Function `decode_raw_tx`](#0x1_evm_for_test_decode_raw_tx)
+-  [Function `mul_mod`](#0x1_evm_for_test_mul_mod)
+-  [Function `mul`](#0x1_evm_for_test_mul)
+-  [Function `exp`](#0x1_evm_for_test_exp)
+-  [Function `get_code`](#0x1_evm_for_test_get_code)
+-  [Function `get_nonce`](#0x1_evm_for_test_get_nonce)
+-  [Function `get_balance`](#0x1_evm_for_test_get_balance)
+-  [Function `get_storage`](#0x1_evm_for_test_get_storage)
+-  [Function `set_nonce`](#0x1_evm_for_test_set_nonce)
+-  [Function `set_storage`](#0x1_evm_for_test_set_storage)
+-  [Function `exist_contract`](#0x1_evm_for_test_exist_contract)
+-  [Function `sub_balance`](#0x1_evm_for_test_sub_balance)
+-  [Function `add_balance`](#0x1_evm_for_test_add_balance)
+-  [Function `transfer`](#0x1_evm_for_test_transfer)
+-  [Function `pre_init`](#0x1_evm_for_test_pre_init)
+-  [Function `run_test`](#0x1_evm_for_test_run_test)
+-  [Function `run`](#0x1_evm_for_test_run)
+-  [Function `precompile`](#0x1_evm_for_test_precompile)
+-  [Function `create2_address`](#0x1_evm_for_test_create2_address)
+-  [Function `verify_nonce`](#0x1_evm_for_test_verify_nonce)
+-  [Function `verify_signature`](#0x1_evm_for_test_verify_signature)
+
+
+<pre><code><b>use</b> <a href="account.md#0x1_account">0x1::account</a>;
+<b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/hash.md#0x1_aptos_hash">0x1::aptos_hash</a>;
+<b>use</b> <a href="block.md#0x1_block">0x1::block</a>;
+<b>use</b> <a href="../../aptos-stdlib/doc/debug.md#0x1_debug">0x1::debug</a>;
+<b>use</b> <a href="event.md#0x1_event">0x1::event</a>;
+<b>use</b> <a href="arithmetic.md#0x1_evm_arithmetic">0x1::evm_arithmetic</a>;
+<b>use</b> <a href="util.md#0x1_evm_util">0x1::evm_util</a>;
+<b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/option.md#0x1_option">0x1::option</a>;
+<b>use</b> <a href="precompile.md#0x1_precompile">0x1::precompile</a>;
+<b>use</b> <a href="../../aptos-stdlib/doc/secp256k1.md#0x1_secp256k1">0x1::secp256k1</a>;
+<b>use</b> <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map">0x1::simple_map</a>;
+<b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/string.md#0x1_string">0x1::string</a>;
+<b>use</b> <a href="../../aptos-stdlib/doc/table.md#0x1_table">0x1::table</a>;
+<b>use</b> <a href="timestamp.md#0x1_timestamp">0x1::timestamp</a>;
+<b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">0x1::vector</a>;
+</code></pre>
+
+
+
+<a id="0x1_evm_for_test_TestAccount"></a>
+
+## Struct `TestAccount`
+
+
+
+<pre><code><b>struct</b> <a href="evm_for_test.md#0x1_evm_for_test_TestAccount">TestAccount</a> <b>has</b> <b>copy</b>, drop, store
+</code></pre>
+
+
+
+<details>
+<summary>Fields</summary>
+
+
+<dl>
+<dt>
+<code>balance: u256</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code><a href="code.md#0x1_code">code</a>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>nonce: u256</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>storage: <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_SimpleMap">simple_map::SimpleMap</a>&lt;u256, u256&gt;</code>
+</dt>
+<dd>
+
+</dd>
+</dl>
+
+
+</details>
+
+<a id="0x1_evm_for_test_Account"></a>
+
+## Resource `Account`
+
+
+
+<pre><code><b>struct</b> <a href="evm_for_test.md#0x1_evm_for_test_Account">Account</a> <b>has</b> key
+</code></pre>
+
+
+
+<details>
+<summary>Fields</summary>
+
+
+<dl>
+<dt>
+<code>balance: u256</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>nonce: u64</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>is_contract: bool</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code><a href="code.md#0x1_code">code</a>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>storage: <a href="../../aptos-stdlib/doc/table.md#0x1_table_Table">table::Table</a>&lt;u256, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;</code>
+</dt>
+<dd>
+
+</dd>
+</dl>
+
+
+</details>
+
+<a id="0x1_evm_for_test_Log0Event"></a>
+
+## Struct `Log0Event`
+
+
+
+<pre><code><b>struct</b> <a href="evm_for_test.md#0x1_evm_for_test_Log0Event">Log0Event</a> <b>has</b> drop, store
+</code></pre>
+
+
+
+<details>
+<summary>Fields</summary>
+
+
+<dl>
+<dt>
+<code>contract: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+</dl>
+
+
+</details>
+
+<a id="0x1_evm_for_test_Log1Event"></a>
+
+## Struct `Log1Event`
+
+
+
+<pre><code><b>struct</b> <a href="evm_for_test.md#0x1_evm_for_test_Log1Event">Log1Event</a> <b>has</b> drop, store
+</code></pre>
+
+
+
+<details>
+<summary>Fields</summary>
+
+
+<dl>
+<dt>
+<code>contract: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>topic0: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+</dl>
+
+
+</details>
+
+<a id="0x1_evm_for_test_Log2Event"></a>
+
+## Struct `Log2Event`
+
+
+
+<pre><code><b>struct</b> <a href="evm_for_test.md#0x1_evm_for_test_Log2Event">Log2Event</a> <b>has</b> drop, store
+</code></pre>
+
+
+
+<details>
+<summary>Fields</summary>
+
+
+<dl>
+<dt>
+<code>contract: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>topic0: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>topic1: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+</dl>
+
+
+</details>
+
+<a id="0x1_evm_for_test_Log3Event"></a>
+
+## Struct `Log3Event`
+
+
+
+<pre><code><b>struct</b> <a href="evm_for_test.md#0x1_evm_for_test_Log3Event">Log3Event</a> <b>has</b> drop, store
+</code></pre>
+
+
+
+<details>
+<summary>Fields</summary>
+
+
+<dl>
+<dt>
+<code>contract: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>topic0: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>topic1: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>topic2: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+</dl>
+
+
+</details>
+
+<a id="0x1_evm_for_test_Log4Event"></a>
+
+## Struct `Log4Event`
+
+
+
+<pre><code><b>struct</b> <a href="evm_for_test.md#0x1_evm_for_test_Log4Event">Log4Event</a> <b>has</b> drop, store
+</code></pre>
+
+
+
+<details>
+<summary>Fields</summary>
+
+
+<dl>
+<dt>
+<code>contract: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>topic0: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>topic1: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>topic2: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>topic3: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+</dl>
+
+
+</details>
+
+<a id="0x1_evm_for_test_ContractEvent"></a>
+
+## Resource `ContractEvent`
+
+
+
+<pre><code><b>struct</b> <a href="evm_for_test.md#0x1_evm_for_test_ContractEvent">ContractEvent</a> <b>has</b> key
+</code></pre>
+
+
+
+<details>
+<summary>Fields</summary>
+
+
+<dl>
+<dt>
+<code>log0Event: <a href="event.md#0x1_event_EventHandle">event::EventHandle</a>&lt;<a href="evm_for_test.md#0x1_evm_for_test_Log0Event">evm_for_test::Log0Event</a>&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>log1Event: <a href="event.md#0x1_event_EventHandle">event::EventHandle</a>&lt;<a href="evm_for_test.md#0x1_evm_for_test_Log1Event">evm_for_test::Log1Event</a>&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>log2Event: <a href="event.md#0x1_event_EventHandle">event::EventHandle</a>&lt;<a href="evm_for_test.md#0x1_evm_for_test_Log2Event">evm_for_test::Log2Event</a>&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>log3Event: <a href="event.md#0x1_event_EventHandle">event::EventHandle</a>&lt;<a href="evm_for_test.md#0x1_evm_for_test_Log3Event">evm_for_test::Log3Event</a>&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>log4Event: <a href="event.md#0x1_event_EventHandle">event::EventHandle</a>&lt;<a href="evm_for_test.md#0x1_evm_for_test_Log4Event">evm_for_test::Log4Event</a>&gt;</code>
+</dt>
+<dd>
+
+</dd>
+</dl>
+
+
+</details>
+
+<a id="@Constants_0"></a>
+
+## Constants
+
+
+<a id="0x1_evm_for_test_U256_MAX"></a>
+
+
+
+<pre><code><b>const</b> <a href="evm_for_test.md#0x1_evm_for_test_U256_MAX">U256_MAX</a>: u256 = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
+</code></pre>
+
+
+
+<a id="0x1_evm_for_test_ACCOUNT_NOT_EXIST"></a>
+
+
+
+<pre><code><b>const</b> <a href="evm_for_test.md#0x1_evm_for_test_ACCOUNT_NOT_EXIST">ACCOUNT_NOT_EXIST</a>: u64 = 10008;
+</code></pre>
+
+
+
+<a id="0x1_evm_for_test_ADDR_LENGTH"></a>
+
+
+
+<pre><code><b>const</b> <a href="evm_for_test.md#0x1_evm_for_test_ADDR_LENGTH">ADDR_LENGTH</a>: u64 = 10001;
+</code></pre>
+
+
+
+<a id="0x1_evm_for_test_CHAIN_ID"></a>
+
+
+
+<pre><code><b>const</b> <a href="evm_for_test.md#0x1_evm_for_test_CHAIN_ID">CHAIN_ID</a>: u64 = 336;
+</code></pre>
+
+
+
+<a id="0x1_evm_for_test_CHAIN_ID_BYTES"></a>
+
+
+
+<pre><code><b>const</b> <a href="evm_for_test.md#0x1_evm_for_test_CHAIN_ID_BYTES">CHAIN_ID_BYTES</a>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt; = [1, 80];
+</code></pre>
+
+
+
+<a id="0x1_evm_for_test_CONTRACT_DEPLOYED"></a>
+
+
+
+<pre><code><b>const</b> <a href="evm_for_test.md#0x1_evm_for_test_CONTRACT_DEPLOYED">CONTRACT_DEPLOYED</a>: u64 = 10006;
+</code></pre>
+
+
+
+<a id="0x1_evm_for_test_CONTRACT_READ_ONLY"></a>
+
+
+
+<pre><code><b>const</b> <a href="evm_for_test.md#0x1_evm_for_test_CONTRACT_READ_ONLY">CONTRACT_READ_ONLY</a>: u64 = 10005;
+</code></pre>
+
+
+
+<a id="0x1_evm_for_test_CONVERT_BASE"></a>
+
+
+
+<pre><code><b>const</b> <a href="evm_for_test.md#0x1_evm_for_test_CONVERT_BASE">CONVERT_BASE</a>: u256 = 10000000000;
+</code></pre>
+
+
+
+<a id="0x1_evm_for_test_INSUFFIENT_BALANCE"></a>
+
+
+
+<pre><code><b>const</b> <a href="evm_for_test.md#0x1_evm_for_test_INSUFFIENT_BALANCE">INSUFFIENT_BALANCE</a>: u64 = 10003;
+</code></pre>
+
+
+
+<a id="0x1_evm_for_test_INVALID_CHAINID"></a>
+
+invalid chain id in raw tx
+
+
+<pre><code><b>const</b> <a href="evm_for_test.md#0x1_evm_for_test_INVALID_CHAINID">INVALID_CHAINID</a>: u64 = 10009;
+</code></pre>
+
+
+
+<a id="0x1_evm_for_test_NONCE"></a>
+
+
+
+<pre><code><b>const</b> <a href="evm_for_test.md#0x1_evm_for_test_NONCE">NONCE</a>: u64 = 10004;
+</code></pre>
+
+
+
+<a id="0x1_evm_for_test_ONE_ADDR"></a>
+
+
+
+<pre><code><b>const</b> <a href="evm_for_test.md#0x1_evm_for_test_ONE_ADDR">ONE_ADDR</a>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt; = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1];
+</code></pre>
+
+
+
+<a id="0x1_evm_for_test_SIGNATURE"></a>
+
+
+
+<pre><code><b>const</b> <a href="evm_for_test.md#0x1_evm_for_test_SIGNATURE">SIGNATURE</a>: u64 = 10002;
+</code></pre>
+
+
+
+<a id="0x1_evm_for_test_TX_NOT_SUPPORT"></a>
+
+
+
+<pre><code><b>const</b> <a href="evm_for_test.md#0x1_evm_for_test_TX_NOT_SUPPORT">TX_NOT_SUPPORT</a>: u64 = 10007;
+</code></pre>
+
+
+
+<a id="0x1_evm_for_test_ZERO_ADDR"></a>
+
+
+
+<pre><code><b>const</b> <a href="evm_for_test.md#0x1_evm_for_test_ZERO_ADDR">ZERO_ADDR</a>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt; = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+</code></pre>
+
+
+
+<a id="0x1_evm_for_test_revert"></a>
+
+## Function `revert`
+
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_revert">revert</a>(message: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>native</b> <b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_revert">revert</a>(
+    message: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;
+);
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_for_test_calculate_root"></a>
+
+## Function `calculate_root`
+
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_calculate_root">calculate_root</a>(trie: <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_SimpleMap">simple_map::SimpleMap</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="evm_for_test.md#0x1_evm_for_test_TestAccount">evm_for_test::TestAccount</a>&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>native</b> <b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_calculate_root">calculate_root</a>(
+    trie: SimpleMap&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="evm_for_test.md#0x1_evm_for_test_TestAccount">TestAccount</a>&gt;
+);
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_for_test_decode_raw_tx"></a>
+
+## Function `decode_raw_tx`
+
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_decode_raw_tx">decode_raw_tx</a>(raw_tx: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): (u64, u64, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, u256, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>native</b> <b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_decode_raw_tx">decode_raw_tx</a>(
+    raw_tx: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;
+): (u64, u64, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, u256, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;);
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_for_test_mul_mod"></a>
+
+## Function `mul_mod`
+
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_mul_mod">mul_mod</a>(a: u256, b: u256, n: u256): u256
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>native</b> <b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_mul_mod">mul_mod</a>(a: u256, b: u256, n: u256): u256;
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_for_test_mul"></a>
+
+## Function `mul`
+
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_mul">mul</a>(a: u256, b: u256): u256
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>native</b> <b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_mul">mul</a>(a: u256, b: u256): u256;
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_for_test_exp"></a>
+
+## Function `exp`
+
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_exp">exp</a>(a: u256, b: u256): u256
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>native</b> <b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_exp">exp</a>(a: u256, b: u256): u256;
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_for_test_get_code"></a>
+
+## Function `get_code`
+
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_get_code">get_code</a>(contract_addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, trie: &<a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_SimpleMap">simple_map::SimpleMap</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="evm_for_test.md#0x1_evm_for_test_TestAccount">evm_for_test::TestAccount</a>&gt;): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_get_code">get_code</a>(contract_addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, trie: &SimpleMap&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="evm_for_test.md#0x1_evm_for_test_TestAccount">TestAccount</a>&gt;): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt; {
+    <b>if</b>(<a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_contains_key">simple_map::contains_key</a>(trie, &contract_addr)) {
+        <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_borrow">simple_map::borrow</a>(trie, &contract_addr).<a href="code.md#0x1_code">code</a>
+    } <b>else</b> {
+        x""
+    }
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_for_test_get_nonce"></a>
+
+## Function `get_nonce`
+
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_get_nonce">get_nonce</a>(contract_addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, trie: &<a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_SimpleMap">simple_map::SimpleMap</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="evm_for_test.md#0x1_evm_for_test_TestAccount">evm_for_test::TestAccount</a>&gt;): u256
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_get_nonce">get_nonce</a>(contract_addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, trie: &SimpleMap&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="evm_for_test.md#0x1_evm_for_test_TestAccount">TestAccount</a>&gt;): u256 {
+    <b>if</b>(<a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_contains_key">simple_map::contains_key</a>(trie, &contract_addr)) {
+        <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_borrow">simple_map::borrow</a>(trie, &contract_addr).nonce
+    } <b>else</b> {
+        0
+    }
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_for_test_get_balance"></a>
+
+## Function `get_balance`
+
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_get_balance">get_balance</a>(contract_addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, trie: &<a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_SimpleMap">simple_map::SimpleMap</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="evm_for_test.md#0x1_evm_for_test_TestAccount">evm_for_test::TestAccount</a>&gt;): u256
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_get_balance">get_balance</a>(contract_addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, trie: &SimpleMap&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="evm_for_test.md#0x1_evm_for_test_TestAccount">TestAccount</a>&gt;): u256 {
+    <b>if</b>(<a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_contains_key">simple_map::contains_key</a>(trie, &contract_addr)) {
+        <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_borrow">simple_map::borrow</a>(trie, &contract_addr).balance
+    } <b>else</b> {
+        0
+    }
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_for_test_get_storage"></a>
+
+## Function `get_storage`
+
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_get_storage">get_storage</a>(contract_addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, key: u256, trie: &<a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_SimpleMap">simple_map::SimpleMap</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="evm_for_test.md#0x1_evm_for_test_TestAccount">evm_for_test::TestAccount</a>&gt;): u256
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_get_storage">get_storage</a>(contract_addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, key: u256, trie: &SimpleMap&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="evm_for_test.md#0x1_evm_for_test_TestAccount">TestAccount</a>&gt;): u256 {
+    <b>if</b>(!<a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_contains_key">simple_map::contains_key</a>(trie, &contract_addr)) {
+        <b>return</b> 0
+    };
+    <b>let</b> <a href="account.md#0x1_account">account</a> = <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_borrow">simple_map::borrow</a>(trie, &contract_addr);
+    <b>if</b>(<a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_contains_key">simple_map::contains_key</a>(&<a href="account.md#0x1_account">account</a>.storage, &key)) {
+        *<a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_borrow">simple_map::borrow</a>( &<a href="account.md#0x1_account">account</a>.storage, &key)
+    } <b>else</b> {
+        0
+    }
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_for_test_set_nonce"></a>
+
+## Function `set_nonce`
+
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_set_nonce">set_nonce</a>(contract_addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, nonce: u256, trie: &<b>mut</b> <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_SimpleMap">simple_map::SimpleMap</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="evm_for_test.md#0x1_evm_for_test_TestAccount">evm_for_test::TestAccount</a>&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_set_nonce">set_nonce</a>(contract_addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, nonce: u256, trie: &<b>mut</b> SimpleMap&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="evm_for_test.md#0x1_evm_for_test_TestAccount">TestAccount</a>&gt;) {
+    <b>let</b> <a href="account.md#0x1_account">account</a> =  <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_borrow_mut">simple_map::borrow_mut</a>(trie, &contract_addr);
+    <a href="account.md#0x1_account">account</a>.nonce = nonce;
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_for_test_set_storage"></a>
+
+## Function `set_storage`
+
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_set_storage">set_storage</a>(contract_addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, key: u256, value: u256, trie: &<b>mut</b> <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_SimpleMap">simple_map::SimpleMap</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="evm_for_test.md#0x1_evm_for_test_TestAccount">evm_for_test::TestAccount</a>&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_set_storage">set_storage</a>(contract_addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, key: u256, value: u256, trie: &<b>mut</b> SimpleMap&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="evm_for_test.md#0x1_evm_for_test_TestAccount">TestAccount</a>&gt;) {
+    <b>let</b> <a href="account.md#0x1_account">account</a> =  <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_borrow_mut">simple_map::borrow_mut</a>(trie, &contract_addr);
+    <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_upsert">simple_map::upsert</a>(&<b>mut</b> <a href="account.md#0x1_account">account</a>.storage, key, value);
+    // <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_upsert">simple_map::upsert</a>(trie, contract_addr, *<a href="account.md#0x1_account">account</a>);
+    // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&<a href="account.md#0x1_account">account</a>.storage);
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_for_test_exist_contract"></a>
+
+## Function `exist_contract`
+
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_exist_contract">exist_contract</a>(contract_addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, trie: &<a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_SimpleMap">simple_map::SimpleMap</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="evm_for_test.md#0x1_evm_for_test_TestAccount">evm_for_test::TestAccount</a>&gt;): bool
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_exist_contract">exist_contract</a>(contract_addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, trie: &SimpleMap&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="evm_for_test.md#0x1_evm_for_test_TestAccount">TestAccount</a>&gt;): bool {
+    <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_contains_key">simple_map::contains_key</a>(trie, &contract_addr)
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_for_test_sub_balance"></a>
+
+## Function `sub_balance`
+
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_sub_balance">sub_balance</a>(contract_addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, amount: u256, trie: &<b>mut</b> <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_SimpleMap">simple_map::SimpleMap</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="evm_for_test.md#0x1_evm_for_test_TestAccount">evm_for_test::TestAccount</a>&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_sub_balance">sub_balance</a>(contract_addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, amount: u256, trie: &<b>mut</b> SimpleMap&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="evm_for_test.md#0x1_evm_for_test_TestAccount">TestAccount</a>&gt;) {
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&contract_addr);
+    <b>let</b> <a href="account.md#0x1_account">account</a> = <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_borrow_mut">simple_map::borrow_mut</a>(trie, &contract_addr);
+    <b>assert</b>!(<a href="account.md#0x1_account">account</a>.balance &gt;= amount, 2);
+    <a href="account.md#0x1_account">account</a>.balance = <a href="account.md#0x1_account">account</a>.balance - amount;
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_for_test_add_balance"></a>
+
+## Function `add_balance`
+
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_add_balance">add_balance</a>(contract_addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, amount: u256, trie: &<b>mut</b> <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_SimpleMap">simple_map::SimpleMap</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="evm_for_test.md#0x1_evm_for_test_TestAccount">evm_for_test::TestAccount</a>&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_add_balance">add_balance</a>(contract_addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, amount: u256, trie: &<b>mut</b> SimpleMap&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="evm_for_test.md#0x1_evm_for_test_TestAccount">TestAccount</a>&gt;) {
+    <b>let</b> <a href="account.md#0x1_account">account</a> = <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_borrow_mut">simple_map::borrow_mut</a>(trie, &contract_addr);
+    <a href="account.md#0x1_account">account</a>.balance = <a href="account.md#0x1_account">account</a>.balance + amount;
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_for_test_transfer"></a>
+
+## Function `transfer`
+
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_transfer">transfer</a>(from: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, amount: u256, trie: &<b>mut</b> <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_SimpleMap">simple_map::SimpleMap</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="evm_for_test.md#0x1_evm_for_test_TestAccount">evm_for_test::TestAccount</a>&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_transfer">transfer</a>(from: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, amount: u256, trie: &<b>mut</b> SimpleMap&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="evm_for_test.md#0x1_evm_for_test_TestAccount">TestAccount</a>&gt;) {
+    <a href="evm_for_test.md#0x1_evm_for_test_sub_balance">sub_balance</a>(from, amount, trie);
+    <a href="evm_for_test.md#0x1_evm_for_test_add_balance">add_balance</a>(<b>to</b>, amount, trie);
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_for_test_pre_init"></a>
+
+## Function `pre_init`
+
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_pre_init">pre_init</a>(addresses: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;, codes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;, nonces: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u64&gt;, balances: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;): <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_SimpleMap">simple_map::SimpleMap</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="evm_for_test.md#0x1_evm_for_test_TestAccount">evm_for_test::TestAccount</a>&gt;
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_pre_init">pre_init</a>(addresses: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;,
+              codes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;,
+              nonces: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u64&gt;,
+              balances: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;): SimpleMap&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="evm_for_test.md#0x1_evm_for_test_TestAccount">TestAccount</a>&gt; {
+    <b>let</b> trie = <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_new">simple_map::new</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="evm_for_test.md#0x1_evm_for_test_TestAccount">TestAccount</a>&gt;();
+    <b>let</b> pre_len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&addresses);
+    <b>let</b> i = 0;
+    <b>while</b>(i &lt; pre_len) {
+        <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_add">simple_map::add</a>(&<b>mut</b> trie, to_32bit(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&addresses, i)), <a href="evm_for_test.md#0x1_evm_for_test_TestAccount">TestAccount</a> {
+            balance: to_u256(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&balances, i)),
+            <a href="code.md#0x1_code">code</a>: *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&codes, i),
+            nonce: (*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&nonces, i) <b>as</b> u256),
+            storage: <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_new">simple_map::new</a>&lt;u256, u256&gt;(),
+        });
+        i = i + 1;
+    };
+    trie
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_for_test_run_test"></a>
+
+## Function `run_test`
+
+
+
+<pre><code><b>public</b> entry <b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_run_test">run_test</a>(addresses: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;, codes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;, nonces: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u64&gt;, balances: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;, from: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, value_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> entry <b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_run_test">run_test</a>(addresses: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;,
+                          codes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;,
+                          nonces: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u64&gt;,
+                          balances: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;,
+                          from: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
+                          <b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
+                          data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
+                          value_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;) <b>acquires</b> <a href="evm_for_test.md#0x1_evm_for_test_Account">Account</a> {
+    <b>let</b> value = to_u256(value_bytes);
+    <b>let</b> trie = <a href="evm_for_test.md#0x1_evm_for_test_pre_init">pre_init</a>(addresses, codes, nonces, balances);
+    <b>let</b> transient = <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_new">simple_map::new</a>&lt;u256, u256&gt;();
+    from = to_32bit(from);
+    <b>to</b> = to_32bit(<b>to</b>);
+    // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&trie);
+    <a href="evm_for_test.md#0x1_evm_for_test_run">run</a>(from, from, <b>to</b>, <a href="evm_for_test.md#0x1_evm_for_test_get_code">get_code</a>(<b>to</b>, &trie), data, value, &<b>mut</b> trie, &<b>mut</b> transient);
+    <a href="evm_for_test.md#0x1_evm_for_test_calculate_root">calculate_root</a>(trie);
+    // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&trie);
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_for_test_run"></a>
+
+## Function `run`
+
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_run">run</a>(origin: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, sender: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="code.md#0x1_code">code</a>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, value: u256, trie: &<b>mut</b> <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_SimpleMap">simple_map::SimpleMap</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="evm_for_test.md#0x1_evm_for_test_TestAccount">evm_for_test::TestAccount</a>&gt;, transient: &<b>mut</b> <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_SimpleMap">simple_map::SimpleMap</a>&lt;u256, u256&gt;): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_run">run</a>(
+        origin: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
+        sender: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
+        <b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
+        <a href="code.md#0x1_code">code</a>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
+        data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
+        value: u256,
+        trie: &<b>mut</b> SimpleMap&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="evm_for_test.md#0x1_evm_for_test_TestAccount">TestAccount</a>&gt;,
+        transient: &<b>mut</b> SimpleMap&lt;u256, u256&gt;
+    ): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;) <b>acquires</b> <a href="evm_for_test.md#0x1_evm_for_test_Account">Account</a> {
+
+    <b>if</b> (is_precompile_address(<b>to</b>)) {
+        <b>return</b> (<b>true</b>, <a href="precompile.md#0x1_precompile">precompile</a>(sender, <b>to</b>, value, data, trie))
+    };
+    <a href="evm_for_test.md#0x1_evm_for_test_transfer">transfer</a>(sender, <b>to</b>, value, trie);
+
+    // <b>let</b> to_account = <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_borrow_mut">simple_map::borrow_mut</a>(&<b>mut</b> trie, &<b>to</b>);
+
+    <b>let</b> stack = &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_empty">vector::empty</a>&lt;u256&gt;();
+    <b>let</b> memory = &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_empty">vector::empty</a>&lt;u8&gt;();
+    <b>let</b> to_code = <a href="evm_for_test.md#0x1_evm_for_test_get_code">get_code</a>(<b>to</b>, trie);
+    <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&to_code);
+    <b>let</b> i = 0;
+    <b>let</b> runtime_code = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_empty">vector::empty</a>&lt;u8&gt;();
+    <b>let</b> ret_bytes = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_empty">vector::empty</a>&lt;u8&gt;();
+    <b>let</b> _events = <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_new">simple_map::new</a>&lt;u256, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;();
+
+    <b>while</b> (i &lt; len) {
+        // Fetch the current opcode from the bytecode.
+        <b>let</b> opcode: u8 = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&to_code, i);
+        // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&i);
+        // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&opcode);
+
+        // Handle each opcode according <b>to</b> the EVM specification.
+        // The following is a simplified <a href="version.md#0x1_version">version</a> of the EVM execution engine,
+        // handling only a subset of all possible opcodes.
+        // Each branch in this <b>if</b>-<b>else</b> chain corresponds <b>to</b> a specific opcode,
+        // and contains the logic for executing that opcode.
+        // For example, the `add` opcode pops two elements from the stack,
+        // adds them together, and pushes the result back onto the stack.
+        // The `mul` opcode does the same but <b>with</b> multiplication, and so on.
+        // Some opcodes, like `sstore`, have side effects, such <b>as</b> modifying contract storage.
+        // The `jump` and `jumpi` opcodes alter the control flow of the execution.
+        // The `call`, `create`, and `create2` opcodes are used for contract interactions.
+        // The `log` opcodes are used for emitting events.
+        // The function returns the output data of the execution when it encounters the `stop` or `<b>return</b>` opcode.
+
+        // stop
+        <b>if</b>(opcode == 0x00) {
+            ret_bytes = runtime_code;
+            <b>break</b>
+        }
+        <b>else</b> <b>if</b>(opcode == 0xf3) {
+            <b>let</b> pos = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            ret_bytes = slice(*memory, pos, len);
+            // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&ret_bytes);
+            <b>break</b>
+        }
+            //add
+        <b>else</b> <b>if</b>(opcode == 0x01) {
+            <b>let</b> a = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> b = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>if</b>(a &gt; 0 && b &gt;= (<a href="evm_for_test.md#0x1_evm_for_test_U256_MAX">U256_MAX</a> - a + 1)) {
+                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, b - (<a href="evm_for_test.md#0x1_evm_for_test_U256_MAX">U256_MAX</a> - a + 1));
+            } <b>else</b> {
+                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, a + b);
+            };
+            i = i + 1;
+        }
+            //mul
+        <b>else</b> <b>if</b>(opcode == 0x02) {
+            <b>let</b> a = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> b = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, <a href="evm_for_test.md#0x1_evm_for_test_mul">mul</a>(a, b));
+            i = i + 1;
+        }
+            //sub
+        <b>else</b> <b>if</b>(opcode == 0x03) {
+            <b>let</b> a = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> b = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>if</b>(a &gt;= b) {
+                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, a - b);
+            } <b>else</b> {
+                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, <a href="evm_for_test.md#0x1_evm_for_test_U256_MAX">U256_MAX</a> - b + a + 1);
+            };
+            i = i + 1;
+        }
+            //div
+        <b>else</b> <b>if</b>(opcode == 0x04) {
+            <b>let</b> a = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> b = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, <b>if</b>(b == 0) 0 <b>else</b> a / b);
+            i = i + 1;
+        }
+            //sdiv
+        <b>else</b> <b>if</b>(opcode == 0x05) {
+            <b>let</b>(sg_a, num_a) = to_int256(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack));
+            <b>let</b>(sg_b, num_b) = to_int256(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack));
+            <b>let</b> num_c = num_a / num_b;
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, add_sign(num_c, (!sg_a && sg_b) || (sg_a && !sg_b)));
+            i = i + 1;
+        }
+            //mod
+        <b>else</b> <b>if</b>(opcode == 0x06) {
+            <b>let</b> a = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> b = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, a % b);
+            i = i + 1;
+        }
+            //smod
+        <b>else</b> <b>if</b>(opcode == 0x07) {
+            <b>let</b>(sg_a, num_a) = to_int256(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack));
+            <b>let</b>(_sg_b, num_b) = to_int256(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack));
+            <b>let</b> num_c = num_a % num_b;
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, add_sign(num_c, sg_a));
+            i = i + 1;
+        }
+            //addmod
+        <b>else</b> <b>if</b>(opcode == 0x08) {
+            <b>let</b> a = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> b = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> n = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, (a + b) % n);
+            i = i + 1;
+        }
+            //mulmod
+        <b>else</b> <b>if</b>(opcode == 0x09) {
+            <b>let</b> a = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> b = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> n = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, <a href="evm_for_test.md#0x1_evm_for_test_mul_mod">mul_mod</a>(a, b, n));
+            i = i + 1;
+        }
+            //exp
+        <b>else</b> <b>if</b>(opcode == 0x0a) {
+            <b>let</b> a = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> b = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, <a href="evm_for_test.md#0x1_evm_for_test_exp">exp</a>(a, b));
+            i = i + 1;
+        }
+            //signextend
+        <b>else</b> <b>if</b>(opcode == 0x0b) {
+            <b>let</b> b = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> value = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>if</b>(b &gt; 31) {
+                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, value);
+            } <b>else</b> {
+                <b>let</b> index = ((8 * b + 7) <b>as</b> u8);
+                <b>let</b> mask = (1 &lt;&lt; index) - 1;
+                <b>if</b>(((value &gt;&gt; index) & 1) == 0) {
+                    <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, value & mask);
+                } <b>else</b> {
+                    <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, value | (<a href="evm_for_test.md#0x1_evm_for_test_U256_MAX">U256_MAX</a> - mask));
+                };
+            };
+            i = i + 1;
+        }
+            //lt
+        <b>else</b> <b>if</b>(opcode == 0x10) {
+            <b>let</b> a = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> b = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>if</b>(a &lt; b) {
+                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 1)
+            } <b>else</b> {
+                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 0)
+            };
+            i = i + 1;
+        }
+            //gt
+        <b>else</b> <b>if</b>(opcode == 0x11) {
+            <b>let</b> a = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> b = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>if</b>(a &gt; b) {
+                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 1)
+            } <b>else</b> {
+                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 0)
+            };
+            i = i + 1;
+        }
+            //slt
+        <b>else</b> <b>if</b>(opcode == 0x12) {
+            <b>let</b> a = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> b = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b>(neg_a, num_a) = to_int256(a);
+            <b>let</b>(neg_b, num_b) = to_int256(b);
+
+            <b>let</b> is_positive_lt = num_a &lt; num_b && !(neg_a || neg_b);
+            <b>let</b> is_negative_lt = num_a &gt; num_b && (neg_a && neg_b);
+            <b>let</b> has_different_signs = neg_a && !neg_b;
+
+            <b>let</b> value = 0;
+            <b>if</b>(is_positive_lt || is_negative_lt || has_different_signs) {
+                value = 1
+            };
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, value);
+            i = i + 1;
+        }
+            //sgt
+        <b>else</b> <b>if</b>(opcode == 0x13) {
+            <b>let</b> a = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> b = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b>(neg_a, num_a) = to_int256(a);
+            <b>let</b>(neg_b, num_b) = to_int256(b);
+
+            <b>let</b> is_positive_gt = num_a &gt; num_b && !(neg_a || neg_b);
+            <b>let</b> is_negative_gt = num_a &lt; num_b && (neg_a && neg_b);
+            <b>let</b> has_different_signs = !neg_a && neg_b;
+            <b>let</b> value = 0;
+            <b>if</b>(is_positive_gt || is_negative_gt || has_different_signs) {
+                value = 1
+            };
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, value);
+            i = i + 1;
+        }
+            //eq
+        <b>else</b> <b>if</b>(opcode == 0x14) {
+            <b>let</b> a = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> b = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>if</b>(a == b) {
+                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 1);
+            } <b>else</b> {
+                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 0);
+            };
+            i = i + 1;
+        }
+            //and
+        <b>else</b> <b>if</b>(opcode == 0x16) {
+            <b>let</b> a = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> b = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, a & b);
+            i = i + 1;
+        }
+            //or
+        <b>else</b> <b>if</b>(opcode == 0x17) {
+            <b>let</b> a = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> b = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, a | b);
+            i = i + 1;
+        }
+            //xor
+        <b>else</b> <b>if</b>(opcode == 0x18) {
+            <b>let</b> a = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> b = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, a ^ b);
+            i = i + 1;
+        }
+            //not
+        <b>else</b> <b>if</b>(opcode == 0x19) {
+            // 10 1010
+            // 6 0101
+            <b>let</b> n = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, <a href="evm_for_test.md#0x1_evm_for_test_U256_MAX">U256_MAX</a> - n);
+            i = i + 1;
+        }
+            //byte
+        <b>else</b> <b>if</b>(opcode == 0x1a) {
+            <b>let</b> ith = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> x = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>if</b>(ith &gt;= 32) {
+                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 0);
+            } <b>else</b> {
+                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, (x &gt;&gt; ((248 - ith * 8) <b>as</b> u8)) & 0xFF);
+            };
+
+            i = i + 1;
+        }
+            //shl
+        <b>else</b> <b>if</b>(opcode == 0x1b) {
+            <b>let</b> b = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> a = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>if</b>(b &gt;= 256) {
+                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 0);
+            } <b>else</b> {
+                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, a &lt;&lt; (b <b>as</b> u8));
+            };
+            i = i + 1;
+        }
+            //shr
+        <b>else</b> <b>if</b>(opcode == 0x1c) {
+            <b>let</b> b = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> a = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>if</b>(b &gt;= 256) {
+                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 0);
+            } <b>else</b> {
+                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, a &gt;&gt; (b <b>as</b> u8));
+            };
+
+            i = i + 1;
+        }
+            //sar
+        <b>else</b> <b>if</b>(opcode == 0x1d) {
+            <b>let</b> b = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> a = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b>(neg, num_a) = to_int256(a);
+            <b>let</b> c = 0;
+            <b>if</b>(b == 0 || b &gt;= 256) {
+                <b>if</b>(neg) {
+                    c = <a href="evm_for_test.md#0x1_evm_for_test_U256_MAX">U256_MAX</a>;
+                }
+            } <b>else</b> {
+                <b>if</b>(neg) {
+                    <b>let</b> n = num_a &gt;&gt; (b <b>as</b> u8);
+                    c = <b>if</b>(n &gt; 0) <a href="evm_for_test.md#0x1_evm_for_test_U256_MAX">U256_MAX</a> - n + 1 <b>else</b> 0;
+                } <b>else</b> {
+                    c = a &gt;&gt; (b <b>as</b> u8);
+                }
+            };
+
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, c);
+            i = i + 1;
+        }
+            //push0
+        <b>else</b> <b>if</b>(opcode == 0x5f) {
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 0);
+            i = i + 1;
+        }
+            // push1 -&gt; push32
+        <b>else</b> <b>if</b>(opcode &gt;= 0x60 && opcode &lt;= 0x7f)  {
+            <b>let</b> n = ((opcode - 0x60) <b>as</b> u64);
+            <b>let</b> number = data_to_u256(to_code, ((i + 1) <b>as</b> u256), ((n + 1) <b>as</b> u256));
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, number);
+            i = i + n + 2;
+        }
+            // pop
+        <b>else</b> <b>if</b>(opcode == 0x50) {
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            i = i + 1
+        }
+            //<b>address</b>
+        <b>else</b> <b>if</b>(opcode == 0x30) {
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, data_to_u256(<b>to</b>, 0, 32));
+            i = i + 1;
+        }
+            //balance
+        <b>else</b> <b>if</b>(opcode == 0x31) {
+            <b>let</b> target = slice(u256_to_data(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack)), 12, 20);
+            <b>let</b> target_address = create_resource_address(&@aptos_framework, to_32bit(target));
+            <b>if</b>(<b>exists</b>&lt;<a href="evm_for_test.md#0x1_evm_for_test_Account">Account</a>&gt;(target_address)) {
+                <b>let</b> account_store = <b>borrow_global</b>&lt;<a href="evm_for_test.md#0x1_evm_for_test_Account">Account</a>&gt;(target_address);
+                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, account_store.balance);
+            } <b>else</b> {
+                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 0)
+            };
+            i = i + 1;
+        }
+            //origin
+        <b>else</b> <b>if</b>(opcode == 0x32) {
+            <b>let</b> value = data_to_u256(origin, 0, 32);
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, value);
+            i = i + 1;
+        }
+            //caller
+        <b>else</b> <b>if</b>(opcode == 0x33) {
+            <b>let</b> value = data_to_u256(sender, 0, 32);
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, value);
+            i = i + 1;
+        }
+            // callvalue
+        <b>else</b> <b>if</b>(opcode == 0x34) {
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, value);
+            i = i + 1;
+        }
+            //calldataload
+        <b>else</b> <b>if</b>(opcode == 0x35) {
+            <b>let</b> pos = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, data_to_u256(data, pos, 32));
+            i = i + 1;
+        }
+            //calldatasize
+        <b>else</b> <b>if</b>(opcode == 0x36) {
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, (<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&data) <b>as</b> u256));
+            i = i + 1;
+        }
+            //calldatacopy
+        <b>else</b> <b>if</b>(opcode == 0x37) {
+            <b>let</b> m_pos = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> d_pos = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> end = d_pos + len;
+            // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"calldatacopy"));
+            // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&data);
+            <b>while</b> (d_pos &lt; end) {
+                // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&d_pos);
+                // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&end);
+                <b>let</b> bytes = <b>if</b>(end - d_pos &gt;= 32) {
+                    slice(data, d_pos, 32)
+                } <b>else</b> {
+                    slice(data, d_pos, end - d_pos)
+                };
+                // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&bytes);
+                mstore(memory, m_pos, bytes);
+                d_pos = d_pos + 32;
+                m_pos = m_pos + 32;
+            };
+            i = i + 1
+        }
+            //codesize
+        <b>else</b> <b>if</b>(opcode == 0x38) {
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, (<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&<a href="code.md#0x1_code">code</a>) <b>as</b> u256));
+            i = i + 1
+        }
+            //codecopy
+        <b>else</b> <b>if</b>(opcode == 0x39) {
+            <b>let</b> m_pos = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> d_pos = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            runtime_code = slice(<a href="code.md#0x1_code">code</a>, d_pos, d_pos + len);
+            copy_to_memory(memory, m_pos, d_pos, len, <a href="code.md#0x1_code">code</a>);
+            i = i + 1
+        }
+            //extcodesize
+        <b>else</b> <b>if</b>(opcode == 0x3b) {
+            <b>let</b> target = slice(u256_to_data(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack)), 12, 20);
+            <b>let</b> <a href="code.md#0x1_code">code</a> = <a href="evm_for_test.md#0x1_evm_for_test_get_code">get_code</a>(to_32bit(target), trie);
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, (<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&<a href="code.md#0x1_code">code</a>) <b>as</b> u256));
+            i = i + 1;
+        }
+            //extcodecopy
+        <b>else</b> <b>if</b>(opcode == 0x3c) {
+            <b>let</b> target = slice(u256_to_data(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack)), 12, 20);
+            <b>let</b> <a href="code.md#0x1_code">code</a> = <a href="evm_for_test.md#0x1_evm_for_test_get_code">get_code</a>(to_32bit(target), trie);
+            <b>let</b> m_pos = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> d_pos = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            copy_to_memory(memory, m_pos, d_pos, len, <a href="code.md#0x1_code">code</a>);
+            i = i + 1;
+        }
+            //returndatacopy
+        <b>else</b> <b>if</b>(opcode == 0x3e) {
+            // mstore()
+            <b>let</b> m_pos = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> d_pos = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> bytes = slice(ret_bytes, d_pos, len);
+            mstore(memory, m_pos, bytes);
+            i = i + 1;
+        }
+            //returndatasize
+        <b>else</b> <b>if</b>(opcode == 0x3d) {
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, (<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&ret_bytes) <b>as</b> u256));
+            i = i + 1;
+        }
+            //blockhash
+        <b>else</b> <b>if</b>(opcode == 0x40) {
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 0);
+            i = i + 1;
+        }
+            //coinbase
+        <b>else</b> <b>if</b>(opcode == 0x41) {
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 0);
+            i = i + 1;
+        }
+            //<a href="timestamp.md#0x1_timestamp">timestamp</a>
+        <b>else</b> <b>if</b>(opcode == 0x42) {
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, (now_microseconds() <b>as</b> u256) / 1000000);
+            i = i + 1;
+        }
+            //number
+        <b>else</b> <b>if</b>(opcode == 0x43) {
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, (<a href="block.md#0x1_block_get_current_block_height">block::get_current_block_height</a>() <b>as</b> u256));
+            i = i + 1;
+        }
+            //difficulty
+        <b>else</b> <b>if</b>(opcode == 0x44) {
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 0);
+            i = i + 1;
+        }
+            //gaslimit
+        <b>else</b> <b>if</b>(opcode == 0x45) {
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 30000000);
+            i = i + 1;
+        }
+            //chainid
+        <b>else</b> <b>if</b>(opcode == 0x46) {
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 1);
+            i = i + 1
+        }
+            //self balance
+        <b>else</b> <b>if</b>(opcode == 0x47) {
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, <a href="evm_for_test.md#0x1_evm_for_test_get_balance">get_balance</a>(<b>to</b>, trie));
+            i = i + 1;
+        }
+            // mload
+        <b>else</b> <b>if</b>(opcode == 0x51) {
+            <b>let</b> pos = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, data_to_u256(slice(*memory, pos, 32), 0, 32));
+            i = i + 1;
+        }
+            // mstore
+        <b>else</b> <b>if</b>(opcode == 0x52) {
+            <b>let</b> pos = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> value = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            mstore(memory, pos, u256_to_data(value));
+            // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(memory);
+            i = i + 1;
+
+        }
+            //mstore8
+        <b>else</b> <b>if</b>(opcode == 0x53) {
+            <b>let</b> pos = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> value = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow_mut">vector::borrow_mut</a>(memory, (pos <b>as</b> u64)) = ((value & 0xff) <b>as</b> u8);
+            // mstore(memory, pos, u256_to_data(value & 0xff));
+            // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(memory);
+            i = i + 1;
+
+        }
+            // sload
+        <b>else</b> <b>if</b>(opcode == 0x54) {
+            <b>let</b> key = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, <a href="evm_for_test.md#0x1_evm_for_test_get_storage">get_storage</a>(<b>to</b>, key, trie));
+            i = i + 1;
+        }
+            // sstore
+        <b>else</b> <b>if</b>(opcode == 0x55) {
+            <b>let</b> key = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> value = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"store"));
+            <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&<b>to</b>);
+            <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&key);
+            <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&value);
+            <a href="evm_for_test.md#0x1_evm_for_test_set_storage">set_storage</a>(<b>to</b>, key, value, trie);
+            i = i + 1;
+        }
+            //dup1 -&gt; dup16
+        <b>else</b> <b>if</b>(opcode &gt;= 0x80 && opcode &lt;= 0x8f) {
+            <b>let</b> size = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack);
+            <b>let</b> value = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(stack, size - ((opcode - 0x80 + 1) <b>as</b> u64));
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, value);
+            i = i + 1;
+        }
+            //swap1 -&gt; swap16
+        <b>else</b> <b>if</b>(opcode &gt;= 0x90 && opcode &lt;= 0x9f) {
+            <b>let</b> size = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack);
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_swap">vector::swap</a>(stack, size - 1, size - ((opcode - 0x90 + 2) <b>as</b> u64));
+            i = i + 1;
+        }
+            //iszero
+        <b>else</b> <b>if</b>(opcode == 0x15) {
+            <b>let</b> value = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>if</b>(value == 0) {
+                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 1)
+            } <b>else</b> {
+                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 0)
+            };
+            i = i + 1;
+        }
+            //jump
+        <b>else</b> <b>if</b>(opcode == 0x56) {
+            <b>let</b> dest = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            i = (dest <b>as</b> u64) + 1
+        }
+            //jumpi
+        <b>else</b> <b>if</b>(opcode == 0x57) {
+            <b>let</b> dest = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> condition = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>if</b>(condition &gt; 0) {
+                i = (dest <b>as</b> u64) + 1
+            } <b>else</b> {
+                i = i + 1
+            }
+        }
+            //gas
+        <b>else</b> <b>if</b>(opcode == 0x5a) {
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 0);
+            i = i + 1
+        }
+            //jump dest (no action, <b>continue</b> execution)
+        <b>else</b> <b>if</b>(opcode == 0x5b) {
+            i = i + 1
+        }
+            //TLOAD
+        <b>else</b> <b>if</b>(opcode == 0x5c) {
+            <b>let</b> key = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>if</b>(<a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_contains_key">simple_map::contains_key</a>(transient, &key)) {
+                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, *<a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_borrow">simple_map::borrow</a>(transient, &key));
+            } <b>else</b> {
+                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 0);
+            };
+
+            i = i + 1
+        }
+            //TSTORE
+        <b>else</b> <b>if</b>(opcode == 0x5d) {
+            <b>let</b> key = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> value = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_upsert">simple_map::upsert</a>(transient, key, value);
+            i = i + 1
+        }
+            //MCOPY
+        <b>else</b> <b>if</b>(opcode == 0x5e) {
+            <b>let</b> m_pos = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> d_pos = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> bytes = slice(*memory, d_pos, len);
+            mstore(memory, m_pos, bytes);
+            i = i + 1;
+        }
+            //sha3
+        <b>else</b> <b>if</b>(opcode == 0x20) {
+            <b>let</b> pos = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> bytes = slice(*memory, pos, len);
+            // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&value);
+            <b>let</b> value = data_to_u256(keccak256(bytes), 0, 32);
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, value);
+            i = i + 1
+        }
+            //call 0xf1 static call 0xfa delegate call 0xf4
+        <b>else</b> <b>if</b>(opcode == 0xf1 || opcode == 0xfa || opcode == 0xf4) {
+            <b>let</b> _gas = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> evm_dest_addr = to_32bit(u256_to_data(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack)));
+            // <b>let</b> move_dest_addr = create_resource_address(&@aptos_framework, evm_dest_addr);
+            <b>let</b> msg_value = <b>if</b> (opcode == 0xf1) <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack) <b>else</b> 0;
+            <b>let</b> m_pos = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> m_len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> ret_pos = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> ret_len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> ret_end = ret_len + ret_pos;
+            <b>let</b> params = slice(*memory, m_pos, m_len);
+
+            // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"call 222"));
+            // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&opcode);
+            // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&dest_addr);
+            <b>if</b> (is_precompile_address(evm_dest_addr) || <a href="evm_for_test.md#0x1_evm_for_test_exist_contract">exist_contract</a>(evm_dest_addr, trie)) {
+                <b>let</b> dest_code = <a href="evm_for_test.md#0x1_evm_for_test_get_code">get_code</a>(evm_dest_addr, trie);
+
+                <b>let</b> target = <b>if</b> (opcode == 0xf4) <b>to</b> <b>else</b> evm_dest_addr;
+                <b>let</b> from = <b>if</b> (opcode == 0xf4) sender <b>else</b> <b>to</b>;
+                <b>let</b> (call_res, bytes) = <a href="evm_for_test.md#0x1_evm_for_test_run">run</a>(sender, from, target, dest_code, params, msg_value, trie, transient);
+                ret_bytes = bytes;
+                <b>let</b> index = 0;
+
+                <b>while</b> (ret_pos &lt; ret_end) {
+                    <b>let</b> bytes = <b>if</b> (ret_end - ret_pos &gt;= 32) {
+                        slice(bytes, index, 32)
+                    } <b>else</b> {
+                        slice(bytes, index, ret_end - ret_pos)
+                    };
+                    mstore(memory, ret_pos, bytes);
+                    ret_pos = ret_pos + 32;
+                    index = index + 32;
+                };
+                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack,  <b>if</b>(call_res) 1 <b>else</b> 0);
+            } <b>else</b> {
+                <a href="evm_for_test.md#0x1_evm_for_test_transfer">transfer</a>(<b>to</b>, evm_dest_addr, msg_value, trie);
+                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 1);
+            };
+            // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&opcode);
+            i = i + 1
+        }
+            //create
+        <b>else</b> <b>if</b>(opcode == 0xf0) {
+            <b>let</b> msg_value = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> pos = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> new_codes = slice(*memory, pos, len);
+            // <b>let</b> contract_store = <b>borrow_global_mut</b>&lt;<a href="evm_for_test.md#0x1_evm_for_test_Account">Account</a>&gt;(move_contract_address);
+            <b>let</b> nonce = <a href="evm_for_test.md#0x1_evm_for_test_get_nonce">get_nonce</a>(<b>to</b>, trie);
+            // must be 20 bytes
+
+            <b>let</b> new_evm_contract_addr = get_contract_address(<b>to</b>, (nonce <b>as</b> u64));
+            <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"create start"));
+            <a href="evm_for_test.md#0x1_evm_for_test_set_nonce">set_nonce</a>(<b>to</b>, nonce + 1, trie);
+
+
+            <b>let</b>(create_res, bytes) = <a href="evm_for_test.md#0x1_evm_for_test_run">run</a>(sender, <b>to</b>, new_evm_contract_addr, new_codes, x"", msg_value, trie, transient);
+            <b>if</b>(create_res) {
+                <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_add">simple_map::add</a>(trie, new_evm_contract_addr, <a href="evm_for_test.md#0x1_evm_for_test_TestAccount">TestAccount</a> {
+                    balance: 0,
+                    <a href="code.md#0x1_code">code</a>: bytes,
+                    nonce: 1,
+                    storage: <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_new">simple_map::new</a>&lt;u256, u256&gt;(),
+                });
+                ret_bytes = new_evm_contract_addr;
+                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, data_to_u256(new_evm_contract_addr, 0, 32));
+            } <b>else</b> {
+                ret_bytes = bytes;
+                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 0);
+            };
+
+            // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"create end"));
+
+
+            i = i + 1
+        }
+            //create2
+        <b>else</b> <b>if</b>(opcode == 0xf5) {
+            <b>let</b> msg_value = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> pos = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> salt = u256_to_data(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack));
+            <b>let</b> new_codes = slice(*memory, pos, len);
+            <b>let</b> p = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_empty">vector::empty</a>&lt;u8&gt;();
+            // <b>let</b> contract_store = ;
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> p, x"ff");
+            // must be 20 bytes
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> p, slice(<b>to</b>, 12, 20));
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> p, salt);
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> p, keccak256(new_codes));
+            <b>let</b> new_evm_contract_addr = to_32bit(slice(keccak256(p), 12, 20));
+
+            // to_account.nonce = to_account.nonce + 1;
+            <b>let</b> nonce = <a href="evm_for_test.md#0x1_evm_for_test_get_nonce">get_nonce</a>(<b>to</b>, trie);
+            <a href="evm_for_test.md#0x1_evm_for_test_set_nonce">set_nonce</a>(<b>to</b>, nonce + 1, trie);
+            <b>let</b> (create_res, bytes) = <a href="evm_for_test.md#0x1_evm_for_test_run">run</a>(<b>to</b>, sender, new_evm_contract_addr, new_codes, x"", msg_value, trie, transient);
+
+            <b>if</b>(create_res) {
+                <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_add">simple_map::add</a>(trie, new_evm_contract_addr, <a href="evm_for_test.md#0x1_evm_for_test_TestAccount">TestAccount</a> {
+                    balance: 0,
+                    <a href="code.md#0x1_code">code</a>: bytes,
+                    nonce: 1,
+                    storage: <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_new">simple_map::new</a>&lt;u256, u256&gt;(),
+                });
+
+                ret_bytes = new_evm_contract_addr;
+                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, data_to_u256(new_evm_contract_addr, 0, 32));
+            } <b>else</b> {
+                ret_bytes = bytes;
+                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 0);
+            };
+            i = i + 1
+        }
+            //revert
+        <b>else</b> <b>if</b>(opcode == 0xfd) {
+            <b>let</b> pos = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> bytes = slice(*memory, pos, len);
+            <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"revert"));
+            <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&bytes);
+            <a href="evm_for_test.md#0x1_evm_for_test_revert">revert</a>(bytes);
+        }
+            //log0
+        <b>else</b> <b>if</b>(opcode == 0xa0) {
+            <b>let</b> pos = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> _data = slice(*memory, pos, len);
+            // <b>let</b> event_store = <b>borrow_global_mut</b>&lt;<a href="evm_for_test.md#0x1_evm_for_test_ContractEvent">ContractEvent</a>&gt;(move_contract_address);
+            // <a href="event.md#0x1_event_emit_event">event::emit_event</a>&lt;<a href="evm_for_test.md#0x1_evm_for_test_Log0Event">Log0Event</a>&gt;(
+            //     &<b>mut</b> event_store.log0Event,
+            //     <a href="evm_for_test.md#0x1_evm_for_test_Log0Event">Log0Event</a>{
+            //         contract: evm_contract_address,
+            //         data,
+            //     },
+            // );
+            i = i + 1
+        }
+            //log1
+        <b>else</b> <b>if</b>(opcode == 0xa1) {
+            <b>let</b> pos = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> _data = slice(*memory, pos, len);
+            <b>let</b> _topic0 = u256_to_data(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack));
+            // <b>let</b> event_store = <b>borrow_global_mut</b>&lt;<a href="evm_for_test.md#0x1_evm_for_test_ContractEvent">ContractEvent</a>&gt;(move_contract_address);
+            // <a href="event.md#0x1_event_emit_event">event::emit_event</a>&lt;<a href="evm_for_test.md#0x1_evm_for_test_Log1Event">Log1Event</a>&gt;(
+            //     &<b>mut</b> event_store.log1Event,
+            //     <a href="evm_for_test.md#0x1_evm_for_test_Log1Event">Log1Event</a>{
+            //         contract: evm_contract_address,
+            //         data,
+            //         topic0,
+            //     },
+            // );
+            i = i + 1
+        }
+            //log2
+        <b>else</b> <b>if</b>(opcode == 0xa2) {
+            <b>let</b> pos = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> _data = slice(*memory, pos, len);
+            <b>let</b> _topic0 = u256_to_data(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack));
+            <b>let</b> _topic1 = u256_to_data(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack));
+            // <b>let</b> event_store = <b>borrow_global_mut</b>&lt;<a href="evm_for_test.md#0x1_evm_for_test_ContractEvent">ContractEvent</a>&gt;(move_contract_address);
+            // <a href="event.md#0x1_event_emit_event">event::emit_event</a>&lt;<a href="evm_for_test.md#0x1_evm_for_test_Log2Event">Log2Event</a>&gt;(
+            //     &<b>mut</b> event_store.log2Event,
+            //     <a href="evm_for_test.md#0x1_evm_for_test_Log2Event">Log2Event</a>{
+            //         contract: evm_contract_address,
+            //         data,
+            //         topic0,
+            //         topic1
+            //     },
+            // );
+            i = i + 1
+        }
+            //log3
+        <b>else</b> <b>if</b>(opcode == 0xa3) {
+            <b>let</b> pos = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> _data = slice(*memory, pos, len);
+            <b>let</b> _topic0 = u256_to_data(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack));
+            <b>let</b> _topic1 = u256_to_data(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack));
+            <b>let</b> _topic2 = u256_to_data(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack));
+            // <b>let</b> event_store = <b>borrow_global_mut</b>&lt;<a href="evm_for_test.md#0x1_evm_for_test_ContractEvent">ContractEvent</a>&gt;(move_contract_address);
+            // <a href="event.md#0x1_event_emit_event">event::emit_event</a>&lt;<a href="evm_for_test.md#0x1_evm_for_test_Log3Event">Log3Event</a>&gt;(
+            //     &<b>mut</b> event_store.log3Event,
+            //     <a href="evm_for_test.md#0x1_evm_for_test_Log3Event">Log3Event</a>{
+            //         contract: evm_contract_address,
+            //         data,
+            //         topic0,
+            //         topic1,
+            //         topic2
+            //     },
+            // );
+            i = i + 1
+        }
+            //log4
+        <b>else</b> <b>if</b>(opcode == 0xa4) {
+            <b>let</b> pos = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
+            <b>let</b> _data = slice(*memory, pos, len);
+            <b>let</b> _topic0 = u256_to_data(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack));
+            <b>let</b> _topic1 = u256_to_data(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack));
+            <b>let</b> _topic2 = u256_to_data(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack));
+            <b>let</b> _topic3 = u256_to_data(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack));
+            // <b>let</b> event_store = <b>borrow_global_mut</b>&lt;<a href="evm_for_test.md#0x1_evm_for_test_ContractEvent">ContractEvent</a>&gt;(move_contract_address);
+            // <a href="event.md#0x1_event_emit_event">event::emit_event</a>&lt;<a href="evm_for_test.md#0x1_evm_for_test_Log4Event">Log4Event</a>&gt;(
+            //     &<b>mut</b> event_store.log4Event,
+            //     <a href="evm_for_test.md#0x1_evm_for_test_Log4Event">Log4Event</a>{
+            //         contract: evm_contract_address,
+            //         data,
+            //         topic0,
+            //         topic1,
+            //         topic2,
+            //         topic3
+            //     },
+            // );
+            i = i + 1
+        }
+        <b>else</b> {
+            <b>assert</b>!(<b>false</b>, (opcode <b>as</b> u64));
+        };
+        // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(stack);
+        // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack));
+    };
+
+
+    (<b>true</b>, ret_bytes)
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_for_test_precompile"></a>
+
+## Function `precompile`
+
+
+
+<pre><code><b>fun</b> <a href="precompile.md#0x1_precompile">precompile</a>(sender: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, value: u256, calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, trie: &<b>mut</b> <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_SimpleMap">simple_map::SimpleMap</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="evm_for_test.md#0x1_evm_for_test_TestAccount">evm_for_test::TestAccount</a>&gt;): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="precompile.md#0x1_precompile">precompile</a>(sender: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, value: u256, calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, trie: &<b>mut</b> SimpleMap&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="evm_for_test.md#0x1_evm_for_test_TestAccount">TestAccount</a>&gt;): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt; {
+    <a href="evm_for_test.md#0x1_evm_for_test_transfer">transfer</a>(sender, <b>to</b>, value, trie);
+    run_precompile(<b>to</b>, calldata, <a href="evm_for_test.md#0x1_evm_for_test_CHAIN_ID">CHAIN_ID</a>)
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_for_test_create2_address"></a>
+
+## Function `create2_address`
+
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_create2_address">create2_address</a>(sender: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, t1: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, t2: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, fee: u256, <a href="../../aptos-stdlib/../move-stdlib/doc/hash.md#0x1_hash">hash</a>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_create2_address">create2_address</a>(sender: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, t1: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, t2: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, fee: u256, <a href="../../aptos-stdlib/../move-stdlib/doc/hash.md#0x1_hash">hash</a>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt; {
+    <b>let</b> salt = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_empty">vector::empty</a>&lt;u8&gt;();
+    <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> salt, t1);
+    <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> salt, t2);
+    <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> salt, u256_to_data(fee));
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&salt);
+    <b>let</b> p = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_empty">vector::empty</a>&lt;u8&gt;();
+    <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> p, x"ff");
+    // must be 20 bytes
+    <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> p, slice(sender, 12, 20));
+    <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> p, keccak256(salt));
+    <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> p, <a href="../../aptos-stdlib/../move-stdlib/doc/hash.md#0x1_hash">hash</a>);
+    to_32bit(slice(keccak256(p), 12, 20))
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_for_test_verify_nonce"></a>
+
+## Function `verify_nonce`
+
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_verify_nonce">verify_nonce</a>(addr: <b>address</b>, nonce: u64)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_verify_nonce">verify_nonce</a>(addr: <b>address</b>, nonce: u64) <b>acquires</b> <a href="evm_for_test.md#0x1_evm_for_test_Account">Account</a> {
+    <b>let</b> coin_store_from = <b>borrow_global_mut</b>&lt;<a href="evm_for_test.md#0x1_evm_for_test_Account">Account</a>&gt;(addr);
+    <b>assert</b>!(coin_store_from.nonce == nonce, <a href="evm_for_test.md#0x1_evm_for_test_NONCE">NONCE</a>);
+    coin_store_from.nonce = coin_store_from.nonce + 1;
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_for_test_verify_signature"></a>
+
+## Function `verify_signature`
+
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_verify_signature">verify_signature</a>(from: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, message_hash: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, r: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, s: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, v: u64)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_verify_signature">verify_signature</a>(from: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, message_hash: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, r: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, s: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, v: u64) {
+    <b>let</b> input_bytes = r;
+    <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> input_bytes, s);
+    <b>let</b> signature = ecdsa_signature_from_bytes(input_bytes);
+    <b>let</b> recovery_id = <b>if</b>(v &gt; 28) ((v - (<a href="evm_for_test.md#0x1_evm_for_test_CHAIN_ID">CHAIN_ID</a> * 2) - 35) <b>as</b> u8) <b>else</b> ((v - 27) <b>as</b> u8);
+    <b>let</b> pk_recover = ecdsa_recover(message_hash, recovery_id, &signature);
+    <b>let</b> pk = keccak256(ecdsa_raw_public_key_to_bytes(borrow(&pk_recover)));
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&slice(pk, 12, 20));
+    <b>assert</b>!(slice(pk, 12, 20) == from, <a href="evm_for_test.md#0x1_evm_for_test_SIGNATURE">SIGNATURE</a>);
+}
+</code></pre>
+
+
+
+</details>
+
+
+[move-book]: https://aptos.dev/move/book/SUMMARY

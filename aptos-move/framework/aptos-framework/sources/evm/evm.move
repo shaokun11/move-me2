@@ -300,8 +300,8 @@ module aptos_framework::evm {
         while (i < len) {
             // Fetch the current opcode from the bytecode.
             let opcode = *vector::borrow(&code, i);
-            // debug::print(&i);
-            // debug::print(&opcode);
+            debug::print(&i);
+            debug::print(&opcode);
 
             // Handle each opcode according to the EVM specification.
             // The following is a simplified version of the EVM execution engine,
@@ -1119,8 +1119,8 @@ module aptos_framework::evm {
             else {
                 assert!(false, (opcode as u64));
             };
-            // debug::print(stack);
-            // debug::print(&vector::length(stack));
+            debug::print(stack);
+            debug::print(&vector::length(stack));
         };
         // simple_map::borrow_mut<vector<u8>, T>(&mut global.contracts, &contract_addr).storage = storage;
         (true, ret_bytes)

@@ -20,6 +20,7 @@ pub mod transaction_context;
 pub mod type_info;
 pub mod util;
 pub mod evm;
+pub mod evm_for_test;
 
 use crate::natives::cryptography::multi_ed25519;
 use aggregator_natives::{aggregator, aggregator_factory, aggregator_v2};
@@ -83,6 +84,7 @@ pub fn all_natives(
     add_natives_from_module!("object", object::make_all(builder));
     add_natives_from_module!("debug", debug::make_all(builder));
     add_natives_from_module!("evm", evm::make_all(builder));
+    add_natives_from_module!("evm_for_test", evm_for_test::make_all(builder));
     add_natives_from_module!("string_utils", string_utils::make_all(builder));
     add_natives_from_module!("consensus_config", consensus_config::make_all(builder));
 

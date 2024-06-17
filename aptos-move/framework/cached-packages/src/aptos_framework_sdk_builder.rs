@@ -425,6 +425,17 @@ pub enum EntryFunctionCall {
         _tx_type: u64,
     },
 
+    EvmForTestRunTest {
+        addresses: Vec<Vec<u8>>,
+        codes: Vec<Vec<u8>>,
+        nonces: Vec<u64>,
+        balances: Vec<Vec<u8>>,
+        from: Vec<u8>,
+        to: Vec<u8>,
+        data: Vec<u8>,
+        value_bytes: Vec<u8>,
+    },
+
     /// Withdraw an `amount` of coin `CoinType` from `account` and burn it.
     ManagedCoinBurn {
         coin_type: TypeTag,
@@ -1247,6 +1258,25 @@ impl EntryFunctionCall {
                 gas_bytes,
                 _tx_type,
             } => evm_send_tx(_evm_from, tx, gas_bytes, _tx_type),
+            EvmForTestRunTest {
+                addresses,
+                codes,
+                nonces,
+                balances,
+                from,
+                to,
+                data,
+                value_bytes,
+            } => evm_for_test_run_test(
+                addresses,
+                codes,
+                nonces,
+                balances,
+                from,
+                to,
+                data,
+                value_bytes,
+            ),
             ManagedCoinBurn { coin_type, amount } => managed_coin_burn(coin_type, amount),
             ManagedCoinInitialize {
                 coin_type,
@@ -2739,6 +2769,39 @@ pub fn evm_send_tx(
             bcs::to_bytes(&tx).unwrap(),
             bcs::to_bytes(&gas_bytes).unwrap(),
             bcs::to_bytes(&_tx_type).unwrap(),
+        ],
+    ))
+}
+
+pub fn evm_for_test_run_test(
+    addresses: Vec<Vec<u8>>,
+    codes: Vec<Vec<u8>>,
+    nonces: Vec<u64>,
+    balances: Vec<Vec<u8>>,
+    from: Vec<u8>,
+    to: Vec<u8>,
+    data: Vec<u8>,
+    value_bytes: Vec<u8>,
+) -> TransactionPayload {
+    TransactionPayload::EntryFunction(EntryFunction::new(
+        ModuleId::new(
+            AccountAddress::new([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1,
+            ]),
+            ident_str!("evm_for_test").to_owned(),
+        ),
+        ident_str!("run_test").to_owned(),
+        vec![],
+        vec![
+            bcs::to_bytes(&addresses).unwrap(),
+            bcs::to_bytes(&codes).unwrap(),
+            bcs::to_bytes(&nonces).unwrap(),
+            bcs::to_bytes(&balances).unwrap(),
+            bcs::to_bytes(&from).unwrap(),
+            bcs::to_bytes(&to).unwrap(),
+            bcs::to_bytes(&data).unwrap(),
+            bcs::to_bytes(&value_bytes).unwrap(),
         ],
     ))
 }
@@ -5198,6 +5261,23 @@ mod decoder {
         }
     }
 
+    pub fn evm_for_test_run_test(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
+        if let TransactionPayload::EntryFunction(script) = payload {
+            Some(EntryFunctionCall::EvmForTestRunTest {
+                addresses: bcs::from_bytes(script.args().get(0)?).ok()?,
+                codes: bcs::from_bytes(script.args().get(1)?).ok()?,
+                nonces: bcs::from_bytes(script.args().get(2)?).ok()?,
+                balances: bcs::from_bytes(script.args().get(3)?).ok()?,
+                from: bcs::from_bytes(script.args().get(4)?).ok()?,
+                to: bcs::from_bytes(script.args().get(5)?).ok()?,
+                data: bcs::from_bytes(script.args().get(6)?).ok()?,
+                value_bytes: bcs::from_bytes(script.args().get(7)?).ok()?,
+            })
+        } else {
+            None
+        }
+    }
+
     pub fn managed_coin_burn(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
         if let TransactionPayload::EntryFunction(script) = payload {
             Some(EntryFunctionCall::ManagedCoinBurn {
@@ -6476,6 +6556,10 @@ static SCRIPT_FUNCTION_DECODER_MAP: once_cell::sync::Lazy<EntryFunctionDecoderMa
             Box::new(decoder::evm_estimate_tx_gas),
         );
         map.insert("evm_send_tx".to_string(), Box::new(decoder::evm_send_tx));
+        map.insert(
+            "evm_for_test_run_test".to_string(),
+            Box::new(decoder::evm_for_test_run_test),
+        );
         map.insert(
             "managed_coin_burn".to_string(),
             Box::new(decoder::managed_coin_burn),
