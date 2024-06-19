@@ -1,5 +1,5 @@
 module aptos_framework::evm_for_test {
-    use aptos_framework::account::{create_resource_address};
+    use aptos_framework::account::{new_event_handle};
     use std::vector;
     use aptos_std::aptos_hash::keccak256;
     use aptos_std::debug;
@@ -8,13 +8,19 @@ module aptos_framework::evm_for_test {
     use aptos_framework::block;
     use std::string::utf8;
     use aptos_framework::event::EventHandle;
-    use aptos_std::table::{Table};
-    use aptos_std::secp256k1::{ecdsa_signature_from_bytes, ecdsa_recover, ecdsa_raw_public_key_to_bytes};
-    use std::option::borrow;
     use aptos_framework::precompile::{is_precompile_address, run_precompile};
     use aptos_std::simple_map;
     use aptos_std::simple_map::SimpleMap;
     use aptos_framework::evm_arithmetic::add_sign;
+    use aptos_framework::evm_storage::{TestAccount, get_code, pre_init, add_nonce, transfer, get_balance, get_storage, set_storage, exist_contract, get_nonce, new_account, sub_balance};
+    use aptos_framework::evm_cache::new_cache;
+    use aptos_framework::evm_global_state::{new_run_state, get_gas_usage, add_gas_usage};
+    use aptos_framework::evm_gas::{calc_exec_gas, calc_base_gas};
+    use aptos_framework::event;
+    #[test_only]
+    use aptos_framework::account::create_account_for_test;
+
+    friend aptos_framework::genesis;
 
     const ADDR_LENGTH: u64 = 10001;
     const SIGNATURE: u64 = 10002;
@@ -34,21 +40,13 @@ module aptos_framework::evm_for_test {
     const ONE_ADDR: vector<u8> =       x"0000000000000000000000000000000000000000000000000000000000000001";
     const CHAIN_ID_BYTES: vector<u8> = x"0150";
 
-    // struct Acc
-
-    struct TestAccount has store, copy, drop {
-        balance: u256,
-        code: vector<u8>,
-        nonce: u256,
-        storage: SimpleMap<u256, u256>
+    struct ExecResource has key {
+        exec_event: EventHandle<ExecResultEvent>
     }
 
-    struct Account has key{
-        balance: u256,
-        nonce: u64,
-        is_contract: bool,
-        code: vector<u8>,
-        storage: Table<u256, vector<u8>>,
+    struct ExecResultEvent has drop, store {
+        gas_usage: u64,
+        state_root: vector<u8>
     }
 
     struct Log0Event has drop, store {
@@ -100,7 +98,7 @@ module aptos_framework::evm_for_test {
 
     native fun calculate_root(
         trie: SimpleMap<vector<u8>, TestAccount>
-    );
+    ): vector<u8>;
 
     native fun decode_raw_tx(
         raw_tx: vector<u8>
@@ -110,93 +108,20 @@ module aptos_framework::evm_for_test {
     native fun mul(a: u256, b: u256): u256;
     native fun exp(a: u256, b: u256): u256;
 
-    fun get_code(contract_addr: vector<u8>, trie: &SimpleMap<vector<u8>, TestAccount>): vector<u8> {
-        if(simple_map::contains_key(trie, &contract_addr)) {
-            simple_map::borrow(trie, &contract_addr).code
-        } else {
-            x""
-        }
+    public(friend) fun initialize(aptos_framework: &signer) {
+        move_to<ExecResource>(aptos_framework, ExecResource {
+            exec_event: new_event_handle<ExecResultEvent>(aptos_framework)
+        });
     }
 
-    fun get_nonce(contract_addr: vector<u8>, trie: &SimpleMap<vector<u8>, TestAccount>): u256 {
-        if(simple_map::contains_key(trie, &contract_addr)) {
-            simple_map::borrow(trie, &contract_addr).nonce
-        } else {
-            0
-        }
-    }
-
-    fun get_balance(contract_addr: vector<u8>, trie: &SimpleMap<vector<u8>, TestAccount>): u256 {
-        if(simple_map::contains_key(trie, &contract_addr)) {
-            simple_map::borrow(trie, &contract_addr).balance
-        } else {
-            0
-        }
-    }
-
-    fun get_storage(contract_addr: vector<u8>, key: u256, trie: &SimpleMap<vector<u8>, TestAccount>): u256 {
-        if(!simple_map::contains_key(trie, &contract_addr)) {
-            return 0
-        };
-        let account = simple_map::borrow(trie, &contract_addr);
-        if(simple_map::contains_key(&account.storage, &key)) {
-            *simple_map::borrow( &account.storage, &key)
-        } else {
-            0
-        }
-    }
-
-
-    fun add_nonce(contract_addr: vector<u8>, trie: &mut SimpleMap<vector<u8>, TestAccount>) {
-        let account =  simple_map::borrow_mut(trie, &contract_addr);
-        account.nonce = account.nonce + 1;
-    }
-
-    fun set_storage(contract_addr: vector<u8>, key: u256, value: u256, trie: &mut SimpleMap<vector<u8>, TestAccount>) {
-        let account =  simple_map::borrow_mut(trie, &contract_addr);
-        simple_map::upsert(&mut account.storage, key, value);
-        // simple_map::upsert(trie, contract_addr, *account);
-        // debug::print(&account.storage);
-    }
-
-    fun exist_contract(contract_addr: vector<u8>, trie: &SimpleMap<vector<u8>, TestAccount>): bool {
-        simple_map::contains_key(trie, &contract_addr)
-    }
-
-    fun sub_balance(contract_addr: vector<u8>, amount: u256, trie: &mut SimpleMap<vector<u8>, TestAccount>) {
-        debug::print(&contract_addr);
-        let account = simple_map::borrow_mut(trie, &contract_addr);
-        assert!(account.balance >= amount, 2);
-        account.balance = account.balance - amount;
-    }
-
-    fun add_balance(contract_addr: vector<u8>, amount: u256, trie: &mut SimpleMap<vector<u8>, TestAccount>) {
-        let account = simple_map::borrow_mut(trie, &contract_addr);
-        account.balance = account.balance + amount;
-    }
-
-    fun transfer(from: vector<u8>, to: vector<u8>, amount: u256, trie: &mut SimpleMap<vector<u8>, TestAccount>) {
-        sub_balance(from, amount, trie);
-        add_balance(to, amount, trie);
-    }
-
-    fun pre_init(addresses: vector<vector<u8>>,
-                  codes: vector<vector<u8>>,
-                  nonces: vector<u64>,
-                  balances: vector<vector<u8>>): SimpleMap<vector<u8>, TestAccount> {
-        let trie = simple_map::new<vector<u8>, TestAccount>();
-        let pre_len = vector::length(&addresses);
-        let i = 0;
-        while(i < pre_len) {
-            simple_map::add(&mut trie, to_32bit(*vector::borrow(&addresses, i)), TestAccount {
-                balance: to_u256(*vector::borrow(&balances, i)),
-                code: *vector::borrow(&codes, i),
-                nonce: (*vector::borrow(&nonces, i) as u256),
-                storage: simple_map::new<u256, u256>(),
-            });
-            i = i + 1;
-        };
-        trie
+    fun emit_event(state_root: vector<u8>, gas_usage: u64) acquires ExecResource {
+        let exec_resource = borrow_global_mut<ExecResource>(@aptos_framework);
+        debug::print(&state_root);
+        debug::print(&gas_usage);
+        event::emit_event(&mut exec_resource.exec_event, ExecResultEvent {
+            state_root,
+            gas_usage
+        });
     }
 
     public entry fun run_test(addresses: vector<vector<u8>>,
@@ -206,17 +131,25 @@ module aptos_framework::evm_for_test {
                               from: vector<u8>,
                               to: vector<u8>,
                               data: vector<u8>,
-                              value_bytes: vector<u8>) acquires Account {
+                              gas_price_bytes:vector<u8>,
+                              value_bytes: vector<u8>) acquires ExecResource {
         let value = to_u256(value_bytes);
         let trie = pre_init(addresses, codes, nonces, balances);
         let transient = simple_map::new<u256, u256>();
+        let gas_price = to_u256(gas_price_bytes);
         from = to_32bit(from);
         to = to_32bit(to);
         // debug::print(&trie);
-        run(from, from, to, get_code(to, &trie), data, value, &mut trie, &mut transient);
+        let run_state = &mut new_run_state();
+        let cache = new_cache();
+        add_gas_usage(run_state, calc_base_gas(&data));
+        run(from, from, to, get_code(to, &trie), data, value, &mut trie, &mut transient, run_state, &mut cache);
+        let gas_usage = (get_gas_usage(run_state) as u256);
+        let gasfee = gas_price * gas_usage;
+        sub_balance(from, gasfee, &mut trie);
         add_nonce(from, &mut trie);
-        calculate_root(trie);
-        // debug::print(&trie);
+        let state_root = calculate_root(trie);
+        emit_event(state_root, (gas_usage as u64));
     }
 
     fun run(
@@ -227,8 +160,10 @@ module aptos_framework::evm_for_test {
             data: vector<u8>,
             value: u256,
             trie: &mut SimpleMap<vector<u8>, TestAccount>,
-            transient: &mut SimpleMap<u256, u256>
-        ): (bool, vector<u8>) acquires Account {
+            transient: &mut SimpleMap<u256, u256>,
+            run_state: &mut SimpleMap<u64, u64>,
+            cache: &mut SimpleMap<vector<u8>, SimpleMap<u256, u256>>
+        ): (bool, vector<u8>) {
 
         if (is_precompile_address(to)) {
             return (true, precompile(sender, to, value, data, trie))
@@ -244,11 +179,14 @@ module aptos_framework::evm_for_test {
         let i = 0;
         let runtime_code = vector::empty<u8>();
         let ret_bytes = vector::empty<u8>();
+
         let _events = simple_map::new<u256, vector<u8>>();
+        // let gas = 21000;
 
         while (i < len) {
             // Fetch the current opcode from the bytecode.
             let opcode: u8 = *vector::borrow(&to_code, i);
+            calc_exec_gas(opcode, to, stack, run_state, cache, trie);
             // debug::print(&i);
             // debug::print(&opcode);
 
@@ -556,13 +494,7 @@ module aptos_framework::evm_for_test {
                 //balance
             else if(opcode == 0x31) {
                 let target = slice(u256_to_data(vector::pop_back(stack)), 12, 20);
-                let target_address = create_resource_address(&@aptos_framework, to_32bit(target));
-                if(exists<Account>(target_address)) {
-                    let account_store = borrow_global<Account>(target_address);
-                    vector::push_back(stack, account_store.balance);
-                } else {
-                    vector::push_back(stack, 0)
-                };
+                get_balance(to_32bit(target), trie);
                 i = i + 1;
             }
                 //origin
@@ -737,10 +669,6 @@ module aptos_framework::evm_for_test {
             else if(opcode == 0x55) {
                 let key = vector::pop_back(stack);
                 let value = vector::pop_back(stack);
-                debug::print(&utf8(b"store"));
-                debug::print(&to);
-                debug::print(&key);
-                debug::print(&value);
                 set_storage(to, key, value, trie);
                 i = i + 1;
             }
@@ -849,7 +777,7 @@ module aptos_framework::evm_for_test {
 
                     let target = if (opcode == 0xf4) to else evm_dest_addr;
                     let from = if (opcode == 0xf4) sender else to;
-                    let (call_res, bytes) = run(sender, from, target, dest_code, params, msg_value, trie, transient);
+                    let (call_res, bytes) = run(sender, from, target, dest_code, params, msg_value, trie, transient, run_state, cache);
                     ret_bytes = bytes;
                     let index = 0;
 
@@ -886,14 +814,9 @@ module aptos_framework::evm_for_test {
                 add_nonce(to, trie);
 
 
-                let(create_res, bytes) = run(sender, to, new_evm_contract_addr, new_codes, x"", msg_value, trie, transient);
+                let(create_res, bytes) = run(sender, to, new_evm_contract_addr, new_codes, x"", msg_value, trie, transient, run_state, cache);
                 if(create_res) {
-                    simple_map::add(trie, new_evm_contract_addr, TestAccount {
-                        balance: 0,
-                        code: bytes,
-                        nonce: 1,
-                        storage: simple_map::new<u256, u256>(),
-                    });
+                    new_account(new_evm_contract_addr, 0, bytes, 1, trie);
                     ret_bytes = new_evm_contract_addr;
                     vector::push_back(stack, data_to_u256(new_evm_contract_addr, 0, 32));
                 } else {
@@ -924,15 +847,10 @@ module aptos_framework::evm_for_test {
 
                 // to_account.nonce = to_account.nonce + 1;
                 add_nonce(to, trie);
-                let (create_res, bytes) = run(to, sender, new_evm_contract_addr, new_codes, x"", msg_value, trie, transient);
+                let (create_res, bytes) = run(to, sender, new_evm_contract_addr, new_codes, x"", msg_value, trie, transient, run_state, cache);
 
                 if(create_res) {
-                    simple_map::add(trie, new_evm_contract_addr, TestAccount {
-                        balance: 0,
-                        code: bytes,
-                        nonce: 1,
-                        storage: simple_map::new<u256, u256>(),
-                    });
+                    new_account(new_evm_contract_addr, 0, bytes, 1, trie);
 
                     ret_bytes = new_evm_contract_addr;
                     vector::push_back(stack, data_to_u256(new_evm_contract_addr, 0, 32));
@@ -1053,7 +971,6 @@ module aptos_framework::evm_for_test {
             // debug::print(&vector::length(stack));
         };
 
-
         (true, ret_bytes)
     }
 
@@ -1141,28 +1058,14 @@ module aptos_framework::evm_for_test {
         to_32bit(slice(keccak256(p), 12, 20))
     }
 
-    fun verify_nonce(addr: address, nonce: u64) acquires Account {
-        let coin_store_from = borrow_global_mut<Account>(addr);
-        assert!(coin_store_from.nonce == nonce, NONCE);
-        coin_store_from.nonce = coin_store_from.nonce + 1;
-    }
-
-    fun verify_signature(from: vector<u8>, message_hash: vector<u8>, r: vector<u8>, s: vector<u8>, v: u64) {
-        let input_bytes = r;
-        vector::append(&mut input_bytes, s);
-        let signature = ecdsa_signature_from_bytes(input_bytes);
-        let recovery_id = if(v > 28) ((v - (CHAIN_ID * 2) - 35) as u8) else ((v - 27) as u8);
-        let pk_recover = ecdsa_recover(message_hash, recovery_id, &signature);
-        let pk = keccak256(ecdsa_raw_public_key_to_bytes(borrow(&pk_recover)));
-        debug::print(&slice(pk, 12, 20));
-        assert!(slice(pk, 12, 20) == from, SIGNATURE);
-    }
 
     #[test]
-    public fun test_run() acquires Account {
-        debug::print(&u256_to_data(0x0ba1a9ce0ba1a9ce));
+    public fun test_run() acquires ExecResource {
+        // debug::print(&u256_to_data(0x0ba1a9ce0ba1a9ce));
         let balance = u256_to_data(0x0ba1a9ce0ba1a9ce);
-        debug::print(&to_u256(balance));
+        // debug::print(&to_u256(balance));
+        let aptos_framework = create_account_for_test(@0x1);
+        initialize(&aptos_framework);
         run_test(vector[
                 x"0000000000000000000000000000000000001000",
                 x"0000000000000000000000000000000000001001",
@@ -1190,6 +1093,7 @@ module aptos_framework::evm_for_test {
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc",
             x"693c61390000000000000000000000000000000000000000000000000000000000000000",
+            u256_to_data(0x0a),
             u256_to_data(0x1)
         );
     }

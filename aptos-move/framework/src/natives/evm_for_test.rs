@@ -5,16 +5,15 @@ use aptos_native_interface::{
 };
 use move_vm_types::{
     loaded_data::runtime_types::Type,
-    values::{Value, StructRef, Struct}
+    values::{Value, Struct}
 };
 use move_core_types::{u256::U256 as move_u256};
 use move_vm_runtime::native_functions::NativeFunction;
 use std::collections::{VecDeque, HashMap};
 use smallvec::{smallvec, SmallVec};
-use ethers::types::{Transaction};
 use ethers::utils::keccak256;
-use ethers::utils::rlp::{encode, RlpStream, Decodable, Encodable};
-use ethers::types::{U256, U512, H160, H256, Address};
+use ethers::utils::rlp::{RlpStream, Encodable};
+use ethers::types::{U256, U512, H256};
 use hex;
 use trie;
 use ethers::abi::AbiEncode;
@@ -44,8 +43,7 @@ fn convert_u256(value: &move_u256) -> U256 {
 }
 
 fn calculate_storage_root(storage: Struct) -> H256 {
-    let mut datas: Vec<Value> = unpack_simple_map(storage);
-    println!("datas: {:?}", datas);
+    let datas: Vec<Value> = unpack_simple_map(storage);
     let mut m = HashMap::new();
     for data in datas {
         let mut content = data.value_as::<Struct>().unwrap().unpack().unwrap().collect::<Vec<_>>();
@@ -90,11 +88,6 @@ fn unpack_account(account_data: Struct) -> Account  {
             v.value_as::<move_u256>().unwrap()
         }).unwrap();
 
-    println!("storage: {:?}", storage_root);
-    println!("nonce: {:?}", nonce);
-    println!("code: {:?}", code);
-    println!("balance: {:?}", balance);
-
     Account {
         nonce: convert_u256(&nonce),
         code,
@@ -102,12 +95,6 @@ fn unpack_account(account_data: Struct) -> Account  {
         storage_root
     }
 }
-
-// fn unpack(v: Value) {
-//     let content = v
-//         .value_as::<Struct>();
-//     println!("content: {:?}", content);
-// }
 
 fn native_calculate_root(
     _context: &mut SafeNativeContext,
@@ -118,8 +105,6 @@ fn native_calculate_root(
     let state = safely_pop_arg!(args, Struct);
 
     let datas = unpack_simple_map(state);
-    println!("len: {:?}", datas.len());
-    let len = datas.len();
 
     let mut root_map = HashMap::new();
 
@@ -133,57 +118,98 @@ fn native_calculate_root(
         }).unwrap();
 
         let hashed_addr = keccak256(&address[12..]);
-        println!("hashed1: {:?}", hashed_addr);
 
         let account = unpack_account(account_data);
-        println!("hashed2: {:?}", hex::encode(hashed_addr));
-        println!("account: {:?} {:?}", account, hex::encode(account.rlp_encode()));
         root_map.insert(hashed_addr.to_vec(), account.rlp_encode());
-        // println!("account: {:?}", account);
-
-        // let 
-        // let account = accounts[i];
-        // let content = accounts[i].value_as::<Struct>().unwrap();
-        // println!("content: {:?}", content);
-        // let key = element.pop().map(|v| {
-        //     v.value_as::<Struct>().unwrap()
-        // }).unwrap();
-        // let value = element.pop().map(|v| {
-        //     v.value_as::<Struct>().unwrap()
-        // }).unwrap();
-        // let t2: Vec<Value> = content.unpack().unwrap().collect();
-        
-        // println!("t2: {:?}", t2);
     };
 
-    println!("State Root: {:?}", H256::from_slice(&trie::build(&root_map).0));
-    // accounts.iter_mut().for_each(|element| {
-    //     // println!("data: {:?}", element);
-    //     // let content = data.unpack()?.collect();
-    //     // let content = element.unpack()?.collect();
-    //     let key = element.pop().map(|v| {
-    //         v.value_as::<Struct>().unwrap()
-    //     }).unwrap();
-        // let value = element.pop().map(|v| {
-        //     v.value_as::<Struct>().unwrap()
-        // }).unwrap();
-        // println!("key: {:?}", key);
-        // println!("value: {:?}", value);
+    let state_root = trie::build(&root_map).0;
 
-    //     let key_content: Vec<Value> = key.unpack().expect("unpack key error").collect();
-    //     let value_content: Vec<Value> = value.unpack().expect("unpack value error").collect();
-    //     println!("key_content: {:?}", key_content);
-    //     println!("value_content: {:?}", value_content);
-    //     // let address = 
-    //     // contracts.push(Account {
-    //     //     address: 
-    //     // })
-    // });
-    
-
-	Ok(smallvec![])
+	Ok(smallvec![Value::vector_u8(state_root.to_vec())])
 }
 
+
+fn native_revert(
+    _context: &mut SafeNativeContext,
+    _ty_args: Vec<Type>,
+    mut args: VecDeque<Value>,
+) -> SafeNativeResult<SmallVec<[Value; 1]>> {
+    debug_assert!(_ty_args.is_empty());
+
+    let message_bytes = safely_pop_arg!(args, Vec<u8>);
+    return Err(SafeNativeError::InvariantViolation(PartialVMError::new(StatusCode::EVM_CONTRACT_ERROR).with_message(hex::encode(message_bytes))));
+}
+
+fn native_exp(
+    _context: &mut SafeNativeContext,
+    _ty_args: Vec<Type>,
+    mut args: VecDeque<Value>
+) -> SafeNativeResult<SmallVec<[Value; 1]>> {
+    let b = safely_pop_arg!(args, move_u256);
+    let a = safely_pop_arg!(args, move_u256);
+
+    let a_u256 = U256::from_little_endian(&a.to_le_bytes());
+    let b_u256 = U256::from_little_endian(&b.to_le_bytes());
+    let n_u256 = a_u256.overflowing_pow(b_u256).0;
+
+    let mut array: [u8; 32] = [0; 32];
+    n_u256.to_little_endian(&mut array);
+
+    Ok(smallvec![
+        Value::u256(move_u256::from_le_bytes(&array))
+    ])
+}
+
+fn native_mul(
+    _context: &mut SafeNativeContext,
+    _ty_args: Vec<Type>,
+    mut args: VecDeque<Value>
+) -> SafeNativeResult<SmallVec<[Value; 1]>> {
+    let b = safely_pop_arg!(args, move_u256);
+    let a = safely_pop_arg!(args, move_u256);
+
+    let a_u256 = U256::from_little_endian(&a.to_le_bytes());
+    let b_u256 = U256::from_little_endian(&b.to_le_bytes());
+    let n_u256 = a_u256.overflowing_mul(b_u256).0;
+
+    let mut array: [u8; 32] = [0; 32];
+    n_u256.to_little_endian(&mut array);
+
+    Ok(smallvec![
+        Value::u256(move_u256::from_le_bytes(&array))
+    ])
+}
+
+fn native_mul_mod(
+    _context: &mut SafeNativeContext,
+    _ty_args: Vec<Type>,
+    mut args: VecDeque<Value>
+) -> SafeNativeResult<SmallVec<[Value; 1]>> {
+    let n = safely_pop_arg!(args, move_u256);
+    let b = safely_pop_arg!(args, move_u256);
+    let a = safely_pop_arg!(args, move_u256);
+
+    let a_u256 = U256::from_little_endian(&a.to_le_bytes());
+    let b_u256 = U256::from_little_endian(&b.to_le_bytes());
+    let n_u256 = U256::from_little_endian(&n.to_le_bytes());
+
+    let a_512 = U512::from(a_u256);
+    let b_512 = U512::from(b_u256);
+    let n_512 = U512::from(n_u256);
+
+    let r;
+    if a_512.is_zero() {
+        r = U256::zero();
+    } else {
+        r = U256::try_from((a_512 * b_512) % n_512).unwrap();
+    }
+    let mut array: [u8; 32] = [0; 32];
+    r.to_little_endian(&mut array);
+
+    Ok(smallvec![
+        Value::u256(move_u256::from_le_bytes(&array))
+    ])
+}
 
 
 /***************************************************************************************************
@@ -195,6 +221,10 @@ pub fn make_all(
 ) -> impl Iterator<Item = (String, NativeFunction)> + '_ {
     let natives = [
         ("calculate_root", native_calculate_root as RawSafeNative),
+        ("revert", native_revert as RawSafeNative),
+        ("mul", native_mul as RawSafeNative),
+        ("exp", native_exp as RawSafeNative),
+        ("mul_mod", native_mul_mod as RawSafeNative)
     ];
 
     builder.make_named_natives(natives)
