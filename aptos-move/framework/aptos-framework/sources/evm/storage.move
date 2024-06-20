@@ -110,6 +110,7 @@ module aptos_framework::evm_storage {
                  balances: vector<vector<u8>>): SimpleMap<vector<u8>, TestAccount> {
         let trie = simple_map::new<vector<u8>, TestAccount>();
         let pre_len = vector::length(&addresses);
+        assert!(pre_len == vector::length(&codes), 3);
         let i = 0;
         while(i < pre_len) {
             simple_map::add(&mut trie, to_32bit(*vector::borrow(&addresses, i)), TestAccount {

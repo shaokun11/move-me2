@@ -11,7 +11,6 @@ module aptos_framework::evm_for_test {
     use aptos_framework::precompile::{is_precompile_address, run_precompile};
     use aptos_std::simple_map;
     use aptos_std::simple_map::SimpleMap;
-    use aptos_framework::evm_arithmetic::add_sign;
     use aptos_framework::evm_storage::{TestAccount, get_code, pre_init, add_nonce, transfer, get_balance, get_storage, set_storage, exist_contract, get_nonce, new_account, sub_balance};
     use aptos_framework::evm_cache::new_cache;
     use aptos_framework::evm_global_state::{new_run_state, get_gas_usage, add_gas_usage};
@@ -19,6 +18,7 @@ module aptos_framework::evm_for_test {
     use aptos_framework::event;
     #[test_only]
     use aptos_framework::account::create_account_for_test;
+    use aptos_framework::evm_arithmetic::{add, mul, sub, div, sdiv, mod, smod, add_mod, mul_mod, exp};
 
     friend aptos_framework::genesis;
 
@@ -99,14 +99,6 @@ module aptos_framework::evm_for_test {
     native fun calculate_root(
         trie: SimpleMap<vector<u8>, TestAccount>
     ): vector<u8>;
-
-    native fun decode_raw_tx(
-        raw_tx: vector<u8>
-    ): (u64, u64, vector<u8>, vector<u8>, u256, vector<u8>);
-
-    native fun mul_mod(a: u256, b: u256, n: u256): u256;
-    native fun mul(a: u256, b: u256): u256;
-    native fun exp(a: u256, b: u256): u256;
 
     public(friend) fun initialize(aptos_framework: &signer) {
         move_to<ExecResource>(aptos_framework, ExecResource {
@@ -220,11 +212,7 @@ module aptos_framework::evm_for_test {
             else if(opcode == 0x01) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
-                if(a > 0 && b >= (U256_MAX - a + 1)) {
-                    vector::push_back(stack, b - (U256_MAX - a + 1));
-                } else {
-                    vector::push_back(stack, a + b);
-                };
+                vector::push_back(stack, add(a, b));
                 i = i + 1;
             }
                 //mul
@@ -238,41 +226,35 @@ module aptos_framework::evm_for_test {
             else if(opcode == 0x03) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
-                if(a >= b) {
-                    vector::push_back(stack, a - b);
-                } else {
-                    vector::push_back(stack, U256_MAX - b + a + 1);
-                };
+                vector::push_back(stack, sub(a, b));
                 i = i + 1;
             }
                 //div
             else if(opcode == 0x04) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
-                vector::push_back(stack, if(b == 0) 0 else a / b);
+                vector::push_back(stack, div(a, b));
                 i = i + 1;
             }
                 //sdiv
             else if(opcode == 0x05) {
-                let(sg_a, num_a) = to_int256(vector::pop_back(stack));
-                let(sg_b, num_b) = to_int256(vector::pop_back(stack));
-                let num_c = num_a / num_b;
-                vector::push_back(stack, add_sign(num_c, (!sg_a && sg_b) || (sg_a && !sg_b)));
+                let a = vector::pop_back(stack);
+                let b = vector::pop_back(stack);
+                vector::push_back(stack, sdiv(a, b));
                 i = i + 1;
             }
                 //mod
             else if(opcode == 0x06) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
-                vector::push_back(stack, a % b);
+                vector::push_back(stack, mod(a, b));
                 i = i + 1;
             }
                 //smod
             else if(opcode == 0x07) {
-                let(sg_a, num_a) = to_int256(vector::pop_back(stack));
-                let(_sg_b, num_b) = to_int256(vector::pop_back(stack));
-                let num_c = num_a % num_b;
-                vector::push_back(stack, add_sign(num_c, sg_a));
+                let a = vector::pop_back(stack);
+                let b = vector::pop_back(stack);
+                vector::push_back(stack, smod(a, b));
                 i = i + 1;
             }
                 //addmod
@@ -280,7 +262,7 @@ module aptos_framework::evm_for_test {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
                 let n = vector::pop_back(stack);
-                vector::push_back(stack, (a + b) % n);
+                vector::push_back(stack, add_mod(a, b, n));
                 i = i + 1;
             }
                 //mulmod
@@ -967,8 +949,8 @@ module aptos_framework::evm_for_test {
             else {
                 assert!(false, (opcode as u64));
             };
-            debug::print(stack);
-            debug::print(&vector::length(stack));
+            // debug::print(stack);
+            // debug::print(&vector::length(stack));
         };
 
         (true, ret_bytes)
@@ -1065,33 +1047,62 @@ module aptos_framework::evm_for_test {
         let balance = u256_to_data(0x0ba1a9ce0ba1a9ce);
         let aptos_framework = create_account_for_test(@0x1);
         initialize(&aptos_framework);
-        run_test(vector[
-                x"0000000000000000000000000000000000000100",
-                x"0000000000000000000000000000000000000101",
-                x"0000000000000000000000000000000000000102",
-                x"0000000000000000000000000000000000000103",
-                x"0000000000000000000000000000000000000104",
-                x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
-                x"cccccccccccccccccccccccccccccccccccccccc"
-            ],
+        let addresses = vector[
+            x"0000000000000000000000000000000000000100",
+            x"0000000000000000000000000000000000000101",
+            x"0000000000000000000000000000000000000102",
+            x"0000000000000000000000000000000000000103",
+            x"0000000000000000000000000000000000000104",
+            x"0000000000000000000000000000000000000105",
+            x"0000000000000000000000000000000000000106",
+            x"0000000000000000000000000000000000000107",
+            x"0000000000000000000000000000000000000108",
+            x"0000000000000000000000000000000000000109",
+            x"000000000000000000000000000000000000010a",
+            x"000000000000000000000000000000000000010b",
+            x"000000000000000000000000000000000000010c",
+            x"000000000000000000000000000000000000010d",
+            x"000000000000000000000000000000000000010e",
+            x"000000000000000000000000000000000000010f",
+            x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            x"cccccccccccccccccccccccccccccccccccccccc"
+        ];
+        let balances = &mut vector[];
+        let nonces = &mut vector[];
+        let i = 0;
+        while(i < vector::length(&addresses)) {
+            vector::push_back(balances, balance);
+            vector::push_back(nonces, 0);
+            i = i + 1;
+        };
+
+        run_test(
+            addresses,
             vector[
-                x"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0160005500",
-                x"60047fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0160005500",
-                x"60017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0160005500",
-                x"600060000160005500",
-                x"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff60010160005500",
+                x"6002600260010860005500",
+                x"6002600260000360016000030860005500",
+                x"6003600160066000030860005500",
+                x"6003600160066000030860036005600003071460005500",
+                x"6003600160066000030860036005600003061460005500",
+                x"6003600003600160040860005500",
+                x"6002600360000360016004081460005500",
+                x"6005600060016000030860005500",
+                x"6005600160016000030860005500",
+                x"6005600260016000030860005500",
+                x"6005600260000360016000030860005500",
+                x"600560017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0860005500",
+                x"6000600160040860005500",
+                x"6000600160000860005500",
+                x"6000600060010860005500",
+                x"6001600060006000080360005500",
                 x"",
-                x"600060006000600060006004356101000162fffffff100"
+                x"600060006000600060006004356101000162fffffff100",
             ],
-            vector[
-                0, 0, 0, 0, 0, 0, 0
-            ],
-            vector[
-                balance, balance, balance, balance, balance, balance, balance
-            ],
+            *nonces,
+            *balances,
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc",
-            x"693c61390000000000000000000000000000000000000000000000000000000000000002",
+            x"693c61390000000000000000000000000000000000000000000000000000000000000003",
             u256_to_data(0x0a),
             u256_to_data(0x1)
         );

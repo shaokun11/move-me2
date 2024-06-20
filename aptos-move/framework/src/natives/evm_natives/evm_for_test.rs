@@ -1,3 +1,8 @@
+use crate::natives::evm_natives::{
+    helpers::{move_u256_to_evm_u256}
+};
+
+
 use move_binary_format::errors::PartialVMError;
 use aptos_types::{vm_status::StatusCode};
 use aptos_native_interface::{
@@ -13,7 +18,7 @@ use std::collections::{VecDeque, HashMap};
 use smallvec::{smallvec, SmallVec};
 use ethers::utils::keccak256;
 use ethers::utils::rlp::{RlpStream, Encodable};
-use ethers::types::{U256, U512, H256};
+use ethers::types::{U256, H256};
 use hex;
 use trie;
 use ethers::abi::AbiEncode;
@@ -38,10 +43,6 @@ impl Account {
     }
 }
 
-fn convert_u256(value: &move_u256) -> U256 {
-    U256::from_little_endian(&value.to_le_bytes())
-}
-
 fn calculate_storage_root(storage: Struct) -> H256 {
     let datas: Vec<Value> = unpack_simple_map(storage);
     let mut m = HashMap::new();
@@ -54,8 +55,8 @@ fn calculate_storage_root(storage: Struct) -> H256 {
             v.value_as::<move_u256>().unwrap()
         }).unwrap();
 
-        let key_u256 = convert_u256(&key);
-        let value_u256 = convert_u256(&value);
+        let key_u256 = move_u256_to_evm_u256(&key);
+        let value_u256 = move_u256_to_evm_u256(&value);
         let value_rlp_bytes = value_u256.rlp_bytes().to_vec();
 
         m.insert(keccak256(key_u256.encode()).to_vec(), value_rlp_bytes);
@@ -88,12 +89,10 @@ fn unpack_account(account_data: Struct) -> Account  {
             v.value_as::<move_u256>().unwrap()
         }).unwrap();
 
-
-
     Account {
-        nonce: convert_u256(&nonce),
+        nonce: move_u256_to_evm_u256(&nonce),
         code,
-        balance: convert_u256(&balance),
+        balance: move_u256_to_evm_u256(&balance),
         storage_root
     }
 }
@@ -144,77 +143,6 @@ fn native_revert(
     return Err(SafeNativeError::InvariantViolation(PartialVMError::new(StatusCode::EVM_CONTRACT_ERROR).with_message(hex::encode(message_bytes))));
 }
 
-fn native_exp(
-    _context: &mut SafeNativeContext,
-    _ty_args: Vec<Type>,
-    mut args: VecDeque<Value>
-) -> SafeNativeResult<SmallVec<[Value; 1]>> {
-    let b = safely_pop_arg!(args, move_u256);
-    let a = safely_pop_arg!(args, move_u256);
-
-    let a_u256 = U256::from_little_endian(&a.to_le_bytes());
-    let b_u256 = U256::from_little_endian(&b.to_le_bytes());
-    let n_u256 = a_u256.overflowing_pow(b_u256).0;
-
-    let mut array: [u8; 32] = [0; 32];
-    n_u256.to_little_endian(&mut array);
-
-    Ok(smallvec![
-        Value::u256(move_u256::from_le_bytes(&array))
-    ])
-}
-
-fn native_mul(
-    _context: &mut SafeNativeContext,
-    _ty_args: Vec<Type>,
-    mut args: VecDeque<Value>
-) -> SafeNativeResult<SmallVec<[Value; 1]>> {
-    let b = safely_pop_arg!(args, move_u256);
-    let a = safely_pop_arg!(args, move_u256);
-
-    let a_u256 = U256::from_little_endian(&a.to_le_bytes());
-    let b_u256 = U256::from_little_endian(&b.to_le_bytes());
-    let n_u256 = a_u256.overflowing_mul(b_u256).0;
-
-    let mut array: [u8; 32] = [0; 32];
-    n_u256.to_little_endian(&mut array);
-
-    Ok(smallvec![
-        Value::u256(move_u256::from_le_bytes(&array))
-    ])
-}
-
-fn native_mul_mod(
-    _context: &mut SafeNativeContext,
-    _ty_args: Vec<Type>,
-    mut args: VecDeque<Value>
-) -> SafeNativeResult<SmallVec<[Value; 1]>> {
-    let n = safely_pop_arg!(args, move_u256);
-    let b = safely_pop_arg!(args, move_u256);
-    let a = safely_pop_arg!(args, move_u256);
-
-    let a_u256 = U256::from_little_endian(&a.to_le_bytes());
-    let b_u256 = U256::from_little_endian(&b.to_le_bytes());
-    let n_u256 = U256::from_little_endian(&n.to_le_bytes());
-
-    let a_512 = U512::from(a_u256);
-    let b_512 = U512::from(b_u256);
-    let n_512 = U512::from(n_u256);
-
-    let r;
-    if a_512.is_zero() {
-        r = U256::zero();
-    } else {
-        r = U256::try_from((a_512 * b_512) % n_512).unwrap();
-    }
-    let mut array: [u8; 32] = [0; 32];
-    r.to_little_endian(&mut array);
-
-    Ok(smallvec![
-        Value::u256(move_u256::from_le_bytes(&array))
-    ])
-}
-
 
 /***************************************************************************************************
  * module
@@ -226,9 +154,6 @@ pub fn make_all(
     let natives = [
         ("calculate_root", native_calculate_root as RawSafeNative),
         ("revert", native_revert as RawSafeNative),
-        ("mul", native_mul as RawSafeNative),
-        ("exp", native_exp as RawSafeNative),
-        ("mul_mod", native_mul_mod as RawSafeNative)
     ];
 
     builder.make_named_natives(natives)
