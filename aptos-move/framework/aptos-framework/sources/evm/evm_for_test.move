@@ -967,8 +967,8 @@ module aptos_framework::evm_for_test {
             else {
                 assert!(false, (opcode as u64));
             };
-            // debug::print(stack);
-            // debug::print(&vector::length(stack));
+            debug::print(stack);
+            debug::print(&vector::length(stack));
         };
 
         (true, ret_bytes)
@@ -1066,11 +1066,11 @@ module aptos_framework::evm_for_test {
         let aptos_framework = create_account_for_test(@0x1);
         initialize(&aptos_framework);
         run_test(vector[
-                x"0000000000000000000000000000000000001000",
-                x"0000000000000000000000000000000000001001",
-                x"0000000000000000000000000000000000001002",
-                x"0000000000000000000000000000000000001003",
-                x"0000000000000000000000000000000000001004",
+                x"0000000000000000000000000000000000000100",
+                x"0000000000000000000000000000000000000101",
+                x"0000000000000000000000000000000000000102",
+                x"0000000000000000000000000000000000000103",
+                x"0000000000000000000000000000000000000104",
                 x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
                 x"cccccccccccccccccccccccccccccccccccccccc"
             ],
@@ -1081,7 +1081,7 @@ module aptos_framework::evm_for_test {
                 x"600060000160005500",
                 x"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff60010160005500",
                 x"",
-                x"600060006000600060006004356110000162fffffff100"
+                x"600060006000600060006004356101000162fffffff100"
             ],
             vector[
                 0, 0, 0, 0, 0, 0, 0
@@ -1091,7 +1091,7 @@ module aptos_framework::evm_for_test {
             ],
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc",
-            x"693c61390000000000000000000000000000000000000000000000000000000000000000",
+            x"693c61390000000000000000000000000000000000000000000000000000000000000002",
             u256_to_data(0x0a),
             u256_to_data(0x1)
         );

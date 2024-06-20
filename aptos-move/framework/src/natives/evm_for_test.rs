@@ -88,6 +88,8 @@ fn unpack_account(account_data: Struct) -> Account  {
             v.value_as::<move_u256>().unwrap()
         }).unwrap();
 
+
+
     Account {
         nonce: convert_u256(&nonce),
         code,
@@ -120,6 +122,8 @@ fn native_calculate_root(
         let hashed_addr = keccak256(&address[12..]);
 
         let account = unpack_account(account_data);
+        println!("hashed_addr: {:?}", hex::encode(hashed_addr));
+        println!("account: {:?}", account);
         root_map.insert(hashed_addr.to_vec(), account.rlp_encode());
     };
 

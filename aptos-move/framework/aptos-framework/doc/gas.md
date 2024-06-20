@@ -179,6 +179,9 @@
     <b>let</b> (_, is_cold_slot, origin) = get_cache(<b>address</b>, key, cache, trie);
     <b>let</b> current = get_storage(<b>address</b>, key, trie);
     <b>let</b> new = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(stack,len - 2);
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&origin);
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&current);
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&new);
     <b>let</b> cold_cost = <b>if</b>(is_cold_slot) <a href="gas.md#0x1_evm_gas_Coldsload">Coldsload</a> <b>else</b> 0;
 
     <b>if</b>(current == new) {
@@ -288,6 +291,7 @@
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="gas.md#0x1_evm_gas_calc_exec_gas">calc_exec_gas</a>(opcode :u8, <b>address</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, stack: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u256&gt;, run_state: &<b>mut</b> SimpleMap&lt;u64, u64&gt;, cache: &<b>mut</b> SimpleMap&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, SimpleMap&lt;u256, u256&gt;&gt;, trie: &<b>mut</b> SimpleMap&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, TestAccount&gt;) {
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&opcode);
     <b>let</b> gas = <b>if</b> (opcode == 0x00) {
         // STOP
         0
@@ -497,6 +501,7 @@
         <b>assert</b>!(<b>false</b>, (opcode <b>as</b> u64));
         0
     };
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&gas);
     add_gas_usage(run_state, gas);
 
 }

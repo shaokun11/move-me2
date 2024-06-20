@@ -67,9 +67,13 @@ module aptos_framework::evm_storage {
 
     public fun set_storage(contract_addr: vector<u8>, key: u256, value: u256, trie: &mut SimpleMap<vector<u8>, TestAccount>) {
         let account =  simple_map::borrow_mut(trie, &contract_addr);
-        simple_map::upsert(&mut account.storage, key, value);
-        // simple_map::upsert(trie, contract_addr, *account);
-        // debug::print(&account.storage);
+        if(value == 0) {
+            if(simple_map::contains_key(&mut account.storage, &key)) {
+                simple_map::remove(&mut account.storage, &key);
+            }
+        } else {
+            simple_map::upsert(&mut account.storage, key, value);
+        };
     }
 
     public fun exist_contract(contract_addr: vector<u8>, trie: &SimpleMap<vector<u8>, TestAccount>): bool {

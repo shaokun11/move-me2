@@ -5,7 +5,8 @@
 
 
 
--  [Resource `Account`](#0x1_evm_for_test_Account)
+-  [Resource `ExecResource`](#0x1_evm_for_test_ExecResource)
+-  [Struct `ExecResultEvent`](#0x1_evm_for_test_ExecResultEvent)
 -  [Struct `Log0Event`](#0x1_evm_for_test_Log0Event)
 -  [Struct `Log1Event`](#0x1_evm_for_test_Log1Event)
 -  [Struct `Log2Event`](#0x1_evm_for_test_Log2Event)
@@ -19,12 +20,12 @@
 -  [Function `mul_mod`](#0x1_evm_for_test_mul_mod)
 -  [Function `mul`](#0x1_evm_for_test_mul)
 -  [Function `exp`](#0x1_evm_for_test_exp)
+-  [Function `initialize`](#0x1_evm_for_test_initialize)
+-  [Function `emit_event`](#0x1_evm_for_test_emit_event)
 -  [Function `run_test`](#0x1_evm_for_test_run_test)
 -  [Function `run`](#0x1_evm_for_test_run)
 -  [Function `precompile`](#0x1_evm_for_test_precompile)
 -  [Function `create2_address`](#0x1_evm_for_test_create2_address)
--  [Function `verify_nonce`](#0x1_evm_for_test_verify_nonce)
--  [Function `verify_signature`](#0x1_evm_for_test_verify_signature)
 
 
 <pre><code><b>use</b> <a href="account.md#0x1_account">0x1::account</a>;
@@ -40,23 +41,21 @@
 <b>use</b> <a href="util.md#0x1_evm_util">0x1::evm_util</a>;
 <b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/option.md#0x1_option">0x1::option</a>;
 <b>use</b> <a href="precompile.md#0x1_precompile">0x1::precompile</a>;
-<b>use</b> <a href="../../aptos-stdlib/doc/secp256k1.md#0x1_secp256k1">0x1::secp256k1</a>;
 <b>use</b> <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map">0x1::simple_map</a>;
 <b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/string.md#0x1_string">0x1::string</a>;
-<b>use</b> <a href="../../aptos-stdlib/doc/table.md#0x1_table">0x1::table</a>;
 <b>use</b> <a href="timestamp.md#0x1_timestamp">0x1::timestamp</a>;
 <b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">0x1::vector</a>;
 </code></pre>
 
 
 
-<a id="0x1_evm_for_test_Account"></a>
+<a id="0x1_evm_for_test_ExecResource"></a>
 
-## Resource `Account`
+## Resource `ExecResource`
 
 
 
-<pre><code><b>struct</b> <a href="evm_for_test.md#0x1_evm_for_test_Account">Account</a> <b>has</b> key
+<pre><code><b>struct</b> <a href="evm_for_test.md#0x1_evm_for_test_ExecResource">ExecResource</a> <b>has</b> key
 </code></pre>
 
 
@@ -67,31 +66,40 @@
 
 <dl>
 <dt>
-<code>balance: u256</code>
+<code>exec_event: <a href="event.md#0x1_event_EventHandle">event::EventHandle</a>&lt;<a href="evm_for_test.md#0x1_evm_for_test_ExecResultEvent">evm_for_test::ExecResultEvent</a>&gt;</code>
+</dt>
+<dd>
+
+</dd>
+</dl>
+
+
+</details>
+
+<a id="0x1_evm_for_test_ExecResultEvent"></a>
+
+## Struct `ExecResultEvent`
+
+
+
+<pre><code><b>struct</b> <a href="evm_for_test.md#0x1_evm_for_test_ExecResultEvent">ExecResultEvent</a> <b>has</b> drop, store
+</code></pre>
+
+
+
+<details>
+<summary>Fields</summary>
+
+
+<dl>
+<dt>
+<code>gas_usage: u64</code>
 </dt>
 <dd>
 
 </dd>
 <dt>
-<code>nonce: u64</code>
-</dt>
-<dd>
-
-</dd>
-<dt>
-<code>is_contract: bool</code>
-</dt>
-<dd>
-
-</dd>
-<dt>
-<code><a href="code.md#0x1_code">code</a>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
-</dt>
-<dd>
-
-</dd>
-<dt>
-<code>storage: <a href="../../aptos-stdlib/doc/table.md#0x1_table_Table">table::Table</a>&lt;u256, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;</code>
+<code>state_root: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
 </dt>
 <dd>
 
@@ -548,7 +556,7 @@ invalid chain id in raw tx
 
 
 
-<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_calculate_root">calculate_root</a>(trie: <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_SimpleMap">simple_map::SimpleMap</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="storage.md#0x1_evm_storage_TestAccount">evm_storage::TestAccount</a>&gt;)
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_calculate_root">calculate_root</a>(trie: <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_SimpleMap">simple_map::SimpleMap</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="storage.md#0x1_evm_storage_TestAccount">evm_storage::TestAccount</a>&gt;): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;
 </code></pre>
 
 
@@ -559,7 +567,7 @@ invalid chain id in raw tx
 
 <pre><code><b>native</b> <b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_calculate_root">calculate_root</a>(
     trie: SimpleMap&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, TestAccount&gt;
-);
+): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;;
 </code></pre>
 
 
@@ -656,6 +664,62 @@ invalid chain id in raw tx
 
 </details>
 
+<a id="0x1_evm_for_test_initialize"></a>
+
+## Function `initialize`
+
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_initialize">initialize</a>(aptos_framework: &<a href="../../aptos-stdlib/../move-stdlib/doc/signer.md#0x1_signer">signer</a>)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_initialize">initialize</a>(aptos_framework: &<a href="../../aptos-stdlib/../move-stdlib/doc/signer.md#0x1_signer">signer</a>) {
+    <b>move_to</b>&lt;<a href="evm_for_test.md#0x1_evm_for_test_ExecResource">ExecResource</a>&gt;(aptos_framework, <a href="evm_for_test.md#0x1_evm_for_test_ExecResource">ExecResource</a> {
+        exec_event: new_event_handle&lt;<a href="evm_for_test.md#0x1_evm_for_test_ExecResultEvent">ExecResultEvent</a>&gt;(aptos_framework)
+    });
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_for_test_emit_event"></a>
+
+## Function `emit_event`
+
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_emit_event">emit_event</a>(state_root: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_usage: u64)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_emit_event">emit_event</a>(state_root: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_usage: u64) <b>acquires</b> <a href="evm_for_test.md#0x1_evm_for_test_ExecResource">ExecResource</a> {
+    <b>let</b> exec_resource = <b>borrow_global_mut</b>&lt;<a href="evm_for_test.md#0x1_evm_for_test_ExecResource">ExecResource</a>&gt;(@aptos_framework);
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&state_root);
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&gas_usage);
+    <a href="event.md#0x1_event_emit_event">event::emit_event</a>(&<b>mut</b> exec_resource.exec_event, <a href="evm_for_test.md#0x1_evm_for_test_ExecResultEvent">ExecResultEvent</a> {
+        state_root,
+        gas_usage
+    });
+}
+</code></pre>
+
+
+
+</details>
+
 <a id="0x1_evm_for_test_run_test"></a>
 
 ## Function `run_test`
@@ -679,7 +743,7 @@ invalid chain id in raw tx
                           <b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
                           data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
                           gas_price_bytes:<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
-                          value_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;) <b>acquires</b> <a href="evm_for_test.md#0x1_evm_for_test_Account">Account</a> {
+                          value_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;) <b>acquires</b> <a href="evm_for_test.md#0x1_evm_for_test_ExecResource">ExecResource</a> {
     <b>let</b> value = to_u256(value_bytes);
     <b>let</b> trie = pre_init(addresses, codes, nonces, balances);
     <b>let</b> transient = <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_new">simple_map::new</a>&lt;u256, u256&gt;();
@@ -691,11 +755,12 @@ invalid chain id in raw tx
     <b>let</b> cache = new_cache();
     add_gas_usage(run_state, calc_base_gas(&data));
     <a href="evm_for_test.md#0x1_evm_for_test_run">run</a>(from, from, <b>to</b>, get_code(<b>to</b>, &trie), data, value, &<b>mut</b> trie, &<b>mut</b> transient, run_state, &<b>mut</b> cache);
-
-    <b>let</b> gasfee = gas_price * (get_gas_usage(run_state) <b>as</b> u256) ;
+    <b>let</b> gas_usage = (get_gas_usage(run_state) <b>as</b> u256);
+    <b>let</b> gasfee = gas_price * gas_usage;
     sub_balance(from, gasfee, &<b>mut</b> trie);
     add_nonce(from, &<b>mut</b> trie);
-    <a href="evm_for_test.md#0x1_evm_for_test_calculate_root">calculate_root</a>(trie);
+    <b>let</b> state_root = <a href="evm_for_test.md#0x1_evm_for_test_calculate_root">calculate_root</a>(trie);
+    <a href="evm_for_test.md#0x1_evm_for_test_emit_event">emit_event</a>(state_root, (gas_usage <b>as</b> u64));
 }
 </code></pre>
 
@@ -729,7 +794,7 @@ invalid chain id in raw tx
         transient: &<b>mut</b> SimpleMap&lt;u256, u256&gt;,
         run_state: &<b>mut</b> SimpleMap&lt;u64, u64&gt;,
         cache: &<b>mut</b> SimpleMap&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, SimpleMap&lt;u256, u256&gt;&gt;
-    ): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;) <b>acquires</b> <a href="evm_for_test.md#0x1_evm_for_test_Account">Account</a> {
+    ): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;) {
 
     <b>if</b> (is_precompile_address(<b>to</b>)) {
         <b>return</b> (<b>true</b>, <a href="precompile.md#0x1_precompile">precompile</a>(sender, <b>to</b>, value, data, trie))
@@ -1060,13 +1125,7 @@ invalid chain id in raw tx
             //balance
         <b>else</b> <b>if</b>(opcode == 0x31) {
             <b>let</b> target = slice(u256_to_data(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack)), 12, 20);
-            <b>let</b> target_address = create_resource_address(&@aptos_framework, to_32bit(target));
-            <b>if</b>(<b>exists</b>&lt;<a href="evm_for_test.md#0x1_evm_for_test_Account">Account</a>&gt;(target_address)) {
-                <b>let</b> account_store = <b>borrow_global</b>&lt;<a href="evm_for_test.md#0x1_evm_for_test_Account">Account</a>&gt;(target_address);
-                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, account_store.balance);
-            } <b>else</b> {
-                <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 0)
-            };
+            get_balance(to_32bit(target), trie);
             i = i + 1;
         }
             //origin
@@ -1241,10 +1300,6 @@ invalid chain id in raw tx
         <b>else</b> <b>if</b>(opcode == 0x55) {
             <b>let</b> key = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
             <b>let</b> value = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
-            <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"store"));
-            <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&<b>to</b>);
-            <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&key);
-            <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&value);
             set_storage(<b>to</b>, key, value, trie);
             i = i + 1;
         }
@@ -1381,7 +1436,7 @@ invalid chain id in raw tx
             <b>let</b> pos = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
             <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
             <b>let</b> new_codes = slice(*memory, pos, len);
-            // <b>let</b> contract_store = <b>borrow_global_mut</b>&lt;<a href="evm_for_test.md#0x1_evm_for_test_Account">Account</a>&gt;(move_contract_address);
+            // <b>let</b> contract_store = <b>borrow_global_mut</b>&lt;Account&gt;(move_contract_address);
             <b>let</b> nonce = get_nonce(<b>to</b>, trie);
             // must be 20 bytes
 
@@ -1608,63 +1663,6 @@ invalid chain id in raw tx
     <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> p, keccak256(salt));
     <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> p, <a href="../../aptos-stdlib/../move-stdlib/doc/hash.md#0x1_hash">hash</a>);
     to_32bit(slice(keccak256(p), 12, 20))
-}
-</code></pre>
-
-
-
-</details>
-
-<a id="0x1_evm_for_test_verify_nonce"></a>
-
-## Function `verify_nonce`
-
-
-
-<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_verify_nonce">verify_nonce</a>(addr: <b>address</b>, nonce: u64)
-</code></pre>
-
-
-
-<details>
-<summary>Implementation</summary>
-
-
-<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_verify_nonce">verify_nonce</a>(addr: <b>address</b>, nonce: u64) <b>acquires</b> <a href="evm_for_test.md#0x1_evm_for_test_Account">Account</a> {
-    <b>let</b> coin_store_from = <b>borrow_global_mut</b>&lt;<a href="evm_for_test.md#0x1_evm_for_test_Account">Account</a>&gt;(addr);
-    <b>assert</b>!(coin_store_from.nonce == nonce, <a href="evm_for_test.md#0x1_evm_for_test_NONCE">NONCE</a>);
-    coin_store_from.nonce = coin_store_from.nonce + 1;
-}
-</code></pre>
-
-
-
-</details>
-
-<a id="0x1_evm_for_test_verify_signature"></a>
-
-## Function `verify_signature`
-
-
-
-<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_verify_signature">verify_signature</a>(from: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, message_hash: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, r: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, s: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, v: u64)
-</code></pre>
-
-
-
-<details>
-<summary>Implementation</summary>
-
-
-<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_verify_signature">verify_signature</a>(from: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, message_hash: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, r: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, s: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, v: u64) {
-    <b>let</b> input_bytes = r;
-    <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> input_bytes, s);
-    <b>let</b> signature = ecdsa_signature_from_bytes(input_bytes);
-    <b>let</b> recovery_id = <b>if</b>(v &gt; 28) ((v - (<a href="evm_for_test.md#0x1_evm_for_test_CHAIN_ID">CHAIN_ID</a> * 2) - 35) <b>as</b> u8) <b>else</b> ((v - 27) <b>as</b> u8);
-    <b>let</b> pk_recover = ecdsa_recover(message_hash, recovery_id, &signature);
-    <b>let</b> pk = keccak256(ecdsa_raw_public_key_to_bytes(borrow(&pk_recover)));
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&slice(pk, 12, 20));
-    <b>assert</b>!(slice(pk, 12, 20) == from, <a href="evm_for_test.md#0x1_evm_for_test_SIGNATURE">SIGNATURE</a>);
 }
 </code></pre>
 

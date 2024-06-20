@@ -40,6 +40,9 @@ module aptos_framework::evm_gas {
         let (_, is_cold_slot, origin) = get_cache(address, key, cache, trie);
         let current = get_storage(address, key, trie);
         let new = *vector::borrow(stack,len - 2);
+        debug::print(&origin);
+        debug::print(&current);
+        debug::print(&new);
         let cold_cost = if(is_cold_slot) Coldsload else 0;
 
         if(current == new) {
@@ -89,6 +92,7 @@ module aptos_framework::evm_gas {
     }
 
     public fun calc_exec_gas(opcode :u8, address: vector<u8>, stack: &mut vector<u256>, run_state: &mut SimpleMap<u64, u64>, cache: &mut SimpleMap<vector<u8>, SimpleMap<u256, u256>>, trie: &mut SimpleMap<vector<u8>, TestAccount>) {
+        debug::print(&opcode);
         let gas = if (opcode == 0x00) {
             // STOP
             0
@@ -298,6 +302,7 @@ module aptos_framework::evm_gas {
             assert!(false, (opcode as u64));
             0
         };
+        debug::print(&gas);
         add_gas_usage(run_state, gas);
 
     }
