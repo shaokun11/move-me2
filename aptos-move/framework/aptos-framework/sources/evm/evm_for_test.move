@@ -1063,7 +1063,6 @@ module aptos_framework::evm_for_test {
     public fun test_run() acquires ExecResource {
         // debug::print(&u256_to_data(0x0ba1a9ce0ba1a9ce));
         let balance = u256_to_data(0x0ba1a9ce0ba1a9ce);
-        // debug::print(&to_u256(balance));
         let aptos_framework = create_account_for_test(@0x1);
         initialize(&aptos_framework);
         run_test(vector[

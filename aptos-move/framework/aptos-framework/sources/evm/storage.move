@@ -2,7 +2,7 @@ module aptos_framework::evm_storage {
     use aptos_std::simple_map::SimpleMap;
     use aptos_std::simple_map;
     use std::vector;
-    use aptos_framework::evm_util::{to_32bit, data_to_u256};
+    use aptos_framework::evm_util::{to_32bit, to_u256};
 
     struct TestAccount has store, copy, drop {
         balance: u256,
@@ -109,7 +109,7 @@ module aptos_framework::evm_storage {
         let i = 0;
         while(i < pre_len) {
             simple_map::add(&mut trie, to_32bit(*vector::borrow(&addresses, i)), TestAccount {
-                balance: data_to_u256(*vector::borrow(&balances, i), 0, 32),
+                balance: to_u256(*vector::borrow(&balances, i)),
                 code: *vector::borrow(&codes, i),
                 nonce: (*vector::borrow(&nonces, i) as u256),
                 storage: simple_map::new<u256, u256>(),
