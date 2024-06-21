@@ -3,6 +3,7 @@ module aptos_framework::evm_storage {
     use aptos_std::simple_map;
     use std::vector;
     use aptos_framework::evm_util::{to_32bit, to_u256};
+    use aptos_framework::coin::value;
 
     struct TestAccount has store, copy, drop {
         balance: u256,
@@ -98,10 +99,12 @@ module aptos_framework::evm_storage {
 
     public fun transfer(from: vector<u8>, to: vector<u8>, amount: u256, trie: &mut SimpleMap<vector<u8>, TestAccount>) {
         sub_balance(from, amount, trie);
-        if(!exist_account(to, trie)) {
+        if(!exist_account(to, trie) && amount > 0) {
             new_account(to, 0, x"", 0, trie);
         };
-        add_balance(to, amount, trie);
+        if(amount > 0) {
+            add_balance(to, amount, trie);
+        };
     }
 
     public fun pre_init(addresses: vector<vector<u8>>,

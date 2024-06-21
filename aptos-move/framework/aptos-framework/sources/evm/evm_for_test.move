@@ -1051,6 +1051,7 @@ module aptos_framework::evm_for_test {
         let aptos_framework = create_account_for_test(@0x1);
         initialize(&aptos_framework);
         let addresses = vector[
+            x"0000000000000000000000000000000000000110",
             x"0000000000000000000000000000000000001000",
             x"0000000000000000000000000000000000001001",
             x"0000000000000000000000000000000000001002",
@@ -1062,6 +1063,11 @@ module aptos_framework::evm_for_test {
             x"0000000000000000000000000000000000001008",
             x"0000000000000000000000000000000000001009",
             x"000000000000000000000000000000000000100a",
+            x"000000000000000000000000000000000000100b",
+            x"000000000000000000000000000000000000100c",
+            x"000000000000000000000000000000000000100d",
+            x"000000000000000000000000000000000000100e",
+            x"000000000000000000000000000000000000100f",
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc"
         ];
@@ -1077,17 +1083,23 @@ module aptos_framework::evm_for_test {
         run_test(
             addresses,
             vector[
-                x"600260020a60005500",
-                x"7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0a60005500",
-                x"637fffffff637fffffff0a60005500",
-                x"637fffffff60000a60005500",
-                x"6000637fffffff0a60005500",
-                x"60016101010a60005500",
-                x"61010160010a60005500",
-                x"61010160020a60005500",
-                x"600060000a60005500",
-                x"660100000000000f60020a60005500",
-                x"600f60020a60005500",
+                x"7f7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff6000037fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0560005500",
+                x"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff6000030560005500",
+                x"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff6000037fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0560005500",
+                x"600460000360026000030560005500",
+                x"600260000360040560005500",
+                x"600460000360050560005500",
+                x"60016000037f80000000000000000000000000000000000000000000000000000000000000006000030560005500",
+                x"60007f80000000000000000000000000000000000000000000000000000000000000006000030560005500",
+                x"601960016000030560005500",
+                x"600160000360016000030560005500",
+                x"600160016000030560005500",
+                x"600060000360036000030560005500",
+                x"60007fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff6000030560005500",
+                x"600160007fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff600003050160005500",
+                x"600560096000030560005500",
+                x"600160000360017f8000000000000000000000000000000000000000000000000000000000000000036000030560005500",
+                x"60016000037f80000000000000000000000000000000000000000000000000000000000000006000030560005500",
                 x"",
                 x"600060006000600060006004356110000162fffffff100"
             ],
@@ -1095,7 +1107,7 @@ module aptos_framework::evm_for_test {
             *balances,
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc",
-            x"693c61390000000000000000000000000000000000000000000000000000000000000004",
+            x"693c61390000000000000000000000000000000000000000000000000000000000000010",
             u256_to_data(0x0a),
             u256_to_data(0x1)
         );
