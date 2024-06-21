@@ -116,9 +116,7 @@ module aptos_framework::evm_util {
     public fun u256_bytes_length(num: u256): u64 {
         let i = 0;
         while(num > 0) {
-            if(num % 256 > 0) {
-                i = i + 1;
-            };
+            i = i + 1;
             num = num >> 8;
         };
 

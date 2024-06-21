@@ -68,7 +68,6 @@ module aptos_framework::evm_gas {
 
     fun calc_exp_gas(stack: &vector<u256>): u64 {
         let len = vector::length(stack);
-        let base = *vector::borrow(stack,len - 1);
         let exponent = *vector::borrow(stack,len - 2);
         if(exponent == 0) {
             return 0
