@@ -140,16 +140,18 @@ module aptos_framework::evm_util {
         let m_idx = (m_pos as u64);
         let d_idx = (d_pos as u64);
         let m_len = vector::length(memory);
+        let d_len = vector::length(&data);
         while(m_len < m_idx) {
             vector::push_back(memory, 0);
             m_len = m_len + 1
         };
 
         while (i < (len as u64)) {
+            let bytes = if(d_idx + i >= d_len) 0 else *vector::borrow(&data, d_idx + i);
             if(m_idx + i >= m_len) {
-                vector::push_back(memory, *vector::borrow(&data, d_idx + i));
+                vector::push_back(memory, bytes);
             } else {
-                *vector::borrow_mut(memory, m_idx + i) = *vector::borrow(&data, d_idx + i);
+                *vector::borrow_mut(memory, m_idx + i) = bytes;
             };
             i = i + 1;
         };

@@ -19,6 +19,7 @@ module aptos_framework::evm_gas {
     const CallValueTransfer: u64 = 9000;
     const ColdAccountAccess: u64 = 2600;
     const ExpByte: u64 = 50;
+    const Copy: u64 = 3;
 
     fun access_address(address: vector<u8>, cache: &mut SimpleMap<vector<u8>, SimpleMap<u256, u256>>): u64 {
         if(is_cold_address(address, cache)) ColdAccountAccess else 0
@@ -101,6 +102,19 @@ module aptos_framework::evm_gas {
         gas = gas + access_address(address, cache);
 
         gas
+    }
+
+    fun calc_code_copy_gas(stack: &mut vector<u256>, run_state: &mut SimpleMap<u64, u64>): u64 {
+        let len = vector::length(stack);
+        let gas = 0;
+        let data_length = (*vector::borrow(stack,len - 3) as u64);
+
+        if(data_length > 0) {
+            gas = gas + calc_memory_expand(stack, 1, 3, run_state);
+            gas = gas + data_length / 32 * Copy
+        };
+
+        gas + 3
     }
 
     public fun calc_base_gas(memory: &vector<u8>): u64 {
@@ -322,6 +336,9 @@ module aptos_framework::evm_gas {
         } else if (opcode == 0x55) {
             // SSTORE
             calc_sstore_gas(address, stack, cache, trie)
+        } else if (opcode == 0x39) {
+            // SSTORE
+            calc_code_copy_gas(stack, run_state)
         } else {
             assert!(false, (opcode as u64));
             0

@@ -3,7 +3,6 @@ module aptos_framework::evm_storage {
     use aptos_std::simple_map;
     use std::vector;
     use aptos_framework::evm_util::{to_32bit, to_u256};
-    use aptos_framework::coin::value;
 
     struct TestAccount has store, copy, drop {
         balance: u256,
