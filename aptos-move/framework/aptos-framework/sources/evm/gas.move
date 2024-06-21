@@ -74,7 +74,10 @@ module aptos_framework::evm_gas {
         };
 
         let byte_length = u256_bytes_length(exponent);
-        ExpByte * byte_length + 10
+        debug::print(&utf8(b"exp gas"));
+        debug::print(&exponent);
+        debug::print(&byte_length);
+        ExpByte * byte_length
     }
 
     fun calc_call_gas(stack: &mut vector<u256>, cache: &mut SimpleMap<vector<u8>, SimpleMap<u256, u256>>, run_state: &mut SimpleMap<u64, u64>, trie: &mut SimpleMap<vector<u8>, TestAccount>): u64 {
@@ -140,7 +143,7 @@ module aptos_framework::evm_gas {
             8
         } else if (opcode == 0x0A) {
             // EXP (dynamic gas)
-            calc_exp_gas(stack)
+            calc_exp_gas(stack) + 10
         } else if (opcode == 0x0B) {
             // SIGNEXTEND
             5
