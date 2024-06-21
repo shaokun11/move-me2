@@ -80,23 +80,27 @@ module aptos_framework::evm_gas {
         ExpByte * byte_length
     }
 
-    fun calc_call_gas(stack: &mut vector<u256>, cache: &mut SimpleMap<vector<u8>, SimpleMap<u256, u256>>, run_state: &mut SimpleMap<u64, u64>, trie: &mut SimpleMap<vector<u8>, TestAccount>): u64 {
+    fun calc_call_gas(stack: &mut vector<u256>, cache: &mut SimpleMap<vector<u8>, SimpleMap<u256, u256>>, run_state: &mut SimpleMap<u64, u64>, opcode: u8, trie: &mut SimpleMap<vector<u8>, TestAccount>): u64 {
         let gas = 0;
         let len = vector::length(stack);
-        let value = *vector::borrow(stack,len - 3);
         let address = u256_to_data(*vector::borrow(stack,len - 2));
-        if(value > 0 && !exist_account(address, trie)) {
-            gas = gas + CallNewAccount;
-        };
-        if(value > 0) {
-            gas = gas + CallValueTransfer;
-        };
+        if(opcode == 0xf1) {
+            let value = *vector::borrow(stack,len - 3);
 
-        let memory_cost = calc_memory_expand(stack, 6, 7, run_state);
+            if(value > 0 && !exist_account(address, trie)) {
+                gas = gas + CallNewAccount;
+            };
+            if(value > 0) {
+                gas = gas + CallValueTransfer;
+            };
+            gas = gas +  calc_memory_expand(stack, 6, 7, run_state);
+        } else {
+            gas = gas +  calc_memory_expand(stack, 5, 6, run_state);
+        };
 
         gas = gas + access_address(address, cache);
 
-        gas + memory_cost
+        gas
     }
 
     public fun calc_base_gas(memory: &vector<u8>): u64 {
@@ -309,9 +313,9 @@ module aptos_framework::evm_gas {
         } else if (opcode >= 0x90 && opcode <= 0x9F) {
             // SWAP1 to SWAP16
             3
-        } else if (opcode == 0xf1) {
+        } else if (opcode == 0xf1 || opcode == 0xf4) {
             // CALL
-            calc_call_gas(stack, cache, run_state, trie)
+            calc_call_gas(stack, cache, run_state, opcode, trie)
         } else if (opcode == 0xf3) {
             // RETURN
             calc_memory_expand(stack, 1, 2, run_state)
