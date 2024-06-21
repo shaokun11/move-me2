@@ -816,14 +816,14 @@ module aptos_framework::evm {
                 //jump
             else if(opcode == 0x56) {
                 let dest = vector::pop_back(stack);
-                i = (dest as u64) + 1
+                i = (dest as u64)
             }
                 //jumpi
             else if(opcode == 0x57) {
                 let dest = vector::pop_back(stack);
                 let condition = vector::pop_back(stack);
                 if(condition > 0) {
-                    i = (dest as u64) + 1
+                    i = (dest as u64)
                 } else {
                     i = i + 1
                 }

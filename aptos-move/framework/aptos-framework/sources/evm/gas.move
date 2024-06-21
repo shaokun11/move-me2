@@ -22,7 +22,14 @@ module aptos_framework::evm_gas {
         if(is_cold_address(address, cache)) ColdAccountAccess else 0
     }
 
-    fun calc_memory_expand(new_memory_size: u64, run_state: &mut SimpleMap<u64, u64>): u64 {
+    fun calc_memory_expand(stack: &vector<u256>, pos: u64, size: u64, run_state: &mut SimpleMap<u64, u64>): u64 {
+        let len = vector::length(stack);
+        let out_offset = *vector::borrow(stack,len - pos);
+        let out_size = *vector::borrow(stack,len - size);
+        calc_memory_expand_internal(((out_offset + out_size) as u64), run_state)
+    }
+
+    fun calc_memory_expand_internal(new_memory_size: u64, run_state: &mut SimpleMap<u64, u64>): u64 {
         let old_memory_cost = get_memory_cost(run_state);
         let new_memory_size_word = (new_memory_size + 31) / 32;
         let new_memory_cost = (new_memory_size_word * new_memory_size_word / 512) + 3 * new_memory_size_word;
@@ -40,9 +47,6 @@ module aptos_framework::evm_gas {
         let (_, is_cold_slot, origin) = get_cache(address, key, cache, trie);
         let current = get_storage(address, key, trie);
         let new = *vector::borrow(stack,len - 2);
-        debug::print(&origin);
-        debug::print(&current);
-        debug::print(&new);
         let cold_cost = if(is_cold_slot) Coldsload else 0;
 
         if(current == new) {
@@ -72,9 +76,7 @@ module aptos_framework::evm_gas {
             gas = gas + CallValueTransfer;
         };
 
-        let out_offset = *vector::borrow(stack,len - 6);
-        let out_size = *vector::borrow(stack,len - 7);
-        let memory_cost = calc_memory_expand(((out_offset + out_size) as u64), run_state);
+        let memory_cost = calc_memory_expand(stack, 6, 7, run_state);
 
         gas = gas + access_address(address, cache);
 
@@ -295,6 +297,9 @@ module aptos_framework::evm_gas {
         } else if (opcode == 0xf1) {
             // CALL
             calc_call_gas(stack, cache, run_state, trie)
+        } else if (opcode == 0xf3) {
+            // RETURN
+            calc_memory_expand(stack, 1, 2, run_state)
         } else if (opcode == 0x55) {
             // SSTORE
             calc_sstore_gas(address, stack, cache, trie)
