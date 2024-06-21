@@ -8,7 +8,9 @@
 -  [Constants](#@Constants_0)
 -  [Function `access_address`](#0x1_evm_gas_access_address)
 -  [Function `calc_memory_expand`](#0x1_evm_gas_calc_memory_expand)
+-  [Function `calc_memory_expand_internal`](#0x1_evm_gas_calc_memory_expand_internal)
 -  [Function `calc_sstore_gas`](#0x1_evm_gas_calc_sstore_gas)
+-  [Function `calc_exp_gas`](#0x1_evm_gas_calc_exp_gas)
 -  [Function `calc_call_gas`](#0x1_evm_gas_calc_call_gas)
 -  [Function `calc_base_gas`](#0x1_evm_gas_calc_base_gas)
 -  [Function `calc_exec_gas`](#0x1_evm_gas_calc_exec_gas)
@@ -62,6 +64,15 @@
 
 
 <pre><code><b>const</b> <a href="gas.md#0x1_evm_gas_Coldsload">Coldsload</a>: u64 = 2100;
+</code></pre>
+
+
+
+<a id="0x1_evm_gas_ExpByte"></a>
+
+
+
+<pre><code><b>const</b> <a href="gas.md#0x1_evm_gas_ExpByte">ExpByte</a>: u64 = 50;
 </code></pre>
 
 
@@ -132,7 +143,7 @@
 
 
 
-<pre><code><b>fun</b> <a href="gas.md#0x1_evm_gas_calc_memory_expand">calc_memory_expand</a>(new_memory_size: u64, run_state: &<b>mut</b> <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_SimpleMap">simple_map::SimpleMap</a>&lt;u64, u64&gt;): u64
+<pre><code><b>fun</b> <a href="gas.md#0x1_evm_gas_calc_memory_expand">calc_memory_expand</a>(stack: &<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u256&gt;, pos: u64, size: u64, run_state: &<b>mut</b> <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_SimpleMap">simple_map::SimpleMap</a>&lt;u64, u64&gt;): u64
 </code></pre>
 
 
@@ -141,7 +152,34 @@
 <summary>Implementation</summary>
 
 
-<pre><code><b>fun</b> <a href="gas.md#0x1_evm_gas_calc_memory_expand">calc_memory_expand</a>(new_memory_size: u64, run_state: &<b>mut</b> SimpleMap&lt;u64, u64&gt;): u64 {
+<pre><code><b>fun</b> <a href="gas.md#0x1_evm_gas_calc_memory_expand">calc_memory_expand</a>(stack: &<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u256&gt;, pos: u64, size: u64, run_state: &<b>mut</b> SimpleMap&lt;u64, u64&gt;): u64 {
+    <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack);
+    <b>let</b> out_offset = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(stack,len - pos);
+    <b>let</b> out_size = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(stack,len - size);
+    <a href="gas.md#0x1_evm_gas_calc_memory_expand_internal">calc_memory_expand_internal</a>(((out_offset + out_size) <b>as</b> u64), run_state)
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_gas_calc_memory_expand_internal"></a>
+
+## Function `calc_memory_expand_internal`
+
+
+
+<pre><code><b>fun</b> <a href="gas.md#0x1_evm_gas_calc_memory_expand_internal">calc_memory_expand_internal</a>(new_memory_size: u64, run_state: &<b>mut</b> <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_SimpleMap">simple_map::SimpleMap</a>&lt;u64, u64&gt;): u64
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="gas.md#0x1_evm_gas_calc_memory_expand_internal">calc_memory_expand_internal</a>(new_memory_size: u64, run_state: &<b>mut</b> SimpleMap&lt;u64, u64&gt;): u64 {
     <b>let</b> old_memory_cost = get_memory_cost(run_state);
     <b>let</b> new_memory_size_word = (new_memory_size + 31) / 32;
     <b>let</b> new_memory_cost = (new_memory_size_word * new_memory_size_word / 512) + 3 * new_memory_size_word;
@@ -179,9 +217,6 @@
     <b>let</b> (_, is_cold_slot, origin) = get_cache(<b>address</b>, key, cache, trie);
     <b>let</b> current = get_storage(<b>address</b>, key, trie);
     <b>let</b> new = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(stack,len - 2);
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&origin);
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&current);
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&new);
     <b>let</b> cold_cost = <b>if</b>(is_cold_slot) <a href="gas.md#0x1_evm_gas_Coldsload">Coldsload</a> <b>else</b> 0;
 
     <b>if</b>(current == new) {
@@ -197,6 +232,38 @@
     };
 
     <a href="gas.md#0x1_evm_gas_SstoreDirtyGasEIP2200">SstoreDirtyGasEIP2200</a> + cold_cost
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_gas_calc_exp_gas"></a>
+
+## Function `calc_exp_gas`
+
+
+
+<pre><code><b>fun</b> <a href="gas.md#0x1_evm_gas_calc_exp_gas">calc_exp_gas</a>(stack: &<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u256&gt;): u64
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="gas.md#0x1_evm_gas_calc_exp_gas">calc_exp_gas</a>(stack: &<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u256&gt;): u64 {
+    <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack);
+    <b>let</b> base = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(stack,len - 1);
+    <b>let</b> exponent = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(stack,len - 2);
+    <b>if</b>(base == 0) {
+        <b>return</b> 0
+    };
+
+    <b>let</b> byte_length = u256_bytes_length(exponent);
+    <a href="gas.md#0x1_evm_gas_ExpByte">ExpByte</a> * byte_length + 10
 }
 </code></pre>
 
@@ -231,9 +298,7 @@
         gas = gas + <a href="gas.md#0x1_evm_gas_CallValueTransfer">CallValueTransfer</a>;
     };
 
-    <b>let</b> out_offset = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(stack,len - 6);
-    <b>let</b> out_size = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(stack,len - 7);
-    <b>let</b> memory_cost = <a href="gas.md#0x1_evm_gas_calc_memory_expand">calc_memory_expand</a>(((out_offset + out_size) <b>as</b> u64), run_state);
+    <b>let</b> memory_cost = <a href="gas.md#0x1_evm_gas_calc_memory_expand">calc_memory_expand</a>(stack, 6, 7, run_state);
 
     gas = gas + <a href="gas.md#0x1_evm_gas_access_address">access_address</a>(<b>address</b>, cache);
 
@@ -291,7 +356,7 @@
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="gas.md#0x1_evm_gas_calc_exec_gas">calc_exec_gas</a>(opcode :u8, <b>address</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, stack: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u256&gt;, run_state: &<b>mut</b> SimpleMap&lt;u64, u64&gt;, cache: &<b>mut</b> SimpleMap&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, SimpleMap&lt;u256, u256&gt;&gt;, trie: &<b>mut</b> SimpleMap&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, TestAccount&gt;) {
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&opcode);
+    // print_opcode(opcode);
     <b>let</b> gas = <b>if</b> (opcode == 0x00) {
         // STOP
         0
@@ -324,8 +389,7 @@
         8
     } <b>else</b> <b>if</b> (opcode == 0x0A) {
         // EXP (dynamic gas)
-        // Additional gas cost depends on the exponent
-        10
+        <a href="gas.md#0x1_evm_gas_calc_exp_gas">calc_exp_gas</a>(stack)
     } <b>else</b> <b>if</b> (opcode == 0x0B) {
         // SIGNEXTEND
         5
@@ -494,6 +558,9 @@
     } <b>else</b> <b>if</b> (opcode == 0xf1) {
         // CALL
         <a href="gas.md#0x1_evm_gas_calc_call_gas">calc_call_gas</a>(stack, cache, run_state, trie)
+    } <b>else</b> <b>if</b> (opcode == 0xf3) {
+        // RETURN
+        <a href="gas.md#0x1_evm_gas_calc_memory_expand">calc_memory_expand</a>(stack, 1, 2, run_state)
     } <b>else</b> <b>if</b> (opcode == 0x55) {
         // SSTORE
         <a href="gas.md#0x1_evm_gas_calc_sstore_gas">calc_sstore_gas</a>(<b>address</b>, stack, cache, trie)
@@ -501,7 +568,7 @@
         <b>assert</b>!(<b>false</b>, (opcode <b>as</b> u64));
         0
     };
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&gas);
+    // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&gas);
     add_gas_usage(run_state, gas);
 
 }

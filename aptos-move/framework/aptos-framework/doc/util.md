@@ -162,18 +162,22 @@ owned.
 -  [Function `add_sign`](#0x1_evm_util_add_sign)
 -  [Function `to_u256`](#0x1_evm_util_to_u256)
 -  [Function `data_to_u256`](#0x1_evm_util_data_to_u256)
+-  [Function `u256_bytes_length`](#0x1_evm_util_u256_bytes_length)
 -  [Function `u256_to_data`](#0x1_evm_util_u256_to_data)
 -  [Function `copy_to_memory`](#0x1_evm_util_copy_to_memory)
 -  [Function `mstore`](#0x1_evm_util_mstore)
 -  [Function `get_message_hash`](#0x1_evm_util_get_message_hash)
 -  [Function `u256_to_trimed_data`](#0x1_evm_util_u256_to_trimed_data)
 -  [Function `trim`](#0x1_evm_util_trim)
+-  [Function `print_opcode`](#0x1_evm_util_print_opcode)
 -  [Function `hex_length`](#0x1_evm_util_hex_length)
 -  [Function `encode_data`](#0x1_evm_util_encode_data)
 
 
 <pre><code><b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/hash.md#0x1_aptos_hash">0x1::aptos_hash</a>;
+<b>use</b> <a href="../../aptos-stdlib/doc/debug.md#0x1_debug">0x1::debug</a>;
 <b>use</b> <a href="encode.md#0x1_rlp_encode">0x1::rlp_encode</a>;
+<b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/string.md#0x1_string">0x1::string</a>;
 <b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">0x1::vector</a>;
 </code></pre>
 
@@ -482,6 +486,38 @@ owned.
 
 </details>
 
+<a id="0x1_evm_util_u256_bytes_length"></a>
+
+## Function `u256_bytes_length`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_u256_bytes_length">u256_bytes_length</a>(num: u256): u64
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_u256_bytes_length">u256_bytes_length</a>(num: u256): u64 {
+    <b>let</b> i = 0;
+    <b>while</b>(num &gt; 0) {
+        <b>if</b>(num % 256 &gt; 0) {
+            i = i + 1;
+        };
+        num = num &gt;&gt; 8;
+    };
+
+    i
+}
+</code></pre>
+
+
+
+</details>
+
 <a id="0x1_evm_util_u256_to_data"></a>
 
 ## Function `u256_to_data`
@@ -681,6 +717,308 @@ owned.
         i = i + 1
     };
     <a href="util.md#0x1_evm_util_slice">slice</a>(data, (i <b>as</b> u256), ((len - i) <b>as</b> u256))
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_util_print_opcode"></a>
+
+## Function `print_opcode`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_print_opcode">print_opcode</a>(opcode: u8)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_print_opcode">print_opcode</a>(opcode: u8) {
+    <b>if</b>(opcode == 0x00) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"STOP"))
+    } <b>else</b> <b>if</b>(opcode == 0x01) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"ADD"));
+    } <b>else</b> <b>if</b>(opcode == 0x02) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"MUL"));
+    } <b>else</b> <b>if</b>(opcode == 0x03) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"SUB"));
+    } <b>else</b> <b>if</b>(opcode == 0x04) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"DIV"));
+    } <b>else</b> <b>if</b>(opcode == 0x05) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"SDIV"));
+    } <b>else</b> <b>if</b>(opcode == 0x06) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"MOD"));
+    } <b>else</b> <b>if</b>(opcode == 0x07) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"SMOD"));
+    } <b>else</b> <b>if</b>(opcode == 0x08) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"ADDMOD"));
+    } <b>else</b> <b>if</b>(opcode == 0x09) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"MULMOD"));
+    } <b>else</b> <b>if</b>(opcode == 0x0a) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"EXP"));
+    } <b>else</b> <b>if</b>(opcode == 0x0b) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"SIGNEXTEND"));
+    } <b>else</b> <b>if</b>(opcode == 0x10) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"LT"));
+    } <b>else</b> <b>if</b>(opcode == 0x11) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"GT"));
+    } <b>else</b> <b>if</b>(opcode == 0x12) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"SLT"));
+    } <b>else</b> <b>if</b>(opcode == 0x13) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"SGT"));
+    } <b>else</b> <b>if</b>(opcode == 0x14) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"EQ"));
+    } <b>else</b> <b>if</b>(opcode == 0x15) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"ISZERO"));
+    } <b>else</b> <b>if</b>(opcode == 0x16) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"AND"));
+    } <b>else</b> <b>if</b>(opcode == 0x17) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"OR"));
+    } <b>else</b> <b>if</b>(opcode == 0x18) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"XOR"));
+    } <b>else</b> <b>if</b>(opcode == 0x19) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"NOT"));
+    } <b>else</b> <b>if</b>(opcode == 0x1a) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"BYTE"));
+    } <b>else</b> <b>if</b>(opcode == 0x20) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"SHA3"));
+    } <b>else</b> <b>if</b>(opcode == 0x30) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"ADDRESS"));
+    } <b>else</b> <b>if</b>(opcode == 0x31) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"BALANCE"));
+    } <b>else</b> <b>if</b>(opcode == 0x32) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"ORIGIN"));
+    } <b>else</b> <b>if</b>(opcode == 0x33) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"CALLER"));
+    } <b>else</b> <b>if</b>(opcode == 0x34) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"CALLVALUE"));
+    } <b>else</b> <b>if</b>(opcode == 0x35) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"CALLDATALOAD"));
+    } <b>else</b> <b>if</b>(opcode == 0x36) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"CALLDATASIZE"));
+    } <b>else</b> <b>if</b>(opcode == 0x37) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"CALLDATACOPY"));
+    } <b>else</b> <b>if</b>(opcode == 0x38) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"CODESIZE"));
+    } <b>else</b> <b>if</b>(opcode == 0x39) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"CODECOPY"));
+    } <b>else</b> <b>if</b>(opcode == 0x3a) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"GASPRICE"));
+    } <b>else</b> <b>if</b>(opcode == 0x3b) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"EXTCODESIZE"));
+    } <b>else</b> <b>if</b>(opcode == 0x3c) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"EXTCODECOPY"));
+    } <b>else</b> <b>if</b>(opcode == 0x3d) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"RETURNDATASIZE"));
+    } <b>else</b> <b>if</b>(opcode == 0x3e) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"RETURNDATACOPY"));
+    } <b>else</b> <b>if</b>(opcode == 0x40) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"BLOCKHASH"));
+    } <b>else</b> <b>if</b>(opcode == 0x41) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"COINBASE"));
+    } <b>else</b> <b>if</b>(opcode == 0x42) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"TIMESTAMP"));
+    } <b>else</b> <b>if</b>(opcode == 0x43) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"NUMBER"));
+    } <b>else</b> <b>if</b>(opcode == 0x44) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"DIFFICULTY"));
+    } <b>else</b> <b>if</b>(opcode == 0x45) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"GASLIMIT"));
+    } <b>else</b> <b>if</b>(opcode == 0x50) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"POP"));
+    } <b>else</b> <b>if</b>(opcode == 0x51) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"MLOAD"));
+    } <b>else</b> <b>if</b>(opcode == 0x52) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"MSTORE"));
+    } <b>else</b> <b>if</b>(opcode == 0x53) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"MSTORE8"));
+    } <b>else</b> <b>if</b>(opcode == 0x54) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"SLOAD"));
+    } <b>else</b> <b>if</b>(opcode == 0x55) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"SSTORE"));
+    } <b>else</b> <b>if</b>(opcode == 0x56) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"JUMP"));
+    } <b>else</b> <b>if</b>(opcode == 0x57) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"JUMPI"));
+    } <b>else</b> <b>if</b>(opcode == 0x58) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PC"));
+    } <b>else</b> <b>if</b>(opcode == 0x59) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"MSIZE"));
+    } <b>else</b> <b>if</b>(opcode == 0x5a) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"GAS"));
+    } <b>else</b> <b>if</b>(opcode == 0x5b) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"JUMPDEST"));
+    } <b>else</b> <b>if</b>(opcode == 0x60) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PUSH1"));
+    } <b>else</b> <b>if</b>(opcode == 0x61) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PUSH2"));
+    } <b>else</b> <b>if</b>(opcode == 0x62) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PUSH3"));
+    } <b>else</b> <b>if</b>(opcode == 0x63) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PUSH4"));
+    } <b>else</b> <b>if</b>(opcode == 0x64) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PUSH5"));
+    } <b>else</b> <b>if</b>(opcode == 0x65) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PUSH6"));
+    } <b>else</b> <b>if</b>(opcode == 0x66) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PUSH7"));
+    } <b>else</b> <b>if</b>(opcode == 0x67) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PUSH8"));
+    } <b>else</b> <b>if</b>(opcode == 0x68) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PUSH9"));
+    } <b>else</b> <b>if</b>(opcode == 0x69) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PUSH10"));
+    } <b>else</b> <b>if</b>(opcode == 0x6a) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PUSH11"));
+    } <b>else</b> <b>if</b>(opcode == 0x6b) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PUSH12"));
+    } <b>else</b> <b>if</b>(opcode == 0x6c) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PUSH13"));
+    } <b>else</b> <b>if</b>(opcode == 0x6d) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PUSH14"));
+    } <b>else</b> <b>if</b>(opcode == 0x6e) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PUSH15"));
+    } <b>else</b> <b>if</b>(opcode == 0x6f) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PUSH16"));
+    } <b>else</b> <b>if</b>(opcode == 0x70) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PUSH17"));
+    } <b>else</b> <b>if</b>(opcode == 0x71) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PUSH18"));
+    } <b>else</b> <b>if</b>(opcode == 0x72) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PUSH19"));
+    } <b>else</b> <b>if</b>(opcode == 0x73) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PUSH20"));
+    } <b>else</b> <b>if</b>(opcode == 0x74) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PUSH21"));
+    } <b>else</b> <b>if</b>(opcode == 0x75) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PUSH22"));
+    } <b>else</b> <b>if</b>(opcode == 0x76) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PUSH23"));
+    } <b>else</b> <b>if</b>(opcode == 0x77) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PUSH24"));
+    } <b>else</b> <b>if</b>(opcode == 0x78) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PUSH25"));
+    } <b>else</b> <b>if</b>(opcode == 0x79) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PUSH26"));
+    } <b>else</b> <b>if</b>(opcode == 0x7a) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PUSH27"));
+    } <b>else</b> <b>if</b>(opcode == 0x7b) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PUSH28"));
+    } <b>else</b> <b>if</b> (opcode == 0x7c) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PUSH29"));
+    } <b>else</b> <b>if</b> (opcode == 0x7d) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PUSH30"));
+    } <b>else</b> <b>if</b> (opcode == 0x7e) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PUSH31"));
+    } <b>else</b> <b>if</b> (opcode == 0x7f) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PUSH32"));
+    } <b>else</b> <b>if</b> (opcode == 0x80) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"DUP1"));
+    } <b>else</b> <b>if</b> (opcode == 0x81) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"DUP2"));
+    } <b>else</b> <b>if</b> (opcode == 0x82) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"DUP3"));
+    } <b>else</b> <b>if</b> (opcode == 0x83) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"DUP4"));
+    } <b>else</b> <b>if</b> (opcode == 0x84) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"DUP5"));
+    } <b>else</b> <b>if</b> (opcode == 0x85) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"DUP6"));
+    } <b>else</b> <b>if</b> (opcode == 0x86) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"DUP7"));
+    } <b>else</b> <b>if</b> (opcode == 0x87) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"DUP8"));
+    } <b>else</b> <b>if</b> (opcode == 0x88) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"DUP9"));
+    } <b>else</b> <b>if</b> (opcode == 0x89) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"DUP10"));
+    } <b>else</b> <b>if</b> (opcode == 0x8a) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"DUP11"));
+    } <b>else</b> <b>if</b> (opcode == 0x8b) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"DUP12"));
+    } <b>else</b> <b>if</b> (opcode == 0x8c) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"DUP13"));
+    } <b>else</b> <b>if</b> (opcode == 0x8d) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"DUP14"));
+    } <b>else</b> <b>if</b> (opcode == 0x8e) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"DUP15"));
+    } <b>else</b> <b>if</b> (opcode == 0x8f) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"DUP16"));
+    } <b>else</b> <b>if</b>(opcode == 0x90) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"SWAP1"));
+    } <b>else</b> <b>if</b>(opcode == 0x91) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"SWAP2"));
+    } <b>else</b> <b>if</b>(opcode == 0x92) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"SWAP3"));
+    } <b>else</b> <b>if</b>(opcode == 0x93) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"SWAP4"));
+    } <b>else</b> <b>if</b>(opcode == 0x94) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"SWAP5"));
+    } <b>else</b> <b>if</b>(opcode == 0x95) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"SWAP6"));
+    } <b>else</b> <b>if</b>(opcode == 0x96) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"SWAP7"));
+    } <b>else</b> <b>if</b>(opcode == 0x97) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"SWAP8"));
+    } <b>else</b> <b>if</b>(opcode == 0x98) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"SWAP9"));
+    } <b>else</b> <b>if</b>(opcode == 0x99) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"SWAP10"));
+    } <b>else</b> <b>if</b>(opcode == 0x9a) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"SWAP11"));
+    } <b>else</b> <b>if</b>(opcode == 0x9b) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"SWAP12"));
+    } <b>else</b> <b>if</b>(opcode == 0x9c) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"SWAP13"));
+    } <b>else</b> <b>if</b>(opcode == 0x9d) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"SWAP14"));
+    } <b>else</b> <b>if</b>(opcode == 0x9e) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"SWAP15"));
+    } <b>else</b> <b>if</b>(opcode == 0x9f) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"SWAP16"));
+    } <b>else</b> <b>if</b>(opcode == 0xa0) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"LOG0"));
+    } <b>else</b> <b>if</b>(opcode == 0xa1) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"LOG1"));
+    } <b>else</b> <b>if</b>(opcode == 0xa2) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"LOG2"));
+    } <b>else</b> <b>if</b>(opcode == 0xa3) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"LOG3"));
+    } <b>else</b> <b>if</b>(opcode == 0xa4) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"LOG4"));
+    } <b>else</b> <b>if</b>(opcode &gt;= 0xa5 && opcode &lt;= 0xaf) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"Reserved for future <b>use</b>"));
+    } <b>else</b> <b>if</b>(opcode &gt;= 0xb0 && opcode &lt;= 0xe0) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"More Reserved Opcodes"));
+    } <b>else</b> <b>if</b>(opcode == 0xf0) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"CREATE"));
+    } <b>else</b> <b>if</b>(opcode == 0xf1) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"CALL"));
+    } <b>else</b> <b>if</b>(opcode == 0xf2) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"CALLCODE"));
+    } <b>else</b> <b>if</b>(opcode == 0xf3) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"RETURN"));
+    } <b>else</b> <b>if</b>(opcode == 0xf4) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"DELEGATECALL"));
+    } <b>else</b> <b>if</b>(opcode == 0xf5) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"CREATE2"));
+    } <b>else</b> <b>if</b>(opcode == 0xfa) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"STATICCALL"));
+    } <b>else</b> <b>if</b>(opcode == 0xfd) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"REVERT"));
+    } <b>else</b> <b>if</b>(opcode == 0xfe) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"INVALID"));
+    } <b>else</b> <b>if</b>(opcode == 0xff) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"SELFDESTRUCT"));
+    } <b>else</b> {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"Unknown Opcode"));
+    }
 }
 </code></pre>
 

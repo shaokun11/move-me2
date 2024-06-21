@@ -7,6 +7,7 @@ module aptos_framework::evm_gas {
     use aptos_framework::evm_global_state::{get_memory_cost, set_memory_cost, add_gas_usage};
     use aptos_std::debug;
     use std::vector::for_each;
+    use std::string::utf8;
 
 
     const SstoreNoopGasEIP2200: u64 = 100;
@@ -69,7 +70,7 @@ module aptos_framework::evm_gas {
         let len = vector::length(stack);
         let base = *vector::borrow(stack,len - 1);
         let exponent = *vector::borrow(stack,len - 2);
-        if(base == 0) {
+        if(exponent == 0) {
             return 0
         };
 
@@ -107,7 +108,7 @@ module aptos_framework::evm_gas {
     }
 
     public fun calc_exec_gas(opcode :u8, address: vector<u8>, stack: &mut vector<u256>, run_state: &mut SimpleMap<u64, u64>, cache: &mut SimpleMap<vector<u8>, SimpleMap<u256, u256>>, trie: &mut SimpleMap<vector<u8>, TestAccount>) {
-        // print_opcode(opcode);
+        print_opcode(opcode);
         let gas = if (opcode == 0x00) {
             // STOP
             0
@@ -319,7 +320,7 @@ module aptos_framework::evm_gas {
             assert!(false, (opcode as u64));
             0
         };
-        // debug::print(&gas);
+        debug::print(&gas);
         add_gas_usage(run_state, gas);
 
     }

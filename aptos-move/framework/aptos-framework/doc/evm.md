@@ -1526,14 +1526,14 @@ invalid chain id in raw tx
             //jump
         <b>else</b> <b>if</b>(opcode == 0x56) {
             <b>let</b> dest = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
-            i = (dest <b>as</b> u64) + 1
+            i = (dest <b>as</b> u64)
         }
             //jumpi
         <b>else</b> <b>if</b>(opcode == 0x57) {
             <b>let</b> dest = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
             <b>let</b> condition = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
             <b>if</b>(condition &gt; 0) {
-                i = (dest <b>as</b> u64) + 1
+                i = (dest <b>as</b> u64)
             } <b>else</b> {
                 i = i + 1
             }

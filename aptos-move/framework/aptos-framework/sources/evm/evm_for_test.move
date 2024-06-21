@@ -952,8 +952,8 @@ module aptos_framework::evm_for_test {
             else {
                 assert!(false, (opcode as u64));
             };
-            // debug::print(stack);
-            // debug::print(&vector::length(stack));
+            debug::print(stack);
+            debug::print(&vector::length(stack));
         };
 
         (true, ret_bytes)
@@ -1051,6 +1051,17 @@ module aptos_framework::evm_for_test {
         let aptos_framework = create_account_for_test(@0x1);
         initialize(&aptos_framework);
         let addresses = vector[
+            x"0000000000000000000000000000000000001000",
+            x"0000000000000000000000000000000000001001",
+            x"0000000000000000000000000000000000001002",
+            x"0000000000000000000000000000000000001003",
+            x"0000000000000000000000000000000000001004",
+            x"0000000000000000000000000000000000001005",
+            x"0000000000000000000000000000000000001006",
+            x"0000000000000000000000000000000000001007",
+            x"0000000000000000000000000000000000001008",
+            x"0000000000000000000000000000000000001009",
+            x"000000000000000000000000000000000000100a",
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc"
         ];
@@ -1066,14 +1077,25 @@ module aptos_framework::evm_for_test {
         run_test(
             addresses,
             vector[
+                x"600260020a60005500",
+                x"7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0a60005500",
+                x"637fffffff637fffffff0a60005500",
+                x"637fffffff60000a60005500",
+                x"6000637fffffff0a60005500",
+                x"60016101010a60005500",
+                x"61010160010a60005500",
+                x"61010160020a60005500",
+                x"600060000a60005500",
+                x"660100000000000f60020a60005500",
+                x"600f60020a60005500",
                 x"",
-                x"600160019001600702600501600290046004906021900560170160030260059007600303600960110a60005560086000f3"
+                x"600060006000600060006004356110000162fffffff100"
             ],
             *nonces,
             *balances,
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc",
-            x"00",
+            x"693c61390000000000000000000000000000000000000000000000000000000000000003",
             u256_to_data(0x0a),
             u256_to_data(0x1)
         );

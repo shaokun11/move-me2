@@ -659,13 +659,16 @@ invalid chain id in raw tx
     // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&trie);
     <b>let</b> run_state = &<b>mut</b> new_run_state();
     <b>let</b> cache = new_cache();
-    add_gas_usage(run_state, calc_base_gas(&data));
+    <b>let</b> base_cost = calc_base_gas(&data);
+    add_gas_usage(run_state, base_cost);
     <a href="evm_for_test.md#0x1_evm_for_test_run">run</a>(from, from, <b>to</b>, get_code(<b>to</b>, &trie), data, value, &<b>mut</b> trie, &<b>mut</b> transient, run_state, &<b>mut</b> cache);
-    <b>let</b> gas_usage = (get_gas_usage(run_state) <b>as</b> u256);
-    <b>let</b> gasfee = gas_price * gas_usage;
+    <b>let</b> gas_usage = get_gas_usage(run_state);
+    <b>let</b> gasfee = gas_price * (gas_usage <b>as</b> u256);
     sub_balance(from, gasfee, &<b>mut</b> trie);
     add_nonce(from, &<b>mut</b> trie);
     <b>let</b> state_root = <a href="evm_for_test.md#0x1_evm_for_test_calculate_root">calculate_root</a>(trie);
+    <b>let</b> exec_cost = gas_usage - base_cost - 21000;
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&exec_cost);
     <a href="evm_for_test.md#0x1_evm_for_test_emit_event">emit_event</a>(state_root, (gas_usage <b>as</b> u64));
 }
 </code></pre>
@@ -1225,14 +1228,14 @@ invalid chain id in raw tx
             //jump
         <b>else</b> <b>if</b>(opcode == 0x56) {
             <b>let</b> dest = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
-            i = (dest <b>as</b> u64) + 1
+            i = (dest <b>as</b> u64)
         }
             //jumpi
         <b>else</b> <b>if</b>(opcode == 0x57) {
             <b>let</b> dest = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
             <b>let</b> condition = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(stack);
             <b>if</b>(condition &gt; 0) {
-                i = (dest <b>as</b> u64) + 1
+                i = (dest <b>as</b> u64)
             } <b>else</b> {
                 i = i + 1
             }
@@ -1494,8 +1497,8 @@ invalid chain id in raw tx
         <b>else</b> {
             <b>assert</b>!(<b>false</b>, (opcode <b>as</b> u64));
         };
-        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(stack);
-        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack));
+        // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(stack);
+        // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack));
     };
 
     (<b>true</b>, ret_bytes)
