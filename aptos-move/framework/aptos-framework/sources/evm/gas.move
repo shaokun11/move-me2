@@ -3,7 +3,7 @@ module aptos_framework::evm_gas {
     use aptos_std::simple_map::{SimpleMap};
     use aptos_framework::evm_storage::{get_storage, TestAccount, exist_account};
     use aptos_framework::evm_cache::{get_cache, is_cold_address};
-    use aptos_framework::evm_util::u256_to_data;
+    use aptos_framework::evm_util::{u256_to_data, print_opcode, u256_bytes_length};
     use aptos_framework::evm_global_state::{get_memory_cost, set_memory_cost, add_gas_usage};
     use aptos_std::debug;
     use std::vector::for_each;
@@ -17,6 +17,7 @@ module aptos_framework::evm_gas {
     const CallNewAccount: u64 = 25000;
     const CallValueTransfer: u64 = 9000;
     const ColdAccountAccess: u64 = 2600;
+    const ExpByte: u64 = 50;
 
     fun access_address(address: vector<u8>, cache: &mut SimpleMap<vector<u8>, SimpleMap<u256, u256>>): u64 {
         if(is_cold_address(address, cache)) ColdAccountAccess else 0
@@ -64,6 +65,18 @@ module aptos_framework::evm_gas {
         SstoreDirtyGasEIP2200 + cold_cost
     }
 
+    fun calc_exp_gas(stack: &vector<u256>): u64 {
+        let len = vector::length(stack);
+        let base = *vector::borrow(stack,len - 1);
+        let exponent = *vector::borrow(stack,len - 2);
+        if(base == 0) {
+            return 0
+        };
+
+        let byte_length = u256_bytes_length(exponent);
+        ExpByte * byte_length + 10
+    }
+
     fun calc_call_gas(stack: &mut vector<u256>, cache: &mut SimpleMap<vector<u8>, SimpleMap<u256, u256>>, run_state: &mut SimpleMap<u64, u64>, trie: &mut SimpleMap<vector<u8>, TestAccount>): u64 {
         let gas = 0;
         let len = vector::length(stack);
@@ -94,7 +107,7 @@ module aptos_framework::evm_gas {
     }
 
     public fun calc_exec_gas(opcode :u8, address: vector<u8>, stack: &mut vector<u256>, run_state: &mut SimpleMap<u64, u64>, cache: &mut SimpleMap<vector<u8>, SimpleMap<u256, u256>>, trie: &mut SimpleMap<vector<u8>, TestAccount>) {
-        // debug::print(&opcode);
+        print_opcode(opcode);
         let gas = if (opcode == 0x00) {
             // STOP
             0
@@ -127,8 +140,7 @@ module aptos_framework::evm_gas {
             8
         } else if (opcode == 0x0A) {
             // EXP (dynamic gas)
-            // Additional gas cost depends on the exponent
-            10
+            calc_exp_gas(stack)
         } else if (opcode == 0x0B) {
             // SIGNEXTEND
             5
@@ -307,7 +319,7 @@ module aptos_framework::evm_gas {
             assert!(false, (opcode as u64));
             0
         };
-        // debug::print(&gas);
+        debug::print(&gas);
         add_gas_usage(run_state, gas);
 
     }
