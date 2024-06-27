@@ -8,31 +8,32 @@ module aptos_framework::evm_gas {
     use std::string::utf8;
     use aptos_framework::evm_trie::{Trie, get_state, exist_account, is_cold_address, get_cache};
 
+    const U64_MAX: u256 = 18446744073709551615; // 18_446_744_073_709_551_615
 
-    const SstoreNoopGasEIP2200: u64 = 100;
-    const SstoreInitGasEIP2200: u64 = 20000;
-    const SstoreCleanGasEIP2200: u64 = 2900;
-    const SstoreDirtyGasEIP2200: u64 = 100;
-    const Coldsload: u64 = 2100;
-    const Warmstorageread: u64 = 100;
-    const CallNewAccount: u64 = 25000;
-    const CallValueTransfer: u64 = 9000;
-    const ColdAccountAccess: u64 = 2600;
-    const ExpByte: u64 = 50;
-    const Copy: u64 = 3;
+    const SstoreNoopGasEIP2200: u256 = 100;
+    const SstoreInitGasEIP2200: u256 = 20000;
+    const SstoreCleanGasEIP2200: u256 = 2900;
+    const SstoreDirtyGasEIP2200: u256 = 100;
+    const Coldsload: u256 = 2100;
+    const Warmstorageread: u256 = 100;
+    const CallNewAccount: u256 = 25000;
+    const CallValueTransfer: u256 = 9000;
+    const ColdAccountAccess: u256 = 2600;
+    const ExpByte: u256 = 50;
+    const Copy: u256 = 3;
 
-    fun access_address(address: vector<u8>, trie: &mut Trie): u64 {
+    fun access_address(address: vector<u8>, trie: &mut Trie): u256 {
         if(is_cold_address(address, trie)) ColdAccountAccess else 0
     }
 
-    fun calc_memory_expand(stack: &vector<u256>, pos: u64, size: u64, run_state: &mut SimpleMap<u64, u64>): u64 {
+    fun calc_memory_expand(stack: &vector<u256>, pos: u64, size: u64, run_state: &mut SimpleMap<u64, u256>): u256 {
         let len = vector::length(stack);
         let out_offset = *vector::borrow(stack,len - pos);
         let out_size = *vector::borrow(stack,len - size);
-        calc_memory_expand_internal(((out_offset + out_size) as u64), run_state)
+        calc_memory_expand_internal(out_offset + out_size, run_state)
     }
 
-    fun calc_memory_expand_internal(new_memory_size: u64, run_state: &mut SimpleMap<u64, u64>): u64 {
+    fun calc_memory_expand_internal(new_memory_size: u256, run_state: &mut SimpleMap<u64, u256>): u256 {
         let old_memory_cost = get_memory_cost(run_state);
         let new_memory_size_word = (new_memory_size + 31) / 32;
         let new_memory_cost = (new_memory_size_word * new_memory_size_word / 512) + 3 * new_memory_size_word;
@@ -45,17 +46,17 @@ module aptos_framework::evm_gas {
     }
 
     fun calc_mstore_gas(stack: &mut vector<u256>,
-                        run_state: &mut SimpleMap<u64, u64>): u64 {
+                        run_state: &mut SimpleMap<u64, u256>): u256 {
         let len = vector::length(stack);
         let offset = *vector::borrow(stack,len - 1);
         debug::print(&offset);
         debug::print(run_state);
-        calc_memory_expand_internal(((offset + 1) as u64), run_state)
+        calc_memory_expand_internal(offset + 1, run_state)
     }
 
     fun calc_sload_gas(address: vector<u8>,
                        stack: &mut vector<u256>,
-                       trie: &mut Trie): u64 {
+                       trie: &mut Trie): u256 {
         let len = vector::length(stack);
         let key = *vector::borrow(stack,len - 1);
         let (_, is_cold_slot, _) = get_cache(address, key, trie);
@@ -64,7 +65,7 @@ module aptos_framework::evm_gas {
 
     fun calc_sstore_gas(address: vector<u8>,
                         stack: &mut vector<u256>,
-                        trie: &mut Trie): u64 {
+                        trie: &mut Trie): u256 {
         let len = vector::length(stack);
         let key = *vector::borrow(stack,len - 1);
         let (_, is_cold_slot, origin) = get_cache(address, key, trie);
@@ -87,7 +88,7 @@ module aptos_framework::evm_gas {
         SstoreDirtyGasEIP2200 + cold_cost
     }
 
-    fun calc_exp_gas(stack: &vector<u256>): u64 {
+    fun calc_exp_gas(stack: &vector<u256>): u256 {
         let len = vector::length(stack);
         let exponent = *vector::borrow(stack,len - 2);
         if(exponent == 0) {
@@ -103,7 +104,7 @@ module aptos_framework::evm_gas {
 
     fun calc_call_gas(stack: &mut vector<u256>,
                       opcode: u8,
-                      trie: &mut Trie, run_state: &mut SimpleMap<u64, u64>): u64 {
+                      trie: &mut Trie, run_state: &mut SimpleMap<u64, u256>): u256 {
         let gas = 0;
         let len = vector::length(stack);
         let address = u256_to_data(*vector::borrow(stack,len - 2));
@@ -126,20 +127,23 @@ module aptos_framework::evm_gas {
         gas
     }
 
-    fun calc_code_copy_gas(stack: &mut vector<u256>, run_state: &mut SimpleMap<u64, u64>): u64 {
+    fun calc_code_copy_gas(stack: &mut vector<u256>,
+                           run_state: &mut SimpleMap<u64, u256>, gas_limit: u256): u256 {
         let len = vector::length(stack);
         let gas = 0;
-        let data_length = (*vector::borrow(stack,len - 3) as u64);
-
+        let data_length = *vector::borrow(stack,len - 3);
         if(data_length > 0) {
+            gas = gas + data_length / 32 * Copy;
+            if(gas > gas_limit) {
+                return gas
+            };
             gas = gas + calc_memory_expand(stack, 1, 3, run_state);
-            gas = gas + data_length / 32 * Copy
         };
 
         gas + 3
     }
 
-    public fun calc_base_gas(memory: &vector<u8>): u64 {
+    public fun calc_base_gas(memory: &vector<u8>): u256 {
         debug::print(memory);
         let gas = 0;
 
@@ -152,9 +156,10 @@ module aptos_framework::evm_gas {
     public fun calc_exec_gas(opcode :u8,
                              address: vector<u8>,
                              stack: &mut vector<u256>,
-                             run_state: &mut SimpleMap<u64, u64>,
-                             trie: &mut Trie
-                            ): u64 {
+                             run_state: &mut SimpleMap<u64, u256>,
+                             trie: &mut Trie,
+                             gas_limit: u256,
+                            ): u256 {
         print_opcode(opcode);
         let gas = if (opcode == 0x00) {
             // STOP
@@ -364,8 +369,8 @@ module aptos_framework::evm_gas {
             // SSTORE
             calc_sstore_gas(address, stack, trie)
         } else if (opcode == 0x39) {
-            // SSTORE
-            calc_code_copy_gas(stack, run_state)
+            // CODECOPY
+            calc_code_copy_gas(stack, run_state, gas_limit)
         } else {
             assert!(false, (opcode as u64));
             0

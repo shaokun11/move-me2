@@ -17,7 +17,7 @@ module aptos_framework::evm_for_test {
     #[test_only]
     use aptos_framework::account::create_account_for_test;
     use aptos_framework::evm_arithmetic::{add, mul, sub, div, sdiv, mod, smod, add_mod, mul_mod, exp};
-    use aptos_framework::evm_trie::{pre_init, Trie, new_checkpoint, revert_checkpoint, commit_latest_checkpoint, TestAccount, get_code, sub_balance, add_nonce, transfer, get_balance, get_state, set_state, exist_contract, get_nonce, new_account, get_storage_copy, save};
+    use aptos_framework::evm_trie::{pre_init, Trie, add_checkpoint, revert_checkpoint, commit_latest_checkpoint, TestAccount, get_code, sub_balance, add_nonce, transfer, get_balance, get_state, set_state, exist_contract, get_nonce, new_account, get_storage_copy, save};
     friend aptos_framework::genesis;
 
     const ADDR_LENGTH: u64 = 10001;
@@ -48,7 +48,7 @@ module aptos_framework::evm_for_test {
     }
 
     struct ExecResultEvent has drop, store {
-        gas_usage: u64,
+        gas_usage: u256,
         state_root: vector<u8>
     }
 
@@ -109,7 +109,7 @@ module aptos_framework::evm_for_test {
         });
     }
 
-    fun emit_event(state_root: vector<u8>, gas_usage: u64) acquires ExecResource {
+    fun emit_event(state_root: vector<u8>, gas_usage: u256) acquires ExecResource {
         let exec_resource = borrow_global_mut<ExecResource>(@aptos_framework);
         debug::print(&state_root);
         debug::print(&gas_usage);
@@ -164,14 +164,14 @@ module aptos_framework::evm_for_test {
             gas_limit: u256,
             trie: &mut Trie,
             transient: &mut SimpleMap<u256, u256>,
-            run_state: &mut SimpleMap<u64, u64>,
+            run_state: &mut SimpleMap<u64, u256>,
         ): (bool, vector<u8>) {
 
         if (is_precompile_address(to)) {
             return (true, precompile(to, data))
         };
 
-        new_checkpoint(trie);
+        add_checkpoint(trie);
         transfer(sender, to, value, trie);
 
         // let to_account = simple_map::borrow_mut(&mut trie, &to);
@@ -191,7 +191,13 @@ module aptos_framework::evm_for_test {
         while (i < len) {
             // Fetch the current opcode from the bytecode.
             let opcode: u8 = *vector::borrow(&code, i);
-            gas_use = gas_use + calc_exec_gas(opcode, to, stack, run_state, trie);
+            gas_use = gas_use + calc_exec_gas(opcode, to, stack, run_state, trie, gas_limit);
+            if(gas_use > gas_limit) {
+                revert_checkpoint(trie);
+                gas_use = gas_limit;
+                add_gas_usage(run_state, gas_use);
+                return (false, ret_bytes)
+            };
             // debug::print(&i);
             // debug::print(&opcode);
 
@@ -969,7 +975,7 @@ module aptos_framework::evm_for_test {
 
             if(*error_code > 0) {
                 revert_checkpoint(trie);
-                gas_use = (gas_limit as u64);
+                gas_use = gas_limit;
                 add_gas_usage(run_state, gas_use);
                 return (false, ret_bytes)
             }
@@ -1101,18 +1107,11 @@ module aptos_framework::evm_for_test {
 
 
         let addresses = vector[
-            x"0000000000000000000000000000000000000200",
             x"0000000000000000000000000000000000001000",
             x"0000000000000000000000000000000000001001",
             x"0000000000000000000000000000000000001002",
             x"0000000000000000000000000000000000001003",
             x"0000000000000000000000000000000000001004",
-            x"0000000000000000000000000000000000001005",
-            x"0000000000000000000000000000000000001006",
-            x"0000000000000000000000000000000000001007",
-            x"0000000000000000000000000000000000001008",
-            x"0000000000000000000000000000000000001009",
-            x"000000000000000000000000000000000000100a",
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc"
         ];
@@ -1138,20 +1137,13 @@ module aptos_framework::evm_for_test {
         run_test(
             addresses,
             vector[
-                x"6000610100525b6020610100511015604a577e0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f610100511a610100515560016101005101610100526006565b00",
-                x"6780402010080402016000601f031a60005500",
-                x"6780402010080402016001601f031a60005500",
-                x"6780402010080402016002601f031a60005500",
-                x"6780402010080402016003601f031a60005500",
-                x"6780402010080402016004601f031a60005500",
-                x"6780402010080402016005601f031a60005500",
-                x"6780402010080402016006601f031a60005500",
-                x"6780402010080402016007601f031a60005500",
-                x"678040201008040201601f601f031a60005500",
-                x"6780402010080402016020601f051a60005500",
-                x"641234523456601f1a8001600155",
+                x"6040600060003960005160005560205160015500",
+                x"6001600003600060003960005160005560205160015500",
+                x"611000600060003960005160005560205160015500",
+                x"6010600f600e600d600c600b600a60096008600760066005600460036002600101010101010101010101010101010161010052602060006000396040602060203960005160005560205160015560405160025500",
+                x"3860ff5560ff5460006000396160a76000556160a76001556160a760025560005160005560205160015560405160025560605160035560805160045560a0516005550061deadff60ff546000f360aa60bb60cc60dd60ee60fff400",
                 x"",
-                x"6000600060006000600060043562fffffff100"
+                x"60006000600060006004356110000162fffffff400"
             ],
             *nonces,
             *balances,
@@ -1159,7 +1151,7 @@ module aptos_framework::evm_for_test {
             storage_values,
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc",
-            x"693c61390000000000000000000000000000000000000000000000000000000000000200",
+            x"693c61390000000000000000000000000000000000000000000000000000000000000001",
             u256_to_data(0x0a),
             u256_to_data(0x1)
         );

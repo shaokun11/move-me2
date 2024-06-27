@@ -19,10 +19,10 @@ module aptos_framework::evm_trie {
         storage: SimpleMap<u256, u256>
     }
 
-    public fun new_checkpoint(trie: &mut Trie) {
-        vector::push_back(&mut trie.context, simple_map::new());
-        // let len = iterable_table::length(&trie.context);
-        // iterable_table::add(&mut trie.context, len, elem);
+    public fun add_checkpoint(trie: &mut Trie) {
+        let len = vector::length(&trie.context);
+        let elem = *vector::borrow(&mut trie.context, len - 1);
+        vector::push_back(&mut trie.context, elem);
     }
 
     // fun get_lastest_checkpoint(trie: &Trie): &SimpleMap<vector<u8>, TestAccount> {
@@ -151,6 +151,11 @@ module aptos_framework::evm_trie {
         account.code
     }
 
+    public fun get_code_length(contract_addr: vector<u8>, trie: &Trie): u256 {
+        let account = load_account_checkpoint(trie, &contract_addr);
+        (vector::length(&account.code) as u256)
+    }
+
     public fun get_balance(contract_addr: vector<u8>, trie: &Trie): u256 {
         let account = load_account_checkpoint(trie, &contract_addr);
         account.balance
@@ -205,7 +210,7 @@ module aptos_framework::evm_trie {
             });
             i = i + 1;
         };
-        new_checkpoint(&mut trie);
+        vector::push_back(&mut trie.context, simple_map::new());
         trie
     }
 
