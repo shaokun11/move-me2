@@ -185,6 +185,33 @@ module aptos_std::simple_map {
         (key, value)
     }
 
+    public fun append<Key: drop + copy, Value: drop + copy>(
+        map_a: &mut SimpleMap<Key, Value>,
+        map_b: &SimpleMap<Key, Value>,
+    ) {
+        let len_b = vector::length(&map_b.data);
+        let idx_b = 0;
+        let data_a = &mut map_a.data;
+        let data_b = &map_b.data;
+        while (idx_b < len_b) {
+            let idx_a = 0;
+            let len_a = vector::length(data_a);
+            let element_b = *vector::borrow(data_b, idx_b);
+            while(idx_a < len_a) {
+                let element_a = vector::borrow(data_a, idx_a);
+                if (&element_a.key == &element_b.key) {
+                    vector::push_back(data_a, element_b);
+                    vector::swap(data_a, idx_a, len_a);
+                    vector::pop_back(data_a);
+                    return
+                };
+                idx_a = idx_a + 1;
+            };
+            vector::push_back(data_a, element_b);
+            idx_b = idx_b + 1;
+        };
+    }
+
     fun find<Key: store, Value: store>(
         map: &SimpleMap<Key, Value>,
         key: &Key,

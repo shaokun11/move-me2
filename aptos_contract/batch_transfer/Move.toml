@@ -4,9 +4,11 @@ version = "1.0.0"
 authors = []
 
 [addresses]
-batch_transfer = "_"
+batch_transfer = "0x1"
 
 [dependencies.AptosFramework]
-local = "../../aptos-move/framework/aptos-framework"
+git = 'https://github.com/aptos-labs/aptos-core'
+rev = 'devnet'
+subdir = 'aptos-move/framework/aptos-framework'
 
 [dev-dependencies]

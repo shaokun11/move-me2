@@ -113,6 +113,8 @@ module aptos_framework::evm_util {
         res
     }
 
+
+
     public fun u256_bytes_length(num: u256): u64 {
         let i = 0;
         while(num > 0) {
