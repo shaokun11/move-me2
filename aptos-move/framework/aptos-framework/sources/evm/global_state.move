@@ -8,7 +8,7 @@ module aptos_framework::evm_global_state {
 
     public fun new_run_state(): SimpleMap<u64, u256> {
         let state = simple_map::new<u64, u256>();
-        simple_map::add(&mut state, GasUsage, 21000);
+        simple_map::add(&mut state, GasUsage, 0);
         set_memory_cost(&mut state, 0);
         state
     }

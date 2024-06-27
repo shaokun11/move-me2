@@ -3,7 +3,6 @@ module aptos_framework::evm_trie {
     use aptos_framework::evm_util::{to_32bit, to_u256};
     use aptos_std::simple_map::{SimpleMap};
     use aptos_std::simple_map;
-    use aptos_std::debug;
 
     struct Trie has drop {
         context: vector<SimpleMap<vector<u8>, TestAccount>>,
@@ -215,9 +214,7 @@ module aptos_framework::evm_trie {
     }
 
     public fun revert_checkpoint(trie: &mut Trie) {
-        // let len = iterable_table::length(&trie.context);
-        // iterable_table::remove(&mut trie.context, len - 1);
-        let _  = vector::pop_back(&mut trie.context);
+        vector::pop_back(&mut trie.context);
     }
 
     public fun get_storage_copy(trie: &Trie): SimpleMap<vector<u8>, TestAccount> {

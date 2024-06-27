@@ -12,7 +12,7 @@ module aptos_framework::evm_for_test {
     use aptos_std::simple_map;
     use aptos_std::simple_map::SimpleMap;
     use aptos_framework::evm_global_state::{new_run_state, get_gas_usage, add_gas_usage};
-    use aptos_framework::evm_gas::{calc_exec_gas, calc_base_gas};
+    use aptos_framework::evm_gas::{calc_exec_gas, calc_base_gas, max_call_gas};
     use aptos_framework::event;
     #[test_only]
     use aptos_framework::account::create_account_for_test;
@@ -138,17 +138,17 @@ module aptos_framework::evm_for_test {
         to = to_32bit(to);
         // debug::print(&trie);
         let run_state = &mut new_run_state();
-        let base_cost = calc_base_gas(&data);
+        let base_cost = calc_base_gas(&data) + 21000;
         add_gas_usage(run_state, base_cost);
-        run(from, from, to, get_code(to, trie), data, value, 80000000, trie, &mut transient, run_state);
+        run(from, from, to, get_code(to, trie), data, value, 80000000 - base_cost, trie, &mut transient, run_state);
         let gas_usage = get_gas_usage(run_state);
-        let gasfee = gas_price * (gas_usage as u256);
+        let gasfee = gas_price * gas_usage;
         sub_balance(from, gasfee, trie);
         add_nonce(from, trie);
 
         save(trie);
         let state_root = calculate_root(get_storage_copy(trie));
-        let exec_cost = gas_usage - base_cost - 21000;
+        let exec_cost = gas_usage - base_cost;
         // debug::print(checkpoint);
         debug::print(&exec_cost);
         emit_event(state_root, gas_usage);
@@ -183,7 +183,7 @@ module aptos_framework::evm_for_test {
         let runtime_code = vector::empty<u8>();
         let ret_bytes = vector::empty<u8>();
         let error_code = &mut 0;
-        let gas_use = 0;
+        let gas_used = 0;
 
         let _events = simple_map::new<u256, vector<u8>>();
         // let gas = 21000;
@@ -191,11 +191,11 @@ module aptos_framework::evm_for_test {
         while (i < len) {
             // Fetch the current opcode from the bytecode.
             let opcode: u8 = *vector::borrow(&code, i);
-            gas_use = gas_use + calc_exec_gas(opcode, to, stack, run_state, trie, gas_limit);
-            if(gas_use > gas_limit) {
+            gas_used = gas_used + calc_exec_gas(opcode, to, stack, run_state, trie, gas_limit);
+            if(gas_used > gas_limit) {
                 revert_checkpoint(trie);
-                gas_use = gas_limit;
-                add_gas_usage(run_state, gas_use);
+                gas_used = gas_limit;
+                add_gas_usage(run_state, gas_used);
                 return (false, ret_bytes)
             };
             // debug::print(&i);
@@ -716,7 +716,7 @@ module aptos_framework::evm_for_test {
             }
                 //gas
             else if(opcode == 0x5a) {
-                vector::push_back(stack, 0);
+                vector::push_back(stack, gas_limit - gas_used);
                 i = i + 1
             }
                 //jump dest (no action, continue execution)
@@ -762,7 +762,8 @@ module aptos_framework::evm_for_test {
             }
                 //call 0xf1 static call 0xfa delegate call 0xf4
             else if(opcode == 0xf1 || opcode == 0xfa || opcode == 0xf4) {
-                let gas_limit = pop_stack(stack, error_code);
+                let gas_left = gas_limit - gas_used;
+                let call_gas_limit = max_call_gas(gas_left, pop_stack(stack, error_code));
                 let evm_dest_addr = to_32bit(u256_to_data(pop_stack(stack, error_code)));
                 // let move_dest_addr = create_resource_address(&@aptos_framework, evm_dest_addr);
                 let msg_value = if (opcode == 0xf1) pop_stack(stack, error_code) else 0;
@@ -781,7 +782,7 @@ module aptos_framework::evm_for_test {
 
                     let target = if (opcode == 0xf4) to else evm_dest_addr;
                     let from = if (opcode == 0xf4) sender else to;
-                    let (call_res, bytes) = run(sender, from, target, dest_code, params, msg_value, gas_limit, trie, transient, run_state);
+                    let (call_res, bytes) = run(sender, from, target, dest_code, params, msg_value, call_gas_limit, trie, transient, run_state);
                     ret_bytes = bytes;
                     let index = 0;
 
@@ -975,14 +976,14 @@ module aptos_framework::evm_for_test {
 
             if(*error_code > 0) {
                 revert_checkpoint(trie);
-                gas_use = gas_limit;
-                add_gas_usage(run_state, gas_use);
+                gas_used = gas_limit;
+                add_gas_usage(run_state, gas_used);
                 return (false, ret_bytes)
             }
         };
 
         commit_latest_checkpoint(trie);
-        add_gas_usage(run_state, gas_use);
+        add_gas_usage(run_state, gas_used);
         (true, ret_bytes)
     }
 
@@ -1097,31 +1098,36 @@ module aptos_framework::evm_for_test {
     #[test]
     public fun test_run() acquires ExecResource {
         // debug::print(&u256_to_data(0x0ba1a9ce0ba1a9ce));
-        let balance = u256_to_data(0x0ba1a9ce0ba1a9ce);
+        // let balance = u256_to_data(0x0ba1a9ce0ba1a9ce);
         let aptos_framework = create_account_for_test(@0x1);
         initialize(&aptos_framework);
 
         let storage_maps = simple_map::new<vector<u8>, simple_map::SimpleMap<vector<u8>, vector<u8>>>();
-        // simple_map::add(&mut storage_maps, x"cccccccccccccccccccccccccccccccccccccccc", init_storage(vector[0x01], vector[0x01]));
+        simple_map::add(&mut storage_maps, x"cccccccccccccccccccccccccccccccccccccccc", init_storage(vector[0x00], vector[0x0bad]));
         let (storage_keys, storage_values) = (vector::empty<vector<vector<u8>>>(), vector::empty<vector<vector<u8>>>());
 
 
         let addresses = vector[
             x"0000000000000000000000000000000000001000",
             x"0000000000000000000000000000000000001001",
-            x"0000000000000000000000000000000000001002",
-            x"0000000000000000000000000000000000001003",
-            x"0000000000000000000000000000000000001004",
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc"
         ];
-        let balances = &mut vector[];
+        let balance_table = vector[
+            0x0ba1a9ce0ba1a9ce,
+            0x0ba1a9ce0ba1a9ce,
+            0x100000000000,
+            0x0ba1a9ce0ba1a9ce
+        ];
         let nonces = &mut vector[];
         let i = 0;
+        let balances = vector::empty<vector<u8>>();
         while(i < vector::length(&addresses)) {
             let address = *vector::borrow(&addresses, i);
-            vector::push_back(balances, balance);
             vector::push_back(nonces, 0);
+
+            let balance = *vector::borrow(&balance_table, i);
+            vector::push_back(&mut balances, u256_to_data(balance));
 
             if(simple_map::contains_key(&storage_maps, &address)) {
                 let data = simple_map::borrow(&storage_maps, &address);
@@ -1137,21 +1143,18 @@ module aptos_framework::evm_for_test {
         run_test(
             addresses,
             vector[
-                x"6040600060003960005160005560205160015500",
-                x"6001600003600060003960005160005560205160015500",
-                x"611000600060003960005160005560205160015500",
-                x"6010600f600e600d600c600b600a60096008600760066005600460036002600101010101010101010101010101010161010052602060006000396040602060203960005160005560205160015560405160025500",
-                x"3860ff5560ff5460006000396160a76000556160a76001556160a760025560005160005560205160015560405160025560605160035560805160045560a0516005550061deadff60ff546000f360aa60bb60cc60dd60ee60fff400",
+                x"64ffffffffff60005261eeee605a525a60005500",
+                x"5a60005500",
                 x"",
-                x"60006000600060006004356110000162fffffff400"
+                x"6000600060006000600435611000015af400"
             ],
             *nonces,
-            *balances,
+            balances,
             storage_keys,
             storage_values,
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc",
-            x"693c61390000000000000000000000000000000000000000000000000000000000000004",
+            x"693c61390000000000000000000000000000000000000000000000000000000000000000",
             u256_to_data(0x0a),
             u256_to_data(0x1)
         );

@@ -49,7 +49,8 @@ module aptos_framework::evm_gas {
                         run_state: &mut SimpleMap<u64, u256>): u256 {
         let len = vector::length(stack);
         let offset = *vector::borrow(stack,len - 1);
-        calc_memory_expand_internal(offset + 1, run_state)
+        // debug::print(&offset);
+        calc_memory_expand_internal(offset + 32, run_state)
     }
 
     fun calc_sload_gas(address: vector<u8>,
@@ -142,6 +143,11 @@ module aptos_framework::evm_gas {
         };
 
         gas + 3
+    }
+
+    public fun max_call_gas(gas_left: u256, gas_limit: u256): u256 {
+        let gas_allow = gas_left - gas_left / 64;
+        if(gas_limit > gas_allow) gas_allow else gas_limit
     }
 
     public fun calc_base_gas(memory: &vector<u8>): u256 {
