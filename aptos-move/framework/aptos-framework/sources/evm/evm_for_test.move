@@ -1151,7 +1151,7 @@ module aptos_framework::evm_for_test {
             storage_values,
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc",
-            x"693c61390000000000000000000000000000000000000000000000000000000000000001",
+            x"693c61390000000000000000000000000000000000000000000000000000000000000004",
             u256_to_data(0x0a),
             u256_to_data(0x1)
         );

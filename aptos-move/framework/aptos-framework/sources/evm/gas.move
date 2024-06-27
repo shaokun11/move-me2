@@ -49,8 +49,6 @@ module aptos_framework::evm_gas {
                         run_state: &mut SimpleMap<u64, u256>): u256 {
         let len = vector::length(stack);
         let offset = *vector::borrow(stack,len - 1);
-        debug::print(&offset);
-        debug::print(run_state);
         calc_memory_expand_internal(offset + 1, run_state)
     }
 
@@ -96,9 +94,6 @@ module aptos_framework::evm_gas {
         };
 
         let byte_length = u256_bytes_length(exponent);
-        debug::print(&utf8(b"exp gas"));
-        debug::print(&exponent);
-        debug::print(&byte_length);
         ExpByte * byte_length
     }
 
@@ -133,9 +128,15 @@ module aptos_framework::evm_gas {
         let gas = 0;
         let data_length = *vector::borrow(stack,len - 3);
         if(data_length > 0) {
-            gas = gas + data_length / 32 * Copy;
+            // To prevent overflow, this method is used to calculate the number of bytes
+            let bytes= data_length / 32;
+            if(data_length % 32 != 0) {
+                bytes = bytes + 1;
+            };
+            gas = gas + bytes * Copy;
+            // Prevent overflow here; if the result is greater than gasLimit, return gasLimit directly
             if(gas > gas_limit) {
-                return gas
+                return gas_limit
             };
             gas = gas + calc_memory_expand(stack, 1, 3, run_state);
         };
@@ -311,9 +312,6 @@ module aptos_framework::evm_gas {
         } else if (opcode == 0x50) {
             // POP
             2
-        } else if (opcode == 0x51) {
-            // MLOAD
-            3
         } else if (opcode == 0x53) {
             // MSTORE8
             3
@@ -353,8 +351,8 @@ module aptos_framework::evm_gas {
         } else if (opcode >= 0x90 && opcode <= 0x9F) {
             // SWAP1 to SWAP16
             3
-        } else if (opcode == 0x52) {
-            // MSTORE
+        } else if (opcode == 0x51 || opcode == 0x52) {
+            // MSTORE & MLOAD
             calc_mstore_gas(stack, run_state) + 3
         } else if (opcode == 0xf1 || opcode == 0xf4) {
             // CALL
