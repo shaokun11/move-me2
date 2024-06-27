@@ -3,7 +3,7 @@ module aptos_framework::evm_for_test {
     use std::vector;
     use aptos_std::aptos_hash::keccak256;
     use aptos_std::debug;
-    use aptos_framework::evm_util::{slice, to_32bit, get_contract_address, to_int256, data_to_u256, u256_to_data, mstore, copy_to_memory, to_u256};
+    use aptos_framework::evm_util::{slice, to_32bit, get_contract_address, to_int256, data_to_u256, u256_to_data, mstore, copy_to_memory, to_u256, get_valid_jumps};
     use aptos_framework::timestamp::now_microseconds;
     use aptos_framework::block;
     use std::string::utf8;
@@ -184,6 +184,7 @@ module aptos_framework::evm_for_test {
         let ret_bytes = vector::empty<u8>();
         let error_code = &mut 0;
         let gas_used = 0;
+        let valid_jumps = get_valid_jumps(&code);
 
         let _events = simple_map::new<u256, vector<u8>>();
         // let gas = 21000;
@@ -700,13 +701,8 @@ module aptos_framework::evm_for_test {
             else if(opcode == 0x56) {
                 let dest = pop_stack(stack, error_code);
                 i = (dest as u64);
-                if(i >= len) {
+                if(!*vector::borrow(&valid_jumps, i)) {
                     *error_code = EVM_ERROR_INVALID_PC;
-                } else {
-                    let dest = *vector::borrow(&code, i);
-                    if(dest != 0x5b) {
-                        *error_code = EVM_ERROR_INVALID_PC;
-                    }
                 }
             }
                 //jumpi
@@ -718,7 +714,7 @@ module aptos_framework::evm_for_test {
                 } else {
                     i = i + 1
                 };
-                if(i >= len) {
+                if(!*vector::borrow(&valid_jumps, i)) {
                     *error_code = EVM_ERROR_INVALID_PC;
                 }
             }
@@ -1198,7 +1194,7 @@ module aptos_framework::evm_for_test {
             storage_values,
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc",
-            x"693c61390000000000000000000000000000000000000000000000000000000000000004",
+            x"693c61390000000000000000000000000000000000000000000000000000000000000007",
             u256_to_data(0x0a),
             u256_to_data(0x1)
         );

@@ -4,6 +4,7 @@ module aptos_framework::evm_util {
     use aptos_framework::rlp_encode::encode_bytes_list;
     use aptos_std::debug;
     use std::string::utf8;
+    use aptos_std::smart_vector;
 
     const U256_MAX: u256 = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
     const U255_MAX: u256 = 57896044618658097711785492504343953926634992332820282019728792003956564819967;
@@ -211,6 +212,31 @@ module aptos_framework::evm_util {
             i = i + 1
         };
         slice(data, (i as u256), ((len - i) as u256))
+    }
+
+    public fun get_valid_jumps(bytecode: &vector<u8>): vector<bool> {
+        let i = 0;
+        let len = vector::length(bytecode);
+        let valid_jumps = vector::empty<bool>();
+        while(i < len) {
+            let opcode = *vector::borrow(bytecode, i);
+            if(opcode == 0x5b) {
+                vector::push_back(&mut valid_jumps, true)
+            } else if(opcode >= 0x60 && opcode <= 0x7f) {
+                let size = opcode - 0x60 + 1;
+                vector::push_back(&mut valid_jumps, false);
+                while(size > 0) {
+                    vector::push_back(&mut valid_jumps, false);
+                    i = i + 1;
+                    size = size - 1;
+                }
+            } else {
+                vector::push_back(&mut valid_jumps, false);
+            };
+            i = i + 1;
+        };
+
+        valid_jumps
     }
 
     public fun print_opcode(opcode: u8) {
