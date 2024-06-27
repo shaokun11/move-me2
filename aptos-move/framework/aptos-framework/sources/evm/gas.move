@@ -44,6 +44,15 @@ module aptos_framework::evm_gas {
         0
     }
 
+    fun calc_mstore_gas(stack: &mut vector<u256>,
+                        run_state: &mut SimpleMap<u64, u64>): u64 {
+        let len = vector::length(stack);
+        let offset = *vector::borrow(stack,len - 1);
+        debug::print(&offset);
+        debug::print(run_state);
+        calc_memory_expand_internal(((offset + 1) as u64), run_state)
+    }
+
     fun calc_sload_gas(address: vector<u8>,
                        stack: &mut vector<u256>,
                        trie: &mut Trie): u64 {
@@ -300,9 +309,6 @@ module aptos_framework::evm_gas {
         } else if (opcode == 0x51) {
             // MLOAD
             3
-        } else if (opcode == 0x52) {
-            // MSTORE
-            3
         } else if (opcode == 0x53) {
             // MSTORE8
             3
@@ -342,6 +348,9 @@ module aptos_framework::evm_gas {
         } else if (opcode >= 0x90 && opcode <= 0x9F) {
             // SWAP1 to SWAP16
             3
+        } else if (opcode == 0x52) {
+            // MSTORE
+            calc_mstore_gas(stack, run_state) + 3
         } else if (opcode == 0xf1 || opcode == 0xf4) {
             // CALL
             calc_call_gas(stack, opcode, trie, run_state)
