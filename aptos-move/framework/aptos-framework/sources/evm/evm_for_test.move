@@ -1096,11 +1096,28 @@ module aptos_framework::evm_for_test {
         initialize(&aptos_framework);
 
         let storage_maps = simple_map::new<vector<u8>, simple_map::SimpleMap<vector<u8>, vector<u8>>>();
-        simple_map::add(&mut storage_maps, x"cccccccccccccccccccccccccccccccccccccccc", init_storage(vector[0x01], vector[0x01]));
+        // simple_map::add(&mut storage_maps, x"cccccccccccccccccccccccccccccccccccccccc", init_storage(vector[0x01], vector[0x01]));
         let (storage_keys, storage_values) = (vector::empty<vector<vector<u8>>>(), vector::empty<vector<vector<u8>>>());
 
 
         let addresses = vector[
+            x"0000000000000000000000000000000000000110",
+            x"0000000000000000000000000000000000001000",
+            x"0000000000000000000000000000000000001001",
+            x"0000000000000000000000000000000000001002",
+            x"0000000000000000000000000000000000001003",
+            x"0000000000000000000000000000000000001004",
+            x"0000000000000000000000000000000000001005",
+            x"0000000000000000000000000000000000001006",
+            x"0000000000000000000000000000000000001007",
+            x"0000000000000000000000000000000000001008",
+            x"0000000000000000000000000000000000001009",
+            x"000000000000000000000000000000000000100a",
+            x"000000000000000000000000000000000000100b",
+            x"000000000000000000000000000000000000100c",
+            x"000000000000000000000000000000000000100d",
+            x"000000000000000000000000000000000000100e",
+            x"000000000000000000000000000000000000100f",
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc"
         ];
@@ -1126,8 +1143,25 @@ module aptos_framework::evm_for_test {
         run_test(
             addresses,
             vector[
+                x"7f7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff6000037fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0560005500",
+                x"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff6000030560005500",
+                x"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff6000037fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0560005500",
+                x"600460000360026000030560005500",
+                x"600260000360040560005500",
+                x"600460000360050560005500",
+                x"60016000037f80000000000000000000000000000000000000000000000000000000000000006000030560005500",
+                x"60007f80000000000000000000000000000000000000000000000000000000000000006000030560005500",
+                x"601960016000030560005500",
+                x"600160000360016000030560005500",
+                x"600160016000030560005500",
+                x"600060000360036000030560005500",
+                x"60007fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff6000030560005500",
+                x"600160007fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff600003050160005500",
+                x"600560096000030560005500",
+                x"600160000360017f8000000000000000000000000000000000000000000000000000000000000000036000030560005500",
+                x"60016000037f80000000000000000000000000000000000000000000000000000000000000006000030560005500",
                 x"",
-                x"60026002035460016002035401600255600260030354600160030354016003556002600403546001600403540160045560026005035460016005035401600555600260060354600160060354016006556002600703546001600703540160075560026008035460016008035401600855600260090354600160090354016009556002600a03546001600a035401600a5500"
+                x"600060006000600060006004356110000162fffffff100"
             ],
             *nonces,
             *balances,
@@ -1135,7 +1169,7 @@ module aptos_framework::evm_for_test {
             storage_values,
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc",
-            x"01",
+            x"693c61390000000000000000000000000000000000000000000000000000000000000010",
             u256_to_data(0x0a),
             u256_to_data(0x1)
         );

@@ -123,8 +123,12 @@ module aptos_framework::evm_trie {
     }
 
     public fun exist_contract(contract_addr: vector<u8>, trie: &Trie): bool {
-        let code = get_code(contract_addr, trie);
-        vector::length(&code) > 0
+        if(!exist_account(contract_addr, trie)) {
+            false
+        } else {
+            let code = get_code(contract_addr, trie);
+            vector::length(&code) > 0
+        }
     }
 
     public fun exist_account(address: vector<u8>, trie: &Trie): bool {
