@@ -2,7 +2,7 @@ module aptos_framework::evm_gas {
     use std::vector;
     use aptos_std::simple_map::{SimpleMap};
     use aptos_framework::evm_util::{u256_to_data, print_opcode, u256_bytes_length};
-    use aptos_framework::evm_global_state::{get_memory_cost, set_memory_cost, add_gas_usage};
+    use aptos_framework::evm_global_state::{get_memory_cost, set_memory_cost};
     use aptos_std::debug;
     use std::vector::for_each;
     use std::string::utf8;
@@ -14,6 +14,7 @@ module aptos_framework::evm_gas {
     const SstoreCleanGasEIP2200: u64 = 2900;
     const SstoreDirtyGasEIP2200: u64 = 100;
     const Coldsload: u64 = 2100;
+    const Warmstorageread: u64 = 100;
     const CallNewAccount: u64 = 25000;
     const CallValueTransfer: u64 = 9000;
     const ColdAccountAccess: u64 = 2600;
@@ -41,6 +42,15 @@ module aptos_framework::evm_gas {
         };
 
         0
+    }
+
+    fun calc_sload_gas(address: vector<u8>,
+                       stack: &mut vector<u256>,
+                       trie: &mut Trie): u64 {
+        let len = vector::length(stack);
+        let key = *vector::borrow(stack,len - 1);
+        let (_, is_cold_slot, _) = get_cache(address, key, trie);
+        if(is_cold_slot) Coldsload else Warmstorageread
     }
 
     fun calc_sstore_gas(address: vector<u8>,
@@ -296,9 +306,6 @@ module aptos_framework::evm_gas {
         } else if (opcode == 0x53) {
             // MSTORE8
             3
-        } else if (opcode == 0x54) {
-            // SLOAD
-            2100
         } else if (opcode == 0x56) {
             // JUMP
             8
@@ -341,6 +348,9 @@ module aptos_framework::evm_gas {
         } else if (opcode == 0xf3) {
             // RETURN
             calc_memory_expand(stack, 1, 2, run_state)
+        } else if (opcode == 0x54) {
+            // SLOAD
+            calc_sload_gas(address, stack, trie)
         } else if (opcode == 0x55) {
             // SSTORE
             calc_sstore_gas(address, stack, trie)

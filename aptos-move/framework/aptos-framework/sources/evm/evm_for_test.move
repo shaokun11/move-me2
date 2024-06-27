@@ -123,13 +123,15 @@ module aptos_framework::evm_for_test {
                               codes: vector<vector<u8>>,
                               nonces: vector<u64>,
                               balances: vector<vector<u8>>,
+                              storage_keys: vector<vector<vector<u8>>>,
+                              storage_values: vector<vector<vector<u8>>>,
                               from: vector<u8>,
                               to: vector<u8>,
                               data: vector<u8>,
                               gas_price_bytes:vector<u8>,
                               value_bytes: vector<u8>) acquires ExecResource {
         let value = to_u256(value_bytes);
-        let trie = &mut pre_init(addresses, codes, nonces, balances);
+        let trie = &mut pre_init(addresses, codes, nonces, balances, storage_keys, storage_values);
         let transient = simple_map::new<u256, u256>();
         let gas_price = to_u256(gas_price_bytes);
         from = to_32bit(from);
@@ -1071,22 +1073,34 @@ module aptos_framework::evm_for_test {
     }
 
 
+    #[test_only]
+    fun init_storage(keys: vector<u256>, values: vector<u256>): SimpleMap<vector<u8>, vector<u8>> {
+        let i = 0;
+        let len = vector::length(&keys);
+        let map = simple_map::new<vector<u8>, vector<u8>>();
+        while(i < len) {
+            let key = *vector::borrow(&keys, i);
+            let value = *vector::borrow(&values, i);
+            simple_map::add(&mut map, u256_to_data(key), u256_to_data(value));
+            i = i + 1;
+        };
+
+        map
+    }
+
     #[test]
     public fun test_run() acquires ExecResource {
         // debug::print(&u256_to_data(0x0ba1a9ce0ba1a9ce));
         let balance = u256_to_data(0x0ba1a9ce0ba1a9ce);
         let aptos_framework = create_account_for_test(@0x1);
         initialize(&aptos_framework);
+
+        let storage_maps = simple_map::new<vector<u8>, simple_map::SimpleMap<vector<u8>, vector<u8>>>();
+        simple_map::add(&mut storage_maps, x"cccccccccccccccccccccccccccccccccccccccc", init_storage(vector[0x01], vector[0x01]));
+        let (storage_keys, storage_values) = (vector::empty<vector<vector<u8>>>(), vector::empty<vector<vector<u8>>>());
+
+
         let addresses = vector[
-            x"0000000000000000000000000000000000001000",
-            x"0000000000000000000000000000000000001001",
-            x"0000000000000000000000000000000000001002",
-            x"0000000000000000000000000000000000001003",
-            x"0000000000000000000000000000000000001004",
-            x"0000000000000000000000000000000000001005",
-            x"0000000000000000000000000000000000001006",
-            x"0000000000000000000000000000000000001007",
-            x"0000000000000000000000000000000000001008",
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc"
         ];
@@ -1094,31 +1108,34 @@ module aptos_framework::evm_for_test {
         let nonces = &mut vector[];
         let i = 0;
         while(i < vector::length(&addresses)) {
+            let address = *vector::borrow(&addresses, i);
             vector::push_back(balances, balance);
             vector::push_back(nonces, 0);
+
+            if(simple_map::contains_key(&storage_maps, &address)) {
+                let data = simple_map::borrow(&storage_maps, &address);
+                vector::push_back(&mut storage_keys, simple_map::keys(data));
+                vector::push_back(&mut storage_values, simple_map::values(data));
+            } else {
+                vector::push_back(&mut storage_keys, vector::empty<vector<u8>>());
+                vector::push_back(&mut storage_values, vector::empty<vector<u8>>());
+            };
             i = i + 1;
         };
 
         run_test(
             addresses,
             vector[
-                x"600360020260005500",
-                x"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0260005500",
-                x"601760000260005500",
-                x"600160170260005500",
-                x"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f80000000000000000000000000000000000000000000000000000000000000000260005500",
-                x"7f80000000000000000000000000000000000000000000000000000000000000007f80000000000000000000000000000000000000000000000000000000000000000260005500",
-                x"7f7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0260005500",
-                x"7001234567890abcdef0fedcba09876543217001234567890abcdef0fedcba09876543217001234567890abcdef0fedcba0987654321020260005500",
-                x"600160005560010200",
                 x"",
-                x"600060006000600060006004356110000162fffffff100"
+                x"60026002035460016002035401600255600260030354600160030354016003556002600403546001600403540160045560026005035460016005035401600555600260060354600160060354016006556002600703546001600703540160075560026008035460016008035401600855600260090354600160090354016009556002600a03546001600a035401600a5500"
             ],
             *nonces,
             *balances,
+            storage_keys,
+            storage_values,
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc",
-            x"693c61390000000000000000000000000000000000000000000000000000000000000008",
+            x"01",
             u256_to_data(0x0a),
             u256_to_data(0x1)
         );

@@ -1,13 +1,9 @@
 module aptos_framework::evm_trie {
     use std::vector;
     use aptos_framework::evm_util::{to_32bit, to_u256};
-    use std::option;
-    use aptos_std::table;
-    use aptos_std::simple_map::{SimpleMap, append};
+    use aptos_std::simple_map::{SimpleMap};
     use aptos_std::simple_map;
-    use aptos_std::iterable_table;
     use aptos_std::debug;
-    use aptos_std::table::add;
 
     struct Trie has drop {
         context: vector<SimpleMap<vector<u8>, TestAccount>>,
@@ -168,7 +164,9 @@ module aptos_framework::evm_trie {
     public fun pre_init(addresses: vector<vector<u8>>,
                         codes: vector<vector<u8>>,
                         nonces: vector<u64>,
-                        balances: vector<vector<u8>>): Trie {
+                        balances: vector<vector<u8>>,
+                        storage_keys: vector<vector<vector<u8>>>,
+                        storage_values: vector<vector<vector<u8>>>): Trie {
         let trie = Trie {
             context: vector::empty(),
             storage: simple_map::new(),
@@ -178,13 +176,28 @@ module aptos_framework::evm_trie {
 
         let pre_len = vector::length(&addresses);
         assert!(pre_len == vector::length(&codes), 3);
+        assert!(pre_len == vector::length(&storage_keys), 3);
+        assert!(pre_len == vector::length(&storage_values), 3);
         let i = 0;
         while(i < pre_len) {
+            let storage = simple_map::new<u256, u256>();
+            let key_datas = *vector::borrow(&storage_keys, i);
+            let value_datas = *vector::borrow(&storage_values, i);
+            let data_len = vector::length(&key_datas);
+            assert!(data_len == vector::length(&value_datas), 4);
+
+            let j = 0;
+            while (j < data_len) {
+                let key = *vector::borrow(&key_datas, j);
+                let value = *vector::borrow(&value_datas, j);
+                simple_map::add(&mut storage, to_u256(key), to_u256(value));
+                j = j + 1;
+            };
             simple_map::add(&mut trie.storage, to_32bit(*vector::borrow(&addresses, i)), TestAccount {
                 balance: to_u256(*vector::borrow(&balances, i)),
                 code: *vector::borrow(&codes, i),
                 nonce: (*vector::borrow(&nonces, i) as u256),
-                storage: simple_map::new<u256, u256>(),
+                storage,
             });
             i = i + 1;
         };
