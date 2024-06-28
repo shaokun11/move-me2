@@ -178,8 +178,8 @@ module aptos_framework::evm_for_test {
 
         let stack = &mut vector::empty<u256>();
         let memory = &mut vector::empty<u8>();
-        let len = vector::length(&code);
-        let i = 0;
+        let len = (vector::length(&code) as u256);
+        let i: u256 = 0;
         let runtime_code = vector::empty<u8>();
         let ret_bytes = vector::empty<u8>();
         let error_code = &mut 0;
@@ -191,7 +191,7 @@ module aptos_framework::evm_for_test {
 
         while (i < len) {
             // Fetch the current opcode from the bytecode.
-            let opcode: u8 = *vector::borrow(&code, i);
+            let opcode: u8 = *vector::borrow(&code, (i as u64));
             gas_used = gas_used + calc_exec_gas(opcode, to, stack, run_state, trie, gas_limit);
             if(gas_used > gas_limit) {
                 revert_checkpoint(trie);
@@ -478,8 +478,8 @@ module aptos_framework::evm_for_test {
             }
                 // push1 -> push32
             else if(opcode >= 0x60 && opcode <= 0x7f)  {
-                let n = ((opcode - 0x60) as u64);
-                let number = data_to_u256(code, ((i + 1) as u256), ((n + 1) as u256));
+                let n = ((opcode - 0x60) as u256);
+                let number = data_to_u256(code, i + 1, n + 1);
                 vector::push_back(stack, number);
                 i = i + n + 2;
             }
@@ -699,9 +699,8 @@ module aptos_framework::evm_for_test {
             }
                 //jump
             else if(opcode == 0x56) {
-                let dest = pop_stack(stack, error_code);
-                i = (dest as u64);
-                if(i >= len || !*vector::borrow(&valid_jumps, i)) {
+                i = pop_stack(stack, error_code);
+                if(i >= len || !*vector::borrow(&valid_jumps, (i as u64))) {
                     *error_code = EVM_ERROR_INVALID_PC;
                 }
             }
@@ -710,11 +709,11 @@ module aptos_framework::evm_for_test {
                 let dest = pop_stack(stack, error_code);
                 let condition = pop_stack(stack, error_code);
                 if(condition > 0) {
-                    i = (dest as u64)
+                    i = dest;
                 } else {
                     i = i + 1
                 };
-                if(i >= len || !*vector::borrow(&valid_jumps, i)) {
+                if(i >= len || !*vector::borrow(&valid_jumps, (i as u64))) {
                     *error_code = EVM_ERROR_INVALID_PC;
                 }
             }
@@ -1194,7 +1193,7 @@ module aptos_framework::evm_for_test {
             storage_values,
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc",
-            x"693c61390000000000000000000000000000000000000000000000000000000000000000",
+            x"693c6139000000000000000000000000000000000000000000000000000000000000000d",
             u256_to_data(0x0a),
             u256_to_data(0x1)
         );
