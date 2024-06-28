@@ -710,12 +710,12 @@ module aptos_framework::evm_for_test {
                 let condition = pop_stack(stack, error_code);
                 if(condition > 0) {
                     i = dest;
+                    if(i >= len || !*vector::borrow(&valid_jumps, (i as u64))) {
+                        *error_code = EVM_ERROR_INVALID_PC;
+                    }
                 } else {
                     i = i + 1
                 };
-                if(i >= len || !*vector::borrow(&valid_jumps, (dest as u64))) {
-                    *error_code = EVM_ERROR_INVALID_PC;
-                }
             }
                 //gas
             else if(opcode == 0x5a) {
@@ -1215,7 +1215,7 @@ module aptos_framework::evm_for_test {
             storage_values,
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc",
-            x"693c61390000000000000000000000000000000000000000000000000000000000000208",
+            x"693c61390000000000000000000000000000000000000000000000000000000000000111",
             u256_to_data(0x0a),
             u256_to_data(0x1)
         );
