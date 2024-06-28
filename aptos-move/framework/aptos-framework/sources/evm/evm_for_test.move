@@ -701,7 +701,7 @@ module aptos_framework::evm_for_test {
             else if(opcode == 0x56) {
                 let dest = pop_stack(stack, error_code);
                 i = (dest as u64);
-                if(!*vector::borrow(&valid_jumps, i)) {
+                if(i >= len || !*vector::borrow(&valid_jumps, i)) {
                     *error_code = EVM_ERROR_INVALID_PC;
                 }
             }
@@ -714,7 +714,7 @@ module aptos_framework::evm_for_test {
                 } else {
                     i = i + 1
                 };
-                if(!*vector::borrow(&valid_jumps, i)) {
+                if(i >= len || !*vector::borrow(&valid_jumps, i)) {
                     *error_code = EVM_ERROR_INVALID_PC;
                 }
             }
@@ -1194,7 +1194,7 @@ module aptos_framework::evm_for_test {
             storage_values,
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc",
-            x"693c6139000000000000000000000000000000000000000000000000000000000000000f",
+            x"693c61390000000000000000000000000000000000000000000000000000000000000000",
             u256_to_data(0x0a),
             u256_to_data(0x1)
         );
