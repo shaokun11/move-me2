@@ -1,7 +1,3 @@
-use crate::natives::evm_natives::{
-    helpers::{move_u256_to_evm_u256, evm_u256_to_move_u256}
-};
-
 use aptos_native_interface::{
     safely_pop_arg, SafeNativeContext, SafeNativeBuilder, RawSafeNative, SafeNativeResult
 };
