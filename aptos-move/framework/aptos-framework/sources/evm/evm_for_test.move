@@ -140,7 +140,7 @@ module aptos_framework::evm_for_test {
         let run_state = &mut new_run_state();
         let base_cost = calc_base_gas(&data) + 21000;
         add_gas_usage(run_state, base_cost);
-        run(from, from, to, get_code(to, trie), data, value, 80000000 - base_cost, trie, &mut transient, run_state);
+        run(from, from, to, get_code(to, trie), data, value, 80000000 - base_cost, trie, &mut transient, run_state, true);
         let gas_usage = get_gas_usage(run_state);
         let gasfee = gas_price * gas_usage;
         sub_balance(from, gasfee, trie);
@@ -165,6 +165,7 @@ module aptos_framework::evm_for_test {
             trie: &mut Trie,
             transient: &mut SimpleMap<u256, u256>,
             run_state: &mut SimpleMap<u64, u256>,
+            transfer_eth: bool
         ): (bool, vector<u8>) {
 
         if (is_precompile_address(to)) {
@@ -172,7 +173,10 @@ module aptos_framework::evm_for_test {
         };
 
         add_checkpoint(trie);
-        transfer(sender, to, value, trie);
+        if(transfer_eth) {
+            transfer(sender, to, value, trie);
+        };
+
 
         // let to_account = simple_map::borrow_mut(&mut trie, &to);
 
@@ -674,6 +678,11 @@ module aptos_framework::evm_for_test {
                 set_state(to, key, value, trie);
                 i = i + 1;
             }
+                // MSIZE
+            else if(opcode == 0x59) {
+                vector::push_back(stack, (vector::length(memory) as u256));
+                i = i + 1;
+            }
                 //dup1 -> dup16
             else if(opcode >= 0x80 && opcode <= 0x8f) {
                 let size = vector::length(stack);
@@ -769,13 +778,14 @@ module aptos_framework::evm_for_test {
                 let call_gas_limit = max_call_gas(gas_left, pop_stack(stack, error_code));
                 let evm_dest_addr = to_32bit(u256_to_data(pop_stack(stack, error_code)));
                 // let move_dest_addr = create_resource_address(&@aptos_framework, evm_dest_addr);
-                let msg_value = if (opcode == 0xf1) pop_stack(stack, error_code) else 0;
+                let msg_value = if (opcode == 0xf1) pop_stack(stack, error_code) else if(opcode == 0xf4) value else 0;
                 let m_pos = pop_stack(stack, error_code);
                 let m_len = pop_stack(stack, error_code);
                 let ret_pos = pop_stack(stack, error_code);
                 let ret_len = pop_stack(stack, error_code);
                 let ret_end = ret_len + ret_pos;
                 let params = slice(*memory, m_pos, m_len);
+                let transfer_eth = if (opcode == 0xf1) true else false;
 
                 // debug::print(&utf8(b"call 222"));
                 // debug::print(&opcode);
@@ -785,7 +795,7 @@ module aptos_framework::evm_for_test {
 
                     let target = if (opcode == 0xf4) to else evm_dest_addr;
                     let from = if (opcode == 0xf4) sender else to;
-                    let (call_res, bytes) = run(sender, from, target, dest_code, params, msg_value, call_gas_limit, trie, transient, run_state);
+                    let (call_res, bytes) = run(sender, from, target, dest_code, params, msg_value, call_gas_limit, trie, transient, run_state, transfer_eth);
                     ret_bytes = bytes;
                     let index = 0;
 
@@ -821,7 +831,7 @@ module aptos_framework::evm_for_test {
                 debug::print(&utf8(b"create start"));
                 add_nonce(to, trie);
 
-                let(create_res, bytes) = run(sender, to, new_evm_contract_addr, new_codes, x"", msg_value, gas_limit, trie, transient, run_state);
+                let(create_res, bytes) = run(sender, to, new_evm_contract_addr, new_codes, x"", msg_value, gas_limit, trie, transient, run_state, true);
                 if(create_res) {
                     new_account(new_evm_contract_addr, bytes, 0, 1, trie);
                     ret_bytes = new_evm_contract_addr;
@@ -854,7 +864,7 @@ module aptos_framework::evm_for_test {
 
                 // to_account.nonce = to_account.nonce + 1;
                 add_nonce(to, trie);
-                let (create_res, bytes) = run(to, sender, new_evm_contract_addr, new_codes, x"", msg_value, gas_limit, trie, transient, run_state);
+                let (create_res, bytes) = run(to, sender, new_evm_contract_addr, new_codes, x"", msg_value, gas_limit, trie, transient, run_state, true);
 
                 if(create_res) {
                     new_account(new_evm_contract_addr, bytes, 0, 1, trie);
@@ -1106,55 +1116,21 @@ module aptos_framework::evm_for_test {
         initialize(&aptos_framework);
 
         let storage_maps = simple_map::new<vector<u8>, simple_map::SimpleMap<vector<u8>, vector<u8>>>();
-        simple_map::add(&mut storage_maps, x"cccccccccccccccccccccccccccccccccccccccc", init_storage(vector[0x00], vector[0x0bad]));
+        // simple_map::add(&mut storage_maps, x"cccccccccccccccccccccccccccccccccccccccc", init_storage(vector[0x00], vector[0x0bad]));
         let (storage_keys, storage_values) = (vector::empty<vector<vector<u8>>>(), vector::empty<vector<vector<u8>>>());
 
 
         let addresses = vector[
-            x"0000000000000000000000000000000000000110",
-            x"0000000000000000000000000000000000000111",
-            x"0000000000000000000000000000000000000200",
-            x"0000000000000000000000000000000000000201",
-            x"0000000000000000000000000000000000000202",
-            x"0000000000000000000000000000000000000203",
-            x"0000000000000000000000000000000000000208",
-            x"000000000000000000000000000000000000020d",
-            x"000000000000000000000000000000000000020e",
-            x"000000000000000000000000000000000000020f",
             x"0000000000000000000000000000000000001000",
             x"0000000000000000000000000000000000001001",
-            x"0000000000000000000000000000000000001002",
-            x"0000000000000000000000000000000000001003",
-            x"0000000000000000000000000000000000001004",
-            x"0000000000000000000000000000000000001005",
-            x"0000000000000000000000000000000000001006",
-            x"0000000000000000000000000000000000001007",
-            x"0000000000000000000000000000000000001008",
-            x"0000000000000000000000000000000000001009",
-            x"000000000000000000000000000000000000100a",
-            x"000000000000000000000000000000000000100b",
-            x"000000000000000000000000000000000000100c",
-            x"000000000000000000000000000000000000100d",
-            x"000000000000000000000000000000000000100e",
-            x"000000000000000000000000000000000000100f",
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc"
         ];
         let balance_table = vector[
-            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
-            0x100000000000,     0x0ba1a9ce0ba1a9ce
+            0x0ba1a9ce0ba1a9ce,
+            0x0ba1a9ce0ba1a9ce,
+            0x100000000000,
+            0x0ba1a9ce0ba1a9ce
         ];
         let nonces = &mut vector[];
         let i = 0;
@@ -1180,34 +1156,10 @@ module aptos_framework::evm_for_test {
         run_test(
             addresses,
             vector[
-                x"6001600e575b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b61600d600055",
-                x"61600d60005560106000525b60016000510380600052600b57",
-                x"61600d60005560006010602002575b00",
-                x"61600d60005560006010602002575b00",
-                x"6000600657005b61600d60005500",
-                x"61600d6000556000630fffffff5700",
-                x"6000600460050157005b61600d600055",
-                x"60006801000000000000000d575b5b61600d600055",
-                x"6000640100000009575b5b61600d600055",
-                x"6000515060016000035060006000515761600d60005500",
-                x"61600d60005560016010602002575b00",
-                x"61600d60005560016010602002575b00",
-                x"6001600657005b61600d60005500",
-                x"61600d60005560ff630fffffff5700",
-                x"6023600160085760015b600255",
-                x"61600d6000555b6006600657",
-                x"61600d6001600a5760ff5b600055",
-                x"600b565b61600d600055005b6001600357",
-                x"6001600460050157005b61600d600055",
-                x"600160075700605b61600d600055",
-                x"600160075700600161600d600055",
-                x"61600d6000556001600d575a5b5a600155",
-                x"61600d6000556001600b575a5b5a600155",
-                x"60116801000000000000000d575b5b61600d600055",
-                x"6011640100000009575b5b61600d600055",
-                x"6000515060016000035060016000515761600d60005500",
+                x"6000345b60019003906001018180600357600052600152600059f300",
+                x"6000345b60019003906001018180600357600052600152600059f300",
                 x"",
-                x"600060006000600060043562010000f400"
+                x"6000600060006000600435611000015af400"
             ],
             *nonces,
             balances,
@@ -1215,7 +1167,7 @@ module aptos_framework::evm_for_test {
             storage_values,
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc",
-            x"693c61390000000000000000000000000000000000000000000000000000000000000111",
+            x"693c61390000000000000000000000000000000000000000000000000000000000000001",
             u256_to_data(0x0a),
             u256_to_data(0x1)
         );
