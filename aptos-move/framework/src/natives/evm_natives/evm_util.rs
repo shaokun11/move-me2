@@ -9,11 +9,9 @@ use move_vm_types::{
     loaded_data::runtime_types::Type,
     values::{Value}
 };
-use move_core_types::{u256::U256 as move_u256};
 use move_vm_runtime::native_functions::NativeFunction;
 use std::collections::VecDeque;
 use smallvec::{smallvec, SmallVec};
-use ethers::types::{U256, U512};
 
 fn native_new_fixed_length_vector(
     _context: &mut SafeNativeContext,
