@@ -11,7 +11,7 @@ module aptos_framework::evm_for_test {
     use aptos_framework::precompile::{is_precompile_address, run_precompile};
     use aptos_std::simple_map;
     use aptos_std::simple_map::SimpleMap;
-    use aptos_framework::evm_global_state::{new_run_state, get_gas_usage, add_gas_usage};
+    use aptos_framework::evm_global_state::{new_run_state, get_gas_usage, add_gas_usage, get_gas_refund};
     use aptos_framework::evm_gas::{calc_exec_gas, calc_base_gas, max_call_gas};
     use aptos_framework::event;
     #[test_only]
@@ -49,6 +49,7 @@ module aptos_framework::evm_for_test {
 
     struct ExecResultEvent has drop, store {
         gas_usage: u256,
+        gas_refund: u256,
         state_root: vector<u8>
     }
 
@@ -109,13 +110,15 @@ module aptos_framework::evm_for_test {
         });
     }
 
-    fun emit_event(state_root: vector<u8>, gas_usage: u256) acquires ExecResource {
+    fun emit_event(state_root: vector<u8>, gas_usage: u256, gas_refund: u256) acquires ExecResource {
         let exec_resource = borrow_global_mut<ExecResource>(@aptos_framework);
         debug::print(&state_root);
         debug::print(&gas_usage);
+        debug::print(&gas_refund);
         event::emit_event(&mut exec_resource.exec_event, ExecResultEvent {
             state_root,
-            gas_usage
+            gas_usage,
+            gas_refund
         });
     }
 
@@ -141,8 +144,9 @@ module aptos_framework::evm_for_test {
         let base_cost = calc_base_gas(&data) + 21000;
         add_gas_usage(run_state, base_cost);
         run(from, from, to, get_code(to, trie), data, value, 80000000 - base_cost, trie, &mut transient, run_state, true);
+        let gas_refund = get_gas_refund(run_state);
         let gas_usage = get_gas_usage(run_state);
-        let gasfee = gas_price * gas_usage;
+        let gasfee = gas_price * (gas_usage - gas_refund);
         sub_balance(from, gasfee, trie);
         add_nonce(from, trie);
 
@@ -151,7 +155,7 @@ module aptos_framework::evm_for_test {
         let exec_cost = gas_usage - base_cost;
         // debug::print(checkpoint);
         debug::print(&exec_cost);
-        emit_event(state_root, gas_usage);
+        emit_event(state_root, gas_usage, gas_refund);
     }
 
     fun run(
@@ -1116,17 +1120,35 @@ module aptos_framework::evm_for_test {
         initialize(&aptos_framework);
 
         let storage_maps = simple_map::new<vector<u8>, simple_map::SimpleMap<vector<u8>, vector<u8>>>();
-        // simple_map::add(&mut storage_maps, x"cccccccccccccccccccccccccccccccccccccccc", init_storage(vector[0x00], vector[0x0bad]));
+        simple_map::add(&mut storage_maps, x"cccccccccccccccccccccccccccccccccccccccc", init_storage(vector[0x00], vector[0x0bad]));
         let (storage_keys, storage_values) = (vector::empty<vector<vector<u8>>>(), vector::empty<vector<vector<u8>>>());
 
 
         let addresses = vector[
             x"0000000000000000000000000000000000001000",
             x"0000000000000000000000000000000000001001",
+            x"0000000000000000000000000000000000001002",
+            x"0000000000000000000000000000000000001003",
+            x"0000000000000000000000000000000000001004",
+            x"0000000000000000000000000000000000001005",
+            x"0000000000000000000000000000000000001006",
+            x"0000000000000000000000000000000000001007",
+            x"0000000000000000000000000000000000001008",
+            x"0000000000000000000000000000000000001009",
+            x"000000000000000000000000000000000000100a",
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc"
         ];
         let balance_table = vector[
+            0x0ba1a9ce0ba1a9ce,
+            0x0ba1a9ce0ba1a9ce,
+            0x0ba1a9ce0ba1a9ce,
+            0x0ba1a9ce0ba1a9ce,
+            0x0ba1a9ce0ba1a9ce,
+            0x0ba1a9ce0ba1a9ce,
+            0x0ba1a9ce0ba1a9ce,
+            0x0ba1a9ce0ba1a9ce,
+            0x0ba1a9ce0ba1a9ce,
             0x0ba1a9ce0ba1a9ce,
             0x0ba1a9ce0ba1a9ce,
             0x100000000000,
@@ -1156,8 +1178,17 @@ module aptos_framework::evm_for_test {
         run_test(
             addresses,
             vector[
-                x"6000345b60019003906001018180600357600052600152600059f300",
-                x"6000345b60019003906001018180600357600052600152600059f300",
+                x"600060011115600f5761600d6000555b00",
+                x"600060011015600f5761600d6000555b00",
+                x"6000600111600e5761600d6000555b00",
+                x"6000600110600e5761600d6000555b00",
+                x"6000600111600e576160a76012565b61600d5b60005500",
+                x"6000600110600e576160a76012565b61600d5b60005500",
+                x"601060005560016001555b60005415602757600160005403600055600260015402600155600a565b00",
+                x"601060005560016001555b600060005414602957600160005403600055600260015402600155600a565b00",
+                x"601060005560016001555b60006000541115602a57600260015402600155600160005403600055600a565b00",
+                x"600a6080525b6000608051111560265760a0516080510160a0526001608051036080526005565b60a05160005500",
+                x"60006080525b600a60805111151560275760a0516080510160a0526001608051016080526005565b60a05160005500",
                 x"",
                 x"6000600060006000600435611000015af400"
             ],
@@ -1167,7 +1198,7 @@ module aptos_framework::evm_for_test {
             storage_values,
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc",
-            x"693c61390000000000000000000000000000000000000000000000000000000000000001",
+            x"693c61390000000000000000000000000000000000000000000000000000000000000006",
             u256_to_data(0x0a),
             u256_to_data(0x1)
         );

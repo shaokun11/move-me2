@@ -3,6 +3,7 @@ module aptos_framework::evm_trie {
     use aptos_framework::evm_util::{to_32bit, to_u256};
     use aptos_std::simple_map::{SimpleMap};
     use aptos_std::simple_map;
+    use aptos_std::debug;
 
     struct Trie has drop {
         context: vector<SimpleMap<vector<u8>, TestAccount>>,
@@ -223,6 +224,7 @@ module aptos_framework::evm_trie {
 
     public fun save(trie: &mut Trie) {
         let checkpoint = vector::pop_back(&mut trie.context);
+        debug::print(&checkpoint);
         let (keys, values) = simple_map::to_vec_pair(checkpoint);
         let i = 0;
         let len = vector::length(&keys);
@@ -232,6 +234,8 @@ module aptos_framework::evm_trie {
             simple_map::upsert(&mut trie.storage, address, account);
             i = i + 1;
         };
+
+        debug::print(trie);
     }
 
     public fun commit_latest_checkpoint(trie: &mut Trie) {

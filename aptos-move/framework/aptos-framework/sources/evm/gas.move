@@ -2,7 +2,7 @@ module aptos_framework::evm_gas {
     use std::vector;
     use aptos_std::simple_map::{SimpleMap};
     use aptos_framework::evm_util::{u256_to_data, print_opcode, u256_bytes_length};
-    use aptos_framework::evm_global_state::{get_memory_cost, set_memory_cost};
+    use aptos_framework::evm_global_state::{get_memory_cost, set_memory_cost, add_gas_refund, sub_gas_refund};
     use aptos_std::debug;
     use std::vector::for_each;
     use std::string::utf8;
@@ -14,6 +14,9 @@ module aptos_framework::evm_gas {
     const SstoreInitGasEIP2200: u256 = 20000;
     const SstoreCleanGasEIP2200: u256 = 2900;
     const SstoreDirtyGasEIP2200: u256 = 100;
+    const SstoreClearRefundEIP2200: u256 = 4800;
+    const SstoreInitRefundEIP2200: u256 = 19900;
+    const SstoreCleanRefundEIP2200: u256 = 2800;
     const Coldsload: u256 = 2100;
     const Warmstorageread: u256 = 100;
     const CallNewAccount: u256 = 25000;
@@ -45,7 +48,7 @@ module aptos_framework::evm_gas {
         0
     }
 
-    fun calc_mstore_gas(stack: &mut vector<u256>,
+    fun calc_mstore_gas(stack: &vector<u256>,
                         run_state: &mut SimpleMap<u64, u256>): u256 {
         let len = vector::length(stack);
         let offset = *vector::borrow(stack,len - 1);
@@ -54,7 +57,7 @@ module aptos_framework::evm_gas {
     }
 
     fun calc_sload_gas(address: vector<u8>,
-                       stack: &mut vector<u256>,
+                       stack: &vector<u256>,
                        trie: &mut Trie): u256 {
         let len = vector::length(stack);
         let key = *vector::borrow(stack,len - 1);
@@ -63,28 +66,51 @@ module aptos_framework::evm_gas {
     }
 
     fun calc_sstore_gas(address: vector<u8>,
-                        stack: &mut vector<u256>,
-                        trie: &mut Trie): u256 {
+                        stack: &vector<u256>,
+                        trie: &mut Trie,
+                        run_state: &mut SimpleMap<u64, u256>): u256 {
         let len = vector::length(stack);
         let key = *vector::borrow(stack,len - 1);
         let (_, is_cold_slot, origin) = get_cache(address, key, trie);
         let current = get_state(address, key, trie);
         let new = *vector::borrow(stack,len - 2);
         let cold_cost = if(is_cold_slot) Coldsload else 0;
+        let gas_cost = cold_cost;
 
         if(current == new) {
             //sstoreNoopGasEIP2200
-            return SstoreNoopGasEIP2200 + cold_cost
-        } else if(origin == current) {
-            if(origin == 0) {
-                //sstoreInitGasEIP2200
-                return SstoreInitGasEIP2200 + cold_cost
+            gas_cost = gas_cost + SstoreNoopGasEIP2200
+        } else {
+            if(origin == current) {
+                if(origin == 0) {
+                    //sstoreInitGasEIP2200
+                    gas_cost = gas_cost + SstoreInitGasEIP2200
+                } else {
+                    if(new == 0) {
+                        add_gas_refund(run_state, SstoreClearRefundEIP2200)
+                    };
+                    gas_cost = gas_cost + SstoreCleanGasEIP2200
+                }
             } else {
-                return SstoreCleanGasEIP2200 + cold_cost
+                gas_cost = gas_cost + SstoreDirtyGasEIP2200;
+                if(origin != 0) {
+                    if(current == 0) {
+                        sub_gas_refund(run_state, SstoreClearRefundEIP2200)
+                    } else if(new == 0) {
+                        add_gas_refund(run_state, SstoreClearRefundEIP2200)
+                    }
+                };
+                if(new == origin) {
+                    if(origin == 0) {
+                        add_gas_refund(run_state, SstoreInitRefundEIP2200)
+                    } else {
+                        add_gas_refund(run_state, SstoreCleanRefundEIP2200)
+                    }
+                }
             }
         };
 
-        SstoreDirtyGasEIP2200 + cold_cost
+        gas_cost
     }
 
     fun calc_exp_gas(stack: &vector<u256>): u256 {
@@ -371,7 +397,7 @@ module aptos_framework::evm_gas {
             calc_sload_gas(address, stack, trie)
         } else if (opcode == 0x55) {
             // SSTORE
-            calc_sstore_gas(address, stack, trie)
+            calc_sstore_gas(address, stack, trie, run_state)
         } else if (opcode == 0x39) {
             // CODECOPY
             calc_code_copy_gas(stack, run_state, gas_limit)
