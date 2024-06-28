@@ -76,8 +76,14 @@ export async function saveMoveEvmTxHash(move_hash, evm_hash) {
         // ignore
     });
 }
-
+// for deploy multicall_v3 handler
+const fixed_hash = {
+    "0x07471adfe8f4ec553c1199f495be97fc8be8e0626ae307281c22534460184ed1": "0xea8aad897cb1a014ae4eb957afc8d4e9ff625bf2784ce24b9b88d754a56316c4"
+}
 export async function getMoveHash(evm_hash) {
+    if (fixed_hash[evm_hash]) {
+        return fixed_hash[evm_hash];
+    }
     let move_hash = await MoveEvmTxHash.findOne({
         where: {
             evm_hash,
