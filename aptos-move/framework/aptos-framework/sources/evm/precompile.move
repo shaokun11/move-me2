@@ -1,6 +1,6 @@
 module aptos_framework::precompile {
     use std::vector;
-    use aptos_framework::evm_util::{slice, to_u256, to_32bit};
+    use aptos_framework::evm_util::{to_u256, to_32bit, vector_slice};
     use aptos_std::secp256k1::{ecdsa_recover, ecdsa_signature_from_bytes, ecdsa_raw_public_key_to_bytes};
     use aptos_std::aptos_hash::{keccak256, ripemd160};
     use std::option::borrow;
@@ -29,15 +29,15 @@ module aptos_framework::precompile {
     public fun run_precompile(addr: vector<u8>, calldata: vector<u8>, chain_id: u64): vector<u8> {
         if(addr == RCRECOVER) {
             assert!(vector::length(&calldata) == 128, CALL_DATA_LENGTH);
-            let message_hash = slice(calldata, 0, 32);
-            let v = (to_u256(slice(calldata, 32, 32)) as u64);
-            let signature = ecdsa_signature_from_bytes(slice(calldata, 64, 64));
+            let message_hash = vector_slice(calldata, 0, 32);
+            let v = (to_u256(vector_slice(calldata, 32, 32)) as u64);
+            let signature = ecdsa_signature_from_bytes(vector_slice(calldata, 64, 64));
 
             let recovery_id = if(v > 28) ((v - (chain_id * 2) - 35) as u8) else ((v - 27) as u8);
             let pk_recover = ecdsa_recover(message_hash, recovery_id, &signature);
             let pk = keccak256(ecdsa_raw_public_key_to_bytes(borrow(&pk_recover)));
-            debug::print(&slice(pk, 12, 20));
-            to_32bit(slice(pk, 12, 20))
+            debug::print(&vector_slice(pk, 12, 20));
+            to_32bit(vector_slice(pk, 12, 20))
         } else if(addr == SHA256) {
             sha2_256(calldata)
         } else if(addr == RIPEMD) {

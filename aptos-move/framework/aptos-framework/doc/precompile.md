@@ -155,15 +155,15 @@ unsupport precomile address
 <pre><code><b>public</b> <b>fun</b> <a href="precompile.md#0x1_precompile_run_precompile">run_precompile</a>(addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="chain_id.md#0x1_chain_id">chain_id</a>: u64): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt; {
     <b>if</b>(addr == <a href="precompile.md#0x1_precompile_RCRECOVER">RCRECOVER</a>) {
         <b>assert</b>!(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&calldata) == 128, <a href="precompile.md#0x1_precompile_CALL_DATA_LENGTH">CALL_DATA_LENGTH</a>);
-        <b>let</b> message_hash = slice(calldata, 0, 32);
-        <b>let</b> v = (to_u256(slice(calldata, 32, 32)) <b>as</b> u64);
-        <b>let</b> signature = ecdsa_signature_from_bytes(slice(calldata, 64, 64));
+        <b>let</b> message_hash = vector_slice(calldata, 0, 32);
+        <b>let</b> v = (to_u256(vector_slice(calldata, 32, 32)) <b>as</b> u64);
+        <b>let</b> signature = ecdsa_signature_from_bytes(vector_slice(calldata, 64, 64));
 
         <b>let</b> recovery_id = <b>if</b>(v &gt; 28) ((v - (<a href="chain_id.md#0x1_chain_id">chain_id</a> * 2) - 35) <b>as</b> u8) <b>else</b> ((v - 27) <b>as</b> u8);
         <b>let</b> pk_recover = ecdsa_recover(message_hash, recovery_id, &signature);
         <b>let</b> pk = keccak256(ecdsa_raw_public_key_to_bytes(borrow(&pk_recover)));
-        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&slice(pk, 12, 20));
-        to_32bit(slice(pk, 12, 20))
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&vector_slice(pk, 12, 20));
+        to_32bit(vector_slice(pk, 12, 20))
     } <b>else</b> <b>if</b>(addr == <a href="precompile.md#0x1_precompile_SHA256">SHA256</a>) {
         sha2_256(calldata)
     } <b>else</b> <b>if</b>(addr == <a href="precompile.md#0x1_precompile_RIPEMD">RIPEMD</a>) {

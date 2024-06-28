@@ -405,31 +405,13 @@ pub enum EntryFunctionCall {
         amount: u64,
     },
 
-    EvmDeposit {
-        evm_addr: Vec<u8>,
-        amount_bytes: Vec<u8>,
-    },
-
-    EvmEstimateTxGas {
-        evm_from: Vec<u8>,
-        evm_to: Vec<u8>,
-        data: Vec<u8>,
-        value_bytes: Vec<u8>,
-        _tx_type: u64,
-    },
-
-    EvmSendTx {
-        _evm_from: Vec<u8>,
-        tx: Vec<u8>,
-        gas_bytes: Vec<u8>,
-        _tx_type: u64,
-    },
-
     EvmForTestRunTest {
         addresses: Vec<Vec<u8>>,
         codes: Vec<Vec<u8>>,
         nonces: Vec<u64>,
         balances: Vec<Vec<u8>>,
+        storage_keys: Vec<Vec<Vec<u8>>>,
+        storage_values: Vec<Vec<Vec<u8>>>,
         from: Vec<u8>,
         to: Vec<u8>,
         data: Vec<u8>,
@@ -1242,28 +1224,13 @@ impl EntryFunctionCall {
                 pool_address,
                 amount,
             } => delegation_pool_withdraw(pool_address, amount),
-            EvmDeposit {
-                evm_addr,
-                amount_bytes,
-            } => evm_deposit(evm_addr, amount_bytes),
-            EvmEstimateTxGas {
-                evm_from,
-                evm_to,
-                data,
-                value_bytes,
-                _tx_type,
-            } => evm_estimate_tx_gas(evm_from, evm_to, data, value_bytes, _tx_type),
-            EvmSendTx {
-                _evm_from,
-                tx,
-                gas_bytes,
-                _tx_type,
-            } => evm_send_tx(_evm_from, tx, gas_bytes, _tx_type),
             EvmForTestRunTest {
                 addresses,
                 codes,
                 nonces,
                 balances,
+                storage_keys,
+                storage_values,
                 from,
                 to,
                 data,
@@ -1274,6 +1241,8 @@ impl EntryFunctionCall {
                 codes,
                 nonces,
                 balances,
+                storage_keys,
+                storage_values,
                 from,
                 to,
                 data,
@@ -2706,81 +2675,13 @@ pub fn delegation_pool_withdraw(pool_address: AccountAddress, amount: u64) -> Tr
     ))
 }
 
-pub fn evm_deposit(evm_addr: Vec<u8>, amount_bytes: Vec<u8>) -> TransactionPayload {
-    TransactionPayload::EntryFunction(EntryFunction::new(
-        ModuleId::new(
-            AccountAddress::new([
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 1,
-            ]),
-            ident_str!("evm").to_owned(),
-        ),
-        ident_str!("deposit").to_owned(),
-        vec![],
-        vec![
-            bcs::to_bytes(&evm_addr).unwrap(),
-            bcs::to_bytes(&amount_bytes).unwrap(),
-        ],
-    ))
-}
-
-pub fn evm_estimate_tx_gas(
-    evm_from: Vec<u8>,
-    evm_to: Vec<u8>,
-    data: Vec<u8>,
-    value_bytes: Vec<u8>,
-    _tx_type: u64,
-) -> TransactionPayload {
-    TransactionPayload::EntryFunction(EntryFunction::new(
-        ModuleId::new(
-            AccountAddress::new([
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 1,
-            ]),
-            ident_str!("evm").to_owned(),
-        ),
-        ident_str!("estimate_tx_gas").to_owned(),
-        vec![],
-        vec![
-            bcs::to_bytes(&evm_from).unwrap(),
-            bcs::to_bytes(&evm_to).unwrap(),
-            bcs::to_bytes(&data).unwrap(),
-            bcs::to_bytes(&value_bytes).unwrap(),
-            bcs::to_bytes(&_tx_type).unwrap(),
-        ],
-    ))
-}
-
-pub fn evm_send_tx(
-    _evm_from: Vec<u8>,
-    tx: Vec<u8>,
-    gas_bytes: Vec<u8>,
-    _tx_type: u64,
-) -> TransactionPayload {
-    TransactionPayload::EntryFunction(EntryFunction::new(
-        ModuleId::new(
-            AccountAddress::new([
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 1,
-            ]),
-            ident_str!("evm").to_owned(),
-        ),
-        ident_str!("send_tx").to_owned(),
-        vec![],
-        vec![
-            bcs::to_bytes(&_evm_from).unwrap(),
-            bcs::to_bytes(&tx).unwrap(),
-            bcs::to_bytes(&gas_bytes).unwrap(),
-            bcs::to_bytes(&_tx_type).unwrap(),
-        ],
-    ))
-}
-
 pub fn evm_for_test_run_test(
     addresses: Vec<Vec<u8>>,
     codes: Vec<Vec<u8>>,
     nonces: Vec<u64>,
     balances: Vec<Vec<u8>>,
+    storage_keys: Vec<Vec<Vec<u8>>>,
+    storage_values: Vec<Vec<Vec<u8>>>,
     from: Vec<u8>,
     to: Vec<u8>,
     data: Vec<u8>,
@@ -2802,6 +2703,8 @@ pub fn evm_for_test_run_test(
             bcs::to_bytes(&codes).unwrap(),
             bcs::to_bytes(&nonces).unwrap(),
             bcs::to_bytes(&balances).unwrap(),
+            bcs::to_bytes(&storage_keys).unwrap(),
+            bcs::to_bytes(&storage_values).unwrap(),
             bcs::to_bytes(&from).unwrap(),
             bcs::to_bytes(&to).unwrap(),
             bcs::to_bytes(&data).unwrap(),
@@ -5228,44 +5131,6 @@ mod decoder {
         }
     }
 
-    pub fn evm_deposit(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
-        if let TransactionPayload::EntryFunction(script) = payload {
-            Some(EntryFunctionCall::EvmDeposit {
-                evm_addr: bcs::from_bytes(script.args().get(0)?).ok()?,
-                amount_bytes: bcs::from_bytes(script.args().get(1)?).ok()?,
-            })
-        } else {
-            None
-        }
-    }
-
-    pub fn evm_estimate_tx_gas(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
-        if let TransactionPayload::EntryFunction(script) = payload {
-            Some(EntryFunctionCall::EvmEstimateTxGas {
-                evm_from: bcs::from_bytes(script.args().get(0)?).ok()?,
-                evm_to: bcs::from_bytes(script.args().get(1)?).ok()?,
-                data: bcs::from_bytes(script.args().get(2)?).ok()?,
-                value_bytes: bcs::from_bytes(script.args().get(3)?).ok()?,
-                _tx_type: bcs::from_bytes(script.args().get(4)?).ok()?,
-            })
-        } else {
-            None
-        }
-    }
-
-    pub fn evm_send_tx(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
-        if let TransactionPayload::EntryFunction(script) = payload {
-            Some(EntryFunctionCall::EvmSendTx {
-                _evm_from: bcs::from_bytes(script.args().get(0)?).ok()?,
-                tx: bcs::from_bytes(script.args().get(1)?).ok()?,
-                gas_bytes: bcs::from_bytes(script.args().get(2)?).ok()?,
-                _tx_type: bcs::from_bytes(script.args().get(3)?).ok()?,
-            })
-        } else {
-            None
-        }
-    }
-
     pub fn evm_for_test_run_test(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
         if let TransactionPayload::EntryFunction(script) = payload {
             Some(EntryFunctionCall::EvmForTestRunTest {
@@ -5273,11 +5138,13 @@ mod decoder {
                 codes: bcs::from_bytes(script.args().get(1)?).ok()?,
                 nonces: bcs::from_bytes(script.args().get(2)?).ok()?,
                 balances: bcs::from_bytes(script.args().get(3)?).ok()?,
-                from: bcs::from_bytes(script.args().get(4)?).ok()?,
-                to: bcs::from_bytes(script.args().get(5)?).ok()?,
-                data: bcs::from_bytes(script.args().get(6)?).ok()?,
-                gas_price_bytes: bcs::from_bytes(script.args().get(7)?).ok()?,
-                value_bytes: bcs::from_bytes(script.args().get(8)?).ok()?,
+                storage_keys: bcs::from_bytes(script.args().get(4)?).ok()?,
+                storage_values: bcs::from_bytes(script.args().get(5)?).ok()?,
+                from: bcs::from_bytes(script.args().get(6)?).ok()?,
+                to: bcs::from_bytes(script.args().get(7)?).ok()?,
+                data: bcs::from_bytes(script.args().get(8)?).ok()?,
+                gas_price_bytes: bcs::from_bytes(script.args().get(9)?).ok()?,
+                value_bytes: bcs::from_bytes(script.args().get(10)?).ok()?,
             })
         } else {
             None
@@ -6556,12 +6423,6 @@ static SCRIPT_FUNCTION_DECODER_MAP: once_cell::sync::Lazy<EntryFunctionDecoderMa
             "delegation_pool_withdraw".to_string(),
             Box::new(decoder::delegation_pool_withdraw),
         );
-        map.insert("evm_deposit".to_string(), Box::new(decoder::evm_deposit));
-        map.insert(
-            "evm_estimate_tx_gas".to_string(),
-            Box::new(decoder::evm_estimate_tx_gas),
-        );
-        map.insert("evm_send_tx".to_string(), Box::new(decoder::evm_send_tx));
         map.insert(
             "evm_for_test_run_test".to_string(),
             Box::new(decoder::evm_for_test_run_test),

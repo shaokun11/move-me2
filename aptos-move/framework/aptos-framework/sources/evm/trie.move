@@ -224,7 +224,6 @@ module aptos_framework::evm_trie {
 
     public fun save(trie: &mut Trie) {
         let checkpoint = vector::pop_back(&mut trie.context);
-        debug::print(&checkpoint);
         let (keys, values) = simple_map::to_vec_pair(checkpoint);
         let i = 0;
         let len = vector::length(&keys);
@@ -234,8 +233,6 @@ module aptos_framework::evm_trie {
             simple_map::upsert(&mut trie.storage, address, account);
             i = i + 1;
         };
-
-        debug::print(trie);
     }
 
     public fun commit_latest_checkpoint(trie: &mut Trie) {

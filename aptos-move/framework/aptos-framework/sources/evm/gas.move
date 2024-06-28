@@ -344,9 +344,6 @@ module aptos_framework::evm_gas {
         } else if (opcode == 0x50) {
             // POP
             2
-        } else if (opcode == 0x53) {
-            // MSTORE8
-            3
         } else if (opcode == 0x56) {
             // JUMP
             8
@@ -383,7 +380,7 @@ module aptos_framework::evm_gas {
         } else if (opcode >= 0x90 && opcode <= 0x9F) {
             // SWAP1 to SWAP16
             3
-        } else if (opcode == 0x51 || opcode == 0x52) {
+        } else if (opcode == 0x51 || opcode == 0x52 || opcode == 0x53) {
             // MSTORE & MLOAD
             calc_mstore_gas(stack, run_state) + 3
         } else if (opcode == 0xf1 || opcode == 0xf4) {

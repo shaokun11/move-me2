@@ -8,25 +8,11 @@ module aptos_framework::evm_util {
     const U256_MAX: u256 = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
     const U255_MAX: u256 = 57896044618658097711785492504343953926634992332820282019728792003956564819967;
     const ZERO_EVM_ADDR: vector<u8> = x"";
-
     const TX_FORMAT: u64 = 20001;
 
-    public fun slice(data: vector<u8>, pos: u256, size: u256): vector<u8> {
-        let s = vector::empty<u8>();
-        let i = 0;
-        let len = vector::length(&data);
-        while (i < size) {
-            let p = ((pos + i) as u64);
-            if(p >= len) {
-                vector::push_back(&mut s, 0);
-            } else {
-                vector::push_back(&mut s, *vector::borrow(&data, (pos + i as u64)));
-            };
-
-            i = i + 1;
-        };
-        s
-    }
+    public native fun new_fixed_length_vector(size: u64): vector<u8>;
+    public native fun vector_extend(a: vector<u8>, b: vector<u8>): vector<u8>;
+    public native fun vector_slice(a: vector<u8>, pos: u64, size: u64): vector<u8>;
 
     public fun to_32bit(data: vector<u8>): vector<u8> {
         let bytes = vector::empty<u8>();
@@ -49,8 +35,8 @@ module aptos_framework::evm_util {
             nonce = nonce / 0x100;
         };
         vector::reverse(&mut nonce_bytes);
-        let salt = encode_bytes_list(vector[slice(addr, 12, 20), nonce_bytes]);
-        to_32bit(slice(keccak256(salt), 12, 20))
+        let salt = encode_bytes_list(vector[vector_slice(addr, 12, 20), nonce_bytes]);
+        to_32bit(vector_slice(keccak256(salt), 12, 20))
     }
 
     public fun power(base: u256, exponent: u256): u256 {
@@ -137,44 +123,43 @@ module aptos_framework::evm_util {
         res
     }
 
-    public fun copy_to_memory(memory: &mut vector<u8>, m_pos: u256, d_pos: u256, len: u256, data: vector<u8>) {
+    public fun copy_to_memory(memory: &mut vector<u8>, m_pos: u64, d_pos: u64, len: u64, data: vector<u8>) {
+        expand_to_pos(memory, m_pos);
         let i = 0;
-        let m_idx = (m_pos as u64);
-        let d_idx = (d_pos as u64);
         let m_len = vector::length(memory);
         let d_len = vector::length(&data);
-        while(m_len < m_idx) {
-            vector::push_back(memory, 0);
-            m_len = m_len + 1
-        };
 
-        while (i < (len as u64)) {
-            let bytes = if(d_idx + i >= d_len) 0 else *vector::borrow(&data, d_idx + i);
-            if(m_idx + i >= m_len) {
+        while (i < len) {
+            let bytes = if(d_pos + i >= d_len) 0 else *vector::borrow(&data, d_pos + i);
+            if(m_pos + i >= m_len) {
                 vector::push_back(memory, bytes);
             } else {
-                *vector::borrow_mut(memory, m_idx + i) = bytes;
+                *vector::borrow_mut(memory, m_pos + i) = bytes;
             };
             i = i + 1;
         };
     }
 
-    public fun mstore(memory: &mut vector<u8>, pos: u256, data: vector<u8>) {
+    public fun expand_to_pos(memory: &mut vector<u8>, pos: u64) {
+        let len_m = vector::length(memory);
+        let pos = pos;
+        let size = pos - len_m;
+        let new_array = new_fixed_length_vector(size);
+        *memory = vector_extend(*memory, new_array)
+    }
+
+    public fun mstore(memory: &mut vector<u8>, pos: u64, data: vector<u8>) {
+        expand_to_pos(memory, pos);
         let len_m = vector::length(memory);
         let len_d = vector::length(&data);
-        let p = (pos as u64);
-        while(len_m < p) {
-            vector::push_back(memory, 0);
-            len_m = len_m + 1
-        };
 
         let i = 0;
         while (i < len_d) {
-            if(len_m <= p + i) {
+            if(len_m <= pos + i) {
                 vector::push_back(memory, *vector::borrow(&data, i));
                 len_m = len_m + 1;
             } else {
-                *vector::borrow_mut(memory, p + i) = *vector::borrow(&data, i);
+                *vector::borrow_mut(memory, pos + i) = *vector::borrow(&data, i);
             };
 
             i = i + 1
@@ -210,7 +195,7 @@ module aptos_framework::evm_util {
             };
             i = i + 1
         };
-        slice(data, (i as u256), ((len - i) as u256))
+        vector_slice(data, i, len - i)
     }
 
     public fun get_valid_jumps(bytecode: &vector<u8>): vector<bool> {

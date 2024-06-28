@@ -30,6 +30,7 @@ This module provides a solution for unsorted maps, that is it has the properties
 -  [Function `to_vec_pair`](#0x1_simple_map_to_vec_pair)
 -  [Function `destroy`](#0x1_simple_map_destroy)
 -  [Function `remove`](#0x1_simple_map_remove)
+-  [Function `append`](#0x1_simple_map_append)
 -  [Function `find`](#0x1_simple_map_find)
 -  [Specification](#@Specification_1)
     -  [Struct `SimpleMap`](#@Specification_1_SimpleMap)
@@ -618,6 +619,53 @@ Remove a key/value pair from the map. The key must exist.
     <b>let</b> placement = <a href="../../move-stdlib/doc/option.md#0x1_option_extract">option::extract</a>(&<b>mut</b> maybe_idx);
     <b>let</b> <a href="simple_map.md#0x1_simple_map_Element">Element</a> { key, value } = <a href="../../move-stdlib/doc/vector.md#0x1_vector_swap_remove">vector::swap_remove</a>(&<b>mut</b> map.data, placement);
     (key, value)
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_simple_map_append"></a>
+
+## Function `append`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="simple_map.md#0x1_simple_map_append">append</a>&lt;Key: <b>copy</b>, drop, Value: <b>copy</b>, drop&gt;(map_a: &<b>mut</b> <a href="simple_map.md#0x1_simple_map_SimpleMap">simple_map::SimpleMap</a>&lt;Key, Value&gt;, map_b: &<a href="simple_map.md#0x1_simple_map_SimpleMap">simple_map::SimpleMap</a>&lt;Key, Value&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="simple_map.md#0x1_simple_map_append">append</a>&lt;Key: drop + <b>copy</b>, Value: drop + <b>copy</b>&gt;(
+    map_a: &<b>mut</b> <a href="simple_map.md#0x1_simple_map_SimpleMap">SimpleMap</a>&lt;Key, Value&gt;,
+    map_b: &<a href="simple_map.md#0x1_simple_map_SimpleMap">SimpleMap</a>&lt;Key, Value&gt;,
+) {
+    <b>let</b> len_b = <a href="../../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&map_b.data);
+    <b>let</b> idx_b = 0;
+    <b>let</b> data_a = &<b>mut</b> map_a.data;
+    <b>let</b> data_b = &map_b.data;
+    <b>while</b> (idx_b &lt; len_b) {
+        <b>let</b> idx_a = 0;
+        <b>let</b> len_a = <a href="../../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(data_a);
+        <b>let</b> element_b = *<a href="../../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(data_b, idx_b);
+        <b>while</b>(idx_a &lt; len_a) {
+            <b>let</b> element_a = <a href="../../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(data_a, idx_a);
+            <b>if</b> (&element_a.key == &element_b.key) {
+                <a href="../../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(data_a, element_b);
+                <a href="../../move-stdlib/doc/vector.md#0x1_vector_swap">vector::swap</a>(data_a, idx_a, len_a);
+                <a href="../../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(data_a);
+                <b>return</b>
+            };
+            idx_a = idx_a + 1;
+        };
+        <a href="../../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(data_a, element_b);
+        idx_b = idx_b + 1;
+    };
 }
 </code></pre>
 

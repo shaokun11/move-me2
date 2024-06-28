@@ -3,7 +3,7 @@ module aptos_framework::evm_for_test {
     use std::vector;
     use aptos_std::aptos_hash::keccak256;
     use aptos_std::debug;
-    use aptos_framework::evm_util::{slice, to_32bit, get_contract_address, to_int256, data_to_u256, u256_to_data, mstore, copy_to_memory, to_u256, get_valid_jumps};
+    use aptos_framework::evm_util::{to_32bit, get_contract_address, to_int256, data_to_u256, u256_to_data, mstore, copy_to_memory, to_u256, get_valid_jumps, expand_to_pos, vector_slice};
     use aptos_framework::timestamp::now_microseconds;
     use aptos_framework::block;
     use std::string::utf8;
@@ -143,7 +143,7 @@ module aptos_framework::evm_for_test {
         let run_state = &mut new_run_state();
         let base_cost = calc_base_gas(&data) + 21000;
         add_gas_usage(run_state, base_cost);
-        run(from, from, to, get_code(to, trie), data, value, 80000000 - base_cost, trie, &mut transient, run_state, true);
+        run(from, from, to, get_code(to, trie), data, value, 0x10000000 - base_cost, trie, &mut transient, run_state, true);
         let gas_refund = get_gas_refund(run_state);
         let gas_usage = get_gas_usage(run_state);
         let gasfee = gas_price * (gas_usage - gas_refund);
@@ -230,9 +230,9 @@ module aptos_framework::evm_for_test {
                 break
             }
             else if(opcode == 0xf3) {
-                let pos = pop_stack(stack, error_code);
-                let len = pop_stack(stack, error_code);
-                ret_bytes = slice(*memory, pos, len);
+                let pos = pop_stack_u64(stack, error_code);
+                let len = pop_stack_u64(stack, error_code);
+                ret_bytes = vector_slice(*memory, pos, len);
                 // debug::print(&ret_bytes);
                 break
             }
@@ -503,7 +503,7 @@ module aptos_framework::evm_for_test {
             }
                 //balance
             else if(opcode == 0x31) {
-                let target = slice(u256_to_data(pop_stack(stack, error_code)), 12, 20);
+                let target = vector_slice(u256_to_data(pop_stack(stack, error_code)), 12, 20);
                 get_balance(to_32bit(target), trie);
                 i = i + 1;
             }
@@ -537,9 +537,9 @@ module aptos_framework::evm_for_test {
             }
                 //calldatacopy
             else if(opcode == 0x37) {
-                let m_pos = pop_stack(stack, error_code);
-                let d_pos = pop_stack(stack, error_code);
-                let len = pop_stack(stack, error_code);
+                let m_pos = pop_stack_u64(stack, error_code);
+                let d_pos = pop_stack_u64(stack, error_code);
+                let len = pop_stack_u64(stack, error_code);
                 let end = d_pos + len;
                 // debug::print(&utf8(b"calldatacopy"));
                 // debug::print(&data);
@@ -547,9 +547,9 @@ module aptos_framework::evm_for_test {
                     // debug::print(&d_pos);
                     // debug::print(&end);
                     let bytes = if(end - d_pos >= 32) {
-                        slice(data, d_pos, 32)
+                        vector_slice(data, d_pos, 32)
                     } else {
-                        slice(data, d_pos, end - d_pos)
+                        vector_slice(data, d_pos, end - d_pos)
                     };
                     // debug::print(&bytes);
                     mstore(memory, m_pos, bytes);
@@ -565,37 +565,37 @@ module aptos_framework::evm_for_test {
             }
                 //codecopy
             else if(opcode == 0x39) {
-                let m_pos = pop_stack(stack, error_code);
-                let d_pos = pop_stack(stack, error_code);
-                let len = pop_stack(stack, error_code);
-                runtime_code = slice(code, d_pos, d_pos + len);
+                let m_pos = pop_stack_u64(stack, error_code);
+                let d_pos = pop_stack_u64(stack, error_code);
+                let len = pop_stack_u64(stack, error_code);
+                runtime_code = vector_slice(code, d_pos, d_pos + len);
                 copy_to_memory(memory, m_pos, d_pos, len, code);
                 i = i + 1
             }
                 //extcodesize
             else if(opcode == 0x3b) {
-                let target = slice(u256_to_data(pop_stack(stack, error_code)), 12, 20);
+                let target = vector_slice(u256_to_data(pop_stack(stack, error_code)), 12, 20);
                 let code = get_code(to_32bit(target), trie);
                 vector::push_back(stack, (vector::length(&code) as u256));
                 i = i + 1;
             }
                 //extcodecopy
             else if(opcode == 0x3c) {
-                let target = slice(u256_to_data(pop_stack(stack, error_code)), 12, 20);
+                let target = vector_slice(u256_to_data(pop_stack(stack, error_code)), 12, 20);
                 let code = get_code(to_32bit(target), trie);
-                let m_pos = pop_stack(stack, error_code);
-                let d_pos = pop_stack(stack, error_code);
-                let len = pop_stack(stack, error_code);
+                let m_pos = pop_stack_u64(stack, error_code);
+                let d_pos = pop_stack_u64(stack, error_code);
+                let len = pop_stack_u64(stack, error_code);
                 copy_to_memory(memory, m_pos, d_pos, len, code);
                 i = i + 1;
             }
                 //returndatacopy
             else if(opcode == 0x3e) {
                 // mstore()
-                let m_pos = pop_stack(stack, error_code);
-                let d_pos = pop_stack(stack, error_code);
-                let len = pop_stack(stack, error_code);
-                let bytes = slice(ret_bytes, d_pos, len);
+                let m_pos = pop_stack_u64(stack, error_code);
+                let d_pos = pop_stack_u64(stack, error_code);
+                let len = pop_stack_u64(stack, error_code);
+                let bytes = vector_slice(ret_bytes, d_pos, len);
                 mstore(memory, m_pos, bytes);
                 i = i + 1;
             }
@@ -646,13 +646,13 @@ module aptos_framework::evm_for_test {
             }
                 // mload
             else if(opcode == 0x51) {
-                let pos = pop_stack(stack, error_code);
-                vector::push_back(stack, data_to_u256(slice(*memory, pos, 32), 0, 32));
+                let pos = pop_stack_u64(stack, error_code);
+                vector::push_back(stack, data_to_u256(vector_slice(*memory, pos, 32), 0, 32));
                 i = i + 1;
             }
                 // mstore
             else if(opcode == 0x52) {
-                let pos = pop_stack(stack, error_code);
+                let pos = pop_stack_u64(stack, error_code);
                 let value = pop_stack(stack, error_code);
                 mstore(memory, pos, u256_to_data(value));
                 // debug::print(memory);
@@ -661,9 +661,10 @@ module aptos_framework::evm_for_test {
             }
                 //mstore8
             else if(opcode == 0x53) {
-                let pos = pop_stack(stack, error_code);
+                let pos = pop_stack_u64(stack, error_code);
                 let value = pop_stack(stack, error_code);
-                *vector::borrow_mut(memory, (pos as u64)) = ((value & 0xff) as u8);
+                expand_to_pos(memory, pos + 1);
+                *vector::borrow_mut(memory, pos) = ((value & 0xff) as u8);
                 // mstore(memory, pos, u256_to_data(value & 0xff));
                 // debug::print(memory);
                 i = i + 1;
@@ -684,7 +685,7 @@ module aptos_framework::evm_for_test {
             }
                 // MSIZE
             else if(opcode == 0x59) {
-                vector::push_back(stack, (vector::length(memory) as u256));
+                vector::push_back(stack, (((vector::length(memory) + 31) / 32 * 32) as u256));
                 i = i + 1;
             }
                 //dup1 -> dup16
@@ -759,18 +760,18 @@ module aptos_framework::evm_for_test {
             }
                 //MCOPY
             else if(opcode == 0x5e) {
-                let m_pos = pop_stack(stack, error_code);
-                let d_pos = pop_stack(stack, error_code);
-                let len = pop_stack(stack, error_code);
-                let bytes = slice(*memory, d_pos, len);
+                let m_pos = pop_stack_u64(stack, error_code);
+                let d_pos = pop_stack_u64(stack, error_code);
+                let len = pop_stack_u64(stack, error_code);
+                let bytes = vector_slice(*memory, d_pos, len);
                 mstore(memory, m_pos, bytes);
                 i = i + 1;
             }
                 //sha3
             else if(opcode == 0x20) {
-                let pos = pop_stack(stack, error_code);
-                let len = pop_stack(stack, error_code);
-                let bytes = slice(*memory, pos, len);
+                let pos = pop_stack_u64(stack, error_code);
+                let len = pop_stack_u64(stack, error_code);
+                let bytes = vector_slice(*memory, pos, len);
                 // debug::print(&value);
                 let value = data_to_u256(keccak256(bytes), 0, 32);
                 vector::push_back(stack, value);
@@ -783,12 +784,12 @@ module aptos_framework::evm_for_test {
                 let evm_dest_addr = to_32bit(u256_to_data(pop_stack(stack, error_code)));
                 // let move_dest_addr = create_resource_address(&@aptos_framework, evm_dest_addr);
                 let msg_value = if (opcode == 0xf1) pop_stack(stack, error_code) else if(opcode == 0xf4) value else 0;
-                let m_pos = pop_stack(stack, error_code);
-                let m_len = pop_stack(stack, error_code);
-                let ret_pos = pop_stack(stack, error_code);
-                let ret_len = pop_stack(stack, error_code);
+                let m_pos = pop_stack_u64(stack, error_code);
+                let m_len = pop_stack_u64(stack, error_code);
+                let ret_pos = pop_stack_u64(stack, error_code);
+                let ret_len = pop_stack_u64(stack, error_code);
                 let ret_end = ret_len + ret_pos;
-                let params = slice(*memory, m_pos, m_len);
+                let params = vector_slice(*memory, m_pos, m_len);
                 let transfer_eth = if (opcode == 0xf1) true else false;
 
                 // debug::print(&utf8(b"call 222"));
@@ -805,9 +806,9 @@ module aptos_framework::evm_for_test {
 
                     while (ret_pos < ret_end) {
                         let bytes = if (ret_end - ret_pos >= 32) {
-                            slice(bytes, index, 32)
+                            vector_slice(bytes, index, 32)
                         } else {
-                            slice(bytes, index, ret_end - ret_pos)
+                            vector_slice(bytes, index, ret_end - ret_pos)
                         };
                         mstore(memory, ret_pos, bytes);
                         ret_pos = ret_pos + 32;
@@ -824,9 +825,9 @@ module aptos_framework::evm_for_test {
                 //create
             else if(opcode == 0xf0) {
                 let msg_value = pop_stack(stack, error_code);
-                let pos = pop_stack(stack, error_code);
-                let len = pop_stack(stack, error_code);
-                let new_codes = slice(*memory, pos, len);
+                let pos = pop_stack_u64(stack, error_code);
+                let len = pop_stack_u64(stack, error_code);
+                let new_codes = vector_slice(*memory, pos, len);
                 // let contract_store = borrow_global_mut<Account>(move_contract_address);
                 let nonce = get_nonce(to, trie);
                 // must be 20 bytes
@@ -853,18 +854,18 @@ module aptos_framework::evm_for_test {
                 //create2
             else if(opcode == 0xf5) {
                 let msg_value = pop_stack(stack, error_code);
-                let pos = pop_stack(stack, error_code);
-                let len = pop_stack(stack, error_code);
+                let pos = pop_stack_u64(stack, error_code);
+                let len = pop_stack_u64(stack, error_code);
                 let salt = u256_to_data(pop_stack(stack, error_code));
-                let new_codes = slice(*memory, pos, len);
+                let new_codes = vector_slice(*memory, pos, len);
                 let p = vector::empty<u8>();
                 // let contract_store = ;
                 vector::append(&mut p, x"ff");
                 // must be 20 bytes
-                vector::append(&mut p, slice(to, 12, 20));
+                vector::append(&mut p, vector_slice(to, 12, 20));
                 vector::append(&mut p, salt);
                 vector::append(&mut p, keccak256(new_codes));
-                let new_evm_contract_addr = to_32bit(slice(keccak256(p), 12, 20));
+                let new_evm_contract_addr = to_32bit(vector_slice(keccak256(p), 12, 20));
 
                 // to_account.nonce = to_account.nonce + 1;
                 add_nonce(to, trie);
@@ -883,18 +884,18 @@ module aptos_framework::evm_for_test {
             }
                 //revert
             else if(opcode == 0xfd) {
-                let pos = pop_stack(stack, error_code);
-                let len = pop_stack(stack, error_code);
-                let bytes = slice(*memory, pos, len);
+                let pos = pop_stack_u64(stack, error_code);
+                let len = pop_stack_u64(stack, error_code);
+                let bytes = vector_slice(*memory, pos, len);
                 debug::print(&utf8(b"revert"));
                 debug::print(&bytes);
                 revert(bytes);
             }
                 //log0
             else if(opcode == 0xa0) {
-                let pos = pop_stack(stack, error_code);
-                let len = pop_stack(stack, error_code);
-                let _data = slice(*memory, pos, len);
+                let pos = pop_stack_u64(stack, error_code);
+                let len = pop_stack_u64(stack, error_code);
+                let _data = vector_slice(*memory, pos, len);
                 // let event_store = borrow_global_mut<ContractEvent>(move_contract_address);
                 // event::emit_event<Log0Event>(
                 //     &mut event_store.log0Event,
@@ -907,9 +908,9 @@ module aptos_framework::evm_for_test {
             }
                 //log1
             else if(opcode == 0xa1) {
-                let pos = pop_stack(stack, error_code);
-                let len = pop_stack(stack, error_code);
-                let _data = slice(*memory, pos, len);
+                let pos = pop_stack_u64(stack, error_code);
+                let len = pop_stack_u64(stack, error_code);
+                let _data = vector_slice(*memory, pos, len);
                 let _topic0 = u256_to_data(pop_stack(stack, error_code));
                 // let event_store = borrow_global_mut<ContractEvent>(move_contract_address);
                 // event::emit_event<Log1Event>(
@@ -924,9 +925,9 @@ module aptos_framework::evm_for_test {
             }
                 //log2
             else if(opcode == 0xa2) {
-                let pos = pop_stack(stack, error_code);
-                let len = pop_stack(stack, error_code);
-                let _data = slice(*memory, pos, len);
+                let pos = pop_stack_u64(stack, error_code);
+                let len = pop_stack_u64(stack, error_code);
+                let _data = vector_slice(*memory, pos, len);
                 let _topic0 = u256_to_data(pop_stack(stack, error_code));
                 let _topic1 = u256_to_data(pop_stack(stack, error_code));
                 // let event_store = borrow_global_mut<ContractEvent>(move_contract_address);
@@ -943,9 +944,9 @@ module aptos_framework::evm_for_test {
             }
                 //log3
             else if(opcode == 0xa3) {
-                let pos = pop_stack(stack, error_code);
-                let len = pop_stack(stack, error_code);
-                let _data = slice(*memory, pos, len);
+                let pos = pop_stack_u64(stack, error_code);
+                let len = pop_stack_u64(stack, error_code);
+                let _data = vector_slice(*memory, pos, len);
                 let _topic0 = u256_to_data(pop_stack(stack, error_code));
                 let _topic1 = u256_to_data(pop_stack(stack, error_code));
                 let _topic2 = u256_to_data(pop_stack(stack, error_code));
@@ -964,9 +965,9 @@ module aptos_framework::evm_for_test {
             }
                 //log4
             else if(opcode == 0xa4) {
-                let pos = pop_stack(stack, error_code);
-                let len = pop_stack(stack, error_code);
-                let _data = slice(*memory, pos, len);
+                let pos = pop_stack_u64(stack, error_code);
+                let len = pop_stack_u64(stack, error_code);
+                let _data = vector_slice(*memory, pos, len);
                 let _topic0 = u256_to_data(pop_stack(stack, error_code));
                 let _topic1 = u256_to_data(pop_stack(stack, error_code));
                 let _topic2 = u256_to_data(pop_stack(stack, error_code));
@@ -1008,6 +1009,15 @@ module aptos_framework::evm_for_test {
     // This function is used to execute precompile EVM contracts.
     fun precompile(to: vector<u8>, calldata: vector<u8>): vector<u8> {
         run_precompile(to, calldata, CHAIN_ID)
+    }
+
+    public fun pop_stack_u64(stack: &mut vector<u256>, error_code: &mut u64): u64 {
+        if(vector::length(stack) > 0) {
+            (vector::pop_back(stack) as u64)
+        } else {
+            *error_code = EVM_ERROR_POP_STACK;
+            0
+        }
     }
 
     public fun pop_stack(stack: &mut vector<u256>, error_code: &mut u64): u256 {
@@ -1090,10 +1100,10 @@ module aptos_framework::evm_for_test {
         let p = vector::empty<u8>();
         vector::append(&mut p, x"ff");
         // must be 20 bytes
-        vector::append(&mut p, slice(sender, 12, 20));
+        vector::append(&mut p, vector_slice(sender, 12, 20));
         vector::append(&mut p, keccak256(salt));
         vector::append(&mut p, hash);
-        to_32bit(slice(keccak256(p), 12, 20))
+        to_32bit(vector_slice(keccak256(p), 12, 20))
     }
 
 
@@ -1120,7 +1130,7 @@ module aptos_framework::evm_for_test {
         initialize(&aptos_framework);
 
         let storage_maps = simple_map::new<vector<u8>, simple_map::SimpleMap<vector<u8>, vector<u8>>>();
-        simple_map::add(&mut storage_maps, x"cccccccccccccccccccccccccccccccccccccccc", init_storage(vector[0x00], vector[0x0bad]));
+        // simple_map::add(&mut storage_maps, x"cccccccccccccccccccccccccccccccccccccccc", init_storage(vector[0x00], vector[0x0bad]));
         let (storage_keys, storage_values) = (vector::empty<vector<vector<u8>>>(), vector::empty<vector<vector<u8>>>());
 
 
@@ -1131,20 +1141,10 @@ module aptos_framework::evm_for_test {
             x"0000000000000000000000000000000000001003",
             x"0000000000000000000000000000000000001004",
             x"0000000000000000000000000000000000001005",
-            x"0000000000000000000000000000000000001006",
-            x"0000000000000000000000000000000000001007",
-            x"0000000000000000000000000000000000001008",
-            x"0000000000000000000000000000000000001009",
-            x"000000000000000000000000000000000000100a",
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc"
         ];
         let balance_table = vector[
-            0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce,
             0x0ba1a9ce0ba1a9ce,
             0x0ba1a9ce0ba1a9ce,
             0x0ba1a9ce0ba1a9ce,
@@ -1178,17 +1178,12 @@ module aptos_framework::evm_for_test {
         run_test(
             addresses,
             vector[
-                x"600060011115600f5761600d6000555b00",
-                x"600060011015600f5761600d6000555b00",
-                x"6000600111600e5761600d6000555b00",
-                x"6000600110600e5761600d6000555b00",
-                x"6000600111600e576160a76012565b61600d5b60005500",
-                x"6000600110600e576160a76012565b61600d5b60005500",
-                x"601060005560016001555b60005415602757600160005403600055600260015402600155600a565b00",
-                x"601060005560016001555b600060005414602957600160005403600055600260015402600155600a565b00",
-                x"601060005560016001555b60006000541115602a57600260015402600155600160005403600055600a565b00",
-                x"600a6080525b6000608051111560265760a0516080510160a0526001608051036080526005565b60a05160005500",
-                x"60006080525b600a60805111151560275760a0516080510160a0526001608051016080526005565b60a05160005500",
+                x"60ff6000525960005500",
+                x"64ffffffffff6000525960005500",
+                x"64ffffffffff60005261eeee6020525960005500",
+                x"64ffffffffff60005261eeee605a525960005500",
+                x"6001601f535960005560016020535960015560006020535960025500",
+                x"600162b00000535960005500",
                 x"",
                 x"6000600060006000600435611000015af400"
             ],
@@ -1198,7 +1193,7 @@ module aptos_framework::evm_for_test {
             storage_values,
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc",
-            x"693c61390000000000000000000000000000000000000000000000000000000000000006",
+            x"693c61390000000000000000000000000000000000000000000000000000000000000005",
             u256_to_data(0x0a),
             u256_to_data(0x1)
         );
