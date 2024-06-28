@@ -235,7 +235,7 @@ module aptos_framework::evm_util {
             i = i + 1;
         };
 
-        debug::print(&valid_jumps);
+        // debug::print(&valid_jumps);
         valid_jumps
     }
 
