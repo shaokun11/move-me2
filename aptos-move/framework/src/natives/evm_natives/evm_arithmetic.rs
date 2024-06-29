@@ -259,6 +259,59 @@ fn native_mul_mod(
     ])
 }
 
+fn native_sar(
+    _context: &mut SafeNativeContext,
+    _ty_args: Vec<Type>,
+    mut args: VecDeque<Value>
+) -> SafeNativeResult<SmallVec<[Value; 1]>> {
+    let shift = move_u256_to_evm_u256(&safely_pop_arg!(args, move_u256));
+    let value = move_u256_to_evm_u256(&safely_pop_arg!(args, move_u256));
+
+    const CONST_256: U256 = U256([256, 0, 0, 0]);
+    const CONST_HIBIT: U256 = U256([0, 0, 0, 0x8000000000000000]);
+
+    let sign = value & CONST_HIBIT != U256::zero();
+    let result = if shift >= CONST_256 {
+        if sign {
+            U256::max_value()
+        } else {
+            U256::zero()
+        }
+    } else {
+        let shift = shift.as_u32() as usize;
+        let mut shifted = value >> shift;
+        if sign {
+            shifted = shifted | (U256::max_value() << (256 - shift));
+        }
+           shifted
+     };
+
+    Ok(smallvec![
+        Value::u256(evm_u256_to_move_u256(&result))
+    ])
+}
+
+fn native_shr(
+    _context: &mut SafeNativeContext,
+    _ty_args: Vec<Type>,
+    mut args: VecDeque<Value>
+) -> SafeNativeResult<SmallVec<[Value; 1]>> {
+    let shift = move_u256_to_evm_u256(&safely_pop_arg!(args, move_u256));
+    let value = move_u256_to_evm_u256(&safely_pop_arg!(args, move_u256));
+
+    const CONST_256: U256 = U256([256, 0, 0, 0]);
+
+    let result = if shift >= CONST_256 {
+        U256::zero()
+    } else {
+        value >> (shift.as_u32() as usize)
+    };
+
+    Ok(smallvec![
+        Value::u256(evm_u256_to_move_u256(&result))
+    ])
+}
+
 
 
 /***************************************************************************************************
@@ -279,6 +332,8 @@ pub fn make_all(
         ("exp", native_exp as RawSafeNative),
         ("slt", native_slt as RawSafeNative),
         ("sgt", native_sgt as RawSafeNative),
+        ("sar", native_sar as RawSafeNative),
+        ("shr", native_shr as RawSafeNative),
         ("add_mod", native_add_mod as RawSafeNative),
         ("mul_mod", native_mul_mod as RawSafeNative)
     ];

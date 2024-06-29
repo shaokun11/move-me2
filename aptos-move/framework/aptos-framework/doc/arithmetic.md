@@ -15,6 +15,8 @@
 -  [Function `exp`](#0x1_evm_arithmetic_exp)
 -  [Function `slt`](#0x1_evm_arithmetic_slt)
 -  [Function `sgt`](#0x1_evm_arithmetic_sgt)
+-  [Function `sar`](#0x1_evm_arithmetic_sar)
+-  [Function `shr`](#0x1_evm_arithmetic_shr)
 -  [Function `add_mod`](#0x1_evm_arithmetic_add_mod)
 -  [Function `mul_mod`](#0x1_evm_arithmetic_mul_mod)
 
@@ -237,6 +239,50 @@
 
 
 <pre><code><b>public</b> <b>native</b> <b>fun</b> <a href="arithmetic.md#0x1_evm_arithmetic_sgt">sgt</a>(a: u256, b: u256): bool;
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_arithmetic_sar"></a>
+
+## Function `sar`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="arithmetic.md#0x1_evm_arithmetic_sar">sar</a>(a: u256, b: u256): u256
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>native</b> <b>fun</b> <a href="arithmetic.md#0x1_evm_arithmetic_sar">sar</a>(a: u256, b: u256): u256;
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_arithmetic_shr"></a>
+
+## Function `shr`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="arithmetic.md#0x1_evm_arithmetic_shr">shr</a>(a: u256, b: u256): u256
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>native</b> <b>fun</b> <a href="arithmetic.md#0x1_evm_arithmetic_shr">shr</a>(a: u256, b: u256): u256;
 </code></pre>
 
 

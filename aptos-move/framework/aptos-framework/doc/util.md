@@ -636,9 +636,11 @@ owned.
 <pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_expand_to_pos">expand_to_pos</a>(memory: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, pos: u64) {
     <b>let</b> len_m = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(memory);
     <b>let</b> pos = pos;
-    <b>let</b> size = pos - len_m;
-    <b>let</b> new_array = <a href="util.md#0x1_evm_util_new_fixed_length_vector">new_fixed_length_vector</a>(size);
-    *memory = <a href="util.md#0x1_evm_util_vector_extend">vector_extend</a>(*memory, new_array)
+    <b>if</b>(pos &gt; len_m) {
+        <b>let</b> size = pos - len_m;
+        <b>let</b> new_array = <a href="util.md#0x1_evm_util_new_fixed_length_vector">new_fixed_length_vector</a>(size);
+        *memory = <a href="util.md#0x1_evm_util_vector_extend">vector_extend</a>(new_array, *memory)
+    }
 }
 </code></pre>
 
@@ -813,7 +815,6 @@ owned.
         i = i + 1;
     };
 
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&valid_jumps);
     valid_jumps
 }
 </code></pre>
@@ -884,6 +885,12 @@ owned.
         <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"NOT"));
     } <b>else</b> <b>if</b>(opcode == 0x1a) {
         <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"BYTE"));
+    } <b>else</b> <b>if</b>(opcode == 0x1b) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"SHL"));
+    } <b>else</b> <b>if</b>(opcode == 0x1c) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"SHR"));
+    } <b>else</b> <b>if</b>(opcode == 0x1d) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"SAR"));
     } <b>else</b> <b>if</b>(opcode == 0x20) {
         <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"SHA3"));
     } <b>else</b> <b>if</b>(opcode == 0x30) {

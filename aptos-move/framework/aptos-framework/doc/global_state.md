@@ -5,10 +5,18 @@
 
 
 
--  [Constants](#@Constants_0)
+-  [Struct `RunState`](#0x1_evm_global_state_RunState)
+-  [Struct `CallState`](#0x1_evm_global_state_CallState)
 -  [Function `new_run_state`](#0x1_evm_global_state_new_run_state)
+-  [Function `add_call_state`](#0x1_evm_global_state_add_call_state)
+-  [Function `get_lastest_state_mut`](#0x1_evm_global_state_get_lastest_state_mut)
+-  [Function `get_lastest_state`](#0x1_evm_global_state_get_lastest_state)
+-  [Function `commit_call_state`](#0x1_evm_global_state_commit_call_state)
+-  [Function `revert_call_state`](#0x1_evm_global_state_revert_call_state)
 -  [Function `get_memory_cost`](#0x1_evm_global_state_get_memory_cost)
 -  [Function `set_memory_cost`](#0x1_evm_global_state_set_memory_cost)
+-  [Function `get_memory_word_size`](#0x1_evm_global_state_get_memory_word_size)
+-  [Function `set_memory_word_size`](#0x1_evm_global_state_set_memory_word_size)
 -  [Function `add_gas_usage`](#0x1_evm_global_state_add_gas_usage)
 -  [Function `add_gas_refund`](#0x1_evm_global_state_add_gas_refund)
 -  [Function `sub_gas_refund`](#0x1_evm_global_state_sub_gas_refund)
@@ -16,43 +24,81 @@
 -  [Function `get_gas_refund`](#0x1_evm_global_state_get_gas_refund)
 
 
-<pre><code><b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/option.md#0x1_option">0x1::option</a>;
-<b>use</b> <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map">0x1::simple_map</a>;
+<pre><code></code></pre>
+
+
+
+<a id="0x1_evm_global_state_RunState"></a>
+
+## Struct `RunState`
+
+
+
+<pre><code><b>struct</b> <a href="global_state.md#0x1_evm_global_state_RunState">RunState</a> <b>has</b> drop
 </code></pre>
 
 
 
-<a id="@Constants_0"></a>
-
-## Constants
-
-
-<a id="0x1_evm_global_state_GasRefund"></a>
+<details>
+<summary>Fields</summary>
 
 
+<dl>
+<dt>
+<code>call_state: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="global_state.md#0x1_evm_global_state_CallState">evm_global_state::CallState</a>&gt;</code>
+</dt>
+<dd>
 
-<pre><code><b>const</b> <a href="global_state.md#0x1_evm_global_state_GasRefund">GasRefund</a>: u64 = 2;
+</dd>
+</dl>
+
+
+</details>
+
+<a id="0x1_evm_global_state_CallState"></a>
+
+## Struct `CallState`
+
+
+
+<pre><code><b>struct</b> <a href="global_state.md#0x1_evm_global_state_CallState">CallState</a> <b>has</b> drop
 </code></pre>
 
 
 
-<a id="0x1_evm_global_state_GasUsage"></a>
+<details>
+<summary>Fields</summary>
 
 
+<dl>
+<dt>
+<code>highest_memory_cost: u256</code>
+</dt>
+<dd>
 
-<pre><code><b>const</b> <a href="global_state.md#0x1_evm_global_state_GasUsage">GasUsage</a>: u64 = 0;
-</code></pre>
+</dd>
+<dt>
+<code>highest_memory_word_size: u256</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>gas_refund: u256</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>gas_usage: u256</code>
+</dt>
+<dd>
+
+</dd>
+</dl>
 
 
-
-<a id="0x1_evm_global_state_HighestMemoryCost"></a>
-
-
-
-<pre><code><b>const</b> <a href="global_state.md#0x1_evm_global_state_HighestMemoryCost">HighestMemoryCost</a>: u64 = 1;
-</code></pre>
-
-
+</details>
 
 <a id="0x1_evm_global_state_new_run_state"></a>
 
@@ -60,7 +106,7 @@
 
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_new_run_state">new_run_state</a>(): <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_SimpleMap">simple_map::SimpleMap</a>&lt;u64, u256&gt;
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_new_run_state">new_run_state</a>(): <a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>
 </code></pre>
 
 
@@ -69,12 +115,144 @@
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_new_run_state">new_run_state</a>(): SimpleMap&lt;u64, u256&gt; {
-    <b>let</b> state = <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_new">simple_map::new</a>&lt;u64, u256&gt;();
-    <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_add">simple_map::add</a>(&<b>mut</b> state, <a href="global_state.md#0x1_evm_global_state_GasUsage">GasUsage</a>, 0);
-    <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_add">simple_map::add</a>(&<b>mut</b> state, <a href="global_state.md#0x1_evm_global_state_GasRefund">GasRefund</a>, 0);
-    <a href="global_state.md#0x1_evm_global_state_set_memory_cost">set_memory_cost</a>(&<b>mut</b> state, 0);
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_new_run_state">new_run_state</a>(): <a href="global_state.md#0x1_evm_global_state_RunState">RunState</a> {
+    <b>let</b> state = <a href="global_state.md#0x1_evm_global_state_RunState">RunState</a> {
+        call_state: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_empty">vector::empty</a>(),
+    };
+    <a href="global_state.md#0x1_evm_global_state_add_call_state">add_call_state</a>(&<b>mut</b> state);
     state
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_global_state_add_call_state"></a>
+
+## Function `add_call_state`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_add_call_state">add_call_state</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_add_call_state">add_call_state</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>) {
+    <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(&<b>mut</b> run_state.call_state, <a href="global_state.md#0x1_evm_global_state_CallState">CallState</a> {
+        highest_memory_cost: 0,
+        highest_memory_word_size: 0,
+        gas_refund: 0,
+        gas_usage: 0
+    })
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_global_state_get_lastest_state_mut"></a>
+
+## Function `get_lastest_state_mut`
+
+
+
+<pre><code><b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_lastest_state_mut">get_lastest_state_mut</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>): &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_CallState">evm_global_state::CallState</a>
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_lastest_state_mut">get_lastest_state_mut</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>): &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_CallState">CallState</a> {
+    <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&run_state.call_state);
+    <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow_mut">vector::borrow_mut</a>(&<b>mut</b> run_state.call_state, len - 1)
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_global_state_get_lastest_state"></a>
+
+## Function `get_lastest_state`
+
+
+
+<pre><code><b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_lastest_state">get_lastest_state</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>): &<a href="global_state.md#0x1_evm_global_state_CallState">evm_global_state::CallState</a>
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_lastest_state">get_lastest_state</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>): &<a href="global_state.md#0x1_evm_global_state_CallState">CallState</a> {
+    <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&run_state.call_state);
+    <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&run_state.call_state, len - 1)
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_global_state_commit_call_state"></a>
+
+## Function `commit_call_state`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_commit_call_state">commit_call_state</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_commit_call_state">commit_call_state</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>) {
+    <b>let</b> new_state = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(&<b>mut</b> run_state.call_state);
+    <b>let</b> old_state = <a href="global_state.md#0x1_evm_global_state_get_lastest_state_mut">get_lastest_state_mut</a>(run_state);
+    old_state.gas_refund = old_state.gas_refund + new_state.gas_refund;
+    old_state.gas_usage = old_state.gas_usage + new_state.gas_usage;
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_global_state_revert_call_state"></a>
+
+## Function `revert_call_state`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_revert_call_state">revert_call_state</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_revert_call_state">revert_call_state</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>) {
+    <b>let</b> new_state = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(&<b>mut</b> run_state.call_state);
+    <b>let</b> old_state = <a href="global_state.md#0x1_evm_global_state_get_lastest_state_mut">get_lastest_state_mut</a>(run_state);
+    old_state.gas_usage = old_state.gas_usage + new_state.gas_usage;
 }
 </code></pre>
 
@@ -88,7 +266,7 @@
 
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_memory_cost">get_memory_cost</a>(run_state: &<a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_SimpleMap">simple_map::SimpleMap</a>&lt;u64, u256&gt;): u256
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_memory_cost">get_memory_cost</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>): u256
 </code></pre>
 
 
@@ -97,8 +275,9 @@
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_memory_cost">get_memory_cost</a>(run_state: &SimpleMap&lt;u64, u256&gt;) : u256 {
-    *<a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_borrow">simple_map::borrow</a>(run_state, &<a href="global_state.md#0x1_evm_global_state_HighestMemoryCost">HighestMemoryCost</a>)
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_memory_cost">get_memory_cost</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>) : u256 {
+    <b>let</b> state = <a href="global_state.md#0x1_evm_global_state_get_lastest_state">get_lastest_state</a>(run_state);
+    state.highest_memory_cost
 }
 </code></pre>
 
@@ -112,7 +291,7 @@
 
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_set_memory_cost">set_memory_cost</a>(run_state: &<b>mut</b> <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_SimpleMap">simple_map::SimpleMap</a>&lt;u64, u256&gt;, cost: u256)
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_set_memory_cost">set_memory_cost</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>, cost: u256)
 </code></pre>
 
 
@@ -121,8 +300,59 @@
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_set_memory_cost">set_memory_cost</a>(run_state: &<b>mut</b> SimpleMap&lt;u64, u256&gt;, cost: u256) {
-    <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_upsert">simple_map::upsert</a>(run_state, <a href="global_state.md#0x1_evm_global_state_HighestMemoryCost">HighestMemoryCost</a>, cost);
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_set_memory_cost">set_memory_cost</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>, cost: u256) {
+    <b>let</b> state = <a href="global_state.md#0x1_evm_global_state_get_lastest_state_mut">get_lastest_state_mut</a>(run_state);
+    state.highest_memory_cost = cost
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_global_state_get_memory_word_size"></a>
+
+## Function `get_memory_word_size`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_memory_word_size">get_memory_word_size</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>): u256
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_memory_word_size">get_memory_word_size</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>) : u256 {
+    <b>let</b> state = <a href="global_state.md#0x1_evm_global_state_get_lastest_state">get_lastest_state</a>(run_state);
+    state.highest_memory_word_size
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_global_state_set_memory_word_size"></a>
+
+## Function `set_memory_word_size`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_set_memory_word_size">set_memory_word_size</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>, count: u256)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_set_memory_word_size">set_memory_word_size</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>, count: u256) {
+    <b>let</b> state = <a href="global_state.md#0x1_evm_global_state_get_lastest_state_mut">get_lastest_state_mut</a>(run_state);
+    state.highest_memory_word_size = count
 }
 </code></pre>
 
@@ -136,7 +366,7 @@
 
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_add_gas_usage">add_gas_usage</a>(run_state: &<b>mut</b> <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_SimpleMap">simple_map::SimpleMap</a>&lt;u64, u256&gt;, cost: u256)
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_add_gas_usage">add_gas_usage</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>, cost: u256)
 </code></pre>
 
 
@@ -145,9 +375,9 @@
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_add_gas_usage">add_gas_usage</a>(run_state: &<b>mut</b> SimpleMap&lt;u64, u256&gt;, cost: u256) {
-    <b>let</b> current_gas_usage = *<a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_borrow">simple_map::borrow</a>(run_state, &<a href="global_state.md#0x1_evm_global_state_GasUsage">GasUsage</a>);
-    <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_upsert">simple_map::upsert</a>(run_state, <a href="global_state.md#0x1_evm_global_state_GasUsage">GasUsage</a>, current_gas_usage + cost);
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_add_gas_usage">add_gas_usage</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>, cost: u256) {
+    <b>let</b> state = <a href="global_state.md#0x1_evm_global_state_get_lastest_state_mut">get_lastest_state_mut</a>(run_state);
+    state.gas_usage = state.gas_usage + cost;
 }
 </code></pre>
 
@@ -161,7 +391,7 @@
 
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_add_gas_refund">add_gas_refund</a>(run_state: &<b>mut</b> <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_SimpleMap">simple_map::SimpleMap</a>&lt;u64, u256&gt;, cost: u256)
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_add_gas_refund">add_gas_refund</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>, refund: u256)
 </code></pre>
 
 
@@ -170,9 +400,9 @@
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_add_gas_refund">add_gas_refund</a>(run_state: &<b>mut</b> SimpleMap&lt;u64, u256&gt;, cost: u256) {
-    <b>let</b> current_gas_refund = *<a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_borrow">simple_map::borrow</a>(run_state, &<a href="global_state.md#0x1_evm_global_state_GasRefund">GasRefund</a>);
-    <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_upsert">simple_map::upsert</a>(run_state, <a href="global_state.md#0x1_evm_global_state_GasRefund">GasRefund</a>, current_gas_refund + cost);
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_add_gas_refund">add_gas_refund</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>, refund: u256) {
+    <b>let</b> state = <a href="global_state.md#0x1_evm_global_state_get_lastest_state_mut">get_lastest_state_mut</a>(run_state);
+    state.gas_refund = state.gas_refund + refund;
 }
 </code></pre>
 
@@ -186,7 +416,7 @@
 
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_sub_gas_refund">sub_gas_refund</a>(run_state: &<b>mut</b> <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_SimpleMap">simple_map::SimpleMap</a>&lt;u64, u256&gt;, cost: u256)
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_sub_gas_refund">sub_gas_refund</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>, refund: u256)
 </code></pre>
 
 
@@ -195,9 +425,9 @@
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_sub_gas_refund">sub_gas_refund</a>(run_state: &<b>mut</b> SimpleMap&lt;u64, u256&gt;, cost: u256) {
-    <b>let</b> current_gas_refund = *<a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_borrow">simple_map::borrow</a>(run_state, &<a href="global_state.md#0x1_evm_global_state_GasRefund">GasRefund</a>);
-    <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_upsert">simple_map::upsert</a>(run_state, <a href="global_state.md#0x1_evm_global_state_GasRefund">GasRefund</a>, current_gas_refund - cost);
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_sub_gas_refund">sub_gas_refund</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>, refund: u256) {
+    <b>let</b> state = <a href="global_state.md#0x1_evm_global_state_get_lastest_state_mut">get_lastest_state_mut</a>(run_state);
+    state.gas_refund = state.gas_refund - refund;
 }
 </code></pre>
 
@@ -211,7 +441,7 @@
 
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_gas_usage">get_gas_usage</a>(run_state: &<a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_SimpleMap">simple_map::SimpleMap</a>&lt;u64, u256&gt;): u256
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_gas_usage">get_gas_usage</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>): u256
 </code></pre>
 
 
@@ -220,8 +450,9 @@
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_gas_usage">get_gas_usage</a>(run_state: &SimpleMap&lt;u64, u256&gt;): u256 {
-    *<a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_borrow">simple_map::borrow</a>(run_state, &<a href="global_state.md#0x1_evm_global_state_GasUsage">GasUsage</a>)
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_gas_usage">get_gas_usage</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>): u256 {
+    <b>let</b> state = <a href="global_state.md#0x1_evm_global_state_get_lastest_state">get_lastest_state</a>(run_state);
+    state.gas_usage
 }
 </code></pre>
 
@@ -235,7 +466,7 @@
 
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_gas_refund">get_gas_refund</a>(run_state: &<a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_SimpleMap">simple_map::SimpleMap</a>&lt;u64, u256&gt;): u256
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_gas_refund">get_gas_refund</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>): u256
 </code></pre>
 
 
@@ -244,8 +475,9 @@
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_gas_refund">get_gas_refund</a>(run_state: &SimpleMap&lt;u64, u256&gt;): u256 {
-    *<a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_borrow">simple_map::borrow</a>(run_state, &<a href="global_state.md#0x1_evm_global_state_GasRefund">GasRefund</a>)
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_gas_refund">get_gas_refund</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>): u256 {
+    <b>let</b> state = <a href="global_state.md#0x1_evm_global_state_get_lastest_state">get_lastest_state</a>(run_state);
+    state.gas_refund
 }
 </code></pre>
 

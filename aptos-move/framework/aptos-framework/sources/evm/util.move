@@ -222,7 +222,6 @@ module aptos_framework::evm_util {
             i = i + 1;
         };
 
-        debug::print(&valid_jumps);
         valid_jumps
     }
 
@@ -273,6 +272,12 @@ module aptos_framework::evm_util {
             debug::print(&utf8(b"NOT"));
         } else if(opcode == 0x1a) {
             debug::print(&utf8(b"BYTE"));
+        } else if(opcode == 0x1b) {
+            debug::print(&utf8(b"SHL"));
+        } else if(opcode == 0x1c) {
+            debug::print(&utf8(b"SHR"));
+        } else if(opcode == 0x1d) {
+            debug::print(&utf8(b"SAR"));
         } else if(opcode == 0x20) {
             debug::print(&utf8(b"SHA3"));
         } else if(opcode == 0x30) {

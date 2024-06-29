@@ -52,13 +52,11 @@ module aptos_framework::evm_gas {
             return gas_limit
         };
         let old_memory_cost = get_memory_cost(run_state);
-        let new_memory_cost = (new_memory_word_size / 512 * new_memory_word_size ) + 3 * new_memory_word_size;
+        let new_memory_cost = (new_memory_word_size * new_memory_word_size / 512) + 3 * new_memory_word_size;
         if(new_memory_cost > old_memory_cost) {
             set_memory_cost(run_state, new_memory_cost);
             new_memory_cost = new_memory_cost - old_memory_cost;
         };
-        debug::print(&utf8(b"memory"));
-        debug::print(&new_memory_word_size);
         set_memory_word_size(run_state, new_memory_word_size);
         new_memory_cost
     }

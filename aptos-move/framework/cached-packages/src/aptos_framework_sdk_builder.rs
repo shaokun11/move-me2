@@ -415,6 +415,7 @@ pub enum EntryFunctionCall {
         from: Vec<u8>,
         to: Vec<u8>,
         data: Vec<u8>,
+        gas_limit_bytes: Vec<u8>,
         gas_price_bytes: Vec<u8>,
         value_bytes: Vec<u8>,
     },
@@ -1234,6 +1235,7 @@ impl EntryFunctionCall {
                 from,
                 to,
                 data,
+                gas_limit_bytes,
                 gas_price_bytes,
                 value_bytes,
             } => evm_for_test_run_test(
@@ -1246,6 +1248,7 @@ impl EntryFunctionCall {
                 from,
                 to,
                 data,
+                gas_limit_bytes,
                 gas_price_bytes,
                 value_bytes,
             ),
@@ -2685,6 +2688,7 @@ pub fn evm_for_test_run_test(
     from: Vec<u8>,
     to: Vec<u8>,
     data: Vec<u8>,
+    gas_limit_bytes: Vec<u8>,
     gas_price_bytes: Vec<u8>,
     value_bytes: Vec<u8>,
 ) -> TransactionPayload {
@@ -2708,6 +2712,7 @@ pub fn evm_for_test_run_test(
             bcs::to_bytes(&from).unwrap(),
             bcs::to_bytes(&to).unwrap(),
             bcs::to_bytes(&data).unwrap(),
+            bcs::to_bytes(&gas_limit_bytes).unwrap(),
             bcs::to_bytes(&gas_price_bytes).unwrap(),
             bcs::to_bytes(&value_bytes).unwrap(),
         ],
@@ -5143,8 +5148,9 @@ mod decoder {
                 from: bcs::from_bytes(script.args().get(6)?).ok()?,
                 to: bcs::from_bytes(script.args().get(7)?).ok()?,
                 data: bcs::from_bytes(script.args().get(8)?).ok()?,
-                gas_price_bytes: bcs::from_bytes(script.args().get(9)?).ok()?,
-                value_bytes: bcs::from_bytes(script.args().get(10)?).ok()?,
+                gas_limit_bytes: bcs::from_bytes(script.args().get(9)?).ok()?,
+                gas_price_bytes: bcs::from_bytes(script.args().get(10)?).ok()?,
+                value_bytes: bcs::from_bytes(script.args().get(11)?).ok()?,
             })
         } else {
             None
