@@ -685,6 +685,12 @@ module aptos_framework::evm_for_test {
                 set_state(to, key, value, trie);
                 i = i + 1;
             }
+                // pc
+            else if(opcode == 0x58) {
+                vector::push_back(stack, i);
+                i = i + 1;
+            }
+
                 // MSIZE
             else if(opcode == 0x59) {
                 vector::push_back(stack, (((vector::length(memory) + 31) / 32 * 32) as u256));
@@ -1139,12 +1145,10 @@ module aptos_framework::evm_for_test {
         let addresses = vector[
             x"0000000000000000000000000000000000001000",
             x"0000000000000000000000000000000000001001",
-            x"0000000000000000000000000000000000001002",
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc"
         ];
         let balance_table = vector[
-            0x0ba1a9ce0ba1a9ce,
             0x0ba1a9ce0ba1a9ce,
             0x0ba1a9ce0ba1a9ce,
             0x100000000000,
@@ -1174,9 +1178,8 @@ module aptos_framework::evm_for_test {
         run_test(
             addresses,
             vector[
-                x"6e112233445566778899aabbccddeeff60015360015160005500",
-                x"60ff60015360ee60025360005160005500",
-                x"600160000360015360015160005500",
+                x"5860005500",
+                x"60ff6000555860015500",
                 x"",
                 x"6000600060006000600435611000015af400"
             ],
