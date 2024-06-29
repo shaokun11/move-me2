@@ -144,8 +144,10 @@ module aptos_framework::evm_util {
         let len_m = vector::length(memory);
         let pos = pos;
         let size = pos - len_m;
-        let new_array = new_fixed_length_vector(size);
-        *memory = vector_extend(*memory, new_array)
+        if(size > 0) {
+            let new_array = new_fixed_length_vector(size);
+            *memory = vector_extend(new_array, *memory)
+        }
     }
 
     public fun mstore(memory: &mut vector<u8>, pos: u64, data: vector<u8>) {

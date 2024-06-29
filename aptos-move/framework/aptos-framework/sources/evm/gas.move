@@ -52,8 +52,14 @@ module aptos_framework::evm_gas {
                         run_state: &mut SimpleMap<u64, u256>): u256 {
         let len = vector::length(stack);
         let offset = *vector::borrow(stack,len - 1);
-        // debug::print(&offset);
         calc_memory_expand_internal(offset + 32, run_state)
+    }
+
+    fun calc_mstore8_gas(stack: &vector<u256>,
+                        run_state: &mut SimpleMap<u64, u256>): u256 {
+        let len = vector::length(stack);
+        let offset = *vector::borrow(stack,len - 1);
+        calc_memory_expand_internal(offset, run_state)
     }
 
     fun calc_sload_gas(address: vector<u8>,
@@ -380,7 +386,9 @@ module aptos_framework::evm_gas {
         } else if (opcode >= 0x90 && opcode <= 0x9F) {
             // SWAP1 to SWAP16
             3
-        } else if (opcode == 0x51 || opcode == 0x52 || opcode == 0x53) {
+        } else if(opcode == 0x53){
+            calc_mstore8_gas(stack, run_state) + 3
+        } else if (opcode == 0x51 || opcode == 0x52) {
             // MSTORE & MLOAD
             calc_mstore_gas(stack, run_state) + 3
         } else if (opcode == 0xf1 || opcode == 0xf4) {

@@ -649,6 +649,7 @@ module aptos_framework::evm_for_test {
                 // mload
             else if(opcode == 0x51) {
                 let pos = pop_stack_u64(stack, error_code);
+                debug::print(memory);
                 vector::push_back(stack, data_to_u256(vector_slice(*memory, pos, 32), 0, 32));
                 i = i + 1;
             }
@@ -668,7 +669,6 @@ module aptos_framework::evm_for_test {
                 expand_to_pos(memory, pos + 1);
                 *vector::borrow_mut(memory, pos) = ((value & 0xff) as u8);
                 // mstore(memory, pos, u256_to_data(value & 0xff));
-                // debug::print(memory);
                 i = i + 1;
 
             }
@@ -1132,7 +1132,7 @@ module aptos_framework::evm_for_test {
         initialize(&aptos_framework);
 
         let storage_maps = simple_map::new<vector<u8>, simple_map::SimpleMap<vector<u8>, vector<u8>>>();
-        // simple_map::add(&mut storage_maps, x"cccccccccccccccccccccccccccccccccccccccc", init_storage(vector[0x00], vector[0x0bad]));
+        simple_map::add(&mut storage_maps, x"cccccccccccccccccccccccccccccccccccccccc", init_storage(vector[0x00], vector[0x0bad]));
         let (storage_keys, storage_values) = (vector::empty<vector<vector<u8>>>(), vector::empty<vector<vector<u8>>>());
 
 
@@ -1140,16 +1140,10 @@ module aptos_framework::evm_for_test {
             x"0000000000000000000000000000000000001000",
             x"0000000000000000000000000000000000001001",
             x"0000000000000000000000000000000000001002",
-            x"0000000000000000000000000000000000001003",
-            x"0000000000000000000000000000000000001004",
-            x"0000000000000000000000000000000000001005",
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc"
         ];
         let balance_table = vector[
-            0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce,
             0x0ba1a9ce0ba1a9ce,
             0x0ba1a9ce0ba1a9ce,
             0x0ba1a9ce0ba1a9ce,
@@ -1180,12 +1174,9 @@ module aptos_framework::evm_for_test {
         run_test(
             addresses,
             vector[
-                x"60ff6000525960005500",
-                x"64ffffffffff6000525960005500",
-                x"64ffffffffff60005261eeee6020525960005500",
-                x"64ffffffffff60005261eeee605a525960005500",
-                x"6001601f535960005560016020535960015560006020535960025500",
-                x"600162b00000535960005500",
+                x"6e112233445566778899aabbccddeeff60015360015160005500",
+                x"60ff60015360ee60025360005160005500",
+                x"600160000360015360015160005500",
                 x"",
                 x"6000600060006000600435611000015af400"
             ],
@@ -1195,8 +1186,8 @@ module aptos_framework::evm_for_test {
             storage_values,
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc",
-            x"693c61390000000000000000000000000000000000000000000000000000000000000005",
-            u256_to_data(0x10000000),
+            x"693c61390000000000000000000000000000000000000000000000000000000000000001",
+            u256_to_data(0x04c4b400),
             u256_to_data(0x0a),
             u256_to_data(0x1)
         );
