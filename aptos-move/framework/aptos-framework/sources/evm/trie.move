@@ -3,6 +3,7 @@ module aptos_framework::evm_trie {
     use aptos_framework::evm_util::{to_32bit, to_u256};
     use aptos_std::simple_map::{SimpleMap};
     use aptos_std::simple_map;
+    use aptos_std::debug;
 
     struct Trie has drop {
         context: vector<SimpleMap<vector<u8>, TestAccount>>,
@@ -23,12 +24,6 @@ module aptos_framework::evm_trie {
         vector::push_back(&mut trie.context, elem);
     }
 
-    // fun get_lastest_checkpoint(trie: &Trie): &SimpleMap<vector<u8>, TestAccount> {
-    //     // let key = iterable_table::tail_key(&trie.context);
-    //     // iterable_table::borrow(&trie.context, *option::borrow(&key))
-    //     let len = vector::length(&trie.context);
-    //     vector::borrow(&trie.context, len - 1)
-    // }
 
     fun get_lastest_checkpoint_mut(trie: &mut Trie): &mut SimpleMap<vector<u8>, TestAccount> {
         let len = vector::length(&trie.context);
@@ -55,6 +50,10 @@ module aptos_framework::evm_trie {
         if(simple_map::contains_key(checkpoint, contract_addr)) {
             simple_map::borrow_mut(checkpoint, contract_addr)
         } else {
+            if(!simple_map::contains_key(&trie.storage, contract_addr)) {
+                new_account(*contract_addr, vector::empty(), 0, 0, trie);
+                return load_account_checkpoint_mut(trie, contract_addr)
+            };
             let account = simple_map::borrow(&mut trie.storage, contract_addr);
             simple_map::add(checkpoint, *contract_addr, *account);
             simple_map::borrow_mut(checkpoint, contract_addr)
@@ -94,11 +93,13 @@ module aptos_framework::evm_trie {
             balance,
             nonce,
             storage: simple_map::new()
-        })
+        });
     }
 
     public fun sub_balance(contract_addr: vector<u8>, amount: u256, trie: &mut Trie) {
         let account = load_account_checkpoint_mut(trie, &contract_addr);
+        debug::print(&contract_addr);
+        debug::print(account);
         assert!(account.balance >= amount, 2);
         account.balance = account.balance - amount;
     }
@@ -115,8 +116,12 @@ module aptos_framework::evm_trie {
 
     public fun transfer(from: vector<u8>, to: vector<u8>, amount: u256, trie: &mut Trie) {
         if(amount > 0) {
+            // debug::print(&from);
+            // debug::print(&to);
+            // debug::print(&amount);
             sub_balance(from, amount, trie);
             add_balance(to, amount, trie);
+            // debug::print(trie);
         };
     }
 
@@ -230,6 +235,8 @@ module aptos_framework::evm_trie {
             simple_map::upsert(&mut trie.storage, address, account);
             i = i + 1;
         };
+
+        // debug::print(trie);
     }
 
     public fun commit_latest_checkpoint(trie: &mut Trie) {

@@ -38,7 +38,8 @@
 -  [Function `put`](#0x1_evm_trie_put)
 
 
-<pre><code><b>use</b> <a href="util.md#0x1_evm_util">0x1::evm_util</a>;
+<pre><code><b>use</b> <a href="../../aptos-stdlib/doc/debug.md#0x1_debug">0x1::debug</a>;
+<b>use</b> <a href="util.md#0x1_evm_util">0x1::evm_util</a>;
 <b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/option.md#0x1_option">0x1::option</a>;
 <b>use</b> <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map">0x1::simple_map</a>;
 </code></pre>
@@ -255,6 +256,10 @@
     <b>if</b>(<a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_contains_key">simple_map::contains_key</a>(checkpoint, contract_addr)) {
         <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_borrow_mut">simple_map::borrow_mut</a>(checkpoint, contract_addr)
     } <b>else</b> {
+        <b>if</b>(!<a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_contains_key">simple_map::contains_key</a>(&trie.storage, contract_addr)) {
+            <a href="trie.md#0x1_evm_trie_new_account">new_account</a>(*contract_addr, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_empty">vector::empty</a>(), 0, 0, trie);
+            <b>return</b> <a href="trie.md#0x1_evm_trie_load_account_checkpoint_mut">load_account_checkpoint_mut</a>(trie, contract_addr)
+        };
         <b>let</b> <a href="account.md#0x1_account">account</a> = <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_borrow">simple_map::borrow</a>(&<b>mut</b> trie.storage, contract_addr);
         <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_add">simple_map::add</a>(checkpoint, *contract_addr, *<a href="account.md#0x1_account">account</a>);
         <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_borrow_mut">simple_map::borrow_mut</a>(checkpoint, contract_addr)
@@ -394,7 +399,7 @@
         balance,
         nonce,
         storage: <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_new">simple_map::new</a>()
-    })
+    });
 }
 </code></pre>
 
@@ -419,6 +424,8 @@
 
 <pre><code><b>public</b> <b>fun</b> <a href="trie.md#0x1_evm_trie_sub_balance">sub_balance</a>(contract_addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, amount: u256, trie: &<b>mut</b> <a href="trie.md#0x1_evm_trie_Trie">Trie</a>) {
     <b>let</b> <a href="account.md#0x1_account">account</a> = <a href="trie.md#0x1_evm_trie_load_account_checkpoint_mut">load_account_checkpoint_mut</a>(trie, &contract_addr);
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&contract_addr);
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(<a href="account.md#0x1_account">account</a>);
     <b>assert</b>!(<a href="account.md#0x1_account">account</a>.balance &gt;= amount, 2);
     <a href="account.md#0x1_account">account</a>.balance = <a href="account.md#0x1_account">account</a>.balance - amount;
 }
@@ -495,8 +502,12 @@
 
 <pre><code><b>public</b> <b>fun</b> <a href="trie.md#0x1_evm_trie_transfer">transfer</a>(from: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, amount: u256, trie: &<b>mut</b> <a href="trie.md#0x1_evm_trie_Trie">Trie</a>) {
     <b>if</b>(amount &gt; 0) {
+        // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&from);
+        // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&<b>to</b>);
+        // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&amount);
         <a href="trie.md#0x1_evm_trie_sub_balance">sub_balance</a>(from, amount, trie);
         <a href="trie.md#0x1_evm_trie_add_balance">add_balance</a>(<b>to</b>, amount, trie);
+        // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(trie);
     };
 }
 </code></pre>
@@ -830,6 +841,8 @@
         <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_upsert">simple_map::upsert</a>(&<b>mut</b> trie.storage, <b>address</b>, <a href="account.md#0x1_account">account</a>);
         i = i + 1;
     };
+
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(trie);
 }
 </code></pre>
 
