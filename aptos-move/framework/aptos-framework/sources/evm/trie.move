@@ -8,7 +8,6 @@ module aptos_framework::evm_trie {
         context: vector<SimpleMap<vector<u8>, TestAccount>>,
         storage: SimpleMap<vector<u8>, TestAccount>,
         origin: SimpleMap<vector<u8>, SimpleMap<u256, u256>>,
-        global_state: SimpleMap<u64, u64>
     }
 
     struct TestAccount has drop, copy, store {
@@ -178,8 +177,7 @@ module aptos_framework::evm_trie {
         let trie = Trie {
             context: vector::empty(),
             storage: simple_map::new(),
-            origin: simple_map::new(),
-            global_state: simple_map::new<u64, u64>()
+            origin: simple_map::new()
         };
 
         let pre_len = vector::length(&addresses);

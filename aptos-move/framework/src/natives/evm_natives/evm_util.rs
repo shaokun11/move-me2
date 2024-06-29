@@ -15,8 +15,15 @@ fn native_new_fixed_length_vector(
     mut args: VecDeque<Value>
 ) -> SafeNativeResult<SmallVec<[Value; 1]>> {
     let c = safely_pop_arg!(args, u64);
-    println!("create new size of vector {:?}", c);
-    let v = vec![0; c as usize];
+    // let v = vec![0; c as usize];
+    let mut v = Vec::with_capacity(c as usize);
+    let chunk_size = 1_000_000; 
+    let mut remaining = c;
+    while remaining > 0 {
+        let to_allocate = std::cmp::min(chunk_size, remaining) as usize;
+        v.extend(vec![0; to_allocate]);
+        remaining -= to_allocate as u64;
+    }
     Ok(smallvec![Value::vector_u8(v)])
 }
 

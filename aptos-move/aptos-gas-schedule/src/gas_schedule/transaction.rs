@@ -127,7 +127,7 @@ crate::gas_schedule::macros::define_gas_parameters!(
             { 16.. => "storage_io_per_transaction_byte_write" },
             0,
         ],
-        [memory_quota: AbstractValueSize, { 1.. => "memory_quota" }, 10_000_000],
+        [memory_quota: AbstractValueSize, { 1.. => "memory_quota" }, 100_000_000],
         [
             legacy_free_write_bytes_quota: NumBytes,
             { 5.. => "free_write_bytes_quota" },

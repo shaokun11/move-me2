@@ -143,8 +143,8 @@ module aptos_framework::evm_util {
     public fun expand_to_pos(memory: &mut vector<u8>, pos: u64) {
         let len_m = vector::length(memory);
         let pos = pos;
-        let size = pos - len_m;
-        if(size > 0) {
+        if(pos > len_m) {
+            let size = pos - len_m;
             let new_array = new_fixed_length_vector(size);
             *memory = vector_extend(new_array, *memory)
         }
