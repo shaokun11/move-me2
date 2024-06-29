@@ -14,8 +14,9 @@ fn native_new_fixed_length_vector(
     _ty_args: Vec<Type>,
     mut args: VecDeque<Value>
 ) -> SafeNativeResult<SmallVec<[Value; 1]>> {
-    let c = &safely_pop_arg!(args, u64);
-    let v = vec![0; c.clone() as usize];
+    let c = safely_pop_arg!(args, u64);
+    println!("create new size of vector {:?}", c);
+    let v = vec![0; c as usize];
     Ok(smallvec![Value::vector_u8(v)])
 }
 
