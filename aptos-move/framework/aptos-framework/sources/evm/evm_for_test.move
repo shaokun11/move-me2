@@ -131,19 +131,21 @@ module aptos_framework::evm_for_test {
                               from: vector<u8>,
                               to: vector<u8>,
                               data: vector<u8>,
+                              gas_limit_bytes: vector<u8>,
                               gas_price_bytes:vector<u8>,
                               value_bytes: vector<u8>) acquires ExecResource {
         let value = to_u256(value_bytes);
         let trie = &mut pre_init(addresses, codes, nonces, balances, storage_keys, storage_values);
         let transient = simple_map::new<u256, u256>();
         let gas_price = to_u256(gas_price_bytes);
-        from = to_32bit(from);
+        let gas_limit = to_u256(gas_limit_bytes);
+            from = to_32bit(from);
         to = to_32bit(to);
         // debug::print(&trie);
         let run_state = &mut new_run_state();
         let base_cost = calc_base_gas(&data) + 21000;
         add_gas_usage(run_state, base_cost);
-        run(from, from, to, get_code(to, trie), data, value, 0x10000000 - base_cost, trie, &mut transient, run_state, true);
+        run(from, from, to, get_code(to, trie), data, value, gas_limit - base_cost, trie, &mut transient, run_state, true);
         let gas_refund = get_gas_refund(run_state);
         let gas_usage = get_gas_usage(run_state);
         let gasfee = gas_price * (gas_usage - gas_refund);
@@ -1130,7 +1132,7 @@ module aptos_framework::evm_for_test {
         initialize(&aptos_framework);
 
         let storage_maps = simple_map::new<vector<u8>, simple_map::SimpleMap<vector<u8>, vector<u8>>>();
-        // simple_map::add(&mut storage_maps, x"cccccccccccccccccccccccccccccccccccccccc", init_storage(vector[0x00], vector[0x0bad]));
+        simple_map::add(&mut storage_maps, x"cccccccccccccccccccccccccccccccccccccccc", init_storage(vector[0x00], vector[0x0bad]));
         let (storage_keys, storage_values) = (vector::empty<vector<vector<u8>>>(), vector::empty<vector<vector<u8>>>());
 
 
@@ -1138,16 +1140,10 @@ module aptos_framework::evm_for_test {
             x"0000000000000000000000000000000000001000",
             x"0000000000000000000000000000000000001001",
             x"0000000000000000000000000000000000001002",
-            x"0000000000000000000000000000000000001003",
-            x"0000000000000000000000000000000000001004",
-            x"0000000000000000000000000000000000001005",
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc"
         ];
         let balance_table = vector[
-            0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce,
             0x0ba1a9ce0ba1a9ce,
             0x0ba1a9ce0ba1a9ce,
             0x0ba1a9ce0ba1a9ce,
@@ -1174,16 +1170,14 @@ module aptos_framework::evm_for_test {
             };
             i = i + 1;
         };
+        let gas_limit_bytes = u256_to_data(0x04c4b400);
 
         run_test(
             addresses,
             vector[
-                x"60ff6000525960005500",
-                x"64ffffffffff6000525960005500",
-                x"64ffffffffff60005261eeee6020525960005500",
-                x"64ffffffffff60005261eeee605a525960005500",
-                x"6001601f535960005560016020535960015560006020535960025500",
-                x"600162b00000535960005500",
+                x"7d111122223333444455556666777788889999aaaabbbbccccddddeeeeffff60005260005160005500",
+                x"630fffffff5160005500",
+                x"627248255160005500",
                 x"",
                 x"6000600060006000600435611000015af400"
             ],
@@ -1193,7 +1187,8 @@ module aptos_framework::evm_for_test {
             storage_values,
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc",
-            x"693c61390000000000000000000000000000000000000000000000000000000000000005",
+            x"693c61390000000000000000000000000000000000000000000000000000000000000001",
+            gas_limit_bytes,
             u256_to_data(0x0a),
             u256_to_data(0x1)
         );
