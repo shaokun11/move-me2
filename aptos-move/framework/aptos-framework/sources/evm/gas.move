@@ -4,7 +4,6 @@ module aptos_framework::evm_gas {
     use aptos_framework::evm_global_state::{get_memory_cost, set_memory_cost, add_gas_refund, sub_gas_refund, get_memory_word_size, set_memory_word_size, RunState};
     use aptos_std::debug;
     use std::vector::for_each;
-    use std::string::utf8;
     use aptos_framework::evm_trie::{Trie, get_state, exist_account, is_cold_address, get_cache};
 
     const U64_MAX: u256 = 18446744073709551615; // 18_446_744_073_709_551_615
@@ -44,6 +43,7 @@ module aptos_framework::evm_gas {
         if(new_memory_size % 32 != 0) {
             new_memory_word_size = new_memory_word_size + 1;
         };
+
         if(new_memory_word_size <= old_memory_word_size) {
             return 0
         };
@@ -75,7 +75,7 @@ module aptos_framework::evm_gas {
                          gas_limit: u256): u256 {
         let len = vector::length(stack);
         let offset = *vector::borrow(stack,len - 1);
-        calc_memory_expand_internal(offset, run_state, gas_limit)
+        calc_memory_expand_internal(offset + 1, run_state, gas_limit)
     }
 
     fun calc_sload_gas(address: vector<u8>,

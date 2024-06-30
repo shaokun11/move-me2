@@ -3,7 +3,6 @@ module aptos_framework::evm_trie {
     use aptos_framework::evm_util::{to_32bit, to_u256};
     use aptos_std::simple_map::{SimpleMap};
     use aptos_std::simple_map;
-    use aptos_std::debug;
 
     struct Trie has drop {
         context: vector<SimpleMap<vector<u8>, TestAccount>>,
@@ -98,8 +97,6 @@ module aptos_framework::evm_trie {
 
     public fun sub_balance(contract_addr: vector<u8>, amount: u256, trie: &mut Trie) {
         let account = load_account_checkpoint_mut(trie, &contract_addr);
-        debug::print(&contract_addr);
-        debug::print(account);
         assert!(account.balance >= amount, 2);
         account.balance = account.balance - amount;
     }
@@ -116,12 +113,8 @@ module aptos_framework::evm_trie {
 
     public fun transfer(from: vector<u8>, to: vector<u8>, amount: u256, trie: &mut Trie) {
         if(amount > 0) {
-            // debug::print(&from);
-            // debug::print(&to);
-            // debug::print(&amount);
             sub_balance(from, amount, trie);
             add_balance(to, amount, trie);
-            // debug::print(trie);
         };
     }
 
