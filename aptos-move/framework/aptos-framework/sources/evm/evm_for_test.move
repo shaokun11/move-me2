@@ -1135,39 +1135,14 @@ module aptos_framework::evm_for_test {
 
         let addresses = vector[
             x"0000000000000000000000000000000000001000",
-            x"0000000000000000000000000000000000001001",
-            x"0000000000000000000000000000000000001002",
-            x"0000000000000000000000000000000000001003",
-            x"0000000000000000000000000000000000001004",
-            x"0000000000000000000000000000000000001005",
-            x"0000000000000000000000000000000000001010",
-            x"0000000000000000000000000000000000001011",
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc"
         ];
-        let balance_table = vector[
-            0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce
-        ];
+        let balance_table = vector[ 0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce ];
         let codes = vector[
-            x"60026001600037600051600055596000f300",
-            x"60016001600037600051600055596000f300",
-            x"60006001600037600051600055596000f300",
-            x"60006000600037600051600055596000f300",
-            x"60ff7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffa600037600051600055596000f300",
-            x"60097ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffa600037600051600055596000f300",
-            x"60016001556001600237",
-            x"6005565b005b6042601f536101036000601f3760005180606014600357640badc0ffee60ff55",
+            x"3660005500",
             x"",
-            x"701234567890abcdef01234567890abcdef0600052604060206010600f60006004356110000162fffffff15060205160005560405160015500"
+            x"602435600020600052600060006004356000600061100062fffffff100"
         ];
         // let nonce_table = vector[
         //     0x00,
@@ -1203,7 +1178,7 @@ module aptos_framework::evm_for_test {
             storage_values,
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc",
-            x"693c61390000000000000000000000000000000000000000000000000000000000000011",
+            x"1a8451e600000000000000000000000000000000000000000000000000000000000000110000000000000000000000000000000000000000000000000000000000000001",
             u256_to_data(0x04c4b400),
             u256_to_data(0x0a),
             u256_to_data(0x1)

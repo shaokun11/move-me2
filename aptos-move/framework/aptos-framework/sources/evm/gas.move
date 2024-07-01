@@ -24,6 +24,7 @@ module aptos_framework::evm_gas {
     const Copy: u256 = 3;
     const LogTopic: u256 = 375;
     const LogData: u256 = 8;
+    const Keccak256Word: u256 = 6;
 
     fun access_address(address: vector<u8>, trie: &mut Trie): u256 {
         if(is_cold_address(address, trie)) ColdAccountAccess else 0
@@ -45,11 +46,8 @@ module aptos_framework::evm_gas {
             return 0
         };
         let old_memory_word_size = get_memory_word_size(run_state);
-        let new_memory_word_size = new_memory_size / 32;
-        if(new_memory_size % 32 != 0) {
-            new_memory_word_size = new_memory_word_size + 1;
-        };
 
+        let new_memory_word_size = get_word_count(new_memory_size);
         if(new_memory_word_size <= old_memory_word_size) {
             return 0
         };
@@ -187,12 +185,8 @@ module aptos_framework::evm_gas {
         let gas = 0;
         let data_length = *vector::borrow(stack,len - 3);
         if(data_length > 0) {
-            // To prevent overflow, this method is used to calculate the number of bytes
-            let bytes= data_length / 32;
-            if(data_length % 32 != 0) {
-                bytes = bytes + 1;
-            };
-            gas = gas + bytes * Copy;
+            let word_count = get_word_count(data_length);
+            gas = gas + word_count * Copy;
             // Prevent overflow here; if the result is greater than gasLimit, return gasLimit directly
             if(gas > gas_limit) {
                 return gas_limit
@@ -201,6 +195,24 @@ module aptos_framework::evm_gas {
         };
 
         gas + 3
+    }
+
+    fun calc_keccak256_gas(stack: &mut vector<u256>,
+                     run_state: &mut RunState, gas_limit: u256): u256 {
+        let len = vector::length(stack);
+        if(len < 2) {
+            return gas_limit
+        };
+        let gas = 0;
+        let data_length = *vector::borrow(stack,len - 2);
+
+        if(data_length > 0) {
+            let word_count = get_word_count(data_length);
+            gas = gas + word_count * Keccak256Word;
+            gas = gas + calc_memory_expand(stack, 1, 2, run_state, gas_limit);
+        };
+
+        gas + 30
     }
 
     fun calc_log_gas(opcode: u8, stack: &mut vector<u256>,
@@ -218,6 +230,15 @@ module aptos_framework::evm_gas {
         debug::print(&gas);
         debug::print(&data_length);
         gas
+    }
+
+    fun get_word_count(bytes: u256): u256 {
+        // To prevent overflow, this method is used to calculate the number of bytes
+        let word_count = bytes / 32;
+        if(bytes % 32 != 0) {
+            word_count = word_count + 1;
+        };
+        word_count
     }
 
     public fun max_call_gas(gas_left: u256, gas_limit: u256): u256 {
@@ -429,6 +450,9 @@ module aptos_framework::evm_gas {
         } else if (opcode >= 0x90 && opcode <= 0x9F) {
             // SWAP1 to SWAP16
             3
+        } else if (opcode == 0x20) {
+            // KECCAK256
+            calc_keccak256_gas(stack, run_state, gas_limit)
         } else if(opcode == 0x53){
             calc_mstore8_gas(stack, run_state, gas_limit) + 3
         } else if (opcode == 0x51 || opcode == 0x52) {
