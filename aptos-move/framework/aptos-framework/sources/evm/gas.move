@@ -22,6 +22,8 @@ module aptos_framework::evm_gas {
     const ColdAccountAccess: u256 = 2600;
     const ExpByte: u256 = 50;
     const Copy: u256 = 3;
+    const LogTopic: u256 = 375;
+    const LogData: u256 = 8;
 
     fun access_address(address: vector<u8>, trie: &mut Trie): u256 {
         if(is_cold_address(address, trie)) ColdAccountAccess else 0
@@ -31,6 +33,10 @@ module aptos_framework::evm_gas {
         let len = vector::length(stack);
         let out_offset = *vector::borrow(stack,len - pos);
         let out_size = *vector::borrow(stack,len - size);
+        // To prevent overflow
+        if(out_offset > U64_MAX || out_size > U64_MAX || out_offset + out_size > U64_MAX) {
+            return gas_limit
+        };
         calc_memory_expand_internal(out_offset + out_size, run_state, gas_limit)
     }
 
@@ -192,6 +198,23 @@ module aptos_framework::evm_gas {
         };
 
         gas + 3
+    }
+
+    fun calc_log_gas(opcode: u8, stack: &mut vector<u256>,
+                           run_state: &mut RunState, gas_limit: u256): u256 {
+        let topic_count = ((opcode - 0xa0) as u256);
+        let len = vector::length(stack);
+        let gas = 0;
+        let data_length = *vector::borrow(stack,len - 2);
+        gas = gas + calc_memory_expand(stack, 1, 2, run_state, gas_limit);
+        if(data_length > gas_limit) {
+            return gas_limit
+        };
+        gas = gas + LogTopic * topic_count + data_length * LogData + LogTopic;
+
+        debug::print(&gas);
+        debug::print(&data_length);
+        gas
     }
 
     public fun max_call_gas(gas_left: u256, gas_limit: u256): u256 {
@@ -423,6 +446,9 @@ module aptos_framework::evm_gas {
         } else if (opcode == 0x39) {
             // CODECOPY
             calc_code_copy_gas(stack, run_state, gas_limit)
+        } else if (opcode >= 0xa0 && opcode <= 0xa4) {
+            // LOG
+            calc_log_gas(opcode, stack, run_state, gas_limit)
         } else {
             assert!(false, (opcode as u64));
             0

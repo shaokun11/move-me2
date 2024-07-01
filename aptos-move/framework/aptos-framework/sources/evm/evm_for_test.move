@@ -1127,17 +1127,19 @@ module aptos_framework::evm_for_test {
         initialize(&aptos_framework);
 
         let storage_maps = simple_map::new<vector<u8>, simple_map::SimpleMap<vector<u8>, vector<u8>>>();
-        // simple_map::add(&mut storage_maps, x"cccccccccccccccccccccccccccccccccccccccc", init_storage(vector[0xff], vector[0x0bad]));
+        simple_map::add(&mut storage_maps, x"cccccccccccccccccccccccccccccccccccccccc", init_storage(vector[0x00], vector[0x0bad]));
         let (storage_keys, storage_values) = (vector::empty<vector<vector<u8>>>(), vector::empty<vector<vector<u8>>>());
 
 
         let addresses = vector[
-            x"0000000000000000000000000000000000001000",
-            x"0000000000000000000000000000000000001001",
-            x"0000000000000000000000000000000000001002",
-            x"0000000000000000000000000000000000001003",
-            x"0000000000000000000000000000000000001004",
-            x"0000000000000000000000000000000000001005",
+            x"0000000000000000000000000000000000000100",
+            x"0000000000000000000000000000000000000101",
+            x"0000000000000000000000000000000000000102",
+            x"0000000000000000000000000000000000000103",
+            x"0000000000000000000000000000000000000104",
+            x"0000000000000000000000000000000000000105",
+            x"0000000000000000000000000000000000000106",
+            x"000000000000000000000000000000000000010a",
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc"
         ];
@@ -1148,8 +1150,22 @@ module aptos_framework::evm_for_test {
             0x0ba1a9ce0ba1a9ce,
             0x0ba1a9ce0ba1a9ce,
             0x0ba1a9ce0ba1a9ce,
+            0x0ba1a9ce0ba1a9ce,
+            0x0ba1a9ce0ba1a9ce,
             0x100000000000,
             0x0ba1a9ce0ba1a9ce
+        ];
+        let codes = vector[
+            x"60006000a061600d60005500",
+            x"7faabbffffffffffffffffffffffffffffffffffffffffffffffffffffffffccdd60005260017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffa061600d60005500",
+            x"7faabbffffffffffffffffffffffffffffffffffffffffffffffffffffffffccdd6000527fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff6001a061600d60005500",
+            x"7faabbffffffffffffffffffffffffffffffffffffffffffffffffffffffffccdd60005260006001a061600d60005500",
+            x"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff60005260206000a061600d60005500",
+            x"7faabbffffffffffffffffffffffffffffffffffffffffffffffffffffffffccdd60005260016000a061600d60005500",
+            x"7faabbffffffffffffffffffffffffffffffffffffffffffffffffffffffffccdd6000526001601fa061600d60005500",
+            x"7faabbffffffffffffffffffffffffffffffffffffffffffffffffffffffffccdd60005260206000a060106002a061600d60005500",
+            x"",
+            x"6000600060006000600435610100015af400"
         ];
         // let nonce_table = vector[
         //     0x00,
@@ -1178,24 +1194,15 @@ module aptos_framework::evm_for_test {
 
         run_test(
             addresses,
-            vector[
-                x"60ff6000525960005500",
-                x"64ffffffffff6000525960005500",
-                x"64ffffffffff60005261eeee6020525960005500",
-                x"64ffffffffff60005261eeee605a525960005500",
-                x"6001601f535960005560016020535960015560006020535960025500",
-                x"600162b00000535960005500",
-                x"",
-                x"6000600060006000600435611000015af400"
-            ],
+            codes,
             nonces,
             balances,
             storage_keys,
             storage_values,
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc",
-            x"693c61390000000000000000000000000000000000000000000000000000000000000005",
-            u256_to_data(0x10000000),
+            x"693c61390000000000000000000000000000000000000000000000000000000000000002",
+            u256_to_data(0x04c4b400),
             u256_to_data(0x0a),
             u256_to_data(0x1)
         );
