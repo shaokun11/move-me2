@@ -145,23 +145,23 @@ module aptos_framework::evm_for_test {
         });
     }
 
-    public entry fun set_env(base_fee: u256,
+    public entry fun set_env(base_fee: vector<u8>,
                              coinbase: vector<u8>,
-                             difficulty: u256,
-                             excess_blob_gas: u256,
-                             gas_limit: u256,
-                             number: u256,
+                             difficulty: vector<u8>,
+                             excess_blob_gas: vector<u8>,
+                             gas_limit: vector<u8>,
+                             number: vector<u8>,
                              random: vector<u8>,
-                             timestamp: u256) acquires Env {
+                             timestamp: vector<u8>) acquires Env {
         let env = borrow_global_mut<Env>(@aptos_framework);
-        env.base_fee = base_fee;
+        env.base_fee = to_u256(base_fee);
         env.coinbase = to_32bit(coinbase);
-        env.difficulty = difficulty;
-        env.excess_blob_gas = excess_blob_gas;
-        env.gas_limit = gas_limit;
-        env.number = number;
+        env.difficulty = to_u256(difficulty);
+        env.excess_blob_gas = to_u256(excess_blob_gas);
+        env.gas_limit = to_u256(gas_limit);
+        env.number = to_u256(number);
         env.random = random;
-        env.timestamp = timestamp;
+        env.timestamp = to_u256(timestamp);
     }
 
     public entry fun run_test(addresses: vector<vector<u8>>,
@@ -1185,14 +1185,14 @@ module aptos_framework::evm_for_test {
         let aptos_framework = create_account_for_test(@0x1);
         initialize(&aptos_framework);
 
-        set_env(0x0a,
+        set_env(u256_to_data(0x0a),
             x"2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
-            0x020000,
-            0x00,
-            0x05f5e100,
-            0x01,
+            u256_to_data(0x020000),
+            u256_to_data(0x00),
+            u256_to_data(0x05f5e100),
+            u256_to_data(0x01),
             x"0000000000000000000000000000000000000000000000000000000000020000",
-            0x03e8);
+            u256_to_data(0x03e8));
 
         let storage_maps = simple_map::new<vector<u8>, simple_map::SimpleMap<vector<u8>, vector<u8>>>();
         // simple_map::add(&mut storage_maps, x"cccccccccccccccccccccccccccccccccccccccc", init_storage(vector[0x00], vector[0x0bad]));
