@@ -25,6 +25,7 @@ module aptos_framework::evm_gas {
     const LogTopic: u256 = 375;
     const LogData: u256 = 8;
     const Keccak256Word: u256 = 6;
+    const CallStipend: u256 = 2300;
 
     fun access_address(address: vector<u8>, trie: &mut Trie): u256 {
         if(is_cold_address(address, trie)) ColdAccountAccess else 0
@@ -243,9 +244,15 @@ module aptos_framework::evm_gas {
         word_count
     }
 
-    public fun max_call_gas(gas_left: u256, gas_limit: u256): u256 {
+    public fun max_call_gas(gas_left: u256, gas_limit: u256, value: u256, opcode: u8): (u256, u256) {
         let gas_allow = gas_left - gas_left / 64;
-        if(gas_limit > gas_allow) gas_allow else gas_limit
+        if(gas_limit > gas_allow) gas_allow else gas_limit;
+        let gas_stipend = 0;
+        if(opcode == 0xf1 && value > 0) {
+            gas_stipend = gas_stipend + CallStipend;
+            gas_limit = gas_limit + CallStipend;
+        };
+        (gas_limit, gas_stipend)
     }
 
     public fun calc_base_gas(memory: &vector<u8>): u256 {

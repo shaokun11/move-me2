@@ -5,6 +5,8 @@ module aptos_framework::evm_util {
     use aptos_std::debug;
     use std::string::utf8;
 
+    const U64_MAX: u256 = 18446744073709551615; // 18_446_744_073_709_551_615
+
     const U256_MAX: u256 = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
     const U255_MAX: u256 = 57896044618658097711785492504343953926634992332820282019728792003956564819967;
     const ZERO_EVM_ADDR: vector<u8> = x"";
@@ -13,6 +15,24 @@ module aptos_framework::evm_util {
     public native fun new_fixed_length_vector(size: u64): vector<u8>;
     public native fun vector_extend(a: vector<u8>, b: vector<u8>): vector<u8>;
     public native fun vector_slice(a: vector<u8>, pos: u64, size: u64): vector<u8>;
+
+    public fun vector_slice_u256(a: vector<u8>, pos: u256, size: u64): vector<u8> {
+        if(pos > U64_MAX) {
+            return create_empty_data(size)
+        };
+
+        vector_slice(a, (pos as u64), size)
+    }
+
+    public fun create_empty_data(len: u64): vector<u8> {
+        let bytes = vector::empty<u8>();
+        let i = 0;
+        while(i < len) {
+            vector::push_back(&mut bytes, 0);
+            i = i + 1;
+        };
+        bytes
+    }
 
     public fun to_32bit(data: vector<u8>): vector<u8> {
         let bytes = vector::empty<u8>();
@@ -99,8 +119,6 @@ module aptos_framework::evm_util {
         res
     }
 
-
-
     public fun u256_bytes_length(num: u256): u256 {
         let i = 0;
         while(num > 0) {
@@ -123,18 +141,18 @@ module aptos_framework::evm_util {
         res
     }
 
-    public fun copy_to_memory(memory: &mut vector<u8>, m_pos: u64, d_pos: u64, len: u64, data: vector<u8>) {
-        expand_to_pos(memory, m_pos);
+    public fun copy_to_memory(memory: &mut vector<u8>, m_pos: u256, d_pos: u256, len: u256, data: vector<u8>) {
+        expand_to_pos(memory, (m_pos as u64));
         let i = 0;
-        let m_len = vector::length(memory);
-        let d_len = vector::length(&data);
+        let m_len = (vector::length(memory) as u256);
+        let d_len =( vector::length(&data) as u256);
 
         while (i < len) {
-            let bytes = if(d_pos + i >= d_len) 0 else *vector::borrow(&data, d_pos + i);
+            let bytes = if(d_pos > U64_MAX || d_pos + i >= d_len) 0 else *vector::borrow(&data, ((d_pos + i) as u64));
             if(m_pos + i >= m_len) {
                 vector::push_back(memory, bytes);
             } else {
-                *vector::borrow_mut(memory, m_pos + i) = bytes;
+                *vector::borrow_mut(memory, ((m_pos + i) as u64)) = bytes;
             };
             i = i + 1;
         };
