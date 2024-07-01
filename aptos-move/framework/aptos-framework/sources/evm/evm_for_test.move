@@ -44,7 +44,7 @@ module aptos_framework::evm_for_test {
     /// invalid pop stack
     const EVM_ERROR_POP_STACK: u64 = 10000002;
 
-    struct Env has key {
+    struct Env has drop {
         base_fee: u256,
         coinbase: vector<u8>,
         difficulty: u256,
@@ -120,17 +120,6 @@ module aptos_framework::evm_for_test {
         move_to<ExecResource>(aptos_framework, ExecResource {
             exec_event: new_event_handle<ExecResultEvent>(aptos_framework)
         });
-
-        move_to(aptos_framework, Env {
-            base_fee: 0,
-            coinbase: x"",
-            difficulty: 0,
-            excess_blob_gas: 0,
-            gas_limit: 0,
-            number: 0,
-            random: x"",
-            timestamp: 0,
-        });
     }
 
     fun emit_event(state_root: vector<u8>, gas_usage: u256, gas_refund: u256) acquires ExecResource {
@@ -145,23 +134,25 @@ module aptos_framework::evm_for_test {
         });
     }
 
-    public entry fun set_env(base_fee: vector<u8>,
-                             coinbase: vector<u8>,
-                             difficulty: vector<u8>,
-                             excess_blob_gas: vector<u8>,
-                             gas_limit: vector<u8>,
-                             number: vector<u8>,
-                             random: vector<u8>,
-                             timestamp: vector<u8>) acquires Env {
-        let env = borrow_global_mut<Env>(@aptos_framework);
-        env.base_fee = to_u256(base_fee);
-        env.coinbase = to_32bit(coinbase);
-        env.difficulty = to_u256(difficulty);
-        env.excess_blob_gas = to_u256(excess_blob_gas);
-        env.gas_limit = to_u256(gas_limit);
-        env.number = to_u256(number);
-        env.random = random;
-        env.timestamp = to_u256(timestamp);
+    fun parse_env(env: &vector<vector<u8>>): Env {
+        let base_fee = to_u256(*vector::borrow(env, 0));
+        let coinbase = *vector::borrow(env, 1);
+        let difficulty = to_u256(*vector::borrow(env, 2));
+        let excess_blob_gas = to_u256(*vector::borrow(env, 3));
+        let gas_limit = to_u256(*vector::borrow(env, 4));
+        let number = to_u256(*vector::borrow(env, 5));
+        let random = *vector::borrow(env, 6);
+        let timestamp = to_u256(*vector::borrow(env, 7));
+        Env {
+            base_fee,
+            coinbase,
+            difficulty,
+            excess_blob_gas,
+            gas_limit,
+            number,
+            random,
+            timestamp,
+        }
     }
 
     public entry fun run_test(addresses: vector<vector<u8>>,
@@ -175,7 +166,9 @@ module aptos_framework::evm_for_test {
                               data: vector<u8>,
                               gas_limit_bytes: vector<u8>,
                               gas_price_bytes:vector<u8>,
-                              value_bytes: vector<u8>) acquires ExecResource, Env {
+                              value_bytes: vector<u8>,
+                              env_data: vector<vector<u8>>) acquires ExecResource {
+        let env = parse_env(&env_data);
         let value = to_u256(value_bytes);
         let trie = &mut pre_init(addresses, codes, nonces, balances, storage_keys, storage_values);
         let transient = simple_map::new<u256, u256>();
@@ -187,8 +180,7 @@ module aptos_framework::evm_for_test {
         let run_state = &mut new_run_state();
         let base_cost = calc_base_gas(&data) + 21000;
         add_gas_usage(run_state, base_cost);
-        let env = borrow_global<Env>(@aptos_framework);
-        run(from, from, to, get_code(to, trie), data, value, gas_limit - base_cost, trie, &mut transient, run_state, true, env);
+        run(from, from, to, get_code(to, trie), data, value, gas_limit - base_cost, trie, &mut transient, run_state, true, &env);
         let gas_refund = get_gas_refund(run_state);
         let gas_usage = get_gas_usage(run_state);
         let gasfee = gas_price * (gas_usage - gas_refund);
@@ -1177,7 +1169,7 @@ module aptos_framework::evm_for_test {
     }
 
     #[test]
-    public fun test_run() acquires ExecResource, Env {
+    public fun test_run() acquires ExecResource {
         // debug::print(&u256_to_data(0x0ba1a9ce0ba1a9ce));
         // let balance = u256_to_data(0x0ba1a9ce0ba1a9ce);
 
@@ -1185,14 +1177,14 @@ module aptos_framework::evm_for_test {
         let aptos_framework = create_account_for_test(@0x1);
         initialize(&aptos_framework);
 
-        set_env(u256_to_data(0x0a),
+        let env = vector[u256_to_data(0x0a),
             x"2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             u256_to_data(0x020000),
             u256_to_data(0x00),
             u256_to_data(0x05f5e100),
             u256_to_data(0x01),
             x"0000000000000000000000000000000000000000000000000000000000020000",
-            u256_to_data(0x03e8));
+            u256_to_data(0x03e8)];
 
         let storage_maps = simple_map::new<vector<u8>, simple_map::SimpleMap<vector<u8>, vector<u8>>>();
         // simple_map::add(&mut storage_maps, x"cccccccccccccccccccccccccccccccccccccccc", init_storage(vector[0x00], vector[0x0bad]));
@@ -1266,7 +1258,8 @@ module aptos_framework::evm_for_test {
             x"693c61390000000000000000000000000000000000000000000000000000000000000005",
             u256_to_data(0x04c4b400),
             u256_to_data(0x0a),
-            u256_to_data(0x1)
+            u256_to_data(0x1),
+            env
         );
     }
 
