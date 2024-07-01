@@ -166,8 +166,10 @@ module aptos_framework::evm_gas {
             if(value > 0) {
                 gas = gas + CallValueTransfer;
             };
+            gas = gas +  calc_memory_expand(stack, 4, 5, run_state, call_gas_limit);
             gas = gas +  calc_memory_expand(stack, 6, 7, run_state, call_gas_limit);
         } else {
+            gas = gas +  calc_memory_expand(stack, 3, 4, run_state, call_gas_limit);
             gas = gas +  calc_memory_expand(stack, 5, 6, run_state, call_gas_limit);
         };
 
