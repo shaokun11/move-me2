@@ -33,6 +33,7 @@ module aptos_framework::evm_for_test {
     const CONVERT_BASE: u256 = 10000000000;
     const CHAIN_ID: u64 = 0x150;
 
+    const U64_MAX: u256 = 18446744073709551615; // 18_446_744_073_709_551_615
     const U256_MAX: u256 = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
     const ZERO_ADDR: vector<u8> =      x"0000000000000000000000000000000000000000000000000000000000000000";
     const ONE_ADDR: vector<u8> =       x"0000000000000000000000000000000000000000000000000000000000000001";
@@ -533,25 +534,26 @@ module aptos_framework::evm_for_test {
             }
                 //calldatacopy
             else if(opcode == 0x37) {
-                let m_pos = pop_stack_u64(stack, error_code);
-                let d_pos = pop_stack_u64(stack, error_code);
-                let len = pop_stack_u64(stack, error_code);
-                let end = d_pos + len;
-                // debug::print(&utf8(b"calldatacopy"));
-                // debug::print(&data);
-                while (d_pos < end) {
-                    // debug::print(&d_pos);
-                    // debug::print(&end);
-                    let bytes = if(end - d_pos >= 32) {
-                        vector_slice(data, d_pos, 32)
-                    } else {
-                        vector_slice(data, d_pos, end - d_pos)
+                let m_pos = pop_stack(stack, error_code);
+                let d_pos = pop_stack(stack, error_code);
+                if(d_pos <= U64_MAX && m_pos <= U64_MAX) {
+                    let m_pos = (m_pos as u64);
+                    let d_pos = (d_pos as u64);
+                    let len = pop_stack_u64(stack, error_code);
+                    let end = d_pos + len;
+                    while (d_pos < end) {
+                        let bytes = if(end - d_pos >= 32) {
+                            vector_slice(data, d_pos, 32)
+                        } else {
+                            vector_slice(data, d_pos, end - d_pos)
+                        };
+                        // debug::print(&bytes);
+                        mstore(memory, m_pos, bytes);
+                        d_pos = d_pos + 32;
+                        m_pos = m_pos + 32;
                     };
-                    // debug::print(&bytes);
-                    mstore(memory, m_pos, bytes);
-                    d_pos = d_pos + 32;
-                    m_pos = m_pos + 32;
                 };
+
                 i = i + 1
             }
                 //codesize
@@ -1127,19 +1129,19 @@ module aptos_framework::evm_for_test {
         initialize(&aptos_framework);
 
         let storage_maps = simple_map::new<vector<u8>, simple_map::SimpleMap<vector<u8>, vector<u8>>>();
-        simple_map::add(&mut storage_maps, x"cccccccccccccccccccccccccccccccccccccccc", init_storage(vector[0x00], vector[0x0bad]));
+        // simple_map::add(&mut storage_maps, x"cccccccccccccccccccccccccccccccccccccccc", init_storage(vector[0x00], vector[0x0bad]));
         let (storage_keys, storage_values) = (vector::empty<vector<vector<u8>>>(), vector::empty<vector<vector<u8>>>());
 
 
         let addresses = vector[
-            x"0000000000000000000000000000000000000100",
-            x"0000000000000000000000000000000000000101",
-            x"0000000000000000000000000000000000000102",
-            x"0000000000000000000000000000000000000103",
-            x"0000000000000000000000000000000000000104",
-            x"0000000000000000000000000000000000000105",
-            x"0000000000000000000000000000000000000106",
-            x"000000000000000000000000000000000000010a",
+            x"0000000000000000000000000000000000001000",
+            x"0000000000000000000000000000000000001001",
+            x"0000000000000000000000000000000000001002",
+            x"0000000000000000000000000000000000001003",
+            x"0000000000000000000000000000000000001004",
+            x"0000000000000000000000000000000000001005",
+            x"0000000000000000000000000000000000001010",
+            x"0000000000000000000000000000000000001011",
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc"
         ];
@@ -1152,20 +1154,20 @@ module aptos_framework::evm_for_test {
             0x0ba1a9ce0ba1a9ce,
             0x0ba1a9ce0ba1a9ce,
             0x0ba1a9ce0ba1a9ce,
-            0x100000000000,
+            0x0ba1a9ce0ba1a9ce,
             0x0ba1a9ce0ba1a9ce
         ];
         let codes = vector[
-            x"60006000a061600d60005500",
-            x"7faabbffffffffffffffffffffffffffffffffffffffffffffffffffffffffccdd60005260017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffa061600d60005500",
-            x"7faabbffffffffffffffffffffffffffffffffffffffffffffffffffffffffccdd6000527fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff6001a061600d60005500",
-            x"7faabbffffffffffffffffffffffffffffffffffffffffffffffffffffffffccdd60005260006001a061600d60005500",
-            x"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff60005260206000a061600d60005500",
-            x"7faabbffffffffffffffffffffffffffffffffffffffffffffffffffffffffccdd60005260016000a061600d60005500",
-            x"7faabbffffffffffffffffffffffffffffffffffffffffffffffffffffffffccdd6000526001601fa061600d60005500",
-            x"7faabbffffffffffffffffffffffffffffffffffffffffffffffffffffffffccdd60005260206000a060106002a061600d60005500",
+            x"60026001600037600051600055596000f300",
+            x"60016001600037600051600055596000f300",
+            x"60006001600037600051600055596000f300",
+            x"60006000600037600051600055596000f300",
+            x"60ff7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffa600037600051600055596000f300",
+            x"60097ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffa600037600051600055596000f300",
+            x"60016001556001600237",
+            x"6005565b005b6042601f536101036000601f3760005180606014600357640badc0ffee60ff55",
             x"",
-            x"6000600060006000600435610100015af400"
+            x"701234567890abcdef01234567890abcdef0600052604060206010600f60006004356110000162fffffff15060205160005560405160015500"
         ];
         // let nonce_table = vector[
         //     0x00,
@@ -1201,7 +1203,7 @@ module aptos_framework::evm_for_test {
             storage_values,
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc",
-            x"693c61390000000000000000000000000000000000000000000000000000000000000002",
+            x"693c61390000000000000000000000000000000000000000000000000000000000000011",
             u256_to_data(0x04c4b400),
             u256_to_data(0x0a),
             u256_to_data(0x1)

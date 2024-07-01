@@ -181,6 +181,9 @@ module aptos_framework::evm_gas {
     fun calc_code_copy_gas(stack: &mut vector<u256>,
                            run_state: &mut RunState, gas_limit: u256): u256 {
         let len = vector::length(stack);
+        if(len < 3) {
+            return gas_limit
+        };
         let gas = 0;
         let data_length = *vector::borrow(stack,len - 3);
         if(data_length > 0) {
@@ -443,8 +446,8 @@ module aptos_framework::evm_gas {
         } else if (opcode == 0x55) {
             // SSTORE
             calc_sstore_gas(address, stack, trie, run_state)
-        } else if (opcode == 0x39) {
-            // CODECOPY
+        } else if (opcode == 0x37 || opcode == 0x39) {
+            // CALLDATACOPY & CODECOPY
             calc_code_copy_gas(stack, run_state, gas_limit)
         } else if (opcode >= 0xa0 && opcode <= 0xa4) {
             // LOG
