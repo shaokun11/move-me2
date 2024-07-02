@@ -486,8 +486,8 @@ module aptos_framework::evm_gas {
         } else if (opcode == 0xf1 || opcode == 0xf4) {
             // CALL
             calc_call_gas(stack, opcode, trie, run_state)
-        } else if (opcode == 0xf3) {
-            // RETURN
+        } else if (opcode == 0xf3 || opcode == 0xfd) {
+            // RETURN & REVERT
             calc_memory_expand(stack, 1, 2, run_state, gas_limit)
         } else if (opcode == 0x54) {
             // SLOAD

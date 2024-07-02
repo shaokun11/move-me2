@@ -42,7 +42,6 @@ module aptos_framework::evm_global_state {
     }
 
     public fun commit_call_state(run_state: &mut RunState) {
-
         let new_state = vector::pop_back(&mut run_state.call_state);
         let old_state = get_lastest_state_mut(run_state);
         old_state.gas_refund = old_state.gas_refund + new_state.gas_refund;
@@ -93,6 +92,11 @@ module aptos_framework::evm_global_state {
     public fun sub_gas_refund(run_state: &mut RunState, refund: u256) {
         let state = get_lastest_state_mut(run_state);
         state.gas_refund = state.gas_refund - refund;
+    }
+
+    public fun clear_gas_refund(run_state: &mut RunState) {
+        let state = get_lastest_state_mut(run_state);
+        state.gas_refund = 0;
     }
 
     public fun get_gas_left(run_state: &RunState): u256 {

@@ -9,7 +9,7 @@ module aptos_framework::evm_for_test {
     use aptos_framework::precompile::{is_precompile_address, run_precompile};
     use aptos_std::simple_map;
     use aptos_std::simple_map::SimpleMap;
-    use aptos_framework::evm_global_state::{new_run_state, add_gas_usage, get_gas_refund, RunState, add_call_state, revert_call_state, commit_call_state, get_gas_left, add_gas_left};
+    use aptos_framework::evm_global_state::{new_run_state, add_gas_usage, get_gas_refund, RunState, add_call_state, revert_call_state, commit_call_state, get_gas_left, add_gas_left, clear_gas_refund};
     use aptos_framework::evm_gas::{calc_exec_gas, calc_base_gas, max_call_gas};
     use aptos_framework::event;
     use aptos_framework::evm_arithmetic::{add, mul, sub, div, sdiv, mod, smod, add_mod, mul_mod, exp, shr, sar};
@@ -198,7 +198,13 @@ module aptos_framework::evm_for_test {
         emit_event(state_root, gas_usage, gas_refund);
     }
 
-    fun handle_revert(trie: &mut Trie, run_state: &mut RunState) {
+    fun handle_normal_revert(trie: &mut Trie, run_state: &mut RunState) {
+        revert_checkpoint(trie);
+        clear_gas_refund(run_state);
+        commit_call_state(run_state);
+    }
+
+    fun handle_unexpect_revert(trie: &mut Trie, run_state: &mut RunState) {
         revert_checkpoint(trie);
         revert_call_state(run_state);
     }
@@ -257,7 +263,7 @@ module aptos_framework::evm_for_test {
             add_gas_usage(run_state, gas);
 
             if(get_gas_left(run_state) == 0) {
-                handle_revert(trie, run_state);
+                handle_unexpect_revert(trie, run_state);
                 return (false, ret_bytes)
             };
             // debug::print(&i);
@@ -916,9 +922,9 @@ module aptos_framework::evm_for_test {
                 let pos = pop_stack_u64(stack, error_code);
                 let len = pop_stack_u64(stack, error_code);
                 let bytes = vector_slice(*memory, pos, len);
-                debug::print(&utf8(b"revert"));
-                debug::print(&bytes);
-                revert(bytes);
+                handle_normal_revert(trie, run_state);
+
+                return (false, bytes)
             }
                 //log0
             else if(opcode == 0xa0) {
@@ -1022,7 +1028,7 @@ module aptos_framework::evm_for_test {
             // debug::print(&vector::length(stack));
 
             if(*error_code > 0) {
-                handle_revert(trie, run_state);
+                handle_unexpect_revert(trie, run_state);
                 return (false, ret_bytes)
             }
         };
