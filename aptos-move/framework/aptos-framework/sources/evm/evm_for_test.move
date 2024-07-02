@@ -840,13 +840,13 @@ module aptos_framework::evm_for_test {
                 //call 0xf1 static call 0xfa delegate call 0xf4
             else if(opcode == 0xf1 || opcode == 0xfa || opcode == 0xf4) {
                 let gas_left = get_gas_left(run_state);
-                let (call_gas_limit, gas_stipend) = max_call_gas(gas_left, pop_stack(stack, error_code), value, opcode);
+                let gas = pop_stack(stack, error_code);
+                let evm_dest_addr = to_32bit(u256_to_data(pop_stack(stack, error_code)));
+                let msg_value = if (opcode == 0xf1) pop_stack(stack, error_code) else if(opcode == 0xf4) value else 0;
+                let (call_gas_limit, gas_stipend) = max_call_gas(gas_left, gas, msg_value, opcode);
                 if(gas_stipend > 0) {
                     add_gas_left(run_state, gas_stipend);
                 };
-                let evm_dest_addr = to_32bit(u256_to_data(pop_stack(stack, error_code)));
-                // let move_dest_addr = create_resource_address(&@aptos_framework, evm_dest_addr);
-                let msg_value = if (opcode == 0xf1) pop_stack(stack, error_code) else if(opcode == 0xf4) value else 0;
                 let m_pos = pop_stack_u64(stack, error_code);
                 let m_len = pop_stack_u64(stack, error_code);
                 let ret_pos = pop_stack_u64(stack, error_code);
@@ -1216,36 +1216,85 @@ module aptos_framework::evm_for_test {
             x"0000000000000000000000000000000000001007",
             x"0000000000000000000000000000000000001008",
             x"0000000000000000000000000000000000001009",
+            x"000000000000000000000000000000000000100a",
+            x"000000000000000000000000000000000000100b",
+            x"000000000000000000000000000000000000100c",
+            x"000000000000000000000000000000000000100d",
+            x"000000000000000000000000000000000000100e",
+            x"000000000000000000000000000000000000100f",
+            x"0000000000000000000000000000000000001010",
+            x"0000000000000000000000000000000000001011",
+            x"0000000000000000000000000000000000001012",
+            x"0000000000000000000000000000000000001013",
+            x"0000000000000000000000000000000000001014",
+            x"0000000000000000000000000000000000001015",
+            x"0000000000000000000000000000000000001016",
+            x"0000000000000000000000000000000000001017",
+            x"0000000000000000000000000000000000001018",
+            x"0000000000000000000000000000000000001019",
+            x"000000000000000000000000000000000000101a",
+            x"000000000000000000000000000000000000101b",
+            x"000000000000000000000000000000000000101c",
+            x"000000000000000000000000000000000000101d",
+            x"000000000000000000000000000000000000101e",
+            x"000000000000000000000000000000000000101f",
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc"
         ];
         let balance_table = vector[
-            0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce
+            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
+            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
+            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
+            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
+            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
+            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
+            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
+            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
+            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
+            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
+            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
+            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
+            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
+            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
+            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
+            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
+            0x100000000000,     0x0ba1a9ce0ba1a9ce
         ];
         let codes = vector[
-            x"3060005500",
-            x"6007600060003960005160005500",
-            x"6000600060003960005160005500",
-            x"60087ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffa60003960005160005500",
-            x"3360005500",
-            x"3460005500",
-            x"3860005500",
-            x"3a60005500",
-            x"3260005500",
-            x"3660005500",
+            x"60ff600055",
+            x"61eeff600055",
+            x"62ddeeff600055",
+            x"63ccddeeff600055",
+            x"64bbccddeeff600055",
+            x"65aabbccddeeff600055",
+            x"6699aabbccddeeff600055",
+            x"678899aabbccddeeff600055",
+            x"68778899aabbccddeeff600055",
+            x"6966778899aabbccddeeff600055",
+            x"6a5566778899aabbccddeeff600055",
+            x"6b445566778899aabbccddeeff600055",
+            x"6c33445566778899aabbccddeeff600055",
+            x"6d2233445566778899aabbccddeeff600055",
+            x"6e112233445566778899aabbccddeeff600055",
+            x"6f00112233445566778899aabbccddeeff600055",
+            x"70ff00112233445566778899aabbccddeeff600055",
+            x"71eeff00112233445566778899aabbccddeeff600055",
+            x"72ddeeff00112233445566778899aabbccddeeff600055",
+            x"73ccddeeff00112233445566778899aabbccddeeff600055",
+            x"74bbccddeeff00112233445566778899aabbccddeeff600055",
+            x"75aabbccddeeff00112233445566778899aabbccddeeff600055",
+            x"7699aabbccddeeff00112233445566778899aabbccddeeff600055",
+            x"778899aabbccddeeff00112233445566778899aabbccddeeff600055",
+            x"78778899aabbccddeeff00112233445566778899aabbccddeeff600055",
+            x"7966778899aabbccddeeff00112233445566778899aabbccddeeff600055",
+            x"7a5566778899aabbccddeeff00112233445566778899aabbccddeeff600055",
+            x"7b445566778899aabbccddeeff00112233445566778899aabbccddeeff600055",
+            x"7c33445566778899aabbccddeeff00112233445566778899aabbccddeeff600055",
+            x"7d2233445566778899aabbccddeeff00112233445566778899aabbccddeeff600055",
+            x"7e112233445566778899aabbccddeeff00112233445566778899aabbccddeeff600055",
+            x"7f00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff600055",
             x"",
-            x"600060006000600060106004356110000162fffffff100"
+            x"60006000600060006000600435611000015af100"
         ];
         // let nonce_table = vector[
         //     0x00,
@@ -1281,9 +1330,9 @@ module aptos_framework::evm_for_test {
             storage_values,
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc",
-            x"693c61390000000000000000000000000000000000000000000000000000000000000007",
+            x"693c61390000000000000000000000000000000000000000000000000000000000000000",
             u256_to_data(0x04c4b400),
-            u256_to_data(0x1234),
+            u256_to_data(0x0a),
             u256_to_data(0x1),
             env
         );
