@@ -50,6 +50,7 @@ module aptos_framework::evm_for_test {
         difficulty: u256,
         excess_blob_gas: u256,
         gas_limit: u256,
+        gas_price: u256,
         number: u256,
         random: vector<u8>,
         timestamp: u256,
@@ -134,7 +135,7 @@ module aptos_framework::evm_for_test {
         });
     }
 
-    fun parse_env(env: &vector<vector<u8>>): Env {
+    fun parse_env(env: &vector<vector<u8>>, gas_price: u256): Env {
         let base_fee = to_u256(*vector::borrow(env, 0));
         let coinbase = to_32bit(*vector::borrow(env, 1));
         let difficulty = to_u256(*vector::borrow(env, 2));
@@ -149,6 +150,7 @@ module aptos_framework::evm_for_test {
             difficulty,
             excess_blob_gas,
             gas_limit,
+            gas_price,
             number,
             random,
             timestamp,
@@ -168,11 +170,12 @@ module aptos_framework::evm_for_test {
                               gas_price_bytes:vector<u8>,
                               value_bytes: vector<u8>,
                               env_data: vector<vector<u8>>) acquires ExecResource {
-        let env = parse_env(&env_data);
+        let gas_price = to_u256(gas_price_bytes);
+        let env = parse_env(&env_data, gas_price);
         let value = to_u256(value_bytes);
         let trie = &mut pre_init(addresses, codes, nonces, balances, storage_keys, storage_values);
         let transient = simple_map::new<u256, u256>();
-        let gas_price = to_u256(gas_price_bytes);
+
         let gas_limit = to_u256(gas_limit_bytes);
             from = to_32bit(from);
         to = to_32bit(to);
@@ -605,6 +608,12 @@ module aptos_framework::evm_for_test {
                 let len = pop_stack_u64(stack, error_code);
                 runtime_code = vector_slice_u256(code, d_pos, len);
                 copy_to_memory(memory, m_pos, d_pos, (len as u256), code);
+
+                i = i + 1
+            }
+                //gasprice
+            else if(opcode == 0x3a) {
+                vector::push_back(stack, env.gas_price);
 
                 i = i + 1
             }
@@ -1272,7 +1281,7 @@ module aptos_framework::evm_for_test {
             storage_values,
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc",
-            x"693c61390000000000000000000000000000000000000000000000000000000000000005",
+            x"693c61390000000000000000000000000000000000000000000000000000000000000007",
             u256_to_data(0x04c4b400),
             u256_to_data(0x1234),
             u256_to_data(0x1),
