@@ -3,15 +3,17 @@ module aptos_framework::evm_trie {
     use aptos_framework::evm_util::{to_32bit, to_u256};
     use aptos_std::simple_map::{SimpleMap};
     use aptos_std::simple_map;
+    use aptos_std::debug;
 
     struct Trie has drop {
-        context: vector<Context>,
+        context: vector<Checkpoint>,
         storage: SimpleMap<vector<u8>, TestAccount>,
         origin: SimpleMap<vector<u8>, SimpleMap<u256, u256>>,
     }
 
-    struct Context has copy, drop {
+    struct Checkpoint has copy, drop {
         state: SimpleMap<vector<u8>, TestAccount>,
+        transient: SimpleMap<vector<u8>, SimpleMap<u256, u256>>,
         self_destruct: SimpleMap<vector<u8>, bool>
     }
 
@@ -29,14 +31,14 @@ module aptos_framework::evm_trie {
     }
 
 
-    fun get_lastest_checkpoint_mut(trie: &mut Trie): &mut SimpleMap<vector<u8>, TestAccount> {
+    fun get_lastest_checkpoint_mut(trie: &mut Trie): &mut Checkpoint {
         let len = vector::length(&trie.context);
-        &mut vector::borrow_mut(&mut trie.context, len - 1).state
+        vector::borrow_mut(&mut trie.context, len - 1)
     }
 
-    fun get_lastest_checkpoint(trie: &Trie): &SimpleMap<vector<u8>, TestAccount> {
+    fun get_lastest_checkpoint(trie: &Trie): &Checkpoint {
         let len = vector::length(&trie.context);
-        &vector::borrow(&trie.context, len - 1).state
+        vector::borrow(&trie.context, len - 1)
     }
 
     fun load_account_storage(trie: &Trie, contract_addr: vector<u8>): TestAccount {
@@ -45,8 +47,8 @@ module aptos_framework::evm_trie {
 
     fun load_account_checkpoint(trie: &Trie, contract_addr: &vector<u8>): &TestAccount {
         let checkpoint = get_lastest_checkpoint(trie);
-        if(simple_map::contains_key(checkpoint, contract_addr)) {
-            simple_map::borrow(checkpoint, contract_addr)
+        if(simple_map::contains_key(&checkpoint.state, contract_addr)) {
+            simple_map::borrow(&checkpoint.state, contract_addr)
         } else {
             simple_map::borrow(&trie.storage, contract_addr)
         }
@@ -66,6 +68,29 @@ module aptos_framework::evm_trie {
             simple_map::add(checkpoint, *contract_addr, *account);
             simple_map::borrow_mut(checkpoint, contract_addr)
         }
+    }
+
+    public fun get_transient_storage(trie: &mut Trie, contract_addr: vector<u8>, key: u256): u256{
+        let checkpoint = get_lastest_checkpoint(trie);
+        if(!simple_map::contains_key(&checkpoint.transient, &contract_addr)) {
+            0
+        } else {
+            let data = simple_map::borrow(&checkpoint.transient, &contract_addr);
+            if(!simple_map::contains_key(data, &key)) {
+                0
+            } else {
+                *simple_map::borrow(data, &key)
+            }
+        }
+    }
+
+    public fun put_transient_storage(trie: &mut Trie, contract_addr: vector<u8>, key: u256, value: u256) {
+        let checkpoint = get_lastest_checkpoint_mut(trie);
+        if(!simple_map::contains_key(&checkpoint.transient, &contract_addr)) {
+            simple_map::add(&mut checkpoint.transient, contract_addr, simple_map::new())
+        };
+        let data = simple_map::borrow_mut(&mut checkpoint.transient, &contract_addr);
+        simple_map::upsert(data, key, value);
     }
 
     fun set_balance(trie: &mut Trie, contract_addr: vector<u8>, balance: u256) {
@@ -96,7 +121,7 @@ module aptos_framework::evm_trie {
 
     public fun new_account(contract_addr: vector<u8>, code: vector<u8>, balance: u256, nonce: u256, trie: &mut Trie) {
         let checkpoint = get_lastest_checkpoint_mut(trie);
-        simple_map::add(checkpoint, contract_addr, TestAccount {
+        simple_map::add(&mut checkpoint.state, contract_addr, TestAccount {
             code,
             balance,
             nonce,
@@ -214,9 +239,10 @@ module aptos_framework::evm_trie {
             });
             i = i + 1;
         };
-        vector::push_back(&mut trie.context, Context {
+        vector::push_back(&mut trie.context, Checkpoint {
             state: simple_map::new(),
-            self_destruct: simple_map::new()
+            self_destruct: simple_map::new(),
+            transient: simple_map::new()
         });
         trie
     }
@@ -254,9 +280,9 @@ module aptos_framework::evm_trie {
         while(i < len) {
             let address = *vector::borrow(&keys, i);
             let account = *vector::borrow(&values, i);
-            simple_map::upsert(old_checkpoint, address, account);
+            simple_map::upsert(&mut old_checkpoint.state, address, account);
             i = i + 1;
-        }
+        };
     }
 
     public fun add_warm_address(address: vector<u8>, trie: &mut Trie) {

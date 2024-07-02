@@ -28,7 +28,7 @@ module aptos_framework::evm_gas {
     const CallStipend: u256 = 2300;
 
     fun access_address(address: vector<u8>, trie: &mut Trie): u256 {
-        if(is_cold_address(address, trie)) ColdAccountAccess else 0
+        if(is_cold_address(address, trie)) ColdAccountAccess else Warmstorageread
     }
 
     fun calc_memory_expand(stack: &vector<u256>, pos: u64, size: u64, run_state: &mut RunState, gas_limit: u256): u256 {

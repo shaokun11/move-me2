@@ -12,10 +12,8 @@ module aptos_framework::evm_for_test {
     use aptos_framework::evm_global_state::{new_run_state, add_gas_usage, get_gas_refund, RunState, add_call_state, revert_call_state, commit_call_state, get_gas_left, add_gas_left};
     use aptos_framework::evm_gas::{calc_exec_gas, calc_base_gas, max_call_gas};
     use aptos_framework::event;
-    #[test_only]
-    use aptos_framework::account::create_account_for_test;
     use aptos_framework::evm_arithmetic::{add, mul, sub, div, sdiv, mod, smod, add_mod, mul_mod, exp, shr, sar};
-    use aptos_framework::evm_trie::{pre_init, Trie, add_checkpoint, revert_checkpoint, commit_latest_checkpoint, TestAccount, get_code, sub_balance, add_nonce, transfer, get_balance, get_state, set_state, exist_contract, get_nonce, new_account, get_storage_copy, save, add_balance, add_warm_address};
+    use aptos_framework::evm_trie::{pre_init, Trie, add_checkpoint, revert_checkpoint, commit_latest_checkpoint, TestAccount, get_code, sub_balance, add_nonce, transfer, get_balance, get_state, set_state, exist_contract, get_nonce, new_account, get_storage_copy, save, add_balance, add_warm_address, get_transient_storage, put_transient_storage};
     friend aptos_framework::genesis;
 
     const ADDR_LENGTH: u64 = 10001;
@@ -239,7 +237,6 @@ module aptos_framework::evm_for_test {
             transfer(sender, to, value, trie);
         };
 
-
         // let to_account = simple_map::borrow_mut(&mut trie, &to);
 
         let stack = &mut vector::empty<u256>();
@@ -250,7 +247,6 @@ module aptos_framework::evm_for_test {
         let ret_bytes = vector::empty<u8>();
         let error_code = &mut 0;
         let valid_jumps = get_valid_jumps(&code);
-        let transient = &mut simple_map::new<u256, u256>();
 
         let _events = simple_map::new<u256, vector<u8>>();
         // let gas = 21000;
@@ -789,11 +785,7 @@ module aptos_framework::evm_for_test {
                 //TLOAD
             else if(opcode == 0x5c) {
                 let key = pop_stack(stack, error_code);
-                if(simple_map::contains_key(transient, &key)) {
-                    vector::push_back(stack, *simple_map::borrow(transient, &key));
-                } else {
-                    vector::push_back(stack, 0);
-                };
+                vector::push_back(stack, get_transient_storage(trie, to, key));
 
                 i = i + 1
             }
@@ -801,7 +793,7 @@ module aptos_framework::evm_for_test {
             else if(opcode == 0x5d) {
                 let key = pop_stack(stack, error_code);
                 let value = pop_stack(stack, error_code);
-                simple_map::upsert(transient, key, value);
+                put_transient_storage(trie, to, key, value);
                 i = i + 1
             }
                 //MCOPY
@@ -1140,97 +1132,10 @@ module aptos_framework::evm_for_test {
         to_32bit(vector_slice(keccak256(p), 12, 20))
     }
 
-
     #[test_only]
-    fun init_storage(keys: vector<u256>, values: vector<u256>): SimpleMap<vector<u8>, vector<u8>> {
-        let i = 0;
-        let len = vector::length(&keys);
-        let map = simple_map::new<vector<u8>, vector<u8>>();
-        while(i < len) {
-            let key = *vector::borrow(&keys, i);
-            let value = *vector::borrow(&values, i);
-            simple_map::add(&mut map, u256_to_data(key), u256_to_data(value));
-            i = i + 1;
-        };
-
-        map
+    public fun initialize_for_test(aptos_framework: &signer) {
+        move_to<ExecResource>(aptos_framework, ExecResource {
+            exec_event: new_event_handle<ExecResultEvent>(aptos_framework)
+        });
     }
-
-    #[test]
-    public fun test_run() acquires ExecResource {
-        // debug::print(&u256_to_data(0x0ba1a9ce0ba1a9ce));
-        // let balance = u256_to_data(0x0ba1a9ce0ba1a9ce);
-
-
-        let aptos_framework = create_account_for_test(@0x1);
-        initialize(&aptos_framework);
-
-        let env = vector[u256_to_data(0x0a),
-            x"2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
-            u256_to_data(0x020000),
-            u256_to_data(0x00),
-            u256_to_data(0x10000000000000),
-            u256_to_data(0x01),
-            x"0000000000000000000000000000000000000000000000000000000000020000",
-            u256_to_data(0x03e8)];
-
-        let storage_maps = simple_map::new<vector<u8>, simple_map::SimpleMap<vector<u8>, vector<u8>>>();
-        simple_map::add(&mut storage_maps, x"b00000000000000000000000000000000000000b", init_storage(vector[0x00], vector[0xffff]));
-        let (storage_keys, storage_values) = (vector::empty<vector<vector<u8>>>(), vector::empty<vector<vector<u8>>>());
-
-
-        let addresses = vector[
-            x"a00000000000000000000000000000000000000a",
-            x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
-            x"b00000000000000000000000000000000000000b"
-        ];
-        let balance_table = vector[ 0x0de0b6b3a7640000, 0x3635c9adc5dea00000, 0x0de0b6b3a7640000 ];
-        let codes = vector[
-            x"600a5f5d5f806020818073b00000000000000000000000000000000000000b5af15f5c5f5560015500",
-            x"",
-            x"5f5c5f5560145f5d5f5c60015500"
-        ];
-        // let nonce_table = vector[
-        //     0x00,
-        //     0x01
-        // ];
-        let i = 0;
-        let balances = vector::empty<vector<u8>>();
-        let nonces = vector::empty<u64>();
-        while(i < vector::length(&addresses)) {
-            let address = *vector::borrow(&addresses, i);
-            vector::push_back(&mut nonces, 0);
-
-            let balance = *vector::borrow(&balance_table, i);
-            vector::push_back(&mut balances, u256_to_data(balance));
-
-            if(simple_map::contains_key(&storage_maps, &address)) {
-                let data = simple_map::borrow(&storage_maps, &address);
-                vector::push_back(&mut storage_keys, simple_map::keys(data));
-                vector::push_back(&mut storage_values, simple_map::values(data));
-            } else {
-                vector::push_back(&mut storage_keys, vector::empty<vector<u8>>());
-                vector::push_back(&mut storage_values, vector::empty<vector<u8>>());
-            };
-            i = i + 1;
-        };
-
-        run_test(
-            addresses,
-            codes,
-            nonces,
-            balances,
-            storage_keys,
-            storage_values,
-            x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
-            x"a00000000000000000000000000000000000000a",
-            x"",
-            u256_to_data(0x061a80),
-            u256_to_data(0x0a + 0x00),
-            u256_to_data(0x00),
-            env
-        );
-    }
-
-
 }
