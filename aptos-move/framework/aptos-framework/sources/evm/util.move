@@ -4,7 +4,6 @@ module aptos_framework::evm_util {
     use aptos_framework::rlp_encode::encode_bytes_list;
     use aptos_std::debug;
     use std::string::utf8;
-    use aptos_std::debug::print;
 
     const U64_MAX: u256 = 18446744073709551615; // 18_446_744_073_709_551_615
 
@@ -358,6 +357,12 @@ module aptos_framework::evm_util {
             debug::print(&utf8(b"GAS"));
         } else if(opcode == 0x5b) {
             debug::print(&utf8(b"JUMPDEST"));
+        } else if(opcode == 0x5c) {
+            debug::print(&utf8(b"TLOAD"));
+        } else if(opcode == 0x5d) {
+            debug::print(&utf8(b"TSTORE"));
+        } else if(opcode == 0x5f) {
+            debug::print(&utf8(b"PUSH0"));
         } else if(opcode == 0x60) {
             debug::print(&utf8(b"PUSH1"));
         } else if(opcode == 0x61) {

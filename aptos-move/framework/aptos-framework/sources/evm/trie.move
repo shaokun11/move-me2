@@ -3,12 +3,16 @@ module aptos_framework::evm_trie {
     use aptos_framework::evm_util::{to_32bit, to_u256};
     use aptos_std::simple_map::{SimpleMap};
     use aptos_std::simple_map;
-    use aptos_std::debug;
 
     struct Trie has drop {
-        context: vector<SimpleMap<vector<u8>, TestAccount>>,
+        context: vector<Context>,
         storage: SimpleMap<vector<u8>, TestAccount>,
         origin: SimpleMap<vector<u8>, SimpleMap<u256, u256>>,
+    }
+
+    struct Context has copy, drop {
+        state: SimpleMap<vector<u8>, TestAccount>,
+        self_destruct: SimpleMap<vector<u8>, bool>
     }
 
     struct TestAccount has drop, copy, store {
@@ -27,7 +31,12 @@ module aptos_framework::evm_trie {
 
     fun get_lastest_checkpoint_mut(trie: &mut Trie): &mut SimpleMap<vector<u8>, TestAccount> {
         let len = vector::length(&trie.context);
-        vector::borrow_mut(&mut trie.context, len - 1)
+        &mut vector::borrow_mut(&mut trie.context, len - 1).state
+    }
+
+    fun get_lastest_checkpoint(trie: &Trie): &SimpleMap<vector<u8>, TestAccount> {
+        let len = vector::length(&trie.context);
+        &vector::borrow(&trie.context, len - 1).state
     }
 
     fun load_account_storage(trie: &Trie, contract_addr: vector<u8>): TestAccount {
@@ -35,8 +44,7 @@ module aptos_framework::evm_trie {
     }
 
     fun load_account_checkpoint(trie: &Trie, contract_addr: &vector<u8>): &TestAccount {
-        let len = vector::length(&trie.context);
-        let checkpoint = vector::borrow(&trie.context, len - 1);
+        let checkpoint = get_lastest_checkpoint(trie);
         if(simple_map::contains_key(checkpoint, contract_addr)) {
             simple_map::borrow(checkpoint, contract_addr)
         } else {
@@ -46,7 +54,7 @@ module aptos_framework::evm_trie {
 
     fun load_account_checkpoint_mut(trie: &mut Trie, contract_addr: &vector<u8>): &mut TestAccount {
         let len = vector::length(&trie.context);
-        let checkpoint = vector::borrow_mut(&mut trie.context, len - 1);
+        let checkpoint = &mut vector::borrow_mut(&mut trie.context, len - 1).state;
         if(simple_map::contains_key(checkpoint, contract_addr)) {
             simple_map::borrow_mut(checkpoint, contract_addr)
         } else {
@@ -130,8 +138,8 @@ module aptos_framework::evm_trie {
 
     public fun exist_account(address: vector<u8>, trie: &Trie): bool {
         let len = vector::length(&trie.context);
-        let checkpoint = vector::borrow(&trie.context, len - 1);
-        if(!simple_map::contains_key(checkpoint, &address)) {
+        let checkpoint = vector::borrow(&trie.context, len - 1).state;
+        if(!simple_map::contains_key(&checkpoint, &address)) {
             return simple_map::contains_key(&trie.storage, &address)
         };
 
@@ -206,7 +214,10 @@ module aptos_framework::evm_trie {
             });
             i = i + 1;
         };
-        vector::push_back(&mut trie.context, simple_map::new());
+        vector::push_back(&mut trie.context, Context {
+            state: simple_map::new(),
+            self_destruct: simple_map::new()
+        });
         trie
     }
 
@@ -219,7 +230,7 @@ module aptos_framework::evm_trie {
     }
 
     public fun save(trie: &mut Trie) {
-        let checkpoint = vector::pop_back(&mut trie.context);
+        let checkpoint = vector::pop_back(&mut trie.context).state;
         let (keys, values) = simple_map::to_vec_pair(checkpoint);
         let i = 0;
         let len = vector::length(&keys);
@@ -234,7 +245,7 @@ module aptos_framework::evm_trie {
     }
 
     public fun commit_latest_checkpoint(trie: &mut Trie) {
-        let new_checkpoint = vector::pop_back(&mut trie.context);
+        let new_checkpoint = vector::pop_back(&mut trie.context).state;
         let old_checkpoint = get_lastest_checkpoint_mut(trie);
 
         let (keys, values) = simple_map::to_vec_pair(new_checkpoint);
@@ -248,6 +259,9 @@ module aptos_framework::evm_trie {
         }
     }
 
+    public fun add_warm_address(address: vector<u8>, trie: &mut Trie) {
+        simple_map::upsert(&mut trie.origin, address, simple_map::new<u256, u256>());
+    }
 
     public fun is_cold_address(address: vector<u8>, trie: &mut Trie): bool {
         let is_cold = !simple_map::contains_key(&trie.origin, &address);

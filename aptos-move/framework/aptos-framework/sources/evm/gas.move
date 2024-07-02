@@ -4,7 +4,7 @@ module aptos_framework::evm_gas {
     use aptos_framework::evm_global_state::{get_memory_cost, set_memory_cost, add_gas_refund, sub_gas_refund, get_memory_word_size, set_memory_word_size, RunState};
     use aptos_std::debug;
     use std::vector::for_each;
-    use aptos_framework::evm_trie::{Trie, get_state, exist_account, is_cold_address, get_cache};
+    use aptos_framework::evm_trie::{Trie, get_state, exist_account, is_cold_address, get_cache, get_balance};
 
     const U64_MAX: u256 = 18446744073709551615; // 18_446_744_073_709_551_615
 
@@ -233,6 +233,22 @@ module aptos_framework::evm_gas {
         debug::print(&gas);
         debug::print(&data_length);
         gas
+    }
+
+    fun calc_self_destruct_gas(address: vector<u8>,
+                               stack: &mut vector<u256>,
+                               trie: &mut Trie): u256 {
+        let balance = get_balance(address, trie);
+        let len = vector::length(stack);
+        let to = u256_to_data(*vector::borrow(stack,len - 1));
+        let gas = 0;
+        if(balance > 0) {
+            if(balance > 0 && !exist_account(to, trie)) {
+                gas = gas + CallNewAccount;
+            };
+        };
+        gas = gas + access_address(to, trie);
+        gas + 5000
     }
 
     fun get_word_count(bytes: u256): u256 {
@@ -485,6 +501,9 @@ module aptos_framework::evm_gas {
         } else if (opcode >= 0xa0 && opcode <= 0xa4) {
             // LOG
             calc_log_gas(opcode, stack, run_state, gas_limit)
+        } else if (opcode == 0xff) {
+            // SELF DESTRUCT
+            calc_self_destruct_gas(address, stack, trie)
         } else {
             assert!(false, (opcode as u64));
             0

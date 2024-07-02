@@ -1,6 +1,5 @@
 module aptos_framework::evm_global_state {
     use std::vector;
-    use aptos_std::debug;
 
     struct RunState has drop {
         call_state: vector<CallState>
@@ -46,8 +45,6 @@ module aptos_framework::evm_global_state {
 
         let new_state = vector::pop_back(&mut run_state.call_state);
         let old_state = get_lastest_state_mut(run_state);
-        debug::print(&new_state.gas_limit);
-        debug::print(&new_state.gas_left);
         old_state.gas_refund = old_state.gas_refund + new_state.gas_refund;
         old_state.gas_left = old_state.gas_left - (new_state.gas_limit - new_state.gas_left);
     }
