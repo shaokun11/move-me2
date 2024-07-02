@@ -266,15 +266,13 @@ module aptos_framework::evm_trie {
             simple_map::upsert(&mut trie.storage, address, account);
             i = i + 1;
         };
-
-        // debug::print(trie);
     }
 
     public fun commit_latest_checkpoint(trie: &mut Trie) {
-        let new_checkpoint = vector::pop_back(&mut trie.context).state;
+        let new_checkpoint = vector::pop_back(&mut trie.context);
         let old_checkpoint = get_lastest_checkpoint_mut(trie);
 
-        let (keys, values) = simple_map::to_vec_pair(new_checkpoint);
+        let (keys, values) = simple_map::to_vec_pair(new_checkpoint.state);
         let i = 0;
         let len = vector::length(&keys);
         while(i < len) {
@@ -283,6 +281,8 @@ module aptos_framework::evm_trie {
             simple_map::upsert(&mut old_checkpoint.state, address, account);
             i = i + 1;
         };
+
+        old_checkpoint.transient = new_checkpoint.transient;
     }
 
     public fun add_warm_address(address: vector<u8>, trie: &mut Trie) {
