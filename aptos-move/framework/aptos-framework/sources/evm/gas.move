@@ -246,7 +246,7 @@ module aptos_framework::evm_gas {
 
     public fun max_call_gas(gas_left: u256, gas_limit: u256, value: u256, opcode: u8): (u256, u256) {
         let gas_allow = gas_left - gas_left / 64;
-        if(gas_limit > gas_allow) gas_allow else gas_limit;
+        gas_limit = if(gas_limit > gas_allow) gas_allow else gas_limit;
         let gas_stipend = 0;
         if(opcode == 0xf1 && value > 0) {
             gas_stipend = gas_stipend + CallStipend;

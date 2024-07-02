@@ -849,9 +849,8 @@ module aptos_framework::evm_for_test {
                 };
                 let m_pos = pop_stack_u64(stack, error_code);
                 let m_len = pop_stack_u64(stack, error_code);
-                let ret_pos = pop_stack_u64(stack, error_code);
-                let ret_len = pop_stack_u64(stack, error_code);
-                let ret_end = ret_len + ret_pos;
+                let ret_pos = pop_stack(stack, error_code);
+                let ret_len = pop_stack(stack, error_code);
                 let params = vector_slice(*memory, m_pos, m_len);
                 let transfer_eth = if (opcode == 0xf1) true else false;
 
@@ -866,18 +865,8 @@ module aptos_framework::evm_for_test {
 
                     let (call_res, bytes) = run(sender, from, target, dest_code, params, msg_value, call_gas_limit, trie, transient, run_state, transfer_eth, env);
                     ret_bytes = bytes;
-                    let index = 0;
 
-                    while (ret_pos < ret_end) {
-                        let bytes = if (ret_end - ret_pos >= 32) {
-                            vector_slice(bytes, index, 32)
-                        } else {
-                            vector_slice(bytes, index, ret_end - ret_pos)
-                        };
-                        mstore(memory, ret_pos, bytes);
-                        ret_pos = ret_pos + 32;
-                        index = index + 32;
-                    };
+                    copy_to_memory(memory, (m_pos as u256), ret_pos, ret_len, bytes);
                     vector::push_back(stack,  if(call_res) 1 else 0);
                 } else {
                     vector::push_back(stack, 1);
@@ -1201,100 +1190,27 @@ module aptos_framework::evm_for_test {
             u256_to_data(0x03e8)];
 
         let storage_maps = simple_map::new<vector<u8>, simple_map::SimpleMap<vector<u8>, vector<u8>>>();
-        // simple_map::add(&mut storage_maps, x"cccccccccccccccccccccccccccccccccccccccc", init_storage(vector[0x00], vector[0x0bad]));
+        simple_map::add(&mut storage_maps, x"cccccccccccccccccccccccccccccccccccccccc", init_storage(vector[0x00], vector[0x0bad]));
         let (storage_keys, storage_values) = (vector::empty<vector<vector<u8>>>(), vector::empty<vector<vector<u8>>>());
 
 
         let addresses = vector[
             x"0000000000000000000000000000000000001000",
             x"0000000000000000000000000000000000001001",
-            x"0000000000000000000000000000000000001002",
-            x"0000000000000000000000000000000000001003",
-            x"0000000000000000000000000000000000001004",
-            x"0000000000000000000000000000000000001005",
-            x"0000000000000000000000000000000000001006",
-            x"0000000000000000000000000000000000001007",
-            x"0000000000000000000000000000000000001008",
-            x"0000000000000000000000000000000000001009",
-            x"000000000000000000000000000000000000100a",
-            x"000000000000000000000000000000000000100b",
-            x"000000000000000000000000000000000000100c",
-            x"000000000000000000000000000000000000100d",
-            x"000000000000000000000000000000000000100e",
-            x"000000000000000000000000000000000000100f",
-            x"0000000000000000000000000000000000001010",
-            x"0000000000000000000000000000000000001011",
-            x"0000000000000000000000000000000000001012",
-            x"0000000000000000000000000000000000001013",
-            x"0000000000000000000000000000000000001014",
-            x"0000000000000000000000000000000000001015",
-            x"0000000000000000000000000000000000001016",
-            x"0000000000000000000000000000000000001017",
-            x"0000000000000000000000000000000000001018",
-            x"0000000000000000000000000000000000001019",
-            x"000000000000000000000000000000000000101a",
-            x"000000000000000000000000000000000000101b",
-            x"000000000000000000000000000000000000101c",
-            x"000000000000000000000000000000000000101d",
-            x"000000000000000000000000000000000000101e",
-            x"000000000000000000000000000000000000101f",
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc"
         ];
         let balance_table = vector[
-            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
-            0x0ba1a9ce0ba1a9ce, 0x0ba1a9ce0ba1a9ce,
-            0x100000000000,     0x0ba1a9ce0ba1a9ce
+            0x0ba1a9ce0ba1a9ce,
+            0x0ba1a9ce0ba1a9ce,
+            0x100000000000,
+            0x0ba1a9ce0ba1a9ce
         ];
         let codes = vector[
-            x"60ff600055",
-            x"61eeff600055",
-            x"62ddeeff600055",
-            x"63ccddeeff600055",
-            x"64bbccddeeff600055",
-            x"65aabbccddeeff600055",
-            x"6699aabbccddeeff600055",
-            x"678899aabbccddeeff600055",
-            x"68778899aabbccddeeff600055",
-            x"6966778899aabbccddeeff600055",
-            x"6a5566778899aabbccddeeff600055",
-            x"6b445566778899aabbccddeeff600055",
-            x"6c33445566778899aabbccddeeff600055",
-            x"6d2233445566778899aabbccddeeff600055",
-            x"6e112233445566778899aabbccddeeff600055",
-            x"6f00112233445566778899aabbccddeeff600055",
-            x"70ff00112233445566778899aabbccddeeff600055",
-            x"71eeff00112233445566778899aabbccddeeff600055",
-            x"72ddeeff00112233445566778899aabbccddeeff600055",
-            x"73ccddeeff00112233445566778899aabbccddeeff600055",
-            x"74bbccddeeff00112233445566778899aabbccddeeff600055",
-            x"75aabbccddeeff00112233445566778899aabbccddeeff600055",
-            x"7699aabbccddeeff00112233445566778899aabbccddeeff600055",
-            x"778899aabbccddeeff00112233445566778899aabbccddeeff600055",
-            x"78778899aabbccddeeff00112233445566778899aabbccddeeff600055",
-            x"7966778899aabbccddeeff00112233445566778899aabbccddeeff600055",
-            x"7a5566778899aabbccddeeff00112233445566778899aabbccddeeff600055",
-            x"7b445566778899aabbccddeeff00112233445566778899aabbccddeeff600055",
-            x"7c33445566778899aabbccddeeff00112233445566778899aabbccddeeff600055",
-            x"7d2233445566778899aabbccddeeff00112233445566778899aabbccddeeff600055",
-            x"7e112233445566778899aabbccddeeff00112233445566778899aabbccddeeff600055",
-            x"7f00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff600055",
+            x"64ffffffffff60005261eeee605a525a60005500",
+            x"5a60005500",
             x"",
-            x"60006000600060006000600435611000015af100"
+            x"6000600060006000600435611000015af400"
         ];
         // let nonce_table = vector[
         //     0x00,
