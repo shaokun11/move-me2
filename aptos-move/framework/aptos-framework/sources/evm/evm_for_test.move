@@ -576,27 +576,11 @@ module aptos_framework::evm_for_test {
             else if(opcode == 0x37) {
                 let m_pos = pop_stack(stack, error_code);
                 let d_pos = pop_stack(stack, error_code);
-                if(d_pos <= U64_MAX && m_pos <= U64_MAX) {
-                    let m_pos = (m_pos as u64);
-                    let d_pos = (d_pos as u64);
-                    let len = pop_stack_u64(stack, error_code);
-                    let end = d_pos + len;
-                    while (d_pos < end) {
-                        let bytes = if(end - d_pos >= 32) {
-                            vector_slice(data, d_pos, 32)
-                        } else {
-                            vector_slice(data, d_pos, end - d_pos)
-                        };
-                        // debug::print(&bytes);
-                        mstore(memory, m_pos, bytes);
-                        d_pos = d_pos + 32;
-                        m_pos = m_pos + 32;
-                    };
-                };
-
+                let len = pop_stack(stack, error_code);
+                copy_to_memory(memory, m_pos, d_pos, len, data);
                 i = i + 1
             }
-                //codesize
+                //codesizeF
             else if(opcode == 0x38) {
                 vector::push_back(stack, (vector::length(&code) as u256));
                 i = i + 1
@@ -865,8 +849,7 @@ module aptos_framework::evm_for_test {
 
                     let (call_res, bytes) = run(sender, from, target, dest_code, params, msg_value, call_gas_limit, trie, transient, run_state, transfer_eth, env);
                     ret_bytes = bytes;
-
-                    copy_to_memory(memory, (m_pos as u256), ret_pos, ret_len, bytes);
+                    copy_to_memory(memory, ret_pos , 0, ret_len, bytes);
                     vector::push_back(stack,  if(call_res) 1 else 0);
                 } else {
                     vector::push_back(stack, 1);
@@ -1190,27 +1173,45 @@ module aptos_framework::evm_for_test {
             u256_to_data(0x03e8)];
 
         let storage_maps = simple_map::new<vector<u8>, simple_map::SimpleMap<vector<u8>, vector<u8>>>();
-        simple_map::add(&mut storage_maps, x"cccccccccccccccccccccccccccccccccccccccc", init_storage(vector[0x00], vector[0x0bad]));
+        // simple_map::add(&mut storage_maps, x"cccccccccccccccccccccccccccccccccccccccc", init_storage(vector[0x00], vector[0x0bad]));
         let (storage_keys, storage_values) = (vector::empty<vector<vector<u8>>>(), vector::empty<vector<vector<u8>>>());
 
 
         let addresses = vector[
             x"0000000000000000000000000000000000001000",
             x"0000000000000000000000000000000000001001",
+            x"0000000000000000000000000000000000001002",
+            x"0000000000000000000000000000000000001003",
+            x"0000000000000000000000000000000000001004",
+            x"0000000000000000000000000000000000001005",
+            x"0000000000000000000000000000000000001010",
+            x"0000000000000000000000000000000000001011",
             x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             x"cccccccccccccccccccccccccccccccccccccccc"
         ];
         let balance_table = vector[
             0x0ba1a9ce0ba1a9ce,
             0x0ba1a9ce0ba1a9ce,
-            0x100000000000,
+            0x0ba1a9ce0ba1a9ce,
+            0x0ba1a9ce0ba1a9ce,
+            0x0ba1a9ce0ba1a9ce,
+            0x0ba1a9ce0ba1a9ce,
+            0x0ba1a9ce0ba1a9ce,
+            0x0ba1a9ce0ba1a9ce,
+            0x0ba1a9ce0ba1a9ce,
             0x0ba1a9ce0ba1a9ce
         ];
         let codes = vector[
-            x"64ffffffffff60005261eeee605a525a60005500",
-            x"5a60005500",
+            x"60026001600037600051600055596000f300",
+            x"60016001600037600051600055596000f300",
+            x"60006001600037600051600055596000f300",
+            x"60006000600037600051600055596000f300",
+            x"60ff7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffa600037600051600055596000f300",
+            x"60097ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffa600037600051600055596000f300",
+            x"60016001556001600237",
+            x"6005565b005b6042601f536101036000601f3760005180606014600357640badc0ffee60ff55",
             x"",
-            x"6000600060006000600435611000015af400"
+            x"701234567890abcdef01234567890abcdef0600052604060206010600f60006004356110000162fffffff15060205160005560405160015500"
         ];
         // let nonce_table = vector[
         //     0x00,

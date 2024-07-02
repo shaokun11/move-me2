@@ -4,6 +4,7 @@ module aptos_framework::evm_util {
     use aptos_framework::rlp_encode::encode_bytes_list;
     use aptos_std::debug;
     use std::string::utf8;
+    use aptos_std::debug::print;
 
     const U64_MAX: u256 = 18446744073709551615; // 18_446_744_073_709_551_615
 
@@ -141,49 +142,42 @@ module aptos_framework::evm_util {
         res
     }
 
-    public fun copy_to_memory(memory: &mut vector<u8>, m_pos: u256, d_pos: u256, len: u256, data: vector<u8>) {
-        expand_to_pos(memory, (m_pos as u64));
-        let i = 0;
-        let m_len = (vector::length(memory) as u256);
-        let d_len =( vector::length(&data) as u256);
-
-        while (i < len) {
-            let bytes = if(d_pos > U64_MAX || d_pos + i >= d_len) 0 else *vector::borrow(&data, ((d_pos + i) as u64));
-            if(m_pos + i >= m_len) {
-                vector::push_back(memory, bytes);
-            } else {
-                *vector::borrow_mut(memory, ((m_pos + i) as u64)) = bytes;
-            };
-            i = i + 1;
-        };
-    }
-
     public fun expand_to_pos(memory: &mut vector<u8>, pos: u64) {
         let len_m = vector::length(memory);
         let pos = pos;
+        if(pos % 32 != 0) {
+            pos = pos / 32 * 32 + 32;
+        };
+
         if(pos > len_m) {
             let size = pos - len_m;
             let new_array = new_fixed_length_vector(size);
             *memory = vector_extend(new_array, *memory)
-        }
+        };
+    }
+
+    public fun copy_to_memory(memory: &mut vector<u8>, m_pos: u256, d_pos: u256, len: u256, data: vector<u8>) {
+        expand_to_pos(memory, ((m_pos + len) as u64));
+        let i = 0;
+        let d_len =( vector::length(&data) as u256);
+
+        while (i < len) {
+            let bytes = if(d_pos > U64_MAX || d_pos + i >= d_len) 0 else *vector::borrow(&data, ((d_pos + i) as u64));
+            *vector::borrow_mut(memory, ((m_pos + i) as u64)) = bytes;
+            i = i + 1;
+        };
     }
 
     public fun mstore(memory: &mut vector<u8>, pos: u64, data: vector<u8>) {
-        expand_to_pos(memory, pos);
-        let len_m = vector::length(memory);
         let len_d = vector::length(&data);
+        expand_to_pos(memory, pos + len_d);
 
         let i = 0;
         while (i < len_d) {
-            if(len_m <= pos + i) {
-                vector::push_back(memory, *vector::borrow(&data, i));
-                len_m = len_m + 1;
-            } else {
-                *vector::borrow_mut(memory, pos + i) = *vector::borrow(&data, i);
-            };
-
+            *vector::borrow_mut(memory, pos + i) = *vector::borrow(&data, i);
             i = i + 1
         };
+        debug::print(memory)
     }
 
     public fun get_message_hash(input: vector<vector<u8>>): vector<u8> {
