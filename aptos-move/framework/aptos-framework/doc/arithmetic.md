@@ -19,6 +19,7 @@
 -  [Function `shr`](#0x1_evm_arithmetic_shr)
 -  [Function `add_mod`](#0x1_evm_arithmetic_add_mod)
 -  [Function `mul_mod`](#0x1_evm_arithmetic_mul_mod)
+-  [Function `mod_exp`](#0x1_evm_arithmetic_mod_exp)
 
 
 <pre><code></code></pre>
@@ -327,6 +328,28 @@
 
 
 <pre><code><b>public</b> <b>native</b> <b>fun</b> <a href="arithmetic.md#0x1_evm_arithmetic_mul_mod">mul_mod</a>(a: u256, b: u256, n: u256): u256;
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_arithmetic_mod_exp"></a>
+
+## Function `mod_exp`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="arithmetic.md#0x1_evm_arithmetic_mod_exp">mod_exp</a>(base: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, exp_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, mod: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>native</b> <b>fun</b> <a href="arithmetic.md#0x1_evm_arithmetic_mod_exp">mod_exp</a>(base: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, exp_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, mod: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;;
 </code></pre>
 
 

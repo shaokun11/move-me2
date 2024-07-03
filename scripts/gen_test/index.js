@@ -58,9 +58,9 @@ function toBytes(str) {
     return `x"${str.slice(2)}"`
 }
 
-function read(json_path, dataIndex, gasIndex, valueIndex) {
+function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     let content = JSON.parse(fs.readFileSync(json_path).toString());
-    let funName = Object.keys(content)[0];
+    let funName = key.length > 0 ? key : Object.keys(content)[0];
     let pre = content[funName].pre;
     let transactions = content[funName].transaction;
     let env = content[funName].env;
@@ -81,4 +81,6 @@ function read(json_path, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-read("src/GeneralStateTests/Cancun/stEIP5656-MCOPY/MCOPY_memory_expansion_cost.json", 10, 0, 0)
+let key = "src/GeneralStateTestsFiller/Pyspecs/byzantium/eip198_modexp_precompile/test_modexp.py::test_modexp[fork_Cancun-state_test-EIP-198-case1]"
+
+read("src/GeneralStateTests/Pyspecs/byzantium/eip198_modexp_precompile/modexp.json", key, 0, 0, 0)

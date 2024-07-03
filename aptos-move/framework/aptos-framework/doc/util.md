@@ -157,6 +157,8 @@ owned.
 -  [Function `new_fixed_length_vector`](#0x1_evm_util_new_fixed_length_vector)
 -  [Function `vector_extend`](#0x1_evm_util_vector_extend)
 -  [Function `vector_slice`](#0x1_evm_util_vector_slice)
+-  [Function `vector_slice_u256`](#0x1_evm_util_vector_slice_u256)
+-  [Function `create_empty_data`](#0x1_evm_util_create_empty_data)
 -  [Function `to_32bit`](#0x1_evm_util_to_32bit)
 -  [Function `get_contract_address`](#0x1_evm_util_get_contract_address)
 -  [Function `power`](#0x1_evm_util_power)
@@ -165,9 +167,10 @@ owned.
 -  [Function `to_u256`](#0x1_evm_util_to_u256)
 -  [Function `data_to_u256`](#0x1_evm_util_data_to_u256)
 -  [Function `u256_bytes_length`](#0x1_evm_util_u256_bytes_length)
+-  [Function `adjust_length`](#0x1_evm_util_adjust_length)
 -  [Function `u256_to_data`](#0x1_evm_util_u256_to_data)
--  [Function `copy_to_memory`](#0x1_evm_util_copy_to_memory)
 -  [Function `expand_to_pos`](#0x1_evm_util_expand_to_pos)
+-  [Function `copy_to_memory`](#0x1_evm_util_copy_to_memory)
 -  [Function `mstore`](#0x1_evm_util_mstore)
 -  [Function `get_message_hash`](#0x1_evm_util_get_message_hash)
 -  [Function `u256_to_trimed_data`](#0x1_evm_util_u256_to_trimed_data)
@@ -215,6 +218,15 @@ owned.
 
 
 <pre><code><b>const</b> <a href="util.md#0x1_evm_util_U256_MAX">U256_MAX</a>: u256 = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
+</code></pre>
+
+
+
+<a id="0x1_evm_util_U64_MAX"></a>
+
+
+
+<pre><code><b>const</b> <a href="util.md#0x1_evm_util_U64_MAX">U64_MAX</a>: u256 = 18446744073709551615;
 </code></pre>
 
 
@@ -288,6 +300,64 @@ owned.
 
 
 <pre><code><b>public</b> <b>native</b> <b>fun</b> <a href="util.md#0x1_evm_util_vector_slice">vector_slice</a>(a: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, pos: u64, size: u64): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;;
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_util_vector_slice_u256"></a>
+
+## Function `vector_slice_u256`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_vector_slice_u256">vector_slice_u256</a>(a: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, pos: u256, size: u256): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_vector_slice_u256">vector_slice_u256</a>(a: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, pos: u256, size: u256): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt; {
+    <b>if</b>(pos &gt; <a href="util.md#0x1_evm_util_U64_MAX">U64_MAX</a>) {
+        <b>return</b> <a href="util.md#0x1_evm_util_create_empty_data">create_empty_data</a>((size <b>as</b> u64))
+    };
+
+    <a href="util.md#0x1_evm_util_vector_slice">vector_slice</a>(a, (pos <b>as</b> u64), (size <b>as</b> u64))
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_util_create_empty_data"></a>
+
+## Function `create_empty_data`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_create_empty_data">create_empty_data</a>(len: u64): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_create_empty_data">create_empty_data</a>(len: u64): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt; {
+    <b>let</b> bytes = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_empty">vector::empty</a>&lt;u8&gt;();
+    <b>let</b> i = 0;
+    <b>while</b>(i &lt; len) {
+        <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(&<b>mut</b> bytes, 0);
+        i = i + 1;
+    };
+    bytes
+}
 </code></pre>
 
 
@@ -549,6 +619,36 @@ owned.
 
 </details>
 
+<a id="0x1_evm_util_adjust_length"></a>
+
+## Function `adjust_length`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_adjust_length">adjust_length</a>(bytes: &<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): u256
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_adjust_length">adjust_length</a>(bytes: &<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): u256 {
+    <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(bytes);
+    <b>let</b> i = 0;
+    <b>while</b>(len &gt; 0 && *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(bytes, i) == 0) {
+        len = len - 1;
+        i = i + 1;
+    };
+    (len <b>as</b> u256)
+}
+</code></pre>
+
+
+
+</details>
+
 <a id="0x1_evm_util_u256_to_data"></a>
 
 ## Function `u256_to_data`
@@ -581,43 +681,6 @@ owned.
 
 </details>
 
-<a id="0x1_evm_util_copy_to_memory"></a>
-
-## Function `copy_to_memory`
-
-
-
-<pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_copy_to_memory">copy_to_memory</a>(memory: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, m_pos: u64, d_pos: u64, len: u64, data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)
-</code></pre>
-
-
-
-<details>
-<summary>Implementation</summary>
-
-
-<pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_copy_to_memory">copy_to_memory</a>(memory: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, m_pos: u64, d_pos: u64, len: u64, data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;) {
-    <a href="util.md#0x1_evm_util_expand_to_pos">expand_to_pos</a>(memory, m_pos);
-    <b>let</b> i = 0;
-    <b>let</b> m_len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(memory);
-    <b>let</b> d_len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&data);
-
-    <b>while</b> (i &lt; len) {
-        <b>let</b> bytes = <b>if</b>(d_pos + i &gt;= d_len) 0 <b>else</b> *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&data, d_pos + i);
-        <b>if</b>(m_pos + i &gt;= m_len) {
-            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(memory, bytes);
-        } <b>else</b> {
-            *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow_mut">vector::borrow_mut</a>(memory, m_pos + i) = bytes;
-        };
-        i = i + 1;
-    };
-}
-</code></pre>
-
-
-
-</details>
-
 <a id="0x1_evm_util_expand_to_pos"></a>
 
 ## Function `expand_to_pos`
@@ -636,11 +699,49 @@ owned.
 <pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_expand_to_pos">expand_to_pos</a>(memory: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, pos: u64) {
     <b>let</b> len_m = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(memory);
     <b>let</b> pos = pos;
+    <b>if</b>(pos % 32 != 0) {
+        pos = pos / 32 * 32 + 32;
+    };
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&len_m);
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&pos);
+
     <b>if</b>(pos &gt; len_m) {
         <b>let</b> size = pos - len_m;
         <b>let</b> new_array = <a href="util.md#0x1_evm_util_new_fixed_length_vector">new_fixed_length_vector</a>(size);
         *memory = <a href="util.md#0x1_evm_util_vector_extend">vector_extend</a>(new_array, *memory)
-    }
+    };
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_util_copy_to_memory"></a>
+
+## Function `copy_to_memory`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_copy_to_memory">copy_to_memory</a>(memory: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, m_pos: u256, d_pos: u256, len: u256, data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_copy_to_memory">copy_to_memory</a>(memory: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, m_pos: u256, d_pos: u256, len: u256, data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;) {
+    <a href="util.md#0x1_evm_util_expand_to_pos">expand_to_pos</a>(memory, ((m_pos + len) <b>as</b> u64));
+    <b>let</b> i = 0;
+    <b>let</b> d_len =( <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&data) <b>as</b> u256);
+
+    <b>while</b> (i &lt; len) {
+        <b>let</b> bytes = <b>if</b>(d_pos &gt; <a href="util.md#0x1_evm_util_U64_MAX">U64_MAX</a> || d_pos + i &gt;= d_len) 0 <b>else</b> *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&data, ((d_pos + i) <b>as</b> u64));
+        *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow_mut">vector::borrow_mut</a>(memory, ((m_pos + i) <b>as</b> u64)) = bytes;
+        i = i + 1;
+    };
 }
 </code></pre>
 
@@ -664,21 +765,16 @@ owned.
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_mstore">mstore</a>(memory: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, pos: u64, data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;) {
-    <a href="util.md#0x1_evm_util_expand_to_pos">expand_to_pos</a>(memory, pos);
-    <b>let</b> len_m = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(memory);
     <b>let</b> len_d = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&data);
-
-    <b>let</b> i = 0;
-    <b>while</b> (i &lt; len_d) {
-        <b>if</b>(len_m &lt;= pos + i) {
-            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(memory, *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&data, i));
-            len_m = len_m + 1;
-        } <b>else</b> {
+    <b>if</b>(len_d &gt; 0) {
+        <a href="util.md#0x1_evm_util_expand_to_pos">expand_to_pos</a>(memory, pos + len_d);
+        <b>let</b> i = 0;
+        <b>while</b> (i &lt; len_d) {
             *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow_mut">vector::borrow_mut</a>(memory, pos + i) = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&data, i);
+            i = i + 1
         };
+    }
 
-        i = i + 1
-    };
 }
 </code></pre>
 
@@ -959,6 +1055,14 @@ owned.
         <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"GAS"));
     } <b>else</b> <b>if</b>(opcode == 0x5b) {
         <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"JUMPDEST"));
+    } <b>else</b> <b>if</b>(opcode == 0x5c) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"TLOAD"));
+    } <b>else</b> <b>if</b>(opcode == 0x5d) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"TSTORE"));
+    }  <b>else</b> <b>if</b>(opcode == 0x5e) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"MCOPY"));
+    } <b>else</b> <b>if</b>(opcode == 0x5f) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PUSH0"));
     } <b>else</b> <b>if</b>(opcode == 0x60) {
         <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PUSH1"));
     } <b>else</b> <b>if</b>(opcode == 0x61) {

@@ -238,7 +238,9 @@ module aptos_framework::evm_for_test {
         };
 
         if (is_precompile_address(to)) {
-            return (true, precompile(to, data))
+            let (success, ret_bytes, gas) = precompile(to, data, gas_limit);
+            add_gas_usage(run_state, gas);
+            return (success, ret_bytes)
         };
 
         add_call_state(run_state, gas_limit);
@@ -595,9 +597,9 @@ module aptos_framework::evm_for_test {
             else if(opcode == 0x39) {
                 let m_pos = pop_stack(stack, error_code);
                 let d_pos = pop_stack(stack, error_code);
-                let len = pop_stack_u64(stack, error_code);
+                let len = pop_stack(stack, error_code);
                 runtime_code = vector_slice_u256(code, d_pos, len);
-                copy_to_memory(memory, m_pos, d_pos, (len as u256), code);
+                copy_to_memory(memory, m_pos, d_pos, len, code);
 
                 i = i + 1
             }
@@ -814,7 +816,7 @@ module aptos_framework::evm_for_test {
                 let m_pos = pop_stack(stack, error_code);
                 let d_pos = pop_stack(stack, error_code);
                 let len = pop_stack(stack, error_code);
-                let bytes = vector_slice_u256(*memory, d_pos, (len as u64));
+                let bytes = vector_slice_u256(*memory, d_pos, len);
                 if(len > 0) {
                     let new_size = if(d_pos > m_pos) d_pos + len else m_pos + len;
                     expand_to_pos(memory, (new_size as u64));
@@ -849,13 +851,14 @@ module aptos_framework::evm_for_test {
                 let ret_len = pop_stack(stack, error_code);
                 let params = vector_slice(*memory, m_pos, m_len);
                 let transfer_eth = if (opcode == 0xf1) true else false;
+                let is_precompile = is_precompile_address(evm_dest_addr);
 
                 // debug::print(&utf8(b"call 222"));
                 // debug::print(&call_gas_limit);
 
                 // debug::print(&dest_addr);
-                if (is_precompile_address(evm_dest_addr) || exist_contract(evm_dest_addr, trie)) {
-                    let dest_code = get_code(evm_dest_addr, trie);
+                if (is_precompile || exist_contract(evm_dest_addr, trie)) {
+                    let dest_code = if (is_precompile) x"" else get_code(evm_dest_addr, trie);
                     let target = if (opcode == 0xf4 || opcode == 0xf2) to else evm_dest_addr;
                     let from = if (opcode == 0xf4) sender else to;
 
@@ -878,14 +881,19 @@ module aptos_framework::evm_for_test {
                 let new_codes = vector_slice(*memory, pos, len);
                 // let contract_store = borrow_global_mut<Account>(move_contract_address);
                 let nonce = get_nonce(to, trie);
-                // must be 20 bytes
+                let gas_left = get_gas_left(run_state);
+                let (call_gas_limit, gas_stipend) = max_call_gas(gas_left, gas_left, msg_value, opcode);
+                if(gas_stipend > 0) {
+                    add_gas_left(run_state, gas_stipend);
+                };
 
                 let new_evm_contract_addr = get_contract_address(to, (nonce as u64));
                 debug::print(&utf8(b"create start"));
                 add_nonce(to, trie);
                 add_checkpoint(trie, false);
-                let(create_res, bytes) = run(sender, to, new_evm_contract_addr, new_codes, x"", msg_value, gas_limit, trie, run_state, true, env);
+                let(create_res, bytes) = run(sender, to, new_evm_contract_addr, new_codes, x"", msg_value, call_gas_limit, trie, run_state, true, env);
                 if(create_res) {
+                    add_gas_usage(run_state, 200 * ((vector::length(&bytes)) as u256));
                     new_account(new_evm_contract_addr, bytes, 0, 1, trie);
                     ret_bytes = new_evm_contract_addr;
                     vector::push_back(stack, data_to_u256(new_evm_contract_addr, 0, 32));
@@ -1058,8 +1066,8 @@ module aptos_framework::evm_for_test {
 
 
     // This function is used to execute precompile EVM contracts.
-    fun precompile(to: vector<u8>, calldata: vector<u8>): vector<u8> {
-        run_precompile(to, calldata, CHAIN_ID)
+    fun precompile(to: vector<u8>, calldata: vector<u8>, gas_limit: u256): (bool, vector<u8>, u256)  {
+        run_precompile(to, calldata, CHAIN_ID, gas_limit)
     }
 
     public fun pop_stack_u64(stack: &mut vector<u256>, error_code: &mut u64): u64 {

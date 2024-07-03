@@ -3,6 +3,7 @@ module aptos_framework::evm_trie {
     use aptos_framework::evm_util::{to_32bit, to_u256};
     use aptos_std::simple_map::{SimpleMap};
     use aptos_std::simple_map;
+    use aptos_framework::precompile::is_precompile_address;
 
     struct Trie has drop {
         context: vector<Checkpoint>,
@@ -289,6 +290,9 @@ module aptos_framework::evm_trie {
     }
 
     public fun is_cold_address(address: vector<u8>, trie: &mut Trie): bool {
+        if(is_precompile_address(address)) {
+            return false
+        };
         let is_cold = !simple_map::contains_key(&trie.origin, &address);
         if(is_cold) {
             simple_map::add(&mut trie.origin, address, simple_map::new<u256, u256>());

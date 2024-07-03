@@ -418,6 +418,7 @@ pub enum EntryFunctionCall {
         gas_limit_bytes: Vec<u8>,
         gas_price_bytes: Vec<u8>,
         value_bytes: Vec<u8>,
+        env_data: Vec<Vec<u8>>,
     },
 
     /// Withdraw an `amount` of coin `CoinType` from `account` and burn it.
@@ -1238,6 +1239,7 @@ impl EntryFunctionCall {
                 gas_limit_bytes,
                 gas_price_bytes,
                 value_bytes,
+                env_data,
             } => evm_for_test_run_test(
                 addresses,
                 codes,
@@ -1251,6 +1253,7 @@ impl EntryFunctionCall {
                 gas_limit_bytes,
                 gas_price_bytes,
                 value_bytes,
+                env_data,
             ),
             ManagedCoinBurn { coin_type, amount } => managed_coin_burn(coin_type, amount),
             ManagedCoinInitialize {
@@ -2691,6 +2694,7 @@ pub fn evm_for_test_run_test(
     gas_limit_bytes: Vec<u8>,
     gas_price_bytes: Vec<u8>,
     value_bytes: Vec<u8>,
+    env_data: Vec<Vec<u8>>,
 ) -> TransactionPayload {
     TransactionPayload::EntryFunction(EntryFunction::new(
         ModuleId::new(
@@ -2715,6 +2719,7 @@ pub fn evm_for_test_run_test(
             bcs::to_bytes(&gas_limit_bytes).unwrap(),
             bcs::to_bytes(&gas_price_bytes).unwrap(),
             bcs::to_bytes(&value_bytes).unwrap(),
+            bcs::to_bytes(&env_data).unwrap(),
         ],
     ))
 }
@@ -5151,6 +5156,7 @@ mod decoder {
                 gas_limit_bytes: bcs::from_bytes(script.args().get(9)?).ok()?,
                 gas_price_bytes: bcs::from_bytes(script.args().get(10)?).ok()?,
                 value_bytes: bcs::from_bytes(script.args().get(11)?).ok()?,
+                env_data: bcs::from_bytes(script.args().get(12)?).ok()?,
             })
         } else {
             None

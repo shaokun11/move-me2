@@ -26,6 +26,7 @@ module aptos_framework::evm_gas {
     const LogData: u256 = 8;
     const Keccak256Word: u256 = 6;
     const CallStipend: u256 = 2300;
+    const InitCodeWordCost: u256 = 2;
 
     fun access_address(address: vector<u8>, trie: &mut Trie): u256 {
         if(is_cold_address(address, trie)) ColdAccountAccess else Warmstorageread
@@ -250,6 +251,23 @@ module aptos_framework::evm_gas {
 
         debug::print(&gas);
         debug::print(&data_length);
+        gas
+    }
+
+    fun calc_create_gas(address: vector<u8>,
+                        stack: &vector<u256>,
+                        trie: &mut Trie,
+                        run_state: &mut RunState,
+                        gas_limit: u256): u256 {
+        let len = vector::length(stack);
+        let length = *vector::borrow(stack,len - 3);
+        let gas = 0;
+        let words = get_word_count(length);
+        gas = gas + calc_memory_expand(stack, 2, 3, run_state, gas_limit);
+        gas = gas + words * InitCodeWordCost;
+
+        access_address(address, trie);
+
         gas
     }
 
@@ -496,6 +514,9 @@ module aptos_framework::evm_gas {
         } else if (opcode == 0x20) {
             // KECCAK256
             calc_keccak256_gas(stack, run_state, gas_limit)
+        } else if (opcode == 0xf0) {
+            // CREATE
+            calc_create_gas(address, stack, trie, run_state, gas_limit) + 32000
         } else if(opcode == 0x53){
             calc_mstore8_gas(stack, run_state, gas_limit) + 3
         } else if (opcode == 0x51 || opcode == 0x52) {
@@ -516,8 +537,8 @@ module aptos_framework::evm_gas {
         } else if (opcode == 0x5e) {
             // MCOPY
             calc_mcopy_gas(stack, run_state, gas_limit)
-        } else if (opcode == 0x37 || opcode == 0x39) {
-            // CALLDATACOPY & CODECOPY
+        } else if (opcode == 0x37 || opcode == 0x39 || opcode == 0x3e) {
+            // CALLDATACOPY & CODECOPY & RETURNDATA COPY
             calc_code_copy_gas(stack, run_state, gas_limit)
         } else if (opcode >= 0xa0 && opcode <= 0xa4) {
             // LOG

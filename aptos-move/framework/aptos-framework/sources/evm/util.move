@@ -16,12 +16,12 @@ module aptos_framework::evm_util {
     public native fun vector_extend(a: vector<u8>, b: vector<u8>): vector<u8>;
     public native fun vector_slice(a: vector<u8>, pos: u64, size: u64): vector<u8>;
 
-    public fun vector_slice_u256(a: vector<u8>, pos: u256, size: u64): vector<u8> {
+    public fun vector_slice_u256(a: vector<u8>, pos: u256, size: u256): vector<u8> {
         if(pos > U64_MAX) {
-            return create_empty_data(size)
+            return create_empty_data((size as u64))
         };
 
-        vector_slice(a, (pos as u64), size)
+        vector_slice(a, (pos as u64), (size as u64))
     }
 
     public fun create_empty_data(len: u64): vector<u8> {
@@ -127,6 +127,16 @@ module aptos_framework::evm_util {
         };
 
         i
+    }
+
+    public fun adjust_length(bytes: &vector<u8>): u256 {
+        let len = vector::length(bytes);
+        let i = 0;
+        while(len > 0 && *vector::borrow(bytes, i) == 0) {
+            len = len - 1;
+            i = i + 1;
+        };
+        (len as u256)
     }
 
     public fun u256_to_data(num256: u256): vector<u8> {

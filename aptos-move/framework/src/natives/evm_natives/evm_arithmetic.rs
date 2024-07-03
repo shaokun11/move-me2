@@ -14,6 +14,7 @@ use move_vm_runtime::native_functions::NativeFunction;
 use std::collections::VecDeque;
 use smallvec::{smallvec, SmallVec};
 use ethers::types::{U256, U512};
+use num::{BigUint, Zero, One};
 
 fn get_and_reset_sign(value: U256) -> (U256, bool) {
     let U256(arr) = value;
@@ -312,6 +313,67 @@ fn native_shr(
     ])
 }
 
+fn native_bit_length(
+    _context: &mut SafeNativeContext,
+    _ty_args: Vec<Type>,
+    mut args: VecDeque<Value>
+) -> SafeNativeResult<SmallVec<[Value; 1]>> {
+    let bytes = safely_pop_arg!(args, Vec<u8>);
+    let big_int = BigUint::from_bytes_be(&bytes);
+    Ok(smallvec![Value::u256(move_u256::from(big_int.bits() as u64))])
+}
+
+fn native_mod_exp(
+    _context: &mut SafeNativeContext,
+    _ty_args: Vec<Type>,
+    mut args: VecDeque<Value>
+) -> SafeNativeResult<SmallVec<[Value; 1]>> {
+    const BITS_PER_DIGIT: usize = 8;
+    let m_bytes = safely_pop_arg!(args, Vec<u8>);
+    let e_bytes = safely_pop_arg!(args, Vec<u8>);
+    let b_bytes = safely_pop_arg!(args, Vec<u8>);
+
+    let modulus = BigUint::from_bytes_be(&m_bytes);
+    let mut base = BigUint::from_bytes_be(&b_bytes);
+    if modulus <= BigUint::one() {
+        return Ok(smallvec![Value::vector_u8(BigUint::to_bytes_be(&BigUint::zero()))])
+    }
+
+    let mut exp = e_bytes.into_iter().skip_while(|d| *d == 0).peekable();
+    if exp.peek().is_none() {
+        return Ok(smallvec![Value::vector_u8(BigUint::to_bytes_be(&BigUint::one()))])
+    }
+
+    if base.is_zero() {
+        return Ok(smallvec![Value::vector_u8(BigUint::to_bytes_be(&BigUint::zero()))])
+    }
+
+    base %= &modulus;
+
+    if base.is_zero() {
+        return Ok(smallvec![Value::vector_u8(BigUint::to_bytes_be(&BigUint::zero()))])
+    }
+
+    let mut result = BigUint::one();
+    for digit in exp {
+        let mut mask = 1 << (BITS_PER_DIGIT - 1);
+
+        for _ in 0..BITS_PER_DIGIT {
+            result = &result * &result % &modulus;
+
+            if digit & mask > 0 {
+                result = result * &base % &modulus;
+            }
+
+            mask >>= 1;
+        }
+    }
+
+    Ok(smallvec![
+        Value::vector_u8(BigUint::to_bytes_be(&result))
+    ])
+}
+
 
 
 /***************************************************************************************************
@@ -335,7 +397,9 @@ pub fn make_all(
         ("sar", native_sar as RawSafeNative),
         ("shr", native_shr as RawSafeNative),
         ("add_mod", native_add_mod as RawSafeNative),
-        ("mul_mod", native_mul_mod as RawSafeNative)
+        ("mul_mod", native_mul_mod as RawSafeNative),
+        ("mod_exp", native_mod_exp as RawSafeNative),
+        ("bit_length", native_bit_length as RawSafeNative)
     ];
 
     builder.make_named_natives(natives)
