@@ -13,7 +13,7 @@ module aptos_framework::evm_for_test {
     use aptos_framework::evm_gas::{calc_exec_gas, calc_base_gas, max_call_gas};
     use aptos_framework::event;
     use aptos_framework::evm_arithmetic::{add, mul, sub, div, sdiv, mod, smod, add_mod, mul_mod, exp, shr, sar};
-    use aptos_framework::evm_trie::{pre_init, Trie, add_checkpoint, revert_checkpoint, commit_latest_checkpoint, TestAccount, get_code, sub_balance, add_nonce, transfer, get_balance, get_state, set_state, exist_contract, get_nonce, new_account, get_storage_copy, save, add_balance, add_warm_address, get_transient_storage, put_transient_storage};
+    use aptos_framework::evm_trie::{pre_init, Trie, add_checkpoint, revert_checkpoint, commit_latest_checkpoint, TestAccount, get_code, sub_balance, add_nonce, transfer, get_balance, get_state, set_state, exist_contract, get_nonce, new_account, get_storage_copy, save, add_balance, add_warm_address, get_transient_storage, put_transient_storage, get_is_static};
     friend aptos_framework::genesis;
 
     const ADDR_LENGTH: u64 = 10001;
@@ -180,7 +180,8 @@ module aptos_framework::evm_for_test {
         let run_state = &mut new_run_state(gas_limit);
         let base_cost = calc_base_gas(&data) + 21000;
         add_gas_usage(run_state, base_cost);
-        run(from, from, to, get_code(to, trie), data, value, gas_limit - base_cost, trie, run_state, true, &env, false);
+        add_checkpoint(trie, false);
+        run(from, from, to, get_code(to, trie), data, value, gas_limit - base_cost, trie, run_state, true, &env);
         let gas_refund = get_gas_refund(run_state);
         let gas_left = get_gas_left(run_state);
         let gas_usage = (gas_limit - gas_left - gas_refund);
@@ -228,8 +229,7 @@ module aptos_framework::evm_for_test {
             trie: &mut Trie,
             run_state: &mut RunState,
             transfer_eth: bool,
-            env: &Env,
-            readonly: bool
+            env: &Env
         ): (bool, vector<u8>) {
 
         if(to != ZERO_ADDR) {
@@ -240,7 +240,6 @@ module aptos_framework::evm_for_test {
             return (true, precompile(to, data))
         };
 
-        add_checkpoint(trie);
         add_call_state(run_state, gas_limit);
         if(transfer_eth) {
             transfer(sender, to, value, trie);
@@ -802,7 +801,7 @@ module aptos_framework::evm_for_test {
             else if(opcode == 0x5d) {
                 let key = pop_stack(stack, error_code);
                 let value = pop_stack(stack, error_code);
-                if(readonly) {
+                if(get_is_static(trie)) {
                     *error_code = ERROR_STATIC_STATE_CHANGE
                 } else {
                     put_transient_storage(trie, to, key, value);
@@ -831,7 +830,7 @@ module aptos_framework::evm_for_test {
             }
                 //call 0xf1 static call 0xfa delegate call 0xf4
             else if(opcode == 0xf1 || opcode == 0xfa || opcode == 0xf4) {
-                let readOnly = if (opcode == 0xfa) true else false;
+                let is_static = if (opcode == 0xfa) true else false;
                 let gas_left = get_gas_left(run_state);
                 let gas = pop_stack(stack, error_code);
                 let evm_dest_addr = to_32bit(u256_to_data(pop_stack(stack, error_code)));
@@ -856,7 +855,8 @@ module aptos_framework::evm_for_test {
                     let target = if (opcode == 0xf4) to else evm_dest_addr;
                     let from = if (opcode == 0xf4) sender else to;
 
-                    let (call_res, bytes) = run(sender, from, target, dest_code, params, msg_value, call_gas_limit, trie, run_state, transfer_eth, env, readOnly);
+                    add_checkpoint(trie, is_static);
+                    let (call_res, bytes) = run(sender, from, target, dest_code, params, msg_value, call_gas_limit, trie, run_state, transfer_eth, env);
                     ret_bytes = bytes;
                     copy_to_memory(memory, ret_pos , 0, ret_len, bytes);
                     vector::push_back(stack,  if(call_res) 1 else 0);
@@ -879,8 +879,8 @@ module aptos_framework::evm_for_test {
                 let new_evm_contract_addr = get_contract_address(to, (nonce as u64));
                 debug::print(&utf8(b"create start"));
                 add_nonce(to, trie);
-
-                let(create_res, bytes) = run(sender, to, new_evm_contract_addr, new_codes, x"", msg_value, gas_limit, trie, run_state, true, env, false);
+                add_checkpoint(trie, false);
+                let(create_res, bytes) = run(sender, to, new_evm_contract_addr, new_codes, x"", msg_value, gas_limit, trie, run_state, true, env);
                 if(create_res) {
                     new_account(new_evm_contract_addr, bytes, 0, 1, trie);
                     ret_bytes = new_evm_contract_addr;
@@ -913,7 +913,8 @@ module aptos_framework::evm_for_test {
 
                 // to_account.nonce = to_account.nonce + 1;
                 add_nonce(to, trie);
-                let (create_res, bytes) = run(to, sender, new_evm_contract_addr, new_codes, x"", msg_value, gas_limit, trie, run_state, true, env, false);
+                add_checkpoint(trie, false);
+                let (create_res, bytes) = run(to, sender, new_evm_contract_addr, new_codes, x"", msg_value, gas_limit, trie, run_state, true, env);
 
                 if(create_res) {
                     new_account(new_evm_contract_addr, bytes, 0, 1, trie);

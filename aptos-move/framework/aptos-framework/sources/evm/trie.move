@@ -3,7 +3,6 @@ module aptos_framework::evm_trie {
     use aptos_framework::evm_util::{to_32bit, to_u256};
     use aptos_std::simple_map::{SimpleMap};
     use aptos_std::simple_map;
-    use aptos_std::debug;
 
     struct Trie has drop {
         context: vector<Checkpoint>,
@@ -14,7 +13,8 @@ module aptos_framework::evm_trie {
     struct Checkpoint has copy, drop {
         state: SimpleMap<vector<u8>, TestAccount>,
         transient: SimpleMap<vector<u8>, SimpleMap<u256, u256>>,
-        self_destruct: SimpleMap<vector<u8>, bool>
+        self_destruct: SimpleMap<vector<u8>, bool>,
+        is_static: bool
     }
 
     struct TestAccount has drop, copy, store {
@@ -24,12 +24,14 @@ module aptos_framework::evm_trie {
         storage: SimpleMap<u256, u256>
     }
 
-    public fun add_checkpoint(trie: &mut Trie) {
+    public fun add_checkpoint(trie: &mut Trie, is_static: bool) {
         let len = vector::length(&trie.context);
         let elem = *vector::borrow(&mut trie.context, len - 1);
+        if(is_static) {
+            elem.is_static = true;
+        };
         vector::push_back(&mut trie.context, elem);
     }
-
 
     fun get_lastest_checkpoint_mut(trie: &mut Trie): &mut Checkpoint {
         let len = vector::length(&trie.context);
@@ -68,6 +70,11 @@ module aptos_framework::evm_trie {
             simple_map::add(checkpoint, *contract_addr, *account);
             simple_map::borrow_mut(checkpoint, contract_addr)
         }
+    }
+
+    public fun get_is_static(trie: &Trie): bool {
+        let checkpoint = get_lastest_checkpoint(trie);
+        checkpoint.is_static
     }
 
     public fun get_transient_storage(trie: &mut Trie, contract_addr: vector<u8>, key: u256): u256{
@@ -242,7 +249,8 @@ module aptos_framework::evm_trie {
         vector::push_back(&mut trie.context, Checkpoint {
             state: simple_map::new(),
             self_destruct: simple_map::new(),
-            transient: simple_map::new()
+            transient: simple_map::new(),
+            is_static: false
         });
         trie
     }
