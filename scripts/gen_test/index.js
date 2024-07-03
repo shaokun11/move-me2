@@ -1,6 +1,6 @@
 const fs = require('fs');
 
-function generateEvmTest(addresses, codes, balances, nonces, storages, transaction, env, index) {
+function generateEvmTest(addresses, codes, balances, nonces, storages, transaction, env, dataIndex, gasIndex, valueIndex) {
     // 读取模板文件
     const templateFilePath = './template_file.move';  // 请将此路径替换为实际文件路径
     let templateCode = fs.readFileSync(templateFilePath, 'utf8');
@@ -17,10 +17,10 @@ function generateEvmTest(addresses, codes, balances, nonces, storages, transacti
     templateCode = templateCode.replace('$nonces', `vector[${nonces.join(', ')}]`);
     templateCode = templateCode.replace('$from', toBytes(transaction.sender));
     templateCode = templateCode.replace('$to', toBytes(transaction.to));
-    templateCode = templateCode.replace('$data', toBytes(transaction.data[index]));
-    templateCode = templateCode.replace('$gas_limit', toData(transaction.gasLimit[0]));
+    templateCode = templateCode.replace('$data', toBytes(transaction.data[dataIndex]));
+    templateCode = templateCode.replace('$gas_limit', toData(transaction.gasLimit[gasIndex]));
     templateCode = templateCode.replace('$gas_price', gas_price);
-    templateCode = templateCode.replace('$value', toData(transaction.value[0]));
+    templateCode = templateCode.replace('$value', toData(transaction.value[valueIndex]));
 
     // 保存到新文件
     const newFilePath = '../../aptos-move/framework/aptos-framework/tests/evm/evm_test.move';  // 请将此路径替换为保存文件的路径
@@ -58,7 +58,7 @@ function toBytes(str) {
     return `x"${str.slice(2)}"`
 }
 
-function read(json_path, index) {
+function read(json_path, dataIndex, gasIndex, valueIndex) {
     let content = JSON.parse(fs.readFileSync(json_path).toString());
     let funName = Object.keys(content)[0];
     let pre = content[funName].pre;
@@ -76,10 +76,9 @@ function read(json_path, index) {
         if(Object.keys(pre[item].storage).length > 0) {
             storages.push({addr: item, content: pre[item].storage})
         }
-
     }
 
-    generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, index);
+    generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-read("src/GeneralStateTests/Cancun/stEIP5656-MCOPY/MCOPY_copy_cost.json", 1)
+read("src/GeneralStateTests/Cancun/stEIP5656-MCOPY/MCOPY_copy_cost.json", 7, 1, 0)

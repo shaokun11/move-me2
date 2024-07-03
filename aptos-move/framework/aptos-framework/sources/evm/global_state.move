@@ -74,9 +74,14 @@ module aptos_framework::evm_global_state {
         state.highest_memory_word_size = count
     }
 
-    public fun add_gas_usage(run_state: &mut RunState, cost: u256) {
+    public fun add_gas_usage(run_state: &mut RunState, cost: u256): bool {
         let state = get_lastest_state_mut(run_state);
-        state.gas_left = if(state.gas_left > cost) state.gas_left - cost else 0;
+        if(state.gas_left < cost) {
+            state.gas_left = 0;
+            return true
+        };
+        state.gas_left = state.gas_left - cost;
+        return false
     }
 
     public fun add_gas_left(run_state: &mut RunState, amount: u256) {

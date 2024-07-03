@@ -263,9 +263,9 @@ module aptos_framework::evm_for_test {
             // Fetch the current opcode from the bytecode.
             let opcode: u8 = *vector::borrow(&code, (i as u64));
             let gas = calc_exec_gas(opcode, to, stack, run_state, trie, gas_limit);
-            add_gas_usage(run_state, gas);
+            let out_of_gas = add_gas_usage(run_state, gas);
 
-            if(get_gas_left(run_state) == 0) {
+            if(out_of_gas) {
                 handle_unexpect_revert(trie, run_state);
                 return (false, ret_bytes)
             };
