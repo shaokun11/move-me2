@@ -81,4 +81,4 @@ function read(json_path, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-read("src/GeneralStateTests/Cancun/stEIP5656-MCOPY/MCOPY_copy_cost.json", 7, 1, 0)
+read("src/GeneralStateTests/Cancun/stEIP5656-MCOPY/MCOPY_memory_expansion_cost.json", 10, 0, 0)

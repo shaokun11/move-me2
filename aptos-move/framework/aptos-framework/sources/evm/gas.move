@@ -35,6 +35,10 @@ module aptos_framework::evm_gas {
         let len = vector::length(stack);
         let out_offset = *vector::borrow(stack,len - pos);
         let out_size = *vector::borrow(stack,len - size);
+
+        if(out_size == 0) {
+            return 0
+        };
         // To prevent overflow
         if(out_offset > U64_MAX || out_size > U64_MAX || out_offset + out_size > U64_MAX) {
             return gas_limit

@@ -811,11 +811,15 @@ module aptos_framework::evm_for_test {
             }
                 //MCOPY
             else if(opcode == 0x5e) {
-                let m_pos = pop_stack_u64(stack, error_code);
-                let d_pos = pop_stack_u64(stack, error_code);
-                let len = pop_stack_u64(stack, error_code);
-                let bytes = vector_slice(*memory, d_pos, len);
-                mstore(memory, m_pos, bytes);
+                let m_pos = pop_stack(stack, error_code);
+                let d_pos = pop_stack(stack, error_code);
+                let len = pop_stack(stack, error_code);
+                let bytes = vector_slice_u256(*memory, d_pos, (len as u64));
+                if(len > 0) {
+                    let new_size = if(d_pos > m_pos) d_pos + len else m_pos + len;
+                    expand_to_pos(memory, (new_size as u64));
+                    mstore(memory, (m_pos as u64), bytes);
+                };
                 i = i + 1;
             }
                 //sha3

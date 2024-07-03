@@ -147,6 +147,8 @@ module aptos_framework::evm_util {
         if(pos % 32 != 0) {
             pos = pos / 32 * 32 + 32;
         };
+        debug::print(&len_m);
+        debug::print(&pos);
 
         if(pos > len_m) {
             let size = pos - len_m;
@@ -169,13 +171,15 @@ module aptos_framework::evm_util {
 
     public fun mstore(memory: &mut vector<u8>, pos: u64, data: vector<u8>) {
         let len_d = vector::length(&data);
-        expand_to_pos(memory, pos + len_d);
+        if(len_d > 0) {
+            expand_to_pos(memory, pos + len_d);
+            let i = 0;
+            while (i < len_d) {
+                *vector::borrow_mut(memory, pos + i) = *vector::borrow(&data, i);
+                i = i + 1
+            };
+        }
 
-        let i = 0;
-        while (i < len_d) {
-            *vector::borrow_mut(memory, pos + i) = *vector::borrow(&data, i);
-            i = i + 1
-        };
     }
 
     public fun get_message_hash(input: vector<vector<u8>>): vector<u8> {
