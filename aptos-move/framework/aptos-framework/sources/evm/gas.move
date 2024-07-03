@@ -66,6 +66,16 @@ module aptos_framework::evm_gas {
         new_memory_cost
     }
 
+    fun calc_mcopy_gas(stack: &vector<u256>,
+                        run_state: &mut RunState,
+                        gas_limit: u256): u256 {
+        let gas = 0;
+        gas = gas +  calc_memory_expand(stack, 1, 3, run_state, gas_limit);
+        gas = gas +  calc_memory_expand(stack, 2, 3, run_state, gas_limit);
+
+        gas + 3
+    }
+
     fun calc_mstore_gas(stack: &vector<u256>,
                         run_state: &mut RunState,
                         gas_limit: u256): u256 {
@@ -495,6 +505,9 @@ module aptos_framework::evm_gas {
         } else if (opcode == 0x55) {
             // SSTORE
             calc_sstore_gas(address, stack, trie, run_state)
+        } else if (opcode == 0x5e) {
+            // MCOPY
+            calc_mcopy_gas(stack, run_state, gas_limit)
         } else if (opcode == 0x37 || opcode == 0x39) {
             // CALLDATACOPY & CODECOPY
             calc_code_copy_gas(stack, run_state, gas_limit)

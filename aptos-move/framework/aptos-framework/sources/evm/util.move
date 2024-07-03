@@ -176,7 +176,6 @@ module aptos_framework::evm_util {
             *vector::borrow_mut(memory, pos + i) = *vector::borrow(&data, i);
             i = i + 1
         };
-        debug::print(memory)
     }
 
     public fun get_message_hash(input: vector<vector<u8>>): vector<u8> {
@@ -361,6 +360,8 @@ module aptos_framework::evm_util {
             debug::print(&utf8(b"TLOAD"));
         } else if(opcode == 0x5d) {
             debug::print(&utf8(b"TSTORE"));
+        }  else if(opcode == 0x5e) {
+            debug::print(&utf8(b"MCOPY"));
         } else if(opcode == 0x5f) {
             debug::print(&utf8(b"PUSH0"));
         } else if(opcode == 0x60) {
