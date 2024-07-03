@@ -283,7 +283,9 @@ module aptos_framework::evm_trie {
     }
 
     public fun add_warm_address(address: vector<u8>, trie: &mut Trie) {
-        simple_map::upsert(&mut trie.origin, address, simple_map::new<u256, u256>());
+        if(!simple_map::contains_key(&trie.origin, &address)) {
+            simple_map::upsert(&mut trie.origin, address, simple_map::new<u256, u256>());
+        }
     }
 
     public fun is_cold_address(address: vector<u8>, trie: &mut Trie): bool {
@@ -310,19 +312,16 @@ module aptos_framework::evm_trie {
         let value = get_state(address, key, trie);
         put(address, key, value, trie);
 
-
         (is_cold_address, true, value)
     }
 
     fun put(address: vector<u8>, key: u256, value: u256, trie: &mut Trie) {
-
         if(!simple_map::contains_key(&trie.origin, &address)) {
             let new_table = simple_map::new<u256, u256>();
             simple_map::add(&mut trie.origin, address, new_table);
         };
         let table = simple_map::borrow_mut(&mut trie.origin, &address);
         simple_map::upsert(table, key, value);
-
     }
 
 }

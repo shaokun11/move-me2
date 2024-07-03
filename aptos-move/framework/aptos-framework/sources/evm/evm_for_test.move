@@ -268,9 +268,9 @@ module aptos_framework::evm_for_test {
                 handle_unexpect_revert(trie, run_state);
                 return (false, ret_bytes)
             };
-            // debug::print(&i);
+            debug::print(&i);
             // debug::print(&opcode);
-            // debug::print(&gas_used);
+            debug::print(&get_gas_left(run_state));
 
             // Handle each opcode according to the EVM specification.
             // The following is a simplified version of the EVM execution engine,
@@ -828,13 +828,13 @@ module aptos_framework::evm_for_test {
                 vector::push_back(stack, value);
                 i = i + 1
             }
-                //call 0xf1 static call 0xfa delegate call 0xf4
-            else if(opcode == 0xf1 || opcode == 0xfa || opcode == 0xf4) {
+                //call 0xf1 callcode 0xf2 static call 0xfa delegate call 0xf4
+            else if(opcode == 0xf1 || opcode == 0xf2 || opcode == 0xfa || opcode == 0xf4) {
                 let is_static = if (opcode == 0xfa) true else false;
                 let gas_left = get_gas_left(run_state);
                 let gas = pop_stack(stack, error_code);
                 let evm_dest_addr = to_32bit(u256_to_data(pop_stack(stack, error_code)));
-                let msg_value = if (opcode == 0xf1) pop_stack(stack, error_code) else if(opcode == 0xf4) value else 0;
+                let msg_value = if (opcode == 0xf1 || opcode == 0xf2) pop_stack(stack, error_code) else if(opcode == 0xf4) value else 0;
                 let (call_gas_limit, gas_stipend) = max_call_gas(gas_left, gas, msg_value, opcode);
                 if(gas_stipend > 0) {
                     add_gas_left(run_state, gas_stipend);
@@ -852,7 +852,7 @@ module aptos_framework::evm_for_test {
                 // debug::print(&dest_addr);
                 if (is_precompile_address(evm_dest_addr) || exist_contract(evm_dest_addr, trie)) {
                     let dest_code = get_code(evm_dest_addr, trie);
-                    let target = if (opcode == 0xf4) to else evm_dest_addr;
+                    let target = if (opcode == 0xf4 || opcode == 0xf2) to else evm_dest_addr;
                     let from = if (opcode == 0xf4) sender else to;
 
                     add_checkpoint(trie, is_static);

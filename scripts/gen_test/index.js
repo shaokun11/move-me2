@@ -6,6 +6,7 @@ function generateEvmTest(addresses, codes, balances, nonces, storages, transacti
     let templateCode = fs.readFileSync(templateFilePath, 'utf8');
     let envContent = generateEnv(env);
     let storageContent = generateStorage(storages)
+    let gas_price = transaction.maxPriorityFeePerGas ? toData(`${env.currentBaseFee} + ${transaction.maxPriorityFeePerGas}`): toData(transaction.gasPrice)
 
     // 替换占位符
     templateCode = templateCode.replace('$env', `vector[${envContent}]`);
@@ -17,9 +18,9 @@ function generateEvmTest(addresses, codes, balances, nonces, storages, transacti
     templateCode = templateCode.replace('$from', toBytes(transaction.sender));
     templateCode = templateCode.replace('$to', toBytes(transaction.to));
     templateCode = templateCode.replace('$data', toBytes(transaction.data[index]));
-    templateCode = templateCode.replace('$gas_limit', toData(transaction.gasLimit[index]));
-    templateCode = templateCode.replace('$gas_price', toData(`${env.currentBaseFee} + ${transaction.maxPriorityFeePerGas}`));
-    templateCode = templateCode.replace('$value', toData(transaction.value[index]));
+    templateCode = templateCode.replace('$gas_limit', toData(transaction.gasLimit[0]));
+    templateCode = templateCode.replace('$gas_price', gas_price);
+    templateCode = templateCode.replace('$value', toData(transaction.value[0]));
 
     // 保存到新文件
     const newFilePath = '../../aptos-move/framework/aptos-framework/tests/evm/evm_test.move';  // 请将此路径替换为保存文件的路径
@@ -81,4 +82,4 @@ function read(json_path, index) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, index);
 }
 
-read("src/GeneralStateTests/Cancun/stEIP1153-transientStorage/14_revertAfterNestedStaticcall.json", 0)
+read("src/GeneralStateTests/Cancun/stEIP1153-transientStorage/transStorageOK.json", 6)

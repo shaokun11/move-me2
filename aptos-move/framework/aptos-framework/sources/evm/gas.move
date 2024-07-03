@@ -157,11 +157,11 @@ module aptos_framework::evm_gas {
         let gas = 0;
         let len = vector::length(stack);
         let address = u256_to_data(*vector::borrow(stack,len - 2));
-        let call_gas_limit = *vector::borrow(stack,len - 2);
-        if(opcode == 0xf1) {
+        let call_gas_limit = *vector::borrow(stack,len - 1);
+        if(opcode == 0xf1 || opcode == 0xf2) {
             let value = *vector::borrow(stack,len - 3);
 
-            if(value > 0 && !exist_account(address, trie)) {
+            if(opcode == 0xf1 && value > 0 && !exist_account(address, trie)) {
                 gas = gas + CallNewAccount;
             };
             if(value > 0) {
@@ -483,7 +483,7 @@ module aptos_framework::evm_gas {
         } else if (opcode == 0x51 || opcode == 0x52) {
             // MSTORE & MLOAD
             calc_mstore_gas(stack, run_state, gas_limit) + 3
-        } else if (opcode == 0xf1 || opcode == 0xf4 || opcode == 0xfa) {
+        } else if (opcode == 0xf1 || opcode == 0xf2 || opcode == 0xf4 || opcode == 0xfa) {
             // CALL
             calc_call_gas(stack, opcode, trie, run_state)
         } else if (opcode == 0xf3 || opcode == 0xfd) {
