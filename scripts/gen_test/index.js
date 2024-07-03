@@ -82,4 +82,4 @@ function read(json_path, index) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, index);
 }
 
-read("src/GeneralStateTests/Cancun/stEIP1153-transientStorage/transStorageOK.json", 6)
+read("src/GeneralStateTests/Cancun/stEIP1153-transientStorage/transStorageReset.json", 8)

@@ -30,6 +30,7 @@ module aptos_framework::evm_for_test {
     const CHAIN_ID: u64 = 0x150;
 
     const ERROR_STATIC_STATE_CHANGE: u64 = 51;
+    const ERROR_INVALID_OPCODE: u64 = 53;
 
     const U64_MAX: u256 = 18446744073709551615; // 18_446_744_073_709_551_615
     const U256_MAX: u256 = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
@@ -268,9 +269,8 @@ module aptos_framework::evm_for_test {
                 handle_unexpect_revert(trie, run_state);
                 return (false, ret_bytes)
             };
-            debug::print(&i);
-            // debug::print(&opcode);
-            debug::print(&get_gas_left(run_state));
+            // debug::print(&i);
+            // debug::print(&get_gas_left(run_state));
 
             // Handle each opcode according to the EVM specification.
             // The following is a simplified version of the EVM execution engine,
@@ -1029,6 +1029,11 @@ module aptos_framework::evm_for_test {
                 //         topic3
                 //     },
                 // );
+                i = i + 1
+            }
+                //invalid opcode
+            else if(opcode == 0xfe){
+                *error_code = ERROR_INVALID_OPCODE;
                 i = i + 1
             }
             else {

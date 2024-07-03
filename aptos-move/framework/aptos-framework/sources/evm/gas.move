@@ -504,7 +504,11 @@ module aptos_framework::evm_gas {
         } else if (opcode == 0xff) {
             // SELF DESTRUCT
             calc_self_destruct_gas(address, stack, trie)
-        } else {
+        } else if(opcode == 0xfe){
+            // KNOWN INVALID CODE
+            0
+        }
+        else {
             assert!(false, (opcode as u64));
             0
         };
