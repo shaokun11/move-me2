@@ -47,8 +47,8 @@ module aptos_framework::evm_gas {
             return 0
         };
         let old_memory_word_size = get_memory_word_size(run_state);
-
         let new_memory_word_size = get_word_count(new_memory_size);
+
         if(new_memory_word_size <= old_memory_word_size) {
             return 0
         };
@@ -70,8 +70,12 @@ module aptos_framework::evm_gas {
                         run_state: &mut RunState,
                         gas_limit: u256): u256 {
         let gas = 0;
+        let len = vector::length(stack);
+        let length = *vector::borrow(stack,len - 3);
+        let word_size = get_word_count(length);
         gas = gas +  calc_memory_expand(stack, 1, 3, run_state, gas_limit);
         gas = gas +  calc_memory_expand(stack, 2, 3, run_state, gas_limit);
+        gas = gas +  word_size * 3;
 
         gas + 3
     }
