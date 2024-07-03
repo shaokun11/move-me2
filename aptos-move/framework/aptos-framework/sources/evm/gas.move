@@ -53,7 +53,7 @@ module aptos_framework::evm_gas {
             return 0
         };
         // To prevent overflow
-        if(gas_limit / 3 < new_memory_size) {
+        if(gas_limit / 3 < new_memory_word_size) {
             return gas_limit
         };
         let old_memory_cost = get_memory_cost(run_state);
