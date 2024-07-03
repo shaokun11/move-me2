@@ -29,6 +29,8 @@ module aptos_framework::evm_for_test {
     const CONVERT_BASE: u256 = 10000000000;
     const CHAIN_ID: u64 = 0x150;
 
+    const ERROR_STATIC_STATE_CHANGE: u64 = 51;
+
     const U64_MAX: u256 = 18446744073709551615; // 18_446_744_073_709_551_615
     const U256_MAX: u256 = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
     const ZERO_ADDR: vector<u8> =      x"0000000000000000000000000000000000000000000000000000000000000000";
@@ -178,7 +180,7 @@ module aptos_framework::evm_for_test {
         let run_state = &mut new_run_state(gas_limit);
         let base_cost = calc_base_gas(&data) + 21000;
         add_gas_usage(run_state, base_cost);
-        run(from, from, to, get_code(to, trie), data, value, gas_limit - base_cost, trie, run_state, true, &env);
+        run(from, from, to, get_code(to, trie), data, value, gas_limit - base_cost, trie, run_state, true, &env, false);
         let gas_refund = get_gas_refund(run_state);
         let gas_left = get_gas_left(run_state);
         let gas_usage = (gas_limit - gas_left - gas_refund);
@@ -226,7 +228,8 @@ module aptos_framework::evm_for_test {
             trie: &mut Trie,
             run_state: &mut RunState,
             transfer_eth: bool,
-            env: &Env
+            env: &Env,
+            readonly: bool
         ): (bool, vector<u8>) {
 
         if(to != ZERO_ADDR) {
@@ -799,7 +802,12 @@ module aptos_framework::evm_for_test {
             else if(opcode == 0x5d) {
                 let key = pop_stack(stack, error_code);
                 let value = pop_stack(stack, error_code);
-                put_transient_storage(trie, to, key, value);
+                if(readonly) {
+                    *error_code = ERROR_STATIC_STATE_CHANGE
+                } else {
+                    put_transient_storage(trie, to, key, value);
+                };
+
                 i = i + 1
             }
                 //MCOPY
@@ -823,6 +831,7 @@ module aptos_framework::evm_for_test {
             }
                 //call 0xf1 static call 0xfa delegate call 0xf4
             else if(opcode == 0xf1 || opcode == 0xfa || opcode == 0xf4) {
+                let readOnly = if (opcode == 0xfa) true else false;
                 let gas_left = get_gas_left(run_state);
                 let gas = pop_stack(stack, error_code);
                 let evm_dest_addr = to_32bit(u256_to_data(pop_stack(stack, error_code)));
@@ -847,7 +856,7 @@ module aptos_framework::evm_for_test {
                     let target = if (opcode == 0xf4) to else evm_dest_addr;
                     let from = if (opcode == 0xf4) sender else to;
 
-                    let (call_res, bytes) = run(sender, from, target, dest_code, params, msg_value, call_gas_limit, trie, run_state, transfer_eth, env);
+                    let (call_res, bytes) = run(sender, from, target, dest_code, params, msg_value, call_gas_limit, trie, run_state, transfer_eth, env, readOnly);
                     ret_bytes = bytes;
                     copy_to_memory(memory, ret_pos , 0, ret_len, bytes);
                     vector::push_back(stack,  if(call_res) 1 else 0);
@@ -871,7 +880,7 @@ module aptos_framework::evm_for_test {
                 debug::print(&utf8(b"create start"));
                 add_nonce(to, trie);
 
-                let(create_res, bytes) = run(sender, to, new_evm_contract_addr, new_codes, x"", msg_value, gas_limit, trie, run_state, true, env);
+                let(create_res, bytes) = run(sender, to, new_evm_contract_addr, new_codes, x"", msg_value, gas_limit, trie, run_state, true, env, false);
                 if(create_res) {
                     new_account(new_evm_contract_addr, bytes, 0, 1, trie);
                     ret_bytes = new_evm_contract_addr;
@@ -904,7 +913,7 @@ module aptos_framework::evm_for_test {
 
                 // to_account.nonce = to_account.nonce + 1;
                 add_nonce(to, trie);
-                let (create_res, bytes) = run(to, sender, new_evm_contract_addr, new_codes, x"", msg_value, gas_limit, trie, run_state, true, env);
+                let (create_res, bytes) = run(to, sender, new_evm_contract_addr, new_codes, x"", msg_value, gas_limit, trie, run_state, true, env, false);
 
                 if(create_res) {
                     new_account(new_evm_contract_addr, bytes, 0, 1, trie);

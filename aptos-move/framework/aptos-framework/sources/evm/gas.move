@@ -483,7 +483,7 @@ module aptos_framework::evm_gas {
         } else if (opcode == 0x51 || opcode == 0x52) {
             // MSTORE & MLOAD
             calc_mstore_gas(stack, run_state, gas_limit) + 3
-        } else if (opcode == 0xf1 || opcode == 0xf4) {
+        } else if (opcode == 0xf1 || opcode == 0xf4 || opcode == 0xfa) {
             // CALL
             calc_call_gas(stack, opcode, trie, run_state)
         } else if (opcode == 0xf3 || opcode == 0xfd) {
