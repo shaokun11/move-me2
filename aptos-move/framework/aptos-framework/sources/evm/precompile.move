@@ -75,12 +75,6 @@ module aptos_framework::precompile {
             if(gas < 200) {
                 gas = 200;
             };
-            debug::print(&gas);
-            debug::print(&multiplication_complexity);
-            debug::print(&iteration_count);
-            debug::print(&exp_len);
-            debug::print(&base_len);
-            debug::print(&mod_len);
             (true, to_32bit(result), gas)
             // let base = to_u256(vector_slice(calldata, 0, 32));
             // let base = to_u256(vector_slice(calldata, 0, 32));

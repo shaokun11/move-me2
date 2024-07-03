@@ -889,6 +889,7 @@ module aptos_framework::evm_for_test {
 
                 let new_evm_contract_addr = get_contract_address(to, (nonce as u64));
                 debug::print(&utf8(b"create start"));
+                debug::print(&call_gas_limit);
                 add_nonce(to, trie);
                 add_checkpoint(trie, false);
                 let(create_res, bytes) = run(sender, to, new_evm_contract_addr, new_codes, x"", msg_value, call_gas_limit, trie, run_state, true, env);
