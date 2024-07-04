@@ -955,12 +955,12 @@ module aptos_framework::evm_for_test {
             else if(opcode == 0xf5) {
                 let msg_value = pop_stack(stack, error_code);
                 let pos = pop_stack_u64(stack, error_code);
-                let len = pop_stack_u64(stack, error_code);
+                let len = pop_stack(stack, error_code);
                 if(len > MAX_INIT_CODE_SIZE) {
                     *error_code = ERROR_EXCEED_INITCODE_SIZE;
                 } else {
                     let salt = u256_to_data(pop_stack(stack, error_code));
-                    let new_codes = vector_slice(*memory, pos, len);
+                    let new_codes = vector_slice(*memory, pos, (len as u64));
                     let p = vector::empty<u8>();
                     // let contract_store = ;
                     vector::append(&mut p, x"ff");
