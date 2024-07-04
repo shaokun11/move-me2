@@ -956,29 +956,33 @@ module aptos_framework::evm_for_test {
                 let msg_value = pop_stack(stack, error_code);
                 let pos = pop_stack_u64(stack, error_code);
                 let len = pop_stack_u64(stack, error_code);
-                let salt = u256_to_data(pop_stack(stack, error_code));
-                let new_codes = vector_slice(*memory, pos, len);
-                let p = vector::empty<u8>();
-                // let contract_store = ;
-                vector::append(&mut p, x"ff");
-                // must be 20 bytes
-                vector::append(&mut p, vector_slice(to, 12, 20));
-                vector::append(&mut p, salt);
-                vector::append(&mut p, keccak256(new_codes));
-                let new_evm_contract_addr = to_32bit(vector_slice(keccak256(p), 12, 20));
-
-                add_nonce(to, trie);
-                add_checkpoint(trie, false);
-                new_account(new_evm_contract_addr, x"", 0, 1, trie);
-                let (create_res, bytes) = run(to, sender, new_evm_contract_addr, new_codes, x"", msg_value, gas_limit, trie, run_state, true, env);
-                if(create_res) {
-                    add_gas_usage(run_state, 200 * ((vector::length(&bytes)) as u256));
-                    set_code(trie, new_evm_contract_addr, bytes);
-                    ret_bytes = new_evm_contract_addr;
-                    vector::push_back(stack, data_to_u256(new_evm_contract_addr, 0, 32));
+                if(len > MAX_INIT_CODE_SIZE) {
+                    *error_code = ERROR_EXCEED_INITCODE_SIZE;
                 } else {
-                    ret_bytes = bytes;
-                    vector::push_back(stack, 0);
+                    let salt = u256_to_data(pop_stack(stack, error_code));
+                    let new_codes = vector_slice(*memory, pos, len);
+                    let p = vector::empty<u8>();
+                    // let contract_store = ;
+                    vector::append(&mut p, x"ff");
+                    // must be 20 bytes
+                    vector::append(&mut p, vector_slice(to, 12, 20));
+                    vector::append(&mut p, salt);
+                    vector::append(&mut p, keccak256(new_codes));
+                    let new_evm_contract_addr = to_32bit(vector_slice(keccak256(p), 12, 20));
+
+                    add_nonce(to, trie);
+                    add_checkpoint(trie, false);
+                    new_account(new_evm_contract_addr, x"", 0, 1, trie);
+                    let (create_res, bytes) = run(to, sender, new_evm_contract_addr, new_codes, x"", msg_value, gas_limit, trie, run_state, true, env);
+                    if(create_res) {
+                        add_gas_usage(run_state, 200 * ((vector::length(&bytes)) as u256));
+                        set_code(trie, new_evm_contract_addr, bytes);
+                        ret_bytes = new_evm_contract_addr;
+                        vector::push_back(stack, data_to_u256(new_evm_contract_addr, 0, 32));
+                    } else {
+                        ret_bytes = bytes;
+                        vector::push_back(stack, 0);
+                    };
                 };
                 i = i + 1
             }
