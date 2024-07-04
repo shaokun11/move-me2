@@ -423,9 +423,6 @@ module aptos_framework::evm_gas {
         } else if (opcode == 0x30) {
             // ADDRESS
             2
-        } else if (opcode == 0x31) {
-            // BALANCE
-            700
         } else if (opcode == 0x32) {
             // ORIGIN
             2
@@ -531,6 +528,9 @@ module aptos_framework::evm_gas {
         } else if (opcode == 0x20) {
             // KECCAK256
             calc_keccak256_gas(stack, run_state, gas_limit)
+        } else if (opcode == 0x31) {
+            // BALANCE
+            access_address(address, trie)
         } else if (opcode == 0xf0) {
             // CREATE
             calc_create_gas(address, stack, trie, run_state, gas_limit) + 32000

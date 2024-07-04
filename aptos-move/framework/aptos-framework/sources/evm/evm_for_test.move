@@ -559,7 +559,7 @@ module aptos_framework::evm_for_test {
                 //balance
             else if(opcode == 0x31) {
                 let target = vector_slice(u256_to_data(pop_stack(stack, error_code)), 12, 20);
-                get_balance(to_32bit(target), trie);
+                vector::push_back(stack, get_balance(to_32bit(target), trie));
                 i = i + 1;
             }
                 //origin

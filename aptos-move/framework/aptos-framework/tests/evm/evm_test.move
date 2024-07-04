@@ -30,7 +30,7 @@ module aptos_framework::evm_test {
         initialize_for_test(&aptos_framework);
 
         let from = x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b";
-        let to = x"cccccccccccccccccccccccccccccccccccccccc";
+        let to = x"0000000000000000000000000000000000000100";
         let data = x"";
         let env = vector[u256_to_data(0x07),x"2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",u256_to_data(0x00),u256_to_data(0x00),u256_to_data(0x02540be400),u256_to_data(0x01),x"0000000000000000000000000000000000000000000000000000000000000000",u256_to_data(0x03e8)];
         let gas_limit = u256_to_data(0x05f5e100);
@@ -44,10 +44,10 @@ module aptos_framework::evm_test {
 
 
 
-        let addresses = vector[x"0000000000000000000000000000000000000100", x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b", x"cccccccccccccccccccccccccccccccccccccccc"];
-        let balance_table = vector[0x00, 0x3635c9adc5dea00000, 0x00];
-        let codes = vector[x"60006000600060006000416000f150", x"", x"60006000600060006000610100607af1600055"];
-        let nonce_table = vector[0x00, 0x00, 0x00];
+        let addresses = vector[x"0000000000000000000000000000000000000100", x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b"];
+        let balance_table = vector[0x3635c9adc5dea00000, 0x3635c9adc5dea00000];
+        let codes = vector[x"5a41315a905090036004900360005500", x""];
+        let nonce_table = vector[0x00, 0x00];
         let i = 0;
         let balances = vector::empty<vector<u8>>();
         let nonces = vector::empty<u64>();

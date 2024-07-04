@@ -44,16 +44,29 @@ module aptos_framework::evm_trie {
         vector::borrow(&trie.context, len - 1)
     }
 
+    fun empty_account(): TestAccount {
+        TestAccount {
+            balance: 0,
+            code: x"",
+            nonce: 0,
+            storage: simple_map::new()
+        }
+    }
+
     fun load_account_storage(trie: &Trie, contract_addr: vector<u8>): TestAccount {
         *simple_map::borrow(&trie.storage, &contract_addr)
     }
 
-    fun load_account_checkpoint(trie: &Trie, contract_addr: &vector<u8>): &TestAccount {
+    fun load_account_checkpoint(trie: &Trie, contract_addr: &vector<u8>): TestAccount {
         let checkpoint = get_lastest_checkpoint(trie);
         if(simple_map::contains_key(&checkpoint.state, contract_addr)) {
-            simple_map::borrow(&checkpoint.state, contract_addr)
+            *simple_map::borrow(&checkpoint.state, contract_addr)
         } else {
-            simple_map::borrow(&trie.storage, contract_addr)
+            if(simple_map::contains_key(&trie.storage, contract_addr)) {
+                *simple_map::borrow(&trie.storage, contract_addr)
+            } else {
+                empty_account()
+            }
         }
     }
 
