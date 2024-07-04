@@ -187,21 +187,24 @@ module aptos_framework::evm_for_test {
         let run_state = &mut new_run_state(gas_limit);
         add_checkpoint(trie, false);
         let data_size = (vector::length(&data) as u256);
+
         if(to == ZERO_ADDR && data_size > MAX_INIT_CODE_SIZE) {
             let state_root = calculate_root(get_storage_copy(trie));
             emit_event(state_root, 0, 0);
         } else {
+            let out_of_gas = false;
             let base_cost = calc_base_gas(&data) + 21000;
-            add_gas_usage(run_state, base_cost);
+            out_of_gas = add_gas_usage(run_state, base_cost);
             if(to == ZERO_ADDR) {
                 let evm_contract = get_contract_address(from, (get_nonce(from, trie) as u64));
-                add_gas_usage(run_state, 2 * get_word_count(data_size) + 32000);
+                out_of_gas = add_gas_usage(run_state, 2 * get_word_count(data_size) + 32000);
                 let (success, deployed_codes) = run(from, from, to, data, x"", value, get_gas_left(run_state), trie, run_state, true, &env);
                 let store_fee = (200 * vector::length(&deployed_codes) as u256);
-                if(success && get_gas_left(run_state) >= store_fee) {
+                out_of_gas = add_gas_usage(run_state, store_fee);
+                if(success && !out_of_gas) {
                     new_account(evm_contract, deployed_codes, value, 1, trie);
                 };
-                add_gas_usage(run_state, store_fee);
+
             } else {
                 run(from, from, to, get_code(to, trie), data, value, gas_limit - base_cost, trie, run_state, true, &env);
             };
