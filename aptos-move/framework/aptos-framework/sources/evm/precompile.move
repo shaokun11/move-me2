@@ -56,8 +56,13 @@ module aptos_framework::precompile {
             let exp_len = to_u256(vector_slice(calldata, 32, 32));
             let mod_len = to_u256(vector_slice(calldata, 64, 32));
 
+            debug::print(&calldata);
+            debug::print(&base_len);
+            debug::print(&exp_len);
+            debug::print(&mod_len);
+
             if(base_len > MAX_SIZE || mod_len > MAX_SIZE || exp_len > MAX_SIZE || (base_len + mod_len + exp_len + 96) > MAX_SIZE) {
-                return (false, to_32bit(x""), gas_limit)
+                return (false, x"", gas_limit)
             };
 
             let pos = 96;
@@ -67,11 +72,9 @@ module aptos_framework::precompile {
             pos = pos + exp_len;
             let mod_bytes = vector_slice_u256(calldata, pos, mod_len);
             let gas = calc_mod_exp_gas(base_len, exp_len, exp_bytes, mod_len);
-            if(base_len == 0 || mod_len == 0) {
-                return (true, to_32bit(x""), gas)
+            if(base_len == 0 && mod_len == 0) {
+                return (true, x"", gas)
             };
-
-
 
             let result = mod_exp(base_bytes, exp_bytes, mod_bytes);
 

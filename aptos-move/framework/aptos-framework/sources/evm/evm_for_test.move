@@ -239,6 +239,7 @@ module aptos_framework::evm_for_test {
 
         if (is_precompile_address(to)) {
             let (success, ret_bytes, gas) = precompile(to, data, gas_limit);
+            debug::print(&gas);
             add_gas_usage(run_state, gas);
             return (success, ret_bytes)
         };
