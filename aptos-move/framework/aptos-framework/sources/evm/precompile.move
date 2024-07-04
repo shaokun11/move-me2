@@ -1,6 +1,6 @@
 module aptos_framework::precompile {
     use std::vector;
-    use aptos_framework::evm_util::{to_u256, to_32bit, vector_slice, vector_slice_u256};
+    use aptos_framework::evm_util::{to_u256, to_32bit, vector_slice, vector_slice_u256, to_n_bit};
     use aptos_std::secp256k1::{ecdsa_recover, ecdsa_signature_from_bytes, ecdsa_raw_public_key_to_bytes};
     use aptos_std::aptos_hash::{keccak256, ripemd160};
     use std::option::borrow;
@@ -77,6 +77,7 @@ module aptos_framework::precompile {
             };
 
             let result = mod_exp(base_bytes, exp_bytes, mod_bytes);
+            result = if(mod_len == 0) x"" else to_n_bit(result, (mod_len as u64));
             (true, result, gas)
         } else {
             assert!(false, (to_u256(addr) as u64));

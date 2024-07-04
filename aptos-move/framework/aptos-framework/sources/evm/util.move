@@ -34,6 +34,18 @@ module aptos_framework::evm_util {
         bytes
     }
 
+    public fun to_n_bit(data: vector<u8>, n: u64): vector<u8> {
+        let bytes = vector::empty<u8>();
+        let len = vector::length(&data);
+        // debug::print(&len);
+        while(len < n) {
+            vector::push_back(&mut bytes, 0);
+            len = len + 1
+        };
+        vector::append(&mut bytes, data);
+        bytes
+    }
+
     public fun to_32bit(data: vector<u8>): vector<u8> {
         let bytes = vector::empty<u8>();
         let len = vector::length(&data);
@@ -59,18 +71,6 @@ module aptos_framework::evm_util {
         to_32bit(vector_slice(keccak256(salt), 12, 20))
     }
 
-    public fun power(base: u256, exponent: u256): u256 {
-        let result = 1;
-
-        let i = 0;
-        while (i < exponent) {
-            result = result * base;
-            i = i + 1;
-        };
-
-        result
-    }
-
     public fun to_int256(num: u256): (bool, u256) {
         let neg = false;
         if(num > U255_MAX) {
@@ -78,14 +78,6 @@ module aptos_framework::evm_util {
             num = U256_MAX - num + 1;
         };
         (neg, num)
-    }
-
-    public fun add_sign(value: u256, sign: bool): u256 {
-        if(sign) {
-            U256_MAX - value + 1
-        } else {
-            value
-        }
     }
 
     public fun to_u256(data: vector<u8>): u256 {
@@ -206,6 +198,8 @@ module aptos_framework::evm_util {
 
         encode_data(&content, 0xc0)
     }
+
+
 
     public fun u256_to_trimed_data(num: u256): vector<u8> {
         trim(u256_to_data(num))
