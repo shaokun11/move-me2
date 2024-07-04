@@ -636,6 +636,11 @@ module aptos_framework::evm_for_test {
                 copy_to_memory(memory, m_pos, d_pos, len, code);
                 i = i + 1;
             }
+                //returndatasize
+            else if(opcode == 0x3d) {
+                vector::push_back(stack, (vector::length(&ret_bytes) as u256));
+                i = i + 1;
+            }
                 //returndatacopy
             else if(opcode == 0x3e) {
                 // mstore()
@@ -646,9 +651,16 @@ module aptos_framework::evm_for_test {
                 mstore(memory, m_pos, bytes);
                 i = i + 1;
             }
-                //returndatasize
-            else if(opcode == 0x3d) {
-                vector::push_back(stack, (vector::length(&ret_bytes) as u256));
+                //extcodehash
+            else if(opcode == 0x3f) {
+                let target = vector_slice(u256_to_data(pop_stack(stack, error_code)), 12, 20);
+                let code = get_code(to_32bit(target), trie);
+                if(vector::length(&code) > 0) {
+                    let hash = keccak256(code);
+                    vector::push_back(stack, to_u256(hash));
+                } else {
+                    vector::push_back(stack, 0);
+                };
                 i = i + 1;
             }
                 //blockhash

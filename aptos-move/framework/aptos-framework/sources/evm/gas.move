@@ -215,8 +215,38 @@ module aptos_framework::evm_gas {
             };
             gas = gas + calc_memory_expand(stack, 1, 3, run_state, gas_limit);
         };
-
         gas + 3
+    }
+
+    fun calc_ext_code_hash_gas(stack: &mut vector<u256>,
+                               trie: &mut Trie): u256 {
+        let len = vector::length(stack);
+        let address = *vector::borrow(stack,len - 1);
+        access_address(u256_to_data(address), trie)
+    }
+
+    fun calc_ext_code_copy_gas(stack: &mut vector<u256>,
+                               run_state: &mut RunState,
+                               trie: &mut Trie,
+                               gas_limit: u256): u256 {
+        let len = vector::length(stack);
+        if(len < 4) {
+            return gas_limit
+        };
+        let gas = 0;
+        let data_length = *vector::borrow(stack,len - 4);
+        if(data_length > 0) {
+            let word_count = get_word_count(data_length);
+            gas = gas + word_count * Copy;
+            // Prevent overflow here; if the result is greater than gasLimit, return gasLimit directly
+            if(gas > gas_limit) {
+                return gas_limit
+            };
+            gas = gas + calc_memory_expand(stack, 2, 4, run_state, gas_limit);
+        };
+        let address = *vector::borrow(stack,len - 1);
+        gas = gas + access_address(u256_to_data(address), trie);
+        gas
     }
 
     fun calc_keccak256_gas(stack: &mut vector<u256>,
@@ -303,6 +333,8 @@ module aptos_framework::evm_gas {
         gas = gas + access_address(to, trie);
         gas + 5000
     }
+
+
 
     fun get_word_count(bytes: u256): u256 {
         // To prevent overflow, this method is used to calculate the number of bytes
@@ -450,9 +482,6 @@ module aptos_framework::evm_gas {
         } else if (opcode == 0x3D) {
             // RETURNDATASIZE
             2
-        } else if (opcode == 0x3F) {
-            // EXTCODEHASH
-            700
         } else if (opcode == 0x40) {
             // BLOCKHASH
             20
@@ -531,6 +560,9 @@ module aptos_framework::evm_gas {
         } else if (opcode == 0x31) {
             // BALANCE
             access_address(address, trie)
+        } else if (opcode == 0x3f) {
+            // EXTCODEHASH
+            calc_ext_code_hash_gas(stack, trie)
         } else if (opcode == 0xf0) {
             // CREATE
             calc_create_gas(address, stack, trie, run_state, gas_limit) + 32000
@@ -560,6 +592,9 @@ module aptos_framework::evm_gas {
         } else if (opcode == 0x37 || opcode == 0x39 || opcode == 0x3e) {
             // CALLDATACOPY & CODECOPY & RETURNDATA COPY
             calc_code_copy_gas(stack, run_state, gas_limit)
+        } else if (opcode == 0x3c) {
+            // EXTCODECOPY
+            calc_ext_code_copy_gas(stack, run_state, trie, gas_limit)
         } else if (opcode >= 0xa0 && opcode <= 0xa4) {
             // LOG
             calc_log_gas(opcode, stack, run_state, gas_limit)

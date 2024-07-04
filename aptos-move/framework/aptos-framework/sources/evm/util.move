@@ -328,6 +328,8 @@ module aptos_framework::evm_util {
             debug::print(&utf8(b"RETURNDATASIZE"));
         } else if(opcode == 0x3e) {
             debug::print(&utf8(b"RETURNDATACOPY"));
+        } else if(opcode == 0x3f) {
+            debug::print(&utf8(b"EXTCODEHASH"));
         } else if(opcode == 0x40) {
             debug::print(&utf8(b"BLOCKHASH"));
         } else if(opcode == 0x41) {
