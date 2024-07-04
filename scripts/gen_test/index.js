@@ -81,6 +81,6 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "src/GeneralStateTestsFiller/Pyspecs/cancun/eip4844_blobs/test_point_evaluation_precompile.py::test_invalid_precompile_calls[fork_Cancun-state_test-success_False-correct_proof_1_incorrect_versioned_hash_version_0x00]"
+let key = "src/GeneralStateTestsFiller/Pyspecs/shanghai/eip3651_warm_coinbase/test_warm_coinbase.py::test_warm_coinbase_call_out_of_gas[fork_Cancun-state_test-CALL-sufficient_gas]"
 
-read("src/GeneralStateTests/Pyspecs/cancun/eip4844_blobs/invalid_precompile_calls.json", key, 0, 0, 0)
+read("src/GeneralStateTests/Pyspecs/shanghai/eip3651_warm_coinbase/warm_coinbase_call_out_of_gas.json", key, 0, 0, 0)
