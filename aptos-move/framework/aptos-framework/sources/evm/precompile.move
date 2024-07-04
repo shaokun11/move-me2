@@ -77,8 +77,7 @@ module aptos_framework::precompile {
             };
 
             let result = mod_exp(base_bytes, exp_bytes, mod_bytes);
-
-            (true, to_32bit(result), gas)
+            (true, result, gas)
         } else {
             assert!(false, (to_u256(addr) as u64));
             (false, x"", 0)
