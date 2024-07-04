@@ -38,6 +38,8 @@ module aptos_framework::evm_for_test {
     const ONE_ADDR: vector<u8> =       x"0000000000000000000000000000000000000000000000000000000000000001";
     const CHAIN_ID_BYTES: vector<u8> = x"0150";
 
+    const MAX_STACK_SIZE: u64 = 1024;
+
     /// invalid pc
     const EVM_ERROR_INVALID_PC: u64 = 10000001;
     /// invalid pop stack
@@ -1057,7 +1059,7 @@ module aptos_framework::evm_for_test {
             debug::print(stack);
             // debug::print(&vector::length(stack));
 
-            if(*error_code > 0) {
+            if(*error_code > 0 || vector::length(stack) > MAX_STACK_SIZE) {
                 handle_unexpect_revert(trie, run_state);
                 return (false, ret_bytes)
             }

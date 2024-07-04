@@ -81,6 +81,6 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "src/GeneralStateTestsFiller/Pyspecs/cancun/eip1153_tstore/test_tstorage_create_contexts.py::TestTransientStorageInContractCreation::test_contract_creation[fork_Cancun-state_test-across_constructor_and_deployed_code_v1-create2]"
+let key = "src/GeneralStateTestsFiller/Pyspecs/cancun/eip1153_tstore/test_tstorage_execution_contexts.py::test_subcall[fork_Cancun-state_test-call_with_stack_overflow]"
 
-read("src/GeneralStateTests/Pyspecs/cancun/eip1153_tstore/contract_creation.json", key, 0, 0, 0)
+read("src/GeneralStateTests/Pyspecs/cancun/eip1153_tstore/subcall.json", key, 0, 0, 0)
