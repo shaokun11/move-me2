@@ -106,7 +106,7 @@ module aptos_framework::evm_trie {
         account.balance = balance;
     }
 
-    fun set_code(trie: &mut Trie, contract_addr: vector<u8>, code: vector<u8>) {
+    public fun set_code(trie: &mut Trie, contract_addr: vector<u8>, code: vector<u8>) {
         let account = load_account_checkpoint_mut(trie, &contract_addr);
         account.code = code;
     }

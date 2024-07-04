@@ -13,7 +13,7 @@ module aptos_framework::evm_for_test {
     use aptos_framework::evm_gas::{calc_exec_gas, calc_base_gas, max_call_gas};
     use aptos_framework::event;
     use aptos_framework::evm_arithmetic::{add, mul, sub, div, sdiv, mod, smod, add_mod, mul_mod, exp, shr, sar};
-    use aptos_framework::evm_trie::{pre_init, Trie, add_checkpoint, revert_checkpoint, commit_latest_checkpoint, TestAccount, get_code, sub_balance, add_nonce, transfer, get_balance, get_state, set_state, exist_contract, get_nonce, new_account, get_storage_copy, save, add_balance, add_warm_address, get_transient_storage, put_transient_storage, get_is_static};
+    use aptos_framework::evm_trie::{pre_init, Trie, add_checkpoint, revert_checkpoint, commit_latest_checkpoint, TestAccount, get_code, sub_balance, add_nonce, transfer, get_balance, get_state, set_state, exist_contract, get_nonce, new_account, get_storage_copy, save, add_balance, add_warm_address, get_transient_storage, put_transient_storage, get_is_static, set_code};
     friend aptos_framework::genesis;
 
     const ADDR_LENGTH: u64 = 10001;
@@ -894,10 +894,11 @@ module aptos_framework::evm_for_test {
                 debug::print(&call_gas_limit);
                 add_nonce(to, trie);
                 add_checkpoint(trie, false);
+                new_account(new_evm_contract_addr, x"", 0, 1, trie);
                 let(create_res, bytes) = run(sender, to, new_evm_contract_addr, new_codes, x"", msg_value, call_gas_limit, trie, run_state, true, env);
                 if(create_res) {
                     add_gas_usage(run_state, 200 * ((vector::length(&bytes)) as u256));
-                    new_account(new_evm_contract_addr, bytes, 0, 1, trie);
+                    set_code(trie, new_evm_contract_addr, bytes);
                     ret_bytes = new_evm_contract_addr;
                     vector::push_back(stack, data_to_u256(new_evm_contract_addr, 0, 32));
                 } else {
@@ -926,15 +927,13 @@ module aptos_framework::evm_for_test {
                 vector::append(&mut p, keccak256(new_codes));
                 let new_evm_contract_addr = to_32bit(vector_slice(keccak256(p), 12, 20));
 
-                // to_account.nonce = to_account.nonce + 1;
                 add_nonce(to, trie);
                 add_checkpoint(trie, false);
+                new_account(new_evm_contract_addr, x"", 0, 1, trie);
                 let (create_res, bytes) = run(to, sender, new_evm_contract_addr, new_codes, x"", msg_value, gas_limit, trie, run_state, true, env);
-
                 if(create_res) {
                     add_gas_usage(run_state, 200 * ((vector::length(&bytes)) as u256));
-                    new_account(new_evm_contract_addr, bytes, 0, 1, trie);
-
+                    set_code(trie, new_evm_contract_addr, bytes);
                     ret_bytes = new_evm_contract_addr;
                     vector::push_back(stack, data_to_u256(new_evm_contract_addr, 0, 32));
                 } else {
