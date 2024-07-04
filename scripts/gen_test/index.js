@@ -81,6 +81,6 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "src/GeneralStateTestsFiller/Pyspecs/cancun/eip1153_tstore/test_tstorage.py::test_tload_after_tstore_is_zero[fork_Cancun-state_test]"
+let key = "src/GeneralStateTestsFiller/Pyspecs/cancun/eip4844_blobs/test_point_evaluation_precompile.py::test_invalid_precompile_calls[fork_Cancun-state_test-success_False-correct_proof_1_incorrect_versioned_hash_version_0x00]"
 
-read("src/GeneralStateTests/Pyspecs/cancun/eip1153_tstore/tload_after_tstore_is_zero.json", key, 0, 0, 0)
+read("src/GeneralStateTests/Pyspecs/cancun/eip4844_blobs/invalid_precompile_calls.json", key, 0, 0, 0)

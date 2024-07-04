@@ -74,8 +74,7 @@ module aptos_framework::precompile {
             result = if(mod_len == 0) x"" else to_n_bit(result, (mod_len as u64));
             (true, result, gas)
         } else {
-            assert!(false, (to_u256(addr) as u64));
-            (false, x"", 0)
+            (false, x"", gas_limit)
         }
     }
 
