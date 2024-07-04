@@ -31,6 +31,7 @@ module aptos_framework::evm_for_test {
 
     const ERROR_STATIC_STATE_CHANGE: u64 = 51;
     const ERROR_INVALID_OPCODE: u64 = 53;
+    const ERROR_EXCEED_INITCODE_SIZE: u64 = 55;
 
     const U64_MAX: u256 = 18446744073709551615; // 18_446_744_073_709_551_615
     const U256_MAX: u256 = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
@@ -39,6 +40,7 @@ module aptos_framework::evm_for_test {
     const CHAIN_ID_BYTES: vector<u8> = x"0150";
 
     const MAX_STACK_SIZE: u64 = 1024;
+    const MAX_INIT_CODE_SIZE: u256 = 49152;
 
     /// invalid pc
     const EVM_ERROR_INVALID_PC: u64 = 10000001;
@@ -185,8 +187,11 @@ module aptos_framework::evm_for_test {
         let run_state = &mut new_run_state(gas_limit);
         add_checkpoint(trie, false);
         let data_size = (vector::length(&data) as u256);
-        if(data_size <= 49152) {
-            let base_cost = calc_base_gas(&data) + 21000;
+        debug::print(&data_size);
+        if(to == ZERO_ADDR && data_size > MAX_INIT_CODE_SIZE) {
+            let state_root = calculate_root(get_storage_copy(trie));
+            emit_event(state_root, 0, 0);
+        } else {let base_cost = calc_base_gas(&data) + 21000;
             add_gas_usage(run_state, base_cost);
             if(to == ZERO_ADDR) {
                 let evm_contract = get_contract_address(from, (get_nonce(from, trie) as u64));
@@ -220,9 +225,7 @@ module aptos_framework::evm_for_test {
             let exec_cost = gas_usage - base_cost;
             debug::print(&exec_cost);
             emit_event(state_root, gas_usage, gas_refund);
-        } else {
-            let state_root = calculate_root(get_storage_copy(trie));
-            emit_event(state_root, 0, 0);
+
         }
 
 
@@ -915,35 +918,36 @@ module aptos_framework::evm_for_test {
             else if(opcode == 0xf0) {
                 let msg_value = pop_stack(stack, error_code);
                 let pos = pop_stack_u64(stack, error_code);
-                let len = pop_stack_u64(stack, error_code);
-                let new_codes = vector_slice(*memory, pos, len);
-                // let contract_store = borrow_global_mut<Account>(move_contract_address);
-                let nonce = get_nonce(to, trie);
-                let gas_left = get_gas_left(run_state);
-                let (call_gas_limit, gas_stipend) = max_call_gas(gas_left, gas_left, msg_value, opcode);
-                if(gas_stipend > 0) {
-                    add_gas_left(run_state, gas_stipend);
-                };
-
-                let new_evm_contract_addr = get_contract_address(to, (nonce as u64));
-                debug::print(&utf8(b"create start"));
-                debug::print(&call_gas_limit);
-                add_nonce(to, trie);
-                add_checkpoint(trie, false);
-                new_account(new_evm_contract_addr, x"", 0, 1, trie);
-                let(create_res, bytes) = run(sender, to, new_evm_contract_addr, new_codes, x"", msg_value, call_gas_limit, trie, run_state, true, env);
-                if(create_res) {
-                    add_gas_usage(run_state, 200 * ((vector::length(&bytes)) as u256));
-                    set_code(trie, new_evm_contract_addr, bytes);
-                    ret_bytes = new_evm_contract_addr;
-                    vector::push_back(stack, data_to_u256(new_evm_contract_addr, 0, 32));
+                let len = pop_stack(stack, error_code);
+                if(len > MAX_INIT_CODE_SIZE) {
+                    *error_code = ERROR_EXCEED_INITCODE_SIZE;
                 } else {
-                    ret_bytes = bytes;
-                    vector::push_back(stack, 0);
+                    let new_codes = vector_slice(*memory, pos, (len as u64));
+                    // let contract_store = borrow_global_mut<Account>(move_contract_address);
+                    let nonce = get_nonce(to, trie);
+                    let gas_left = get_gas_left(run_state);
+                    let (call_gas_limit, gas_stipend) = max_call_gas(gas_left, gas_left, msg_value, opcode);
+                    if(gas_stipend > 0) {
+                        add_gas_left(run_state, gas_stipend);
+                    };
+
+                    let new_evm_contract_addr = get_contract_address(to, (nonce as u64));
+                    debug::print(&utf8(b"create start"));
+                    debug::print(&call_gas_limit);
+                    add_nonce(to, trie);
+                    add_checkpoint(trie, false);
+                    new_account(new_evm_contract_addr, x"", 0, 1, trie);
+                    let(create_res, bytes) = run(sender, to, new_evm_contract_addr, new_codes, x"", msg_value, call_gas_limit, trie, run_state, true, env);
+                    if(create_res) {
+                        add_gas_usage(run_state, 200 * ((vector::length(&bytes)) as u256));
+                        set_code(trie, new_evm_contract_addr, bytes);
+                        ret_bytes = new_evm_contract_addr;
+                        vector::push_back(stack, data_to_u256(new_evm_contract_addr, 0, 32));
+                    } else {
+                        ret_bytes = bytes;
+                        vector::push_back(stack, 0);
+                    };
                 };
-
-                // debug::print(&utf8(b"create end"));
-
 
                 i = i + 1
             }

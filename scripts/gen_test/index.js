@@ -81,6 +81,6 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "src/GeneralStateTestsFiller/Pyspecs/shanghai/eip3860_initcode/test_initcode.py::test_contract_creating_tx[fork_Cancun-state_test-over_limit_ones]"
+let key = "src/GeneralStateTestsFiller/Pyspecs/shanghai/eip3860_initcode/test_initcode.py::TestCreateInitcode::test_create_opcode_initcode[fork_Cancun-state_test-create-over_limit_ones]"
 
-read("src/GeneralStateTests/Pyspecs/shanghai/eip3860_initcode/contract_creating_tx.json", key, 0, 0, 0)
+read("src/GeneralStateTests/Pyspecs/shanghai/eip3860_initcode/create_opcode_initcode.json", key, 0, 0, 0)
