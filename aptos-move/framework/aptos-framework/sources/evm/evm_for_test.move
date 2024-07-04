@@ -183,42 +183,50 @@ module aptos_framework::evm_for_test {
         to = to_32bit(to);
         // debug::print(&trie);
         let run_state = &mut new_run_state(gas_limit);
-        let base_cost = calc_base_gas(&data) + 21000;
-        add_gas_usage(run_state, base_cost);
         add_checkpoint(trie, false);
-        if(to == ZERO_ADDR) {
-            let evm_contract = get_contract_address(from, (get_nonce(from, trie) as u64));
-            let data_size = (vector::length(&data) as u256);
-            add_gas_usage(run_state, 2 * get_word_count(data_size) + 32000);
-            let (_, deployed_codes) = run(from, from, to, data, x"", value, get_gas_left(run_state), trie, run_state, true, &env);
-            new_account(evm_contract, deployed_codes, value, 1, trie);
-            add_gas_usage(run_state, (200 * vector::length(&deployed_codes) as u256));
+        let data_size = (vector::length(&data) as u256);
+        if(data_size <= 49152) {
+            let base_cost = calc_base_gas(&data) + 21000;
+            add_gas_usage(run_state, base_cost);
+            if(to == ZERO_ADDR) {
+                let evm_contract = get_contract_address(from, (get_nonce(from, trie) as u64));
+                add_gas_usage(run_state, 2 * get_word_count(data_size) + 32000);
+                let (_, deployed_codes) = run(from, from, to, data, x"", value, get_gas_left(run_state), trie, run_state, true, &env);
+                new_account(evm_contract, deployed_codes, value, 1, trie);
+                add_gas_usage(run_state, (200 * vector::length(&deployed_codes) as u256));
+            } else {
+                run(from, from, to, get_code(to, trie), data, value, gas_limit - base_cost, trie, run_state, true, &env);
+            };
+
+            let gas_refund = get_gas_refund(run_state);
+            let gas_left = get_gas_left(run_state);
+            let gas_usage = gas_limit - gas_left;
+            debug::print(&gas_usage);
+            if(gas_refund > gas_usage / 5) {
+                gas_refund = gas_usage / 5
+            };
+            gas_usage = gas_usage - gas_refund;
+            let gasfee = gas_price * gas_usage;
+            sub_balance(from, gasfee, trie);
+            add_nonce(from, trie);
+
+            if(env.base_fee < gas_price) {
+                let miner_value = (gas_price - env.base_fee) * gas_usage;
+                add_balance(env.coinbase, miner_value, trie);
+            };
+
+            save(trie);
+            let state_root = calculate_root(get_storage_copy(trie));
+            let exec_cost = gas_usage - base_cost;
+            debug::print(&exec_cost);
+            emit_event(state_root, gas_usage, gas_refund);
         } else {
-            run(from, from, to, get_code(to, trie), data, value, gas_limit - base_cost, trie, run_state, true, &env);
-        };
+            let state_root = calculate_root(get_storage_copy(trie));
+            emit_event(state_root, 0, 0);
+        }
 
-        let gas_refund = get_gas_refund(run_state);
-        let gas_left = get_gas_left(run_state);
-        let gas_usage = gas_limit - gas_left;
-        debug::print(&gas_usage);
-        if(gas_refund > gas_usage / 5) {
-            gas_refund = gas_usage / 5
-        };
-        gas_usage = gas_usage - gas_refund;
-        let gasfee = gas_price * gas_usage;
-        sub_balance(from, gasfee, trie);
-        add_nonce(from, trie);
 
-        if(env.base_fee < gas_price) {
-            let miner_value = (gas_price - env.base_fee) * gas_usage;
-            add_balance(env.coinbase, miner_value, trie);
-        };
 
-        save(trie);
-        let state_root = calculate_root(get_storage_copy(trie));
-        let exec_cost = gas_usage - base_cost;
-        debug::print(&exec_cost);
-        emit_event(state_root, gas_usage, gas_refund);
     }
 
     fun handle_normal_revert(trie: &mut Trie, run_state: &mut RunState) {
