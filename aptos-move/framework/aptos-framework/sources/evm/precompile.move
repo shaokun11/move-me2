@@ -51,15 +51,9 @@ module aptos_framework::precompile {
         } else if(addr == IDENTITY) {
             (true, calldata, 0)
         } else if(addr == MODEXP) {
-
             let base_len = to_u256(vector_slice(calldata, 0, 32));
             let exp_len = to_u256(vector_slice(calldata, 32, 32));
             let mod_len = to_u256(vector_slice(calldata, 64, 32));
-
-            debug::print(&calldata);
-            debug::print(&base_len);
-            debug::print(&exp_len);
-            debug::print(&mod_len);
 
             if(base_len > MAX_SIZE || mod_len > MAX_SIZE || exp_len > MAX_SIZE || (base_len + mod_len + exp_len + 96) > MAX_SIZE) {
                 return (false, x"", gas_limit)

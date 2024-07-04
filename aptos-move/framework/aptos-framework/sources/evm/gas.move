@@ -271,6 +271,23 @@ module aptos_framework::evm_gas {
         gas
     }
 
+    fun calc_create2_gas(address: vector<u8>,
+                        stack: &vector<u256>,
+                        trie: &mut Trie,
+                        run_state: &mut RunState,
+                        gas_limit: u256): u256 {
+        let len = vector::length(stack);
+        let length = *vector::borrow(stack,len - 3);
+        let gas = 0;
+        let words = get_word_count(length);
+        gas = gas + calc_memory_expand(stack, 2, 3, run_state, gas_limit);
+        gas = gas + words * InitCodeWordCost;
+        gas = gas + words * Keccak256Word;
+        access_address(address, trie);
+
+        gas
+    }
+
     fun calc_self_destruct_gas(address: vector<u8>,
                                stack: &mut vector<u256>,
                                trie: &mut Trie): u256 {
@@ -517,6 +534,9 @@ module aptos_framework::evm_gas {
         } else if (opcode == 0xf0) {
             // CREATE
             calc_create_gas(address, stack, trie, run_state, gas_limit) + 32000
+        } else if (opcode == 0xf5) {
+            // CREATE2
+            calc_create2_gas(address, stack, trie, run_state, gas_limit) + 32000
         } else if(opcode == 0x53){
             calc_mstore8_gas(stack, run_state, gas_limit) + 3
         } else if (opcode == 0x51 || opcode == 0x52) {

@@ -932,6 +932,7 @@ module aptos_framework::evm_for_test {
                 let (create_res, bytes) = run(to, sender, new_evm_contract_addr, new_codes, x"", msg_value, gas_limit, trie, run_state, true, env);
 
                 if(create_res) {
+                    add_gas_usage(run_state, 200 * ((vector::length(&bytes)) as u256));
                     new_account(new_evm_contract_addr, bytes, 0, 1, trie);
 
                     ret_bytes = new_evm_contract_addr;
