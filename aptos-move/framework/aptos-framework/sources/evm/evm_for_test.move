@@ -160,6 +160,11 @@ module aptos_framework::evm_for_test {
         }
     }
 
+    fun handle_tx_failed(trie: &Trie) acquires ExecResource {
+        let state_root = calculate_root(get_storage_copy(trie));
+        emit_event(state_root, 0, 0);
+    }
+
     public entry fun run_test(addresses: vector<vector<u8>>,
                               codes: vector<vector<u8>>,
                               nonces: vector<u64>,
@@ -189,14 +194,24 @@ module aptos_framework::evm_for_test {
         let data_size = (vector::length(&data) as u256);
 
         if(to == ZERO_ADDR && data_size > MAX_INIT_CODE_SIZE) {
-            let state_root = calculate_root(get_storage_copy(trie));
-            emit_event(state_root, 0, 0);
+            handle_tx_failed(trie);
+            return
         } else {
             let base_cost = calc_base_gas(&data) + 21000;
-            add_gas_usage(run_state, base_cost);
+            let out_of_gas = add_gas_usage(run_state, base_cost);
+            if(out_of_gas) {
+                handle_tx_failed(trie);
+                return
+            };
             if(to == ZERO_ADDR) {
                 let evm_contract = get_contract_address(from, (get_nonce(from, trie) as u64));
-                add_gas_usage(run_state, 2 * get_word_count(data_size) + 32000);
+                out_of_gas = add_gas_usage(run_state, 2 * get_word_count(data_size) + 32000);
+                if(out_of_gas) {
+                    handle_tx_failed(trie);
+                    return
+                };
+                debug::print(&get_gas_left(run_state));
+                debug::print(&out_of_gas);
                 let (success, deployed_codes) = run(from, from, to, data, x"", value, get_gas_left(run_state), trie, run_state, true, &env);
                 let store_fee = (200 * vector::length(&deployed_codes) as u256);
                 let out_of_gas = add_gas_usage(run_state, store_fee);
