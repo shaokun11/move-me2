@@ -476,9 +476,6 @@ module aptos_framework::evm_gas {
         } else if (opcode == 0x3A) {
             // GASPRICE
             2
-        } else if (opcode == 0x3B) {
-            // EXTCODESIZE
-            700
         } else if (opcode == 0x3D) {
             // RETURNDATASIZE
             2
@@ -560,7 +557,7 @@ module aptos_framework::evm_gas {
         } else if (opcode == 0x31) {
             // BALANCE
             access_address(address, trie)
-        } else if (opcode == 0x3f) {
+        } else if (opcode == 0x3f || opcode == 0x3b) {
             // EXTCODEHASH
             calc_ext_code_hash_gas(stack, trie)
         } else if (opcode == 0xf0) {
