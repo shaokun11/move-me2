@@ -196,8 +196,10 @@ module aptos_framework::evm_for_test {
             if(to == ZERO_ADDR) {
                 let evm_contract = get_contract_address(from, (get_nonce(from, trie) as u64));
                 add_gas_usage(run_state, 2 * get_word_count(data_size) + 32000);
-                let (_, deployed_codes) = run(from, from, to, data, x"", value, get_gas_left(run_state), trie, run_state, true, &env);
-                new_account(evm_contract, deployed_codes, value, 1, trie);
+                let (success, deployed_codes) = run(from, from, to, data, x"", value, get_gas_left(run_state), trie, run_state, true, &env);
+                if(success) {
+                    new_account(evm_contract, deployed_codes, value, 1, trie);
+                };
                 add_gas_usage(run_state, (200 * vector::length(&deployed_codes) as u256));
             } else {
                 run(from, from, to, get_code(to, trie), data, value, gas_limit - base_cost, trie, run_state, true, &env);
