@@ -3,7 +3,7 @@ module aptos_framework::evm_for_test {
     use std::vector;
     use aptos_std::aptos_hash::keccak256;
     use aptos_std::debug;
-    use aptos_framework::evm_util::{to_32bit, get_contract_address, to_int256, data_to_u256, u256_to_data, mstore, copy_to_memory, to_u256, get_valid_jumps, expand_to_pos, vector_slice, vector_slice_u256};
+    use aptos_framework::evm_util::{to_32bit, get_contract_address, to_int256, data_to_u256, u256_to_data, mstore, copy_to_memory, to_u256, get_valid_jumps, expand_to_pos, vector_slice, vector_slice_u256, get_word_count};
     use std::string::utf8;
     use aptos_framework::event::EventHandle;
     use aptos_framework::precompile::{is_precompile_address, run_precompile};
@@ -179,14 +179,24 @@ module aptos_framework::evm_for_test {
         add_warm_address(from, trie);
         add_warm_address(env.coinbase, trie);
         let gas_limit = to_u256(gas_limit_bytes);
-            from = to_32bit(from);
+        from = to_32bit(from);
         to = to_32bit(to);
         // debug::print(&trie);
         let run_state = &mut new_run_state(gas_limit);
         let base_cost = calc_base_gas(&data) + 21000;
         add_gas_usage(run_state, base_cost);
         add_checkpoint(trie, false);
-        run(from, from, to, get_code(to, trie), data, value, gas_limit - base_cost, trie, run_state, true, &env);
+        if(to == ZERO_ADDR) {
+            let evm_contract = get_contract_address(from, (get_nonce(from, trie) as u64));
+            let data_size = (vector::length(&data) as u256);
+            add_gas_usage(run_state, 2 * get_word_count(data_size) + 32000);
+            let (_, deployed_codes) = run(from, from, to, data, x"", value, get_gas_left(run_state), trie, run_state, true, &env);
+            new_account(evm_contract, deployed_codes, value, 1, trie);
+            add_gas_usage(run_state, (200 * vector::length(&deployed_codes) as u256));
+        } else {
+            run(from, from, to, get_code(to, trie), data, value, gas_limit - base_cost, trie, run_state, true, &env);
+        };
+
         let gas_refund = get_gas_refund(run_state);
         let gas_left = get_gas_left(run_state);
         let gas_usage = gas_limit - gas_left;

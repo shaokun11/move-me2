@@ -1,6 +1,6 @@
 module aptos_framework::evm_gas {
     use std::vector;
-    use aptos_framework::evm_util::{u256_to_data, print_opcode, u256_bytes_length};
+    use aptos_framework::evm_util::{u256_to_data, print_opcode, u256_bytes_length, get_word_count};
     use aptos_framework::evm_global_state::{get_memory_cost, set_memory_cost, add_gas_refund, sub_gas_refund, get_memory_word_size, set_memory_word_size, RunState};
     use aptos_std::debug;
     use std::vector::for_each;
@@ -332,17 +332,6 @@ module aptos_framework::evm_gas {
         };
         gas = gas + access_address(to, trie);
         gas + 5000
-    }
-
-
-
-    fun get_word_count(bytes: u256): u256 {
-        // To prevent overflow, this method is used to calculate the number of bytes
-        let word_count = bytes / 32;
-        if(bytes % 32 != 0) {
-            word_count = word_count + 1;
-        };
-        word_count
     }
 
     public fun max_call_gas(gas_left: u256, gas_limit: u256, value: u256, opcode: u8): (u256, u256) {

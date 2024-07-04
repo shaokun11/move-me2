@@ -218,6 +218,15 @@ module aptos_framework::evm_util {
         vector_slice(data, i, len - i)
     }
 
+    public fun get_word_count(bytes: u256): u256 {
+        // To prevent overflow, this method is used to calculate the number of bytes
+        let word_count = bytes / 32;
+        if(bytes % 32 != 0) {
+            word_count = word_count + 1;
+        };
+        word_count
+    }
+
     public fun get_valid_jumps(bytecode: &vector<u8>): vector<bool> {
         let i = 0;
         let len = vector::length(bytecode);
