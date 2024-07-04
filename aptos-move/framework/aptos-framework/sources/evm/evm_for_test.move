@@ -187,7 +187,12 @@ module aptos_framework::evm_for_test {
         run(from, from, to, get_code(to, trie), data, value, gas_limit - base_cost, trie, run_state, true, &env);
         let gas_refund = get_gas_refund(run_state);
         let gas_left = get_gas_left(run_state);
-        let gas_usage = (gas_limit - gas_left - gas_refund);
+        let gas_usage = gas_limit - gas_left;
+        debug::print(&gas_usage);
+        if(gas_refund > gas_usage / 5) {
+            gas_refund = gas_usage / 5
+        };
+        gas_usage = gas_usage - gas_refund;
         let gasfee = gas_price * gas_usage;
         sub_balance(from, gasfee, trie);
         add_nonce(from, trie);
