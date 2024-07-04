@@ -865,6 +865,7 @@ module aptos_framework::evm_for_test {
                     add_checkpoint(trie, is_static);
                     let (call_res, bytes) = run(sender, from, target, dest_code, params, msg_value, call_gas_limit, trie, run_state, transfer_eth, env);
                     ret_bytes = bytes;
+                    debug::print(&ret_bytes);
                     copy_to_memory(memory, ret_pos , 0, ret_len, bytes);
                     vector::push_back(stack,  if(call_res) 1 else 0);
                 } else {

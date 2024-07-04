@@ -81,6 +81,6 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "src/GeneralStateTestsFiller/Pyspecs/byzantium/eip198_modexp_precompile/test_modexp.py::test_modexp[fork_Cancun-state_test-EIP-198-case1]"
+let key = "src/GeneralStateTestsFiller/Pyspecs/byzantium/eip198_modexp_precompile/test_modexp.py::test_modexp[fork_Cancun-state_test-EIP-198-case2]"
 
 read("src/GeneralStateTests/Pyspecs/byzantium/eip198_modexp_precompile/modexp.json", key, 0, 0, 0)

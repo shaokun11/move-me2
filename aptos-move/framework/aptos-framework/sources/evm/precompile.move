@@ -51,38 +51,44 @@ module aptos_framework::precompile {
         } else if(addr == IDENTITY) {
             (true, calldata, 0)
         } else if(addr == MODEXP) {
-            debug::print(&calldata);
+
             let base_len = to_u256(vector_slice(calldata, 0, 32));
             let exp_len = to_u256(vector_slice(calldata, 32, 32));
             let mod_len = to_u256(vector_slice(calldata, 64, 32));
-            if(base_len == 0 || mod_len == 0) {
-                return (true, x"", 0)
-            };
 
-            if(base_len > MAX_SIZE || mod_len > MAX_SIZE || exp_len > MAX_SIZE || (base_len + mod_len + exp_len + 96) > MAX_SIZE) {
-                return (false, x"", gas_limit)
-            };
             let pos = 96;
             let base_bytes = vector_slice_u256(calldata, pos, base_len);
             pos = pos + base_len;
             let exp_bytes = vector_slice_u256(calldata, pos, exp_len);
             pos = pos + exp_len;
             let mod_bytes = vector_slice_u256(calldata, pos, mod_len);
-            let result = mod_exp(base_bytes, exp_bytes, mod_bytes);
-            let multiplication_complexity = calculate_multiplication_complexity(base_len, mod_len);
-            let iteration_count = calculate_iteration_count(exp_len, exp_bytes);
-            let gas = multiplication_complexity * iteration_count / ModexpGquaddivisor;
-            if(gas < 200) {
-                gas = 200;
+            let gas = calc_mod_exp_gas(base_len, exp_len, exp_bytes, mod_len);
+            if(base_len == 0 || mod_len == 0) {
+                return (true, to_32bit(x""), gas)
             };
+
+            if(base_len > MAX_SIZE || mod_len > MAX_SIZE || exp_len > MAX_SIZE || (base_len + mod_len + exp_len + 96) > MAX_SIZE) {
+                return (false, to_32bit(x""), gas_limit)
+            };
+
+            let result = mod_exp(base_bytes, exp_bytes, mod_bytes);
+
             (true, to_32bit(result), gas)
-            // let base = to_u256(vector_slice(calldata, 0, 32));
-            // let base = to_u256(vector_slice(calldata, 0, 32));
-            // let base = to_u256(vector_slice(calldata, 0, 32));
         } else {
             assert!(false, (to_u256(addr) as u64));
             (false, x"", 0)
         }
+    }
+
+    fun calc_mod_exp_gas(base_len: u256, exp_len: u256, exp_bytes: vector<u8>, mod_len: u256): u256 {
+        let multiplication_complexity = calculate_multiplication_complexity(base_len, mod_len);
+        let iteration_count = calculate_iteration_count(exp_len, exp_bytes);
+        let gas = multiplication_complexity * iteration_count / ModexpGquaddivisor;
+        if(gas < 200) {
+            gas = 200;
+        };
+
+        gas
     }
 
     fun calculate_iteration_count(exponent_length: u256, exponent_bytes: vector<u8>): u256 {
