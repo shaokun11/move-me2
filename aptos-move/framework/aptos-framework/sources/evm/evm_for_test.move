@@ -912,6 +912,7 @@ module aptos_framework::evm_for_test {
 
                 if(is_precompile) {
                     let (success, bytes, gas) = precompile(evm_dest_addr, params, call_gas_limit);
+                    debug::print(&gas);
                     if(success) {
                         ret_bytes = bytes;
                         copy_to_memory(memory, ret_pos , 0, ret_len, bytes);
