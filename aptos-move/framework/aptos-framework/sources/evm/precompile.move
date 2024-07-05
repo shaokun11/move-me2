@@ -19,6 +19,8 @@ module aptos_framework::precompile {
 
     const ModexpGquaddivisor: u256 = 3;
     const Sha256Word: u256 = 12;
+    const Ripemd160Word: u256 = 120;
+    const IdentityWord: u256 = 3;
     const Ecrecover: u256 = 3000;
 
     // precompile address list
@@ -61,10 +63,11 @@ module aptos_framework::precompile {
             let word_count = get_word_count((vector::length(&calldata) as u256));
             (true, sha2_256(calldata), Sha256Word * word_count + 60)
         } else if(addr == RIPEMD) {
-            debug::print(&to_32bit(ripemd160(calldata)));
-            (true, to_32bit(ripemd160(calldata)), 0)
+            let word_count = get_word_count((vector::length(&calldata) as u256));
+            (true, to_32bit(ripemd160(calldata)), 600 + Ripemd160Word * word_count)
         } else if(addr == IDENTITY) {
-            (true, calldata, 0)
+            let word_count = get_word_count((vector::length(&calldata) as u256));
+            (true, calldata, 15 + IdentityWord * word_count)
         } else if(addr == MODEXP) {
             let base_len = to_u256(vector_slice(calldata, 0, 32));
             let exp_len = to_u256(vector_slice(calldata, 32, 32));
