@@ -76,6 +76,24 @@ invalid precomile calldata length
 
 
 
+<a id="0x1_precompile_EcAddCost"></a>
+
+
+
+<pre><code><b>const</b> <a href="precompile.md#0x1_precompile_EcAddCost">EcAddCost</a>: u256 = 150;
+</code></pre>
+
+
+
+<a id="0x1_precompile_EcMulCost"></a>
+
+
+
+<pre><code><b>const</b> <a href="precompile.md#0x1_precompile_EcMulCost">EcMulCost</a>: u256 = 6000;
+</code></pre>
+
+
+
 <a id="0x1_precompile_Ecrecover"></a>
 
 
@@ -276,7 +294,6 @@ unsupport precomile address
         <b>if</b>(base_len &gt; <a href="precompile.md#0x1_precompile_MAX_SIZE">MAX_SIZE</a> || mod_len &gt; <a href="precompile.md#0x1_precompile_MAX_SIZE">MAX_SIZE</a> || exp_len &gt; <a href="precompile.md#0x1_precompile_MAX_SIZE">MAX_SIZE</a> || (base_len + mod_len + exp_len + 96) &gt; <a href="precompile.md#0x1_precompile_MAX_SIZE">MAX_SIZE</a>) {
             <b>return</b> (<b>false</b>, x"", gas_limit)
         };
-
         <b>let</b> pos = 96;
         <b>let</b> base_bytes = vector_slice_u256(calldata, pos, base_len);
         pos = pos + base_len;
@@ -288,6 +305,12 @@ unsupport precomile address
         <b>let</b> result = mod_exp(base_bytes, exp_bytes, mod_bytes);
         result = <b>if</b>(mod_len == 0) x"" <b>else</b> to_n_bit(result, (mod_len <b>as</b> u64));
         (<b>true</b>, result, gas)
+    } <b>else</b> <b>if</b>(addr == <a href="precompile.md#0x1_precompile_ECADD">ECADD</a>) {
+        <b>let</b> (success, result) = bn128_add(calldata);
+        <b>if</b>(success) (success, result, <a href="precompile.md#0x1_precompile_EcAddCost">EcAddCost</a>) <b>else</b> (success, result, gas_limit)
+    } <b>else</b> <b>if</b>(addr == <a href="precompile.md#0x1_precompile_ECMUL">ECMUL</a>) {
+        <b>let</b> (success, result) = bn128_mul(calldata);
+        <b>if</b>(success) (success, result, <a href="precompile.md#0x1_precompile_EcMulCost">EcMulCost</a>) <b>else</b> (success, result, gas_limit)
     } <b>else</b> <b>if</b>(addr == <a href="precompile.md#0x1_precompile_BLAKE2F">BLAKE2F</a>) {
         <b>if</b>(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&calldata) != 213) {
             <b>return</b> (<b>false</b>, x"", gas_limit)

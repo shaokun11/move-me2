@@ -21,6 +21,8 @@
 -  [Function `mul_mod`](#0x1_evm_arithmetic_mul_mod)
 -  [Function `bit_length`](#0x1_evm_arithmetic_bit_length)
 -  [Function `mod_exp`](#0x1_evm_arithmetic_mod_exp)
+-  [Function `bn128_add`](#0x1_evm_arithmetic_bn128_add)
+-  [Function `bn128_mul`](#0x1_evm_arithmetic_bn128_mul)
 -  [Function `blake_2f`](#0x1_evm_arithmetic_blake_2f)
 
 
@@ -374,6 +376,50 @@
 
 
 <pre><code><b>public</b> <b>native</b> <b>fun</b> <a href="arithmetic.md#0x1_evm_arithmetic_mod_exp">mod_exp</a>(base: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, exp_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, mod: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;;
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_arithmetic_bn128_add"></a>
+
+## Function `bn128_add`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="arithmetic.md#0x1_evm_arithmetic_bn128_add">bn128_add</a>(a: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>native</b> <b>fun</b> <a href="arithmetic.md#0x1_evm_arithmetic_bn128_add">bn128_add</a>(a: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;);
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_arithmetic_bn128_mul"></a>
+
+## Function `bn128_mul`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="arithmetic.md#0x1_evm_arithmetic_bn128_mul">bn128_mul</a>(a: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>native</b> <b>fun</b> <a href="arithmetic.md#0x1_evm_arithmetic_bn128_mul">bn128_mul</a>(a: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;);
 </code></pre>
 
 

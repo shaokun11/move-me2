@@ -341,7 +341,7 @@ module aptos_framework::evm_gas {
         let gas_allow = gas_left - gas_left / 64;
         gas_limit = if(gas_limit > gas_allow) gas_allow else gas_limit;
         let gas_stipend = 0;
-        if(opcode == 0xf1 && value > 0) {
+        if((opcode == 0xf1 || opcode == 0xf2) && value > 0) {
             gas_stipend = gas_stipend + CallStipend;
             gas_limit = gas_limit + CallStipend;
         };

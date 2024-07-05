@@ -6,7 +6,7 @@ module aptos_framework::precompile {
     use std::option::borrow;
     use aptos_std::debug;
     use std::hash::sha2_256;
-    use aptos_framework::evm_arithmetic::{mod_exp, bit_length, blake_2f, bn128_add, bn128_mul};
+    use aptos_framework::evm_arithmetic::{mod_exp, bit_length, blake_2f, bn128_add, bn128_mul, bn128_pairing};
 
     /// unsupport precomile address
     const UNSUPPORT: u64 = 50001;
@@ -38,7 +38,7 @@ module aptos_framework::precompile {
 
     fun ecrecover(calldata: vector<u8>, chain_id: u64, gas_limit: u256): (bool, vector<u8>, u256) {
         if(vector::length(&calldata) != 128) {
-            return (false, to_32bit(x""), Ecrecover)
+            return (true, x"", Ecrecover)
         } else {
             let message_hash = vector_slice(calldata, 0, 32);
             let v = (to_u256(vector_slice(calldata, 32, 32)) as u64);
@@ -49,7 +49,7 @@ module aptos_framework::precompile {
             let pk = keccak256(ecdsa_raw_public_key_to_bytes(borrow(&pk_recover)));
             debug::print(&vector_slice(pk, 12, 20));
             if(Ecrecover > gas_limit) {
-                (false, to_32bit(x""), gas_limit)
+                (false, x"", gas_limit)
             } else {
                 (true, to_32bit(vector_slice(pk, 12, 20)), Ecrecover)
             }
@@ -99,6 +99,9 @@ module aptos_framework::precompile {
         } else if(addr == ECMUL) {
             let (success, result) = bn128_mul(calldata);
             if(success) (success, result, EcMulCost) else (success, result, gas_limit)
+        } else if(addr == ECPAIRING) {
+            let (success, gas, result) = bn128_pairing(calldata);
+            if(success) (success, result, (gas as u256)) else (success, result, gas_limit)
         } else if(addr == BLAKE2F) {
             if(vector::length(&calldata) != 213) {
                 return (false, x"", gas_limit)

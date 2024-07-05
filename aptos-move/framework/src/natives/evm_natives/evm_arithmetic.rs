@@ -16,7 +16,7 @@ use std::collections::VecDeque;
 use smallvec::{smallvec, SmallVec};
 use ethers::types::{U256, U512};
 use num::{BigUint, Zero, One};
-use bn::{AffineG1, Fq, Group, G1};
+use bn::{pairing_batch, AffineG1, AffineG2, Fq, Fq2, Group, Gt, G1, G2};
 
 fn get_and_reset_sign(value: U256) -> (U256, bool) {
     let U256(arr) = value;
@@ -469,6 +469,15 @@ fn read_fr(input: &[u8], start_inx: usize) -> Result<bn::Fr, String> {
     Ok(ret)
 }
 
+fn read_fq(input: &[u8], start_inx: usize) -> Result<bn::Fq, String> {
+    let mut buf = [0u8; 32];
+    read_input(input, &mut buf, start_inx);
+
+    let ret = bn::Fq::from_slice(&buf)
+        .map_err(|_| "Invalid field element")?;
+    Ok(ret)
+}
+
 fn read_point(input: &[u8], start_inx: usize) -> Result<bn::G1, String> {
     let mut px_buf = [0u8; 32];
     let mut py_buf = [0u8; 32];
@@ -566,6 +575,94 @@ fn native_bn128_mul(_context: &mut SafeNativeContext,
     ]) 
 }
 
+fn native_bn128_pairing(_context: &mut SafeNativeContext,
+    _ty_args: Vec<Type>,
+    mut args: VecDeque<Value>
+) -> SafeNativeResult<SmallVec<[Value; 1]>> {
+    let input = safely_pop_arg!(args, Vec<u8>);
+    // let success =
+    const BASE_GAS_COST: u64 = 45_000;
+    const GAS_COST_PER_PAIRING: u64 = 34_000;
+    let (gas, ret_val) = if input.is_empty() {
+        (BASE_GAS_COST, U256::one())
+    } else {
+        if input.len() % 192 > 0 {
+            return Ok(smallvec![
+                Value::bool(false),
+                Value::u64(0),
+                Value::vector_u8(Vec::new())
+            ]);
+        }
+
+        let elements = input.len() / 192;
+        let gas_cost: u64 = BASE_GAS_COST
+            + (elements as u64 * GAS_COST_PER_PAIRING);
+
+        let mut vals = Vec::new();
+        for idx in 0..elements {
+            let a_x = read_fq(&input, idx * 192);
+            let a_y = read_fq(&input, idx * 192 + 32);
+            let b_a_y = read_fq(&input, idx * 192 + 64);
+            let b_a_x = read_fq(&input, idx * 192 + 96);
+            let b_b_y = read_fq(&input, idx * 192 + 128);
+            let b_b_x = read_fq(&input, idx * 192 + 160);
+            if !a_x.is_ok() || !a_y.is_ok() || !b_a_x.is_ok() || !b_a_y.is_ok() || !b_b_x.is_ok() || !b_b_y.is_ok() {
+                return Ok(smallvec![
+                    Value::bool(false),
+                    Value::u64(0),
+                    Value::vector_u8(Vec::new())
+                ]);
+            }
+            let a_x = a_x.unwrap();
+            let a_y = a_y.unwrap();
+            let b_a = Fq2::new(b_a_x.unwrap(), b_a_y.unwrap());
+            let b_b = Fq2::new(b_b_x.unwrap(), b_b_y.unwrap());
+            let b = if b_a.is_zero() && b_b.is_zero() {
+                G2::zero()
+            } else {
+                let result = AffineG2::new(b_a, b_b);
+                if !result.is_ok() {
+                    return Ok(smallvec![
+                        Value::bool(false),
+                        Value::u64(0),
+                        Value::vector_u8(Vec::new())
+                    ]);
+                }
+                G2::from(result.unwrap())
+            };
+            let a = if a_x.is_zero() && a_y.is_zero() {
+                G1::zero()
+            } else {
+                let result = AffineG1::new(a_x, a_y);
+                if !result.is_ok() {
+                    return Ok(smallvec![
+                        Value::bool(false),
+                        Value::u64(0),
+                        Value::vector_u8(Vec::new())
+                    ]);
+                }
+                G1::from(result.unwrap())
+            };
+            vals.push((a, b));
+        }
+
+        let mul = pairing_batch(&vals);
+
+        if mul == Gt::one() {
+            (gas_cost, U256::one())
+        } else {
+            (gas_cost, U256::zero())
+        }
+    };
+
+    let mut buf = [0u8; 32];
+    ret_val.to_big_endian(&mut buf);
+    Ok(smallvec![
+        Value::bool(true),
+        Value::u64(gas),
+        Value::vector_u8(buf.to_vec())
+    ])
+}
 
 /***************************************************************************************************
  * module
@@ -593,6 +690,7 @@ pub fn make_all(
         ("bit_length", native_bit_length as RawSafeNative),
         ("bn128_add", native_bn128_add as RawSafeNative),
         ("bn128_mul", native_bn128_mul as RawSafeNative),
+        ("bn128_pairing", native_bn128_pairing as RawSafeNative),
         ("blake_2f", native_blake_2f as RawSafeNative)
     ];
 

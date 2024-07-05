@@ -83,4 +83,4 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
 
 let key = "precompsEIP2929Cancun"
 
-read("src/GeneralStateTests/stPreCompiledContracts/precompsEIP2929Cancun.json", key, 9, 0, 0)
+read("src/GeneralStateTests/stPreCompiledContracts/precompsEIP2929Cancun.json", key, 259, 0, 0)
