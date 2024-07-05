@@ -19,7 +19,9 @@
 -  [Function `shr`](#0x1_evm_arithmetic_shr)
 -  [Function `add_mod`](#0x1_evm_arithmetic_add_mod)
 -  [Function `mul_mod`](#0x1_evm_arithmetic_mul_mod)
+-  [Function `bit_length`](#0x1_evm_arithmetic_bit_length)
 -  [Function `mod_exp`](#0x1_evm_arithmetic_mod_exp)
+-  [Function `blake_2f`](#0x1_evm_arithmetic_blake_2f)
 
 
 <pre><code></code></pre>
@@ -334,6 +336,28 @@
 
 </details>
 
+<a id="0x1_evm_arithmetic_bit_length"></a>
+
+## Function `bit_length`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="arithmetic.md#0x1_evm_arithmetic_bit_length">bit_length</a>(a: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): u256
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>native</b> <b>fun</b> <a href="arithmetic.md#0x1_evm_arithmetic_bit_length">bit_length</a>(a: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): u256;
+</code></pre>
+
+
+
+</details>
+
 <a id="0x1_evm_arithmetic_mod_exp"></a>
 
 ## Function `mod_exp`
@@ -350,6 +374,28 @@
 
 
 <pre><code><b>public</b> <b>native</b> <b>fun</b> <a href="arithmetic.md#0x1_evm_arithmetic_mod_exp">mod_exp</a>(base: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, exp_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, mod: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;;
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_arithmetic_blake_2f"></a>
+
+## Function `blake_2f`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="arithmetic.md#0x1_evm_arithmetic_blake_2f">blake_2f</a>(input: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, u64)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>native</b> <b>fun</b> <a href="arithmetic.md#0x1_evm_arithmetic_blake_2f">blake_2f</a>(input: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, u64);
 </code></pre>
 
 

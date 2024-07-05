@@ -17,11 +17,13 @@
 -  [Function `calc_exp_gas`](#0x1_evm_gas_calc_exp_gas)
 -  [Function `calc_call_gas`](#0x1_evm_gas_calc_call_gas)
 -  [Function `calc_code_copy_gas`](#0x1_evm_gas_calc_code_copy_gas)
+-  [Function `calc_address_access_gas`](#0x1_evm_gas_calc_address_access_gas)
+-  [Function `calc_ext_code_copy_gas`](#0x1_evm_gas_calc_ext_code_copy_gas)
 -  [Function `calc_keccak256_gas`](#0x1_evm_gas_calc_keccak256_gas)
 -  [Function `calc_log_gas`](#0x1_evm_gas_calc_log_gas)
 -  [Function `calc_create_gas`](#0x1_evm_gas_calc_create_gas)
+-  [Function `calc_create2_gas`](#0x1_evm_gas_calc_create2_gas)
 -  [Function `calc_self_destruct_gas`](#0x1_evm_gas_calc_self_destruct_gas)
--  [Function `get_word_count`](#0x1_evm_gas_get_word_count)
 -  [Function `max_call_gas`](#0x1_evm_gas_max_call_gas)
 -  [Function `calc_base_gas`](#0x1_evm_gas_calc_base_gas)
 -  [Function `calc_exec_gas`](#0x1_evm_gas_calc_exec_gas)
@@ -300,7 +302,7 @@
         <b>return</b> 0
     };
     <b>let</b> old_memory_word_size = get_memory_word_size(run_state);
-    <b>let</b> new_memory_word_size = <a href="gas.md#0x1_evm_gas_get_word_count">get_word_count</a>(new_memory_size);
+    <b>let</b> new_memory_word_size = get_word_count(new_memory_size);
 
     <b>if</b>(new_memory_word_size &lt;= old_memory_word_size) {
         <b>return</b> 0
@@ -309,6 +311,7 @@
     <b>if</b>(gas_limit / 3 &lt; new_memory_word_size) {
         <b>return</b> gas_limit
     };
+
     <b>let</b> old_memory_cost = get_memory_cost(run_state);
     <b>let</b> new_memory_cost = (new_memory_word_size * new_memory_word_size / 512) + 3 * new_memory_word_size;
     <b>if</b>(new_memory_cost &gt; old_memory_cost) {
@@ -345,7 +348,7 @@
     <b>let</b> gas = 0;
     <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack);
     <b>let</b> length = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(stack,len - 3);
-    <b>let</b> word_size = <a href="gas.md#0x1_evm_gas_get_word_count">get_word_count</a>(length);
+    <b>let</b> word_size = get_word_count(length);
     gas = gas +  <a href="gas.md#0x1_evm_gas_calc_memory_expand">calc_memory_expand</a>(stack, 1, 3, run_state, gas_limit);
     gas = gas +  <a href="gas.md#0x1_evm_gas_calc_memory_expand">calc_memory_expand</a>(stack, 2, 3, run_state, gas_limit);
     gas = gas +  word_size * 3;
@@ -549,7 +552,7 @@
 
 
 
-<pre><code><b>fun</b> <a href="gas.md#0x1_evm_gas_calc_call_gas">calc_call_gas</a>(stack: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u256&gt;, opcode: u8, trie: &<b>mut</b> <a href="trie.md#0x1_evm_trie_Trie">evm_trie::Trie</a>, run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>): u256
+<pre><code><b>fun</b> <a href="gas.md#0x1_evm_gas_calc_call_gas">calc_call_gas</a>(stack: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u256&gt;, opcode: u8, trie: &<b>mut</b> <a href="trie.md#0x1_evm_trie_Trie">evm_trie::Trie</a>, run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>, gas_limit: u256): u256
 </code></pre>
 
 
@@ -560,11 +563,10 @@
 
 <pre><code><b>fun</b> <a href="gas.md#0x1_evm_gas_calc_call_gas">calc_call_gas</a>(stack: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u256&gt;,
                   opcode: u8,
-                  trie: &<b>mut</b> Trie, run_state: &<b>mut</b> RunState): u256 {
+                  trie: &<b>mut</b> Trie, run_state: &<b>mut</b> RunState, gas_limit: u256): u256 {
     <b>let</b> gas = 0;
     <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack);
     <b>let</b> <b>address</b> = u256_to_data(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(stack,len - 2));
-    <b>let</b> call_gas_limit = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(stack,len - 1);
     <b>if</b>(opcode == 0xf1 || opcode == 0xf2) {
         <b>let</b> value = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(stack,len - 3);
 
@@ -574,11 +576,14 @@
         <b>if</b>(value &gt; 0) {
             gas = gas + <a href="gas.md#0x1_evm_gas_CallValueTransfer">CallValueTransfer</a>;
         };
-        gas = gas +  <a href="gas.md#0x1_evm_gas_calc_memory_expand">calc_memory_expand</a>(stack, 4, 5, run_state, call_gas_limit);
-        gas = gas +  <a href="gas.md#0x1_evm_gas_calc_memory_expand">calc_memory_expand</a>(stack, 6, 7, run_state, call_gas_limit);
+        gas = gas +  <a href="gas.md#0x1_evm_gas_calc_memory_expand">calc_memory_expand</a>(stack, 4, 5, run_state, gas_limit);
+        gas = gas +  <a href="gas.md#0x1_evm_gas_calc_memory_expand">calc_memory_expand</a>(stack, 6, 7, run_state, gas_limit);
     } <b>else</b> {
-        gas = gas +  <a href="gas.md#0x1_evm_gas_calc_memory_expand">calc_memory_expand</a>(stack, 3, 4, run_state, call_gas_limit);
-        gas = gas +  <a href="gas.md#0x1_evm_gas_calc_memory_expand">calc_memory_expand</a>(stack, 5, 6, run_state, call_gas_limit);
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&gas);
+        gas = gas +  <a href="gas.md#0x1_evm_gas_calc_memory_expand">calc_memory_expand</a>(stack, 3, 4, run_state, gas_limit);
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&gas);
+        gas = gas +  <a href="gas.md#0x1_evm_gas_calc_memory_expand">calc_memory_expand</a>(stack, 5, 6, run_state, gas_limit);
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&gas);
     };
 
     gas = gas + <a href="gas.md#0x1_evm_gas_access_address">access_address</a>(<b>address</b>, trie);
@@ -615,7 +620,7 @@
     <b>let</b> gas = 0;
     <b>let</b> data_length = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(stack,len - 3);
     <b>if</b>(data_length &gt; 0) {
-        <b>let</b> word_count = <a href="gas.md#0x1_evm_gas_get_word_count">get_word_count</a>(data_length);
+        <b>let</b> word_count = get_word_count(data_length);
         gas = gas + word_count * <a href="gas.md#0x1_evm_gas_Copy">Copy</a>;
         // Prevent overflow here; <b>if</b> the result is greater than gasLimit, <b>return</b> gasLimit directly
         <b>if</b>(gas &gt; gas_limit) {
@@ -623,8 +628,78 @@
         };
         gas = gas + <a href="gas.md#0x1_evm_gas_calc_memory_expand">calc_memory_expand</a>(stack, 1, 3, run_state, gas_limit);
     };
-
     gas + 3
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_gas_calc_address_access_gas"></a>
+
+## Function `calc_address_access_gas`
+
+
+
+<pre><code><b>fun</b> <a href="gas.md#0x1_evm_gas_calc_address_access_gas">calc_address_access_gas</a>(stack: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u256&gt;, trie: &<b>mut</b> <a href="trie.md#0x1_evm_trie_Trie">evm_trie::Trie</a>): u256
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="gas.md#0x1_evm_gas_calc_address_access_gas">calc_address_access_gas</a>(stack: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u256&gt;,
+                           trie: &<b>mut</b> Trie): u256 {
+    <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack);
+    <b>let</b> <b>address</b> = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(stack,len - 1);
+    <a href="gas.md#0x1_evm_gas_access_address">access_address</a>(u256_to_data(<b>address</b>), trie)
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_gas_calc_ext_code_copy_gas"></a>
+
+## Function `calc_ext_code_copy_gas`
+
+
+
+<pre><code><b>fun</b> <a href="gas.md#0x1_evm_gas_calc_ext_code_copy_gas">calc_ext_code_copy_gas</a>(stack: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u256&gt;, run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>, trie: &<b>mut</b> <a href="trie.md#0x1_evm_trie_Trie">evm_trie::Trie</a>, gas_limit: u256): u256
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="gas.md#0x1_evm_gas_calc_ext_code_copy_gas">calc_ext_code_copy_gas</a>(stack: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u256&gt;,
+                           run_state: &<b>mut</b> RunState,
+                           trie: &<b>mut</b> Trie,
+                           gas_limit: u256): u256 {
+    <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack);
+    <b>if</b>(len &lt; 4) {
+        <b>return</b> gas_limit
+    };
+    <b>let</b> gas = 0;
+    <b>let</b> data_length = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(stack,len - 4);
+    <b>if</b>(data_length &gt; 0) {
+        <b>let</b> word_count = get_word_count(data_length);
+        gas = gas + word_count * <a href="gas.md#0x1_evm_gas_Copy">Copy</a>;
+        // Prevent overflow here; <b>if</b> the result is greater than gasLimit, <b>return</b> gasLimit directly
+        <b>if</b>(gas &gt; gas_limit) {
+            <b>return</b> gas_limit
+        };
+        gas = gas + <a href="gas.md#0x1_evm_gas_calc_memory_expand">calc_memory_expand</a>(stack, 2, 4, run_state, gas_limit);
+    };
+    <b>let</b> <b>address</b> = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(stack,len - 1);
+    gas = gas + <a href="gas.md#0x1_evm_gas_access_address">access_address</a>(u256_to_data(<b>address</b>), trie);
+    gas
 }
 </code></pre>
 
@@ -657,7 +732,7 @@
     <b>let</b> data_length = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(stack,len - 2);
 
     <b>if</b>(data_length &gt; 0) {
-        <b>let</b> word_count = <a href="gas.md#0x1_evm_gas_get_word_count">get_word_count</a>(data_length);
+        <b>let</b> word_count = get_word_count(data_length);
         gas = gas + word_count * <a href="gas.md#0x1_evm_gas_Keccak256Word">Keccak256Word</a>;
         gas = gas + <a href="gas.md#0x1_evm_gas_calc_memory_expand">calc_memory_expand</a>(stack, 1, 2, run_state, gas_limit);
     };
@@ -730,10 +805,48 @@
     <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack);
     <b>let</b> length = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(stack,len - 3);
     <b>let</b> gas = 0;
-    <b>let</b> words = <a href="gas.md#0x1_evm_gas_get_word_count">get_word_count</a>(length);
-    gas = gas + <a href="gas.md#0x1_evm_gas_access_address">access_address</a>(<b>address</b>, trie);
+    <b>let</b> words = get_word_count(length);
     gas = gas + <a href="gas.md#0x1_evm_gas_calc_memory_expand">calc_memory_expand</a>(stack, 2, 3, run_state, gas_limit);
     gas = gas + words * <a href="gas.md#0x1_evm_gas_InitCodeWordCost">InitCodeWordCost</a>;
+
+    <a href="gas.md#0x1_evm_gas_access_address">access_address</a>(<b>address</b>, trie);
+
+    gas
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_gas_calc_create2_gas"></a>
+
+## Function `calc_create2_gas`
+
+
+
+<pre><code><b>fun</b> <a href="gas.md#0x1_evm_gas_calc_create2_gas">calc_create2_gas</a>(<b>address</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, stack: &<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u256&gt;, trie: &<b>mut</b> <a href="trie.md#0x1_evm_trie_Trie">evm_trie::Trie</a>, run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>, gas_limit: u256): u256
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="gas.md#0x1_evm_gas_calc_create2_gas">calc_create2_gas</a>(<b>address</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
+                    stack: &<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u256&gt;,
+                    trie: &<b>mut</b> Trie,
+                    run_state: &<b>mut</b> RunState,
+                    gas_limit: u256): u256 {
+    <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack);
+    <b>let</b> length = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(stack,len - 3);
+    <b>let</b> gas = 0;
+    <b>let</b> words = get_word_count(length);
+    gas = gas + <a href="gas.md#0x1_evm_gas_calc_memory_expand">calc_memory_expand</a>(stack, 2, 3, run_state, gas_limit);
+    gas = gas + words * <a href="gas.md#0x1_evm_gas_InitCodeWordCost">InitCodeWordCost</a>;
+    gas = gas + words * <a href="gas.md#0x1_evm_gas_Keccak256Word">Keccak256Word</a>;
+    <a href="gas.md#0x1_evm_gas_access_address">access_address</a>(<b>address</b>, trie);
 
     gas
 }
@@ -772,35 +885,6 @@
     };
     gas = gas + <a href="gas.md#0x1_evm_gas_access_address">access_address</a>(<b>to</b>, trie);
     gas + 5000
-}
-</code></pre>
-
-
-
-</details>
-
-<a id="0x1_evm_gas_get_word_count"></a>
-
-## Function `get_word_count`
-
-
-
-<pre><code><b>fun</b> <a href="gas.md#0x1_evm_gas_get_word_count">get_word_count</a>(bytes: u256): u256
-</code></pre>
-
-
-
-<details>
-<summary>Implementation</summary>
-
-
-<pre><code><b>fun</b> <a href="gas.md#0x1_evm_gas_get_word_count">get_word_count</a>(bytes: u256): u256 {
-    // To prevent overflow, this method is used <b>to</b> calculate the number of bytes
-    <b>let</b> word_count = bytes / 32;
-    <b>if</b>(bytes % 32 != 0) {
-        word_count = word_count + 1;
-    };
-    word_count
 }
 </code></pre>
 
@@ -973,9 +1057,6 @@
     } <b>else</b> <b>if</b> (opcode == 0x30) {
         // ADDRESS
         2
-    } <b>else</b> <b>if</b> (opcode == 0x31) {
-        // BALANCE
-        700
     } <b>else</b> <b>if</b> (opcode == 0x32) {
         // ORIGIN
         2
@@ -997,15 +1078,9 @@
     } <b>else</b> <b>if</b> (opcode == 0x3A) {
         // GASPRICE
         2
-    } <b>else</b> <b>if</b> (opcode == 0x3B) {
-        // EXTCODESIZE
-        700
     } <b>else</b> <b>if</b> (opcode == 0x3D) {
         // RETURNDATASIZE
         2
-    } <b>else</b> <b>if</b> (opcode == 0x3F) {
-        // EXTCODEHASH
-        700
     } <b>else</b> <b>if</b> (opcode == 0x40) {
         // BLOCKHASH
         20
@@ -1081,9 +1156,18 @@
     } <b>else</b> <b>if</b> (opcode == 0x20) {
         // KECCAK256
         <a href="gas.md#0x1_evm_gas_calc_keccak256_gas">calc_keccak256_gas</a>(stack, run_state, gas_limit)
+    } <b>else</b> <b>if</b> (opcode == 0x31) {
+        // BALANCE
+        <a href="gas.md#0x1_evm_gas_calc_address_access_gas">calc_address_access_gas</a>(stack, trie)
+    } <b>else</b> <b>if</b> (opcode == 0x3f || opcode == 0x3b) {
+        // EXTCODEHASH
+        <a href="gas.md#0x1_evm_gas_calc_address_access_gas">calc_address_access_gas</a>(stack, trie)
     } <b>else</b> <b>if</b> (opcode == 0xf0) {
         // CREATE
-        <a href="gas.md#0x1_evm_gas_calc_create_gas">calc_create_gas</a>(<b>address</b>, stack, trie, run_state, gas_limit)
+        <a href="gas.md#0x1_evm_gas_calc_create_gas">calc_create_gas</a>(<b>address</b>, stack, trie, run_state, gas_limit) + 32000
+    } <b>else</b> <b>if</b> (opcode == 0xf5) {
+        // CREATE2
+        <a href="gas.md#0x1_evm_gas_calc_create2_gas">calc_create2_gas</a>(<b>address</b>, stack, trie, run_state, gas_limit) + 32000
     } <b>else</b> <b>if</b>(opcode == 0x53){
         <a href="gas.md#0x1_evm_gas_calc_mstore8_gas">calc_mstore8_gas</a>(stack, run_state, gas_limit) + 3
     } <b>else</b> <b>if</b> (opcode == 0x51 || opcode == 0x52) {
@@ -1091,7 +1175,7 @@
         <a href="gas.md#0x1_evm_gas_calc_mstore_gas">calc_mstore_gas</a>(stack, run_state, gas_limit) + 3
     } <b>else</b> <b>if</b> (opcode == 0xf1 || opcode == 0xf2 || opcode == 0xf4 || opcode == 0xfa) {
         // CALL
-        <a href="gas.md#0x1_evm_gas_calc_call_gas">calc_call_gas</a>(stack, opcode, trie, run_state)
+        <a href="gas.md#0x1_evm_gas_calc_call_gas">calc_call_gas</a>(stack, opcode, trie, run_state, gas_limit)
     } <b>else</b> <b>if</b> (opcode == 0xf3 || opcode == 0xfd) {
         // RETURN & REVERT
         <a href="gas.md#0x1_evm_gas_calc_memory_expand">calc_memory_expand</a>(stack, 1, 2, run_state, gas_limit)
@@ -1107,6 +1191,9 @@
     } <b>else</b> <b>if</b> (opcode == 0x37 || opcode == 0x39 || opcode == 0x3e) {
         // CALLDATACOPY & CODECOPY & RETURNDATA COPY
         <a href="gas.md#0x1_evm_gas_calc_code_copy_gas">calc_code_copy_gas</a>(stack, run_state, gas_limit)
+    } <b>else</b> <b>if</b> (opcode == 0x3c) {
+        // EXTCODECOPY
+        <a href="gas.md#0x1_evm_gas_calc_ext_code_copy_gas">calc_ext_code_copy_gas</a>(stack, run_state, trie, gas_limit)
     } <b>else</b> <b>if</b> (opcode &gt;= 0xa0 && opcode &lt;= 0xa4) {
         // LOG
         <a href="gas.md#0x1_evm_gas_calc_log_gas">calc_log_gas</a>(opcode, stack, run_state, gas_limit)

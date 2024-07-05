@@ -914,6 +914,7 @@ module aptos_framework::evm_for_test {
                     let (success, bytes, gas) = precompile(evm_dest_addr, params, call_gas_limit);
                     if(success) {
                         ret_bytes = bytes;
+                        copy_to_memory(memory, ret_pos , 0, ret_len, bytes);
                     };
                     add_gas_usage(run_state, gas);
                     vector::push_back(stack, if(success) 1 else 0);

@@ -11,6 +11,7 @@
 -  [Function `add_checkpoint`](#0x1_evm_trie_add_checkpoint)
 -  [Function `get_lastest_checkpoint_mut`](#0x1_evm_trie_get_lastest_checkpoint_mut)
 -  [Function `get_lastest_checkpoint`](#0x1_evm_trie_get_lastest_checkpoint)
+-  [Function `empty_account`](#0x1_evm_trie_empty_account)
 -  [Function `load_account_storage`](#0x1_evm_trie_load_account_storage)
 -  [Function `load_account_checkpoint`](#0x1_evm_trie_load_account_checkpoint)
 -  [Function `load_account_checkpoint_mut`](#0x1_evm_trie_load_account_checkpoint_mut)
@@ -46,6 +47,7 @@
 
 <pre><code><b>use</b> <a href="util.md#0x1_evm_util">0x1::evm_util</a>;
 <b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/option.md#0x1_option">0x1::option</a>;
+<b>use</b> <a href="precompile.md#0x1_precompile">0x1::precompile</a>;
 <b>use</b> <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map">0x1::simple_map</a>;
 </code></pre>
 
@@ -259,6 +261,35 @@
 
 </details>
 
+<a id="0x1_evm_trie_empty_account"></a>
+
+## Function `empty_account`
+
+
+
+<pre><code><b>fun</b> <a href="trie.md#0x1_evm_trie_empty_account">empty_account</a>(): <a href="trie.md#0x1_evm_trie_TestAccount">evm_trie::TestAccount</a>
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="trie.md#0x1_evm_trie_empty_account">empty_account</a>(): <a href="trie.md#0x1_evm_trie_TestAccount">TestAccount</a> {
+    <a href="trie.md#0x1_evm_trie_TestAccount">TestAccount</a> {
+        balance: 0,
+        <a href="code.md#0x1_code">code</a>: x"",
+        nonce: 0,
+        storage: <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_new">simple_map::new</a>()
+    }
+}
+</code></pre>
+
+
+
+</details>
+
 <a id="0x1_evm_trie_load_account_storage"></a>
 
 ## Function `load_account_storage`
@@ -289,7 +320,7 @@
 
 
 
-<pre><code><b>fun</b> <a href="trie.md#0x1_evm_trie_load_account_checkpoint">load_account_checkpoint</a>(trie: &<a href="trie.md#0x1_evm_trie_Trie">evm_trie::Trie</a>, contract_addr: &<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): &<a href="trie.md#0x1_evm_trie_TestAccount">evm_trie::TestAccount</a>
+<pre><code><b>fun</b> <a href="trie.md#0x1_evm_trie_load_account_checkpoint">load_account_checkpoint</a>(trie: &<a href="trie.md#0x1_evm_trie_Trie">evm_trie::Trie</a>, contract_addr: &<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): <a href="trie.md#0x1_evm_trie_TestAccount">evm_trie::TestAccount</a>
 </code></pre>
 
 
@@ -298,12 +329,16 @@
 <summary>Implementation</summary>
 
 
-<pre><code><b>fun</b> <a href="trie.md#0x1_evm_trie_load_account_checkpoint">load_account_checkpoint</a>(trie: &<a href="trie.md#0x1_evm_trie_Trie">Trie</a>, contract_addr: &<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): &<a href="trie.md#0x1_evm_trie_TestAccount">TestAccount</a> {
+<pre><code><b>fun</b> <a href="trie.md#0x1_evm_trie_load_account_checkpoint">load_account_checkpoint</a>(trie: &<a href="trie.md#0x1_evm_trie_Trie">Trie</a>, contract_addr: &<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): <a href="trie.md#0x1_evm_trie_TestAccount">TestAccount</a> {
     <b>let</b> checkpoint = <a href="trie.md#0x1_evm_trie_get_lastest_checkpoint">get_lastest_checkpoint</a>(trie);
     <b>if</b>(<a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_contains_key">simple_map::contains_key</a>(&checkpoint.state, contract_addr)) {
-        <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_borrow">simple_map::borrow</a>(&checkpoint.state, contract_addr)
+        *<a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_borrow">simple_map::borrow</a>(&checkpoint.state, contract_addr)
     } <b>else</b> {
-        <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_borrow">simple_map::borrow</a>(&trie.storage, contract_addr)
+        <b>if</b>(<a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_contains_key">simple_map::contains_key</a>(&trie.storage, contract_addr)) {
+            *<a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_borrow">simple_map::borrow</a>(&trie.storage, contract_addr)
+        } <b>else</b> {
+            <a href="trie.md#0x1_evm_trie_empty_account">empty_account</a>()
+        }
     }
 }
 </code></pre>
@@ -467,7 +502,7 @@
 
 
 
-<pre><code><b>fun</b> <a href="trie.md#0x1_evm_trie_set_code">set_code</a>(trie: &<b>mut</b> <a href="trie.md#0x1_evm_trie_Trie">evm_trie::Trie</a>, contract_addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="code.md#0x1_code">code</a>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)
+<pre><code><b>public</b> <b>fun</b> <a href="trie.md#0x1_evm_trie_set_code">set_code</a>(trie: &<b>mut</b> <a href="trie.md#0x1_evm_trie_Trie">evm_trie::Trie</a>, contract_addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="code.md#0x1_code">code</a>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)
 </code></pre>
 
 
@@ -476,7 +511,7 @@
 <summary>Implementation</summary>
 
 
-<pre><code><b>fun</b> <a href="trie.md#0x1_evm_trie_set_code">set_code</a>(trie: &<b>mut</b> <a href="trie.md#0x1_evm_trie_Trie">Trie</a>, contract_addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="code.md#0x1_code">code</a>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;) {
+<pre><code><b>public</b> <b>fun</b> <a href="trie.md#0x1_evm_trie_set_code">set_code</a>(trie: &<b>mut</b> <a href="trie.md#0x1_evm_trie_Trie">Trie</a>, contract_addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="code.md#0x1_code">code</a>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;) {
     <b>let</b> <a href="account.md#0x1_account">account</a> = <a href="trie.md#0x1_evm_trie_load_account_checkpoint_mut">load_account_checkpoint_mut</a>(trie, &contract_addr);
     <a href="account.md#0x1_account">account</a>.<a href="code.md#0x1_code">code</a> = <a href="code.md#0x1_code">code</a>;
 }
@@ -1080,6 +1115,9 @@
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="trie.md#0x1_evm_trie_is_cold_address">is_cold_address</a>(<b>address</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, trie: &<b>mut</b> <a href="trie.md#0x1_evm_trie_Trie">Trie</a>): bool {
+    <b>if</b>(is_precompile_address(<b>address</b>)) {
+        <b>return</b> <b>false</b>
+    };
     <b>let</b> is_cold = !<a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_contains_key">simple_map::contains_key</a>(&trie.origin, &<b>address</b>);
     <b>if</b>(is_cold) {
         <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_add">simple_map::add</a>(&<b>mut</b> trie.origin, <b>address</b>, <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_new">simple_map::new</a>&lt;u256, u256&gt;());

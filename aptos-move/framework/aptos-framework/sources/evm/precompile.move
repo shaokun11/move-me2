@@ -6,7 +6,7 @@ module aptos_framework::precompile {
     use std::option::borrow;
     use aptos_std::debug;
     use std::hash::sha2_256;
-    use aptos_framework::evm_arithmetic::{mod_exp, bit_length};
+    use aptos_framework::evm_arithmetic::{mod_exp, bit_length, blake_2f};
 
     /// unsupport precomile address
     const UNSUPPORT: u64 = 50001;
@@ -84,6 +84,20 @@ module aptos_framework::precompile {
             let result = mod_exp(base_bytes, exp_bytes, mod_bytes);
             result = if(mod_len == 0) x"" else to_n_bit(result, (mod_len as u64));
             (true, result, gas)
+        } else if(addr == BLAKE2F) {
+            if(vector::length(&calldata) != 213) {
+                return (false, x"", gas_limit)
+            };
+            let (success, gas_cost, result) = blake_2f(calldata);
+            debug::print(&vector::length(&calldata));
+            debug::print(&result);
+            debug::print(&success);
+            debug::print(&gas_cost);
+            if(!success) {
+                return (false, x"", gas_limit)
+            } else {
+                return (true, result, (gas_cost as u256))
+            }
         } else {
             (false, x"", gas_limit)
         }

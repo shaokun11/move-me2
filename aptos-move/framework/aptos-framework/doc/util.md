@@ -159,11 +159,10 @@ owned.
 -  [Function `vector_slice`](#0x1_evm_util_vector_slice)
 -  [Function `vector_slice_u256`](#0x1_evm_util_vector_slice_u256)
 -  [Function `create_empty_data`](#0x1_evm_util_create_empty_data)
+-  [Function `to_n_bit`](#0x1_evm_util_to_n_bit)
 -  [Function `to_32bit`](#0x1_evm_util_to_32bit)
 -  [Function `get_contract_address`](#0x1_evm_util_get_contract_address)
--  [Function `power`](#0x1_evm_util_power)
 -  [Function `to_int256`](#0x1_evm_util_to_int256)
--  [Function `add_sign`](#0x1_evm_util_add_sign)
 -  [Function `to_u256`](#0x1_evm_util_to_u256)
 -  [Function `data_to_u256`](#0x1_evm_util_data_to_u256)
 -  [Function `u256_bytes_length`](#0x1_evm_util_u256_bytes_length)
@@ -175,6 +174,7 @@ owned.
 -  [Function `get_message_hash`](#0x1_evm_util_get_message_hash)
 -  [Function `u256_to_trimed_data`](#0x1_evm_util_u256_to_trimed_data)
 -  [Function `trim`](#0x1_evm_util_trim)
+-  [Function `get_word_count`](#0x1_evm_util_get_word_count)
 -  [Function `get_valid_jumps`](#0x1_evm_util_get_valid_jumps)
 -  [Function `print_opcode`](#0x1_evm_util_print_opcode)
 -  [Function `hex_length`](#0x1_evm_util_hex_length)
@@ -364,6 +364,38 @@ owned.
 
 </details>
 
+<a id="0x1_evm_util_to_n_bit"></a>
+
+## Function `to_n_bit`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_to_n_bit">to_n_bit</a>(data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, n: u64): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_to_n_bit">to_n_bit</a>(data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, n: u64): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt; {
+    <b>let</b> bytes = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_empty">vector::empty</a>&lt;u8&gt;();
+    <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&data);
+    // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&len);
+    <b>while</b>(len &lt; n) {
+        <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(&<b>mut</b> bytes, 0);
+        len = len + 1
+    };
+    <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> bytes, data);
+    bytes
+}
+</code></pre>
+
+
+
+</details>
+
 <a id="0x1_evm_util_to_32bit"></a>
 
 ## Function `to_32bit`
@@ -429,38 +461,6 @@ owned.
 
 </details>
 
-<a id="0x1_evm_util_power"></a>
-
-## Function `power`
-
-
-
-<pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_power">power</a>(base: u256, exponent: u256): u256
-</code></pre>
-
-
-
-<details>
-<summary>Implementation</summary>
-
-
-<pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_power">power</a>(base: u256, exponent: u256): u256 {
-    <b>let</b> result = 1;
-
-    <b>let</b> i = 0;
-    <b>while</b> (i &lt; exponent) {
-        result = result * base;
-        i = i + 1;
-    };
-
-    result
-}
-</code></pre>
-
-
-
-</details>
-
 <a id="0x1_evm_util_to_int256"></a>
 
 ## Function `to_int256`
@@ -483,34 +483,6 @@ owned.
         num = <a href="util.md#0x1_evm_util_U256_MAX">U256_MAX</a> - num + 1;
     };
     (neg, num)
-}
-</code></pre>
-
-
-
-</details>
-
-<a id="0x1_evm_util_add_sign"></a>
-
-## Function `add_sign`
-
-
-
-<pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_add_sign">add_sign</a>(value: u256, sign: bool): u256
-</code></pre>
-
-
-
-<details>
-<summary>Implementation</summary>
-
-
-<pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_add_sign">add_sign</a>(value: u256, sign: bool): u256 {
-    <b>if</b>(sign) {
-        <a href="util.md#0x1_evm_util_U256_MAX">U256_MAX</a> - value + 1
-    } <b>else</b> {
-        value
-    }
 }
 </code></pre>
 
@@ -874,6 +846,35 @@ owned.
 
 </details>
 
+<a id="0x1_evm_util_get_word_count"></a>
+
+## Function `get_word_count`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_get_word_count">get_word_count</a>(bytes: u256): u256
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_get_word_count">get_word_count</a>(bytes: u256): u256 {
+    // To prevent overflow, this method is used <b>to</b> calculate the number of bytes
+    <b>let</b> word_count = bytes / 32;
+    <b>if</b>(bytes % 32 != 0) {
+        word_count = word_count + 1;
+    };
+    word_count
+}
+</code></pre>
+
+
+
+</details>
+
 <a id="0x1_evm_util_get_valid_jumps"></a>
 
 ## Function `get_valid_jumps`
@@ -1019,6 +1020,8 @@ owned.
         <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"RETURNDATASIZE"));
     } <b>else</b> <b>if</b>(opcode == 0x3e) {
         <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"RETURNDATACOPY"));
+    } <b>else</b> <b>if</b>(opcode == 0x3f) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"EXTCODEHASH"));
     } <b>else</b> <b>if</b>(opcode == 0x40) {
         <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"BLOCKHASH"));
     } <b>else</b> <b>if</b>(opcode == 0x41) {

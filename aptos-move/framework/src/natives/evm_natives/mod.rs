@@ -6,5 +6,6 @@ pub mod evm_for_test;
 pub mod evm_arithmetic;
 pub mod evm_util;
 pub mod helpers;
+pub mod eip152;
 
 

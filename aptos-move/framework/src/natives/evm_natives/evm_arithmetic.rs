@@ -1,5 +1,6 @@
 use crate::natives::evm_natives::{
-    helpers::{move_u256_to_evm_u256, evm_u256_to_move_u256}
+    helpers::{move_u256_to_evm_u256, evm_u256_to_move_u256},
+    eip152
 };
 
 use aptos_native_interface::{
@@ -374,6 +375,77 @@ fn native_mod_exp(
     ])
 }
 
+fn native_blake_2f(
+    _context: &mut SafeNativeContext,
+    _ty_args: Vec<Type>,
+    mut args: VecDeque<Value>
+) -> SafeNativeResult<SmallVec<[Value; 1]>> {
+    let input = safely_pop_arg!(args, Vec<u8>);
+    let result;
+
+    let mut rounds_buf: [u8; 4] = [0; 4];
+    rounds_buf.copy_from_slice(&input[0..4]);
+    let rounds: u32 = u32::from_be_bytes(rounds_buf);
+
+    let gas_cost: u64 = rounds as u64;
+
+// we use from_le_bytes below to effectively swap byte order to LE if architecture is BE
+    let mut h_buf: [u8; 64] = [0; 64];
+    h_buf.copy_from_slice(&input[4..68]);
+    let mut h = [0u64; 8];
+    let mut ctr = 0;
+    for state_word in &mut h {
+        let mut temp: [u8; 8] = Default::default();
+        temp.copy_from_slice(&h_buf[(ctr * 8)..(ctr + 1) * 8]);
+        *state_word = u64::from_le_bytes(temp);
+        ctr += 1;
+    }
+
+    let mut m_buf: [u8; 128] = [0; 128];
+    m_buf.copy_from_slice(&input[68..196]);
+    let mut m = [0u64; 16];
+    ctr = 0;
+    for msg_word in &mut m {
+        let mut temp: [u8; 8] = Default::default();
+        temp.copy_from_slice(&m_buf[(ctr * 8)..(ctr + 1) * 8]);
+        *msg_word = u64::from_le_bytes(temp);
+        ctr += 1;
+    }
+
+    let mut t_0_buf: [u8; 8] = [0; 8];
+    t_0_buf.copy_from_slice(&input[196..204]);
+    let t_0 = u64::from_le_bytes(t_0_buf);
+
+    let mut t_1_buf: [u8; 8] = [0; 8];
+    t_1_buf.copy_from_slice(&input[204..212]);
+    let t_1 = u64::from_le_bytes(t_1_buf);
+
+    let f = if input[212] == 1 {
+        true
+    } else if input[212] == 0 {
+        false
+    } else {
+        return Ok(smallvec![
+            Value::bool(false),
+            Value::u64(gas_cost),
+            Value::vector_u8(Vec::new())
+        ])  
+    };
+
+
+    eip152::compress(&mut h, m, [t_0, t_1], f, rounds as usize);
+    let mut output_buf = [0u8; u64::BITS as usize];
+    for (i, state_word) in h.iter().enumerate() {
+        output_buf[i * 8..(i + 1) * 8].copy_from_slice(&state_word.to_le_bytes());
+    }
+    result = output_buf.to_vec();
+
+    Ok(smallvec![
+        Value::bool(true),
+        Value::u64(gas_cost),
+        Value::vector_u8(result)
+    ])  
+}
 
 
 /***************************************************************************************************
@@ -399,7 +471,8 @@ pub fn make_all(
         ("add_mod", native_add_mod as RawSafeNative),
         ("mul_mod", native_mul_mod as RawSafeNative),
         ("mod_exp", native_mod_exp as RawSafeNative),
-        ("bit_length", native_bit_length as RawSafeNative)
+        ("bit_length", native_bit_length as RawSafeNative),
+        ("blake_2f", native_blake_2f as RawSafeNative)
     ];
 
     builder.make_named_natives(natives)
