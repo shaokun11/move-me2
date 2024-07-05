@@ -61,6 +61,7 @@ module aptos_framework::evm_gas {
         if(gas_limit / 3 < new_memory_word_size) {
             return gas_limit
         };
+
         let old_memory_cost = get_memory_cost(run_state);
         let new_memory_cost = (new_memory_word_size * new_memory_word_size / 512) + 3 * new_memory_word_size;
         if(new_memory_cost > old_memory_cost) {
@@ -172,11 +173,10 @@ module aptos_framework::evm_gas {
 
     fun calc_call_gas(stack: &mut vector<u256>,
                       opcode: u8,
-                      trie: &mut Trie, run_state: &mut RunState): u256 {
+                      trie: &mut Trie, run_state: &mut RunState, gas_limit: u256): u256 {
         let gas = 0;
         let len = vector::length(stack);
         let address = u256_to_data(*vector::borrow(stack,len - 2));
-        let call_gas_limit = *vector::borrow(stack,len - 1);
         if(opcode == 0xf1 || opcode == 0xf2) {
             let value = *vector::borrow(stack,len - 3);
 
@@ -186,11 +186,14 @@ module aptos_framework::evm_gas {
             if(value > 0) {
                 gas = gas + CallValueTransfer;
             };
-            gas = gas +  calc_memory_expand(stack, 4, 5, run_state, call_gas_limit);
-            gas = gas +  calc_memory_expand(stack, 6, 7, run_state, call_gas_limit);
+            gas = gas +  calc_memory_expand(stack, 4, 5, run_state, gas_limit);
+            gas = gas +  calc_memory_expand(stack, 6, 7, run_state, gas_limit);
         } else {
-            gas = gas +  calc_memory_expand(stack, 3, 4, run_state, call_gas_limit);
-            gas = gas +  calc_memory_expand(stack, 5, 6, run_state, call_gas_limit);
+            debug::print(&gas);
+            gas = gas +  calc_memory_expand(stack, 3, 4, run_state, gas_limit);
+            debug::print(&gas);
+            gas = gas +  calc_memory_expand(stack, 5, 6, run_state, gas_limit);
+            debug::print(&gas);
         };
 
         gas = gas + access_address(address, trie);
@@ -562,7 +565,7 @@ module aptos_framework::evm_gas {
             calc_mstore_gas(stack, run_state, gas_limit) + 3
         } else if (opcode == 0xf1 || opcode == 0xf2 || opcode == 0xf4 || opcode == 0xfa) {
             // CALL
-            calc_call_gas(stack, opcode, trie, run_state)
+            calc_call_gas(stack, opcode, trie, run_state, gas_limit)
         } else if (opcode == 0xf3 || opcode == 0xfd) {
             // RETURN & REVERT
             calc_memory_expand(stack, 1, 2, run_state, gas_limit)

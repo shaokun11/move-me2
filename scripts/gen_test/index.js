@@ -81,6 +81,6 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "src/GeneralStateTestsFiller/Pyspecs/shanghai/eip3860_initcode/test_initcode.py::TestContractCreationGasUsage::test_gas_usage[fork_Cancun-state_test-too_little_intrinsic_gas-32_bytes]"
+let key = "delegatecallNonConst"
 
-read("src/GeneralStateTests/Pyspecs/shanghai/eip3860_initcode/gas_usage.json", key, 0, 0, 0)
+read("src/GeneralStateTests/stArgsZeroOneBalance/delegatecallNonConst.json", key, 0, 0, 1)

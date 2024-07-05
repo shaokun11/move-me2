@@ -286,13 +286,6 @@ module aptos_framework::evm_for_test {
             add_warm_address(to, trie);
         };
 
-        if (is_precompile_address(to)) {
-            let (success, ret_bytes, gas) = precompile(to, data, gas_limit);
-            debug::print(&gas);
-            add_gas_usage(run_state, gas);
-            return (success, ret_bytes)
-        };
-
         add_call_state(run_state, gas_limit);
         if(transfer_eth) {
             transfer(sender, to, value, trie);
@@ -914,8 +907,16 @@ module aptos_framework::evm_for_test {
                 let params = vector_slice(*memory, m_pos, m_len);
                 let transfer_eth = if (opcode == 0xf1) true else false;
                 let is_precompile = is_precompile_address(evm_dest_addr);
+                debug::print(&is_precompile);
 
-                if (is_precompile || exist_contract(evm_dest_addr, trie)) {
+                if(is_precompile) {
+                    let (success, bytes, gas) = precompile(evm_dest_addr, params, call_gas_limit);
+                    if(success) {
+                        ret_bytes = bytes;
+                    };
+                    add_gas_usage(run_state, gas);
+                    vector::push_back(stack, if(success) 1 else 0);
+                } else if (exist_contract(evm_dest_addr, trie)) {
                     let dest_code = if (is_precompile) x"" else get_code(evm_dest_addr, trie);
                     let target = if (opcode == 0xf4 || opcode == 0xf2) to else evm_dest_addr;
                     let from = if (opcode == 0xf4) sender else to;
@@ -929,6 +930,7 @@ module aptos_framework::evm_for_test {
                     vector::push_back(stack,  if(call_res) 1 else 0);
                 } else {
                     vector::push_back(stack, 1);
+
                 };
                 // debug::print(&opcode);
                 i = i + 1

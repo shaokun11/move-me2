@@ -18,6 +18,7 @@ module aptos_framework::precompile {
     const MAX_SIZE: u256 = 2147483647;
 
     const ModexpGquaddivisor: u256 = 3;
+    const Ecrecover: u256 = 3000;
 
     // precompile address list
     const RCRECOVER: vector<u8> = x"0000000000000000000000000000000000000000000000000000000000000001";
@@ -33,7 +34,9 @@ module aptos_framework::precompile {
     #[view]
     public fun run_precompile(addr: vector<u8>, calldata: vector<u8>, chain_id: u64, gas_limit: u256): (bool, vector<u8>, u256) {
         if(addr == RCRECOVER) {
-            assert!(vector::length(&calldata) == 128, CALL_DATA_LENGTH);
+            if(vector::length(&calldata) != 128) {
+                return (false, to_32bit(x""), gas_limit)
+            };
             let message_hash = vector_slice(calldata, 0, 32);
             let v = (to_u256(vector_slice(calldata, 32, 32)) as u64);
             let signature = ecdsa_signature_from_bytes(vector_slice(calldata, 64, 64));
@@ -42,7 +45,12 @@ module aptos_framework::precompile {
             let pk_recover = ecdsa_recover(message_hash, recovery_id, &signature);
             let pk = keccak256(ecdsa_raw_public_key_to_bytes(borrow(&pk_recover)));
             debug::print(&vector_slice(pk, 12, 20));
-            (true, to_32bit(vector_slice(pk, 12, 20)), 0)
+            if(Ecrecover > gas_limit) {
+                (false, to_32bit(x""), gas_limit)
+            } else {
+                (true, to_32bit(vector_slice(pk, 12, 20)), Ecrecover)
+            }
+
         } else if(addr == SHA256) {
             (true, sha2_256(calldata), 0)
         } else if(addr == RIPEMD) {
