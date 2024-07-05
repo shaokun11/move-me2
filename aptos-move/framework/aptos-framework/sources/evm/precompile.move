@@ -6,7 +6,7 @@ module aptos_framework::precompile {
     use std::option::borrow;
     use aptos_std::debug;
     use std::hash::sha2_256;
-    use aptos_framework::evm_arithmetic::{mod_exp, bit_length, blake_2f};
+    use aptos_framework::evm_arithmetic::{mod_exp, bit_length, blake_2f, bn128_add, bn128_mul};
 
     /// unsupport precomile address
     const UNSUPPORT: u64 = 50001;
@@ -21,6 +21,8 @@ module aptos_framework::precompile {
     const Sha256Word: u256 = 12;
     const Ripemd160Word: u256 = 120;
     const IdentityWord: u256 = 3;
+    const EcAddCost: u256 = 150;
+    const EcMulCost: u256 = 6000;
     const Ecrecover: u256 = 3000;
 
     // precompile address list
@@ -80,7 +82,6 @@ module aptos_framework::precompile {
             if(base_len > MAX_SIZE || mod_len > MAX_SIZE || exp_len > MAX_SIZE || (base_len + mod_len + exp_len + 96) > MAX_SIZE) {
                 return (false, x"", gas_limit)
             };
-
             let pos = 96;
             let base_bytes = vector_slice_u256(calldata, pos, base_len);
             pos = pos + base_len;
@@ -92,6 +93,12 @@ module aptos_framework::precompile {
             let result = mod_exp(base_bytes, exp_bytes, mod_bytes);
             result = if(mod_len == 0) x"" else to_n_bit(result, (mod_len as u64));
             (true, result, gas)
+        } else if(addr == ECADD) {
+            let (success, result) = bn128_add(calldata);
+            if(success) (success, result, EcAddCost) else (success, result, gas_limit)
+        } else if(addr == ECMUL) {
+            let (success, result) = bn128_mul(calldata);
+            if(success) (success, result, EcMulCost) else (success, result, gas_limit)
         } else if(addr == BLAKE2F) {
             if(vector::length(&calldata) != 213) {
                 return (false, x"", gas_limit)

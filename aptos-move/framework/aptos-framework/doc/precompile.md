@@ -94,6 +94,15 @@ invalid precomile calldata length
 
 
 
+<a id="0x1_precompile_IdentityWord"></a>
+
+
+
+<pre><code><b>const</b> <a href="precompile.md#0x1_precompile_IdentityWord">IdentityWord</a>: u256 = 3;
+</code></pre>
+
+
+
 <a id="0x1_precompile_MAX_SIZE"></a>
 
 
@@ -149,11 +158,29 @@ mod exp len params invalid
 
 
 
+<a id="0x1_precompile_Ripemd160Word"></a>
+
+
+
+<pre><code><b>const</b> <a href="precompile.md#0x1_precompile_Ripemd160Word">Ripemd160Word</a>: u256 = 120;
+</code></pre>
+
+
+
 <a id="0x1_precompile_SHA256"></a>
 
 
 
 <pre><code><b>const</b> <a href="precompile.md#0x1_precompile_SHA256">SHA256</a>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt; = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2];
+</code></pre>
+
+
+
+<a id="0x1_precompile_Sha256Word"></a>
+
+
+
+<pre><code><b>const</b> <a href="precompile.md#0x1_precompile_Sha256Word">Sha256Word</a>: u256 = 12;
 </code></pre>
 
 
@@ -185,7 +212,7 @@ unsupport precomile address
 
 <pre><code><b>fun</b> <a href="precompile.md#0x1_precompile_ecrecover">ecrecover</a>(calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="chain_id.md#0x1_chain_id">chain_id</a>: u64, gas_limit: u256): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, u256) {
     <b>if</b>(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&calldata) != 128) {
-        <b>return</b> (<b>false</b>, to_32bit(x""), gas_limit)
+        <b>return</b> (<b>false</b>, to_32bit(x""), <a href="precompile.md#0x1_precompile_Ecrecover">Ecrecover</a>)
     } <b>else</b> {
         <b>let</b> message_hash = vector_slice(calldata, 0, 32);
         <b>let</b> v = (to_u256(vector_slice(calldata, 32, 32)) <b>as</b> u64);
@@ -224,19 +251,27 @@ unsupport precomile address
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="precompile.md#0x1_precompile_run_precompile">run_precompile</a>(addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="chain_id.md#0x1_chain_id">chain_id</a>: u64, gas_limit: u256): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, u256)  {
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&addr);
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&calldata);
     <b>if</b>(addr == <a href="precompile.md#0x1_precompile_RCRECOVER">RCRECOVER</a>) {
         <a href="precompile.md#0x1_precompile_ecrecover">ecrecover</a>(calldata, <a href="chain_id.md#0x1_chain_id">chain_id</a>, gas_limit)
     } <b>else</b> <b>if</b>(addr == <a href="precompile.md#0x1_precompile_SHA256">SHA256</a>) {
-        (<b>true</b>, sha2_256(calldata), 0)
+        <b>let</b> word_count = get_word_count((<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&calldata) <b>as</b> u256));
+        (<b>true</b>, sha2_256(calldata), <a href="precompile.md#0x1_precompile_Sha256Word">Sha256Word</a> * word_count + 60)
     } <b>else</b> <b>if</b>(addr == <a href="precompile.md#0x1_precompile_RIPEMD">RIPEMD</a>) {
-        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&to_32bit(ripemd160(calldata)));
-        (<b>true</b>, to_32bit(ripemd160(calldata)), 0)
+        <b>let</b> word_count = get_word_count((<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&calldata) <b>as</b> u256));
+        (<b>true</b>, to_32bit(ripemd160(calldata)), 600 + <a href="precompile.md#0x1_precompile_Ripemd160Word">Ripemd160Word</a> * word_count)
     } <b>else</b> <b>if</b>(addr == <a href="precompile.md#0x1_precompile_IDENTITY">IDENTITY</a>) {
-        (<b>true</b>, calldata, 0)
+        <b>let</b> word_count = get_word_count((<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&calldata) <b>as</b> u256));
+        (<b>true</b>, calldata, 15 + <a href="precompile.md#0x1_precompile_IdentityWord">IdentityWord</a> * word_count)
     } <b>else</b> <b>if</b>(addr == <a href="precompile.md#0x1_precompile_MODEXP">MODEXP</a>) {
         <b>let</b> base_len = to_u256(vector_slice(calldata, 0, 32));
         <b>let</b> exp_len = to_u256(vector_slice(calldata, 32, 32));
         <b>let</b> mod_len = to_u256(vector_slice(calldata, 64, 32));
+
+        <b>if</b>(base_len == 0 && mod_len == 0) {
+            <b>return</b> (<b>true</b>, x"", 200)
+        };
 
         <b>if</b>(base_len &gt; <a href="precompile.md#0x1_precompile_MAX_SIZE">MAX_SIZE</a> || mod_len &gt; <a href="precompile.md#0x1_precompile_MAX_SIZE">MAX_SIZE</a> || exp_len &gt; <a href="precompile.md#0x1_precompile_MAX_SIZE">MAX_SIZE</a> || (base_len + mod_len + exp_len + 96) &gt; <a href="precompile.md#0x1_precompile_MAX_SIZE">MAX_SIZE</a>) {
             <b>return</b> (<b>false</b>, x"", gas_limit)
@@ -249,9 +284,6 @@ unsupport precomile address
         pos = pos + exp_len;
         <b>let</b> mod_bytes = vector_slice_u256(calldata, pos, mod_len);
         <b>let</b> gas = <a href="precompile.md#0x1_precompile_calc_mod_exp_gas">calc_mod_exp_gas</a>(base_len, exp_len, exp_bytes, mod_len);
-        <b>if</b>(base_len == 0 && mod_len == 0) {
-            <b>return</b> (<b>true</b>, x"", gas)
-        };
 
         <b>let</b> result = mod_exp(base_bytes, exp_bytes, mod_bytes);
         result = <b>if</b>(mod_len == 0) x"" <b>else</b> to_n_bit(result, (mod_len <b>as</b> u64));
@@ -260,7 +292,11 @@ unsupport precomile address
         <b>if</b>(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&calldata) != 213) {
             <b>return</b> (<b>false</b>, x"", gas_limit)
         };
-        <b>let</b> (success, result, gas_cost) = blake_2f(calldata);
+        <b>let</b> (success, gas_cost, result) = blake_2f(calldata);
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&calldata));
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&result);
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&success);
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&gas_cost);
         <b>if</b>(!success) {
             <b>return</b> (<b>false</b>, x"", gas_limit)
         } <b>else</b> {

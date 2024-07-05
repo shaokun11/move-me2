@@ -1709,6 +1709,7 @@ dependencies = [
  "bcs 0.1.4",
  "better_any",
  "blake2-rfc",
+ "bn-plus",
  "bulletproofs",
  "byteorder",
  "claims",
@@ -5402,6 +5403,17 @@ dependencies = [
  "rand_core 0.6.4",
  "serde",
  "subtle",
+]
+
+[[package]]
+name = "bn-plus"
+version = "0.4.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f90037d4bc5a0f87267ee77f0b9c9035a3edbeafc6552109d765283133cf36ca"
+dependencies = [
+ "byteorder",
+ "rand 0.3.23",
+ "rustc-serialize",
 ]
 
 [[package]]

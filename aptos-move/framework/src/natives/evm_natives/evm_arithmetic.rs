@@ -16,6 +16,7 @@ use std::collections::VecDeque;
 use smallvec::{smallvec, SmallVec};
 use ethers::types::{U256, U512};
 use num::{BigUint, Zero, One};
+use bn::{AffineG1, Fq, Group, G1};
 
 fn get_and_reset_sign(value: U256) -> (U256, bool) {
     let U256(arr) = value;
@@ -447,6 +448,124 @@ fn native_blake_2f(
     ])  
 }
 
+/// Copy bytes from input to target.
+fn read_input(source: &[u8], target: &mut [u8], offset: usize) {
+    // Out of bounds, nothing to copy.
+    if source.len() <= offset {
+        return;
+    }
+
+    // Find len to copy up to target len, but not out of bounds.
+    let len = core::cmp::min(target.len(), source.len() - offset);
+    target[..len].copy_from_slice(&source[offset..][..len]);
+}
+
+fn read_fr(input: &[u8], start_inx: usize) -> Result<bn::Fr, String> {
+    let mut buf = [0u8; 32];
+    read_input(input, &mut buf, start_inx);
+
+    let ret = bn::Fr::from_slice(&buf)
+        .map_err(|_| "Invalid field element")?;
+    Ok(ret)
+}
+
+fn read_point(input: &[u8], start_inx: usize) -> Result<bn::G1, String> {
+    let mut px_buf = [0u8; 32];
+    let mut py_buf = [0u8; 32];
+    read_input(input, &mut px_buf, start_inx);
+    read_input(input, &mut py_buf, start_inx + 32);
+
+    let px = Fq::from_slice(&px_buf)
+        .map_err(|_| "Invalid point x coordinate")?;
+
+    let py = Fq::from_slice(&py_buf)
+        .map_err(|_| "Invalid point y coordinate")?;
+
+    Ok(if px == Fq::zero() && py == Fq::zero() {
+        G1::zero()
+    } else {
+        AffineG1::new(px, py)
+            .map_err(|_| "Invalid curve point")?
+            .into()
+    })
+}
+
+fn native_bn128_add(_context: &mut SafeNativeContext,
+    _ty_args: Vec<Type>,
+    mut args: VecDeque<Value>
+) -> SafeNativeResult<SmallVec<[Value; 1]>> {
+    let input = safely_pop_arg!(args, Vec<u8>);
+    // let success =
+    let p1 = read_point(&input, 0);
+    let p2 = read_point(&input, 64);
+
+    if !p1.is_ok() || !p2.is_ok() {
+        return Ok(smallvec![
+            Value::bool(false),
+            Value::vector_u8(Vec::new())
+        ])
+    }
+
+    let mut buf = [0u8; 64];
+    if let Some(sum) = AffineG1::from_jacobian(p1.unwrap() + p2.unwrap()) {
+    // point not at infinity
+        if let Err(_) = sum.x().to_big_endian(&mut buf[0..32]) {
+            return Ok(smallvec![
+                Value::bool(false),
+                Value::vector_u8(Vec::new())
+            ])
+        }
+        if let Err(_) = sum.y().to_big_endian(&mut buf[32..64]) {
+            return Ok(smallvec![
+                Value::bool(false),
+                Value::vector_u8(Vec::new())
+            ])
+        }
+    }
+    Ok(smallvec![
+        Value::bool(true),
+        Value::vector_u8(buf.to_vec())
+    ]) 
+}
+
+fn native_bn128_mul(_context: &mut SafeNativeContext,
+    _ty_args: Vec<Type>,
+    mut args: VecDeque<Value>
+) -> SafeNativeResult<SmallVec<[Value; 1]>> {
+    let input = safely_pop_arg!(args, Vec<u8>);
+    // let success =
+    let p = read_point(&input, 0);
+    let fr = read_fr(&input, 64);
+
+    if !p.is_ok() || !fr.is_ok() {
+        return Ok(smallvec![
+            Value::bool(false),
+            Value::vector_u8(Vec::new())
+        ])
+    }
+
+    let mut buf = [0u8; 64];
+    if let Some(sum) = AffineG1::from_jacobian(p.unwrap() * fr.unwrap()) {
+    // point not at infinity
+        if let Err(_) = sum.x().to_big_endian(&mut buf[0..32]) {
+            return Ok(smallvec![
+                Value::bool(false),
+                Value::vector_u8(Vec::new())
+            ])
+        }
+        if let Err(_) = sum.y().to_big_endian(&mut buf[32..64]) {
+            return Ok(smallvec![
+                Value::bool(false),
+                Value::vector_u8(Vec::new())
+            ])
+        }
+    }
+    Ok(smallvec![
+        Value::bool(true),
+        Value::vector_u8(buf.to_vec())
+    ]) 
+}
+
 
 /***************************************************************************************************
  * module
@@ -472,6 +591,8 @@ pub fn make_all(
         ("mul_mod", native_mul_mod as RawSafeNative),
         ("mod_exp", native_mod_exp as RawSafeNative),
         ("bit_length", native_bit_length as RawSafeNative),
+        ("bn128_add", native_bn128_add as RawSafeNative),
+        ("bn128_mul", native_bn128_mul as RawSafeNative),
         ("blake_2f", native_blake_2f as RawSafeNative)
     ];
 

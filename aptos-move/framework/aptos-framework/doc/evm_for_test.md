@@ -1695,8 +1695,10 @@ invalid chain id in raw tx
 
             <b>if</b>(is_precompile) {
                 <b>let</b> (success, bytes, gas) = <a href="precompile.md#0x1_precompile">precompile</a>(evm_dest_addr, params, call_gas_limit);
+                <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&gas);
                 <b>if</b>(success) {
                     ret_bytes = bytes;
+                    copy_to_memory(memory, ret_pos , 0, ret_len, bytes);
                 };
                 add_gas_usage(run_state, gas);
                 <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, <b>if</b>(success) 1 <b>else</b> 0);
