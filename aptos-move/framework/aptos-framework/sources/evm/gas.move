@@ -189,11 +189,8 @@ module aptos_framework::evm_gas {
             gas = gas +  calc_memory_expand(stack, 4, 5, run_state, gas_limit);
             gas = gas +  calc_memory_expand(stack, 6, 7, run_state, gas_limit);
         } else {
-            debug::print(&gas);
             gas = gas +  calc_memory_expand(stack, 3, 4, run_state, gas_limit);
-            debug::print(&gas);
             gas = gas +  calc_memory_expand(stack, 5, 6, run_state, gas_limit);
-            debug::print(&gas);
         };
 
         gas = gas + access_address(address, trie);
@@ -281,9 +278,6 @@ module aptos_framework::evm_gas {
             return gas_limit
         };
         gas = gas + LogTopic * topic_count + data_length * LogData + LogTopic;
-
-        debug::print(&gas);
-        debug::print(&data_length);
         gas
     }
 
@@ -349,12 +343,9 @@ module aptos_framework::evm_gas {
     }
 
     public fun calc_base_gas(memory: &vector<u8>): u256 {
-        debug::print(memory);
         let gas = 0;
 
         for_each(*memory, |elem| gas = gas + if(elem == 0) 4 else 16);
-
-        debug::print(&gas);
         gas
     }
 

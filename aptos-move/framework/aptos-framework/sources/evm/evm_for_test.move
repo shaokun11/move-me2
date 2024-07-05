@@ -912,18 +912,19 @@ module aptos_framework::evm_for_test {
 
                 if(is_precompile) {
                     let (success, bytes, gas) = precompile(evm_dest_addr, params, call_gas_limit);
-                    debug::print(&gas);
                     if(success) {
+                        if(value > 0) {
+                            transfer(to, evm_dest_addr, msg_value, trie);
+                        };
                         ret_bytes = bytes;
                         copy_to_memory(memory, ret_pos , 0, ret_len, bytes);
                     };
                     add_gas_usage(run_state, gas);
                     vector::push_back(stack, if(success) 1 else 0);
                 } else if (exist_contract(evm_dest_addr, trie)) {
-                    let dest_code = if (is_precompile) x"" else get_code(evm_dest_addr, trie);
                     let target = if (opcode == 0xf4 || opcode == 0xf2) to else evm_dest_addr;
                     let from = if (opcode == 0xf4) sender else to;
-
+                    let dest_code = if (is_precompile) x"" else get_code(evm_dest_addr, trie);
                     add_checkpoint(trie, is_static);
                     let (call_res, bytes) = run(sender, from, target, dest_code, params, msg_value, call_gas_limit, trie, run_state, transfer_eth, env);
                     if(call_res) {
