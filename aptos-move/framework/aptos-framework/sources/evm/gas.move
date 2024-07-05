@@ -221,7 +221,7 @@ module aptos_framework::evm_gas {
         gas + 3
     }
 
-    fun calc_ext_code_hash_gas(stack: &mut vector<u256>,
+    fun calc_address_access_gas(stack: &mut vector<u256>,
                                trie: &mut Trie): u256 {
         let len = vector::length(stack);
         let address = *vector::borrow(stack,len - 1);
@@ -548,10 +548,10 @@ module aptos_framework::evm_gas {
             calc_keccak256_gas(stack, run_state, gas_limit)
         } else if (opcode == 0x31) {
             // BALANCE
-            access_address(address, trie)
+            calc_address_access_gas(stack, trie)
         } else if (opcode == 0x3f || opcode == 0x3b) {
             // EXTCODEHASH
-            calc_ext_code_hash_gas(stack, trie)
+            calc_address_access_gas(stack, trie)
         } else if (opcode == 0xf0) {
             // CREATE
             calc_create_gas(address, stack, trie, run_state, gas_limit) + 32000

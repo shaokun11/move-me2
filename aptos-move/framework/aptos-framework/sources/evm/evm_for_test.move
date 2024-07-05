@@ -183,11 +183,12 @@ module aptos_framework::evm_for_test {
         let value = to_u256(value_bytes);
         let trie = &mut pre_init(addresses, codes, nonces, balances, storage_keys, storage_values);
 
-        add_warm_address(from, trie);
-        add_warm_address(env.coinbase, trie);
         let gas_limit = to_u256(gas_limit_bytes);
         from = to_32bit(from);
         to = to_32bit(to);
+
+        add_warm_address(from, trie);
+        add_warm_address(env.coinbase, trie);
         // debug::print(&trie);
         let run_state = &mut new_run_state(gas_limit);
         add_checkpoint(trie, false);
