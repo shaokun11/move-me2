@@ -919,7 +919,9 @@ module aptos_framework::evm_for_test {
                         };
                         debug::print(&bytes);
                         ret_bytes = bytes;
-                        copy_to_memory(memory, ret_pos , 0, ret_len, bytes);
+                        if(vector::length(&bytes) > 0) {
+                            copy_to_memory(memory, ret_pos , 0, ret_len, bytes);
+                        }
                     };
                     add_gas_usage(run_state, gas);
                     vector::push_back(stack, if(success) 1 else 0);
@@ -930,7 +932,9 @@ module aptos_framework::evm_for_test {
                     let (call_res, bytes) = run(sender, from, target, dest_code, params, msg_value, call_gas_limit, trie, run_state, transfer_eth, env);
                     if(call_res) {
                         ret_bytes = bytes;
-                        copy_to_memory(memory, ret_pos , 0, ret_len, bytes);
+                        if(vector::length(&bytes) > 0) {
+                            copy_to_memory(memory, ret_pos , 0, ret_len, bytes);
+                        }
                     };
                     vector::push_back(stack,  if(call_res) 1 else 0);
                 } else {
