@@ -7,6 +7,7 @@ module aptos_framework::precompile {
     use aptos_std::debug;
     use std::hash::sha2_256;
     use aptos_framework::evm_arithmetic::{mod_exp, bit_length, blake_2f, bn128_add, bn128_mul, bn128_pairing};
+    use std::option;
 
     /// unsupport precomile address
     const UNSUPPORT: u64 = 50001;
@@ -46,6 +47,9 @@ module aptos_framework::precompile {
         let signature = ecdsa_signature_from_bytes(vector_slice(calldata, 64, 64));
         let recovery_id = if(v == 27) 0 else 1;
         let pk_recover = ecdsa_recover(message_hash, recovery_id, &signature);
+        if(option::is_none(&pk_recover)) {
+            return (true, x"", Ecrecover)
+        };
         let pk = keccak256(ecdsa_raw_public_key_to_bytes(borrow(&pk_recover)));
         if(Ecrecover > gas_limit) {
             (false, x"", gas_limit)
