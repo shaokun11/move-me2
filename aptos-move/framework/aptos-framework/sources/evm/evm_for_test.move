@@ -315,8 +315,8 @@ module aptos_framework::evm_for_test {
                 handle_unexpect_revert(trie, run_state);
                 return (false, ret_bytes)
             };
-            // debug::print(&i);
-            // debug::print(&get_gas_left(run_state));
+            debug::print(&i);
+            debug::print(&get_gas_left(run_state));
 
             // Handle each opcode according to the EVM specification.
             // The following is a simplified version of the EVM execution engine,
@@ -917,6 +917,7 @@ module aptos_framework::evm_for_test {
                         if(msg_value > 0 && transfer_eth) {
                             transfer(to, target, msg_value, trie);
                         };
+                        debug::print(&bytes);
                         ret_bytes = bytes;
                         copy_to_memory(memory, ret_pos , 0, ret_len, bytes);
                     };
@@ -1141,7 +1142,7 @@ module aptos_framework::evm_for_test {
 
     // This function is used to execute precompile EVM contracts.
     fun precompile(to: vector<u8>, calldata: vector<u8>, gas_limit: u256): (bool, vector<u8>, u256)  {
-        run_precompile(to, calldata, CHAIN_ID, gas_limit)
+        run_precompile(to, calldata, gas_limit)
     }
 
     public fun pop_stack_u64(stack: &mut vector<u256>, error_code: &mut u64): u64 {

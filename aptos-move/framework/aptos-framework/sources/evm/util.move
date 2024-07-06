@@ -149,8 +149,6 @@ module aptos_framework::evm_util {
         if(pos % 32 != 0) {
             pos = pos / 32 * 32 + 32;
         };
-        debug::print(&len_m);
-        debug::print(&pos);
 
         if(pos > len_m) {
             let size = pos - len_m;

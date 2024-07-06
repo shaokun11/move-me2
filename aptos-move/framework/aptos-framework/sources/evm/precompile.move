@@ -36,31 +36,28 @@ module aptos_framework::precompile {
     const ECPAIRING: vector<u8> = x"0000000000000000000000000000000000000000000000000000000000000008";
     const BLAKE2F: vector<u8> = x"0000000000000000000000000000000000000000000000000000000000000009";
 
-    fun ecrecover(calldata: vector<u8>, chain_id: u64, gas_limit: u256): (bool, vector<u8>, u256) {
-        if(vector::length(&calldata) != 128) {
-            return (true, x"", Ecrecover)
+    fun ecrecover(calldata: vector<u8>, gas_limit: u256): (bool, vector<u8>, u256) {
+        let message_hash = vector_slice(calldata, 0, 32);
+        let v = (to_u256(vector_slice(calldata, 32, 32)) as u64);
+        if(v != 27 && v != 28) {
+            return (true, x"", gas_limit)
+        };
+        let signature = ecdsa_signature_from_bytes(vector_slice(calldata, 64, 64));
+        let recovery_id = if(v == 27) 0 else 1;
+        let pk_recover = ecdsa_recover(message_hash, recovery_id, &signature);
+        let pk = keccak256(ecdsa_raw_public_key_to_bytes(borrow(&pk_recover)));
+        if(Ecrecover > gas_limit) {
+            (false, x"", gas_limit)
         } else {
-            let message_hash = vector_slice(calldata, 0, 32);
-            let v = (to_u256(vector_slice(calldata, 32, 32)) as u64);
-            let signature = ecdsa_signature_from_bytes(vector_slice(calldata, 64, 64));
-
-            let recovery_id = if(v > 28) ((v - (chain_id * 2) - 35) as u8) else ((v - 27) as u8);
-            let pk_recover = ecdsa_recover(message_hash, recovery_id, &signature);
-            let pk = keccak256(ecdsa_raw_public_key_to_bytes(borrow(&pk_recover)));
-            debug::print(&vector_slice(pk, 12, 20));
-            if(Ecrecover > gas_limit) {
-                (false, x"", gas_limit)
-            } else {
-                (true, to_32bit(vector_slice(pk, 12, 20)), Ecrecover)
-            }
+            (true, to_32bit(vector_slice(pk, 12, 20)), Ecrecover)
         }
     }
 
-    public fun run_precompile(addr: vector<u8>, calldata: vector<u8>, chain_id: u64, gas_limit: u256): (bool, vector<u8>, u256)  {
+    public fun run_precompile(addr: vector<u8>, calldata: vector<u8>, gas_limit: u256): (bool, vector<u8>, u256)  {
         debug::print(&addr);
         debug::print(&calldata);
         if(addr == RCRECOVER) {
-            ecrecover(calldata, chain_id, gas_limit)
+            ecrecover(calldata, gas_limit)
         } else if(addr == SHA256) {
             let word_count = get_word_count((vector::length(&calldata) as u256));
             (true, sha2_256(calldata), Sha256Word * word_count + 60)
