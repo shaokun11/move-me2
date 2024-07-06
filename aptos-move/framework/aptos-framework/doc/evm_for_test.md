@@ -1098,8 +1098,8 @@ invalid chain id in raw tx
             <a href="evm_for_test.md#0x1_evm_for_test_handle_unexpect_revert">handle_unexpect_revert</a>(trie, run_state);
             <b>return</b> (<b>false</b>, ret_bytes)
         };
-        // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&i);
-        // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&get_gas_left(run_state));
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&i);
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&get_gas_left(run_state));
 
         // Handle each opcode according <b>to</b> the EVM specification.
         // The following is a simplified <a href="version.md#0x1_version">version</a> of the EVM execution engine,
@@ -1689,34 +1689,42 @@ invalid chain id in raw tx
             <b>let</b> ret_pos = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
             <b>let</b> ret_len = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
             <b>let</b> params = vector_slice(*memory, m_pos, m_len);
-            <b>let</b> transfer_eth = <b>if</b> (opcode == 0xf1) <b>true</b> <b>else</b> <b>false</b>;
+            <b>let</b> transfer_eth = <b>if</b> (opcode == 0xf1 || opcode == 0xf2) <b>true</b> <b>else</b> <b>false</b>;
             <b>let</b> is_precompile = is_precompile_address(evm_dest_addr);
             <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&is_precompile);
-
+            <b>let</b> target = <b>if</b> (opcode == 0xf4 || opcode == 0xf2) <b>to</b> <b>else</b> evm_dest_addr;
+            <b>let</b> from = <b>if</b> (opcode == 0xf4) sender <b>else</b> <b>to</b>;
             <b>if</b>(is_precompile) {
                 <b>let</b> (success, bytes, gas) = <a href="precompile.md#0x1_precompile">precompile</a>(evm_dest_addr, params, call_gas_limit);
-                <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&gas);
                 <b>if</b>(success) {
+                    <b>if</b>(msg_value &gt; 0 && transfer_eth) {
+                        transfer(<b>to</b>, target, msg_value, trie);
+                    };
+                    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&bytes);
                     ret_bytes = bytes;
-                    copy_to_memory(memory, ret_pos , 0, ret_len, bytes);
+                    <b>if</b>(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&bytes) &gt; 0) {
+                        copy_to_memory(memory, ret_pos , 0, ret_len, bytes);
+                    }
                 };
                 add_gas_usage(run_state, gas);
                 <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, <b>if</b>(success) 1 <b>else</b> 0);
             } <b>else</b> <b>if</b> (exist_contract(evm_dest_addr, trie)) {
-                <b>let</b> dest_code = <b>if</b> (is_precompile) x"" <b>else</b> get_code(evm_dest_addr, trie);
-                <b>let</b> target = <b>if</b> (opcode == 0xf4 || opcode == 0xf2) <b>to</b> <b>else</b> evm_dest_addr;
-                <b>let</b> from = <b>if</b> (opcode == 0xf4) sender <b>else</b> <b>to</b>;
 
+                <b>let</b> dest_code = <b>if</b> (is_precompile) x"" <b>else</b> get_code(evm_dest_addr, trie);
                 add_checkpoint(trie, is_static);
                 <b>let</b> (call_res, bytes) = <a href="evm_for_test.md#0x1_evm_for_test_run">run</a>(sender, from, target, dest_code, params, msg_value, call_gas_limit, trie, run_state, transfer_eth, env);
                 <b>if</b>(call_res) {
                     ret_bytes = bytes;
-                    copy_to_memory(memory, ret_pos , 0, ret_len, bytes);
+                    <b>if</b>(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&bytes) &gt; 0) {
+                        copy_to_memory(memory, ret_pos , 0, ret_len, bytes);
+                    }
                 };
                 <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack,  <b>if</b>(call_res) 1 <b>else</b> 0);
             } <b>else</b> {
+                <b>if</b>(msg_value &gt; 0 && opcode == 0xf1) {
+                    transfer(<b>to</b>, evm_dest_addr, msg_value, trie);
+                };
                 <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 1);
-
             };
             // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&opcode);
             i = i + 1
@@ -1939,7 +1947,8 @@ invalid chain id in raw tx
 
 
 <pre><code><b>fun</b> <a href="precompile.md#0x1_precompile">precompile</a>(<b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_limit: u256): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, u256)  {
-    run_precompile(<b>to</b>, calldata, <a href="evm_for_test.md#0x1_evm_for_test_CHAIN_ID">CHAIN_ID</a>, gas_limit)
+    <b>let</b> (success, res, gas) = run_precompile(<b>to</b>, calldata, gas_limit);
+    <b>if</b>(gas &gt; gas_limit) (<b>false</b>, res, gas_limit) <b>else</b> (success, res, gas)
 }
 </code></pre>
 

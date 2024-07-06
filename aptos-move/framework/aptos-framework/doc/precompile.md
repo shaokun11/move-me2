@@ -6,6 +6,12 @@
 
 
 -  [Constants](#@Constants_0)
+-  [Function `mod_exp`](#0x1_precompile_mod_exp)
+-  [Function `bn128_add`](#0x1_precompile_bn128_add)
+-  [Function `bn128_mul`](#0x1_precompile_bn128_mul)
+-  [Function `bn128_pairing`](#0x1_precompile_bn128_pairing)
+-  [Function `blake_2f`](#0x1_precompile_blake_2f)
+-  [Function `ecrecover_internal`](#0x1_precompile_ecrecover_internal)
 -  [Function `ecrecover`](#0x1_precompile_ecrecover)
 -  [Function `run_precompile`](#0x1_precompile_run_precompile)
 -  [Function `calc_mod_exp_gas`](#0x1_precompile_calc_mod_exp_gas)
@@ -16,11 +22,8 @@
 
 <pre><code><b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/hash.md#0x1_aptos_hash">0x1::aptos_hash</a>;
 <b>use</b> <a href="../../aptos-stdlib/doc/debug.md#0x1_debug">0x1::debug</a>;
-<b>use</b> <a href="arithmetic.md#0x1_evm_arithmetic">0x1::evm_arithmetic</a>;
 <b>use</b> <a href="util.md#0x1_evm_util">0x1::evm_util</a>;
 <b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/hash.md#0x1_hash">0x1::hash</a>;
-<b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/option.md#0x1_option">0x1::option</a>;
-<b>use</b> <a href="../../aptos-stdlib/doc/secp256k1.md#0x1_secp256k1">0x1::secp256k1</a>;
 </code></pre>
 
 
@@ -213,13 +216,13 @@ unsupport precomile address
 
 
 
-<a id="0x1_precompile_ecrecover"></a>
+<a id="0x1_precompile_mod_exp"></a>
 
-## Function `ecrecover`
+## Function `mod_exp`
 
 
 
-<pre><code><b>fun</b> <a href="precompile.md#0x1_precompile_ecrecover">ecrecover</a>(calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="chain_id.md#0x1_chain_id">chain_id</a>: u64, gas_limit: u256): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, u256)
+<pre><code><b>public</b> <b>fun</b> <a href="precompile.md#0x1_precompile_mod_exp">mod_exp</a>(base: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, exp_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, mod: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;
 </code></pre>
 
 
@@ -228,23 +231,157 @@ unsupport precomile address
 <summary>Implementation</summary>
 
 
-<pre><code><b>fun</b> <a href="precompile.md#0x1_precompile_ecrecover">ecrecover</a>(calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="chain_id.md#0x1_chain_id">chain_id</a>: u64, gas_limit: u256): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, u256) {
-    <b>if</b>(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&calldata) != 128) {
-        <b>return</b> (<b>false</b>, to_32bit(x""), <a href="precompile.md#0x1_precompile_Ecrecover">Ecrecover</a>)
-    } <b>else</b> {
-        <b>let</b> message_hash = vector_slice(calldata, 0, 32);
-        <b>let</b> v = (to_u256(vector_slice(calldata, 32, 32)) <b>as</b> u64);
-        <b>let</b> signature = ecdsa_signature_from_bytes(vector_slice(calldata, 64, 64));
+<pre><code><b>public</b> <b>native</b> <b>fun</b> <a href="precompile.md#0x1_precompile_mod_exp">mod_exp</a>(base: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, exp_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, mod: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;;
+</code></pre>
 
-        <b>let</b> recovery_id = <b>if</b>(v &gt; 28) ((v - (<a href="chain_id.md#0x1_chain_id">chain_id</a> * 2) - 35) <b>as</b> u8) <b>else</b> ((v - 27) <b>as</b> u8);
-        <b>let</b> pk_recover = ecdsa_recover(message_hash, recovery_id, &signature);
-        <b>let</b> pk = keccak256(ecdsa_raw_public_key_to_bytes(borrow(&pk_recover)));
-        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&vector_slice(pk, 12, 20));
-        <b>if</b>(<a href="precompile.md#0x1_precompile_Ecrecover">Ecrecover</a> &gt; gas_limit) {
-            (<b>false</b>, to_32bit(x""), gas_limit)
-        } <b>else</b> {
-            (<b>true</b>, to_32bit(vector_slice(pk, 12, 20)), <a href="precompile.md#0x1_precompile_Ecrecover">Ecrecover</a>)
-        }
+
+
+</details>
+
+<a id="0x1_precompile_bn128_add"></a>
+
+## Function `bn128_add`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="precompile.md#0x1_precompile_bn128_add">bn128_add</a>(a: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>native</b> <b>fun</b> <a href="precompile.md#0x1_precompile_bn128_add">bn128_add</a>(a: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;);
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_precompile_bn128_mul"></a>
+
+## Function `bn128_mul`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="precompile.md#0x1_precompile_bn128_mul">bn128_mul</a>(a: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>native</b> <b>fun</b> <a href="precompile.md#0x1_precompile_bn128_mul">bn128_mul</a>(a: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;);
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_precompile_bn128_pairing"></a>
+
+## Function `bn128_pairing`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="precompile.md#0x1_precompile_bn128_pairing">bn128_pairing</a>(a: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): (bool, u64, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>native</b> <b>fun</b> <a href="precompile.md#0x1_precompile_bn128_pairing">bn128_pairing</a>(a: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): (bool, u64, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;);
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_precompile_blake_2f"></a>
+
+## Function `blake_2f`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="precompile.md#0x1_precompile_blake_2f">blake_2f</a>(input: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): (bool, u64, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>native</b> <b>fun</b> <a href="precompile.md#0x1_precompile_blake_2f">blake_2f</a>(input: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): (bool, u64, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;);
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_precompile_ecrecover_internal"></a>
+
+## Function `ecrecover_internal`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="precompile.md#0x1_precompile_ecrecover_internal">ecrecover_internal</a>(message: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, recovery_id: u8, signature: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>native</b> <b>fun</b> <a href="precompile.md#0x1_precompile_ecrecover_internal">ecrecover_internal</a>(message: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
+                                     recovery_id: u8,
+                                     signature: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;);
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_precompile_ecrecover"></a>
+
+## Function `ecrecover`
+
+
+
+<pre><code><b>fun</b> <a href="precompile.md#0x1_precompile_ecrecover">ecrecover</a>(calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_limit: u256): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, u256)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="precompile.md#0x1_precompile_ecrecover">ecrecover</a>(calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_limit: u256): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, u256) {
+    <b>let</b> message_hash = vector_slice(calldata, 0, 32);
+    <b>let</b> v = to_u256(vector_slice(calldata, 32, 32));
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&v);
+    <b>if</b>(v != 27 && v != 28) {
+        <b>return</b> (<b>true</b>, x"", <a href="precompile.md#0x1_precompile_Ecrecover">Ecrecover</a>)
+    };
+    <b>let</b> recovery_id = <b>if</b>(v == 27) 0 <b>else</b> 1;
+    <b>let</b> (success, pk_recover) = <a href="precompile.md#0x1_precompile_ecrecover_internal">ecrecover_internal</a>(message_hash, recovery_id, vector_slice(calldata, 64, 64));
+    <b>if</b>(!success) {
+        <b>return</b> (<b>false</b>, x"", <a href="precompile.md#0x1_precompile_Ecrecover">Ecrecover</a>)
+    };
+    <b>let</b> pk = keccak256(pk_recover);
+    <b>if</b>(<a href="precompile.md#0x1_precompile_Ecrecover">Ecrecover</a> &gt; gas_limit) {
+        (<b>false</b>, x"", gas_limit)
+    } <b>else</b> {
+        (<b>true</b>, to_32bit(vector_slice(pk, 12, 20)), <a href="precompile.md#0x1_precompile_Ecrecover">Ecrecover</a>)
     }
 }
 </code></pre>
@@ -259,7 +396,7 @@ unsupport precomile address
 
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="precompile.md#0x1_precompile_run_precompile">run_precompile</a>(addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="chain_id.md#0x1_chain_id">chain_id</a>: u64, gas_limit: u256): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, u256)
+<pre><code><b>public</b> <b>fun</b> <a href="precompile.md#0x1_precompile_run_precompile">run_precompile</a>(addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_limit: u256): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, u256)
 </code></pre>
 
 
@@ -268,11 +405,11 @@ unsupport precomile address
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="precompile.md#0x1_precompile_run_precompile">run_precompile</a>(addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="chain_id.md#0x1_chain_id">chain_id</a>: u64, gas_limit: u256): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, u256)  {
+<pre><code><b>public</b> <b>fun</b> <a href="precompile.md#0x1_precompile_run_precompile">run_precompile</a>(addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_limit: u256): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, u256)  {
     <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&addr);
     <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&calldata);
     <b>if</b>(addr == <a href="precompile.md#0x1_precompile_RCRECOVER">RCRECOVER</a>) {
-        <a href="precompile.md#0x1_precompile_ecrecover">ecrecover</a>(calldata, <a href="chain_id.md#0x1_chain_id">chain_id</a>, gas_limit)
+        <a href="precompile.md#0x1_precompile_ecrecover">ecrecover</a>(calldata, gas_limit)
     } <b>else</b> <b>if</b>(addr == <a href="precompile.md#0x1_precompile_SHA256">SHA256</a>) {
         <b>let</b> word_count = get_word_count((<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&calldata) <b>as</b> u256));
         (<b>true</b>, sha2_256(calldata), <a href="precompile.md#0x1_precompile_Sha256Word">Sha256Word</a> * word_count + 60)
@@ -302,20 +439,23 @@ unsupport precomile address
         <b>let</b> mod_bytes = vector_slice_u256(calldata, pos, mod_len);
         <b>let</b> gas = <a href="precompile.md#0x1_precompile_calc_mod_exp_gas">calc_mod_exp_gas</a>(base_len, exp_len, exp_bytes, mod_len);
 
-        <b>let</b> result = mod_exp(base_bytes, exp_bytes, mod_bytes);
+        <b>let</b> result = <a href="precompile.md#0x1_precompile_mod_exp">mod_exp</a>(base_bytes, exp_bytes, mod_bytes);
         result = <b>if</b>(mod_len == 0) x"" <b>else</b> to_n_bit(result, (mod_len <b>as</b> u64));
         (<b>true</b>, result, gas)
     } <b>else</b> <b>if</b>(addr == <a href="precompile.md#0x1_precompile_ECADD">ECADD</a>) {
-        <b>let</b> (success, result) = bn128_add(calldata);
+        <b>let</b> (success, result) = <a href="precompile.md#0x1_precompile_bn128_add">bn128_add</a>(calldata);
         <b>if</b>(success) (success, result, <a href="precompile.md#0x1_precompile_EcAddCost">EcAddCost</a>) <b>else</b> (success, result, gas_limit)
     } <b>else</b> <b>if</b>(addr == <a href="precompile.md#0x1_precompile_ECMUL">ECMUL</a>) {
-        <b>let</b> (success, result) = bn128_mul(calldata);
+        <b>let</b> (success, result) = <a href="precompile.md#0x1_precompile_bn128_mul">bn128_mul</a>(calldata);
         <b>if</b>(success) (success, result, <a href="precompile.md#0x1_precompile_EcMulCost">EcMulCost</a>) <b>else</b> (success, result, gas_limit)
+    } <b>else</b> <b>if</b>(addr == <a href="precompile.md#0x1_precompile_ECPAIRING">ECPAIRING</a>) {
+        <b>let</b> (success, gas, result) = <a href="precompile.md#0x1_precompile_bn128_pairing">bn128_pairing</a>(calldata);
+        <b>if</b>(success) (success, result, (gas <b>as</b> u256)) <b>else</b> (success, result, gas_limit)
     } <b>else</b> <b>if</b>(addr == <a href="precompile.md#0x1_precompile_BLAKE2F">BLAKE2F</a>) {
         <b>if</b>(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&calldata) != 213) {
             <b>return</b> (<b>false</b>, x"", gas_limit)
         };
-        <b>let</b> (success, gas_cost, result) = blake_2f(calldata);
+        <b>let</b> (success, gas_cost, result) = <a href="precompile.md#0x1_precompile_blake_2f">blake_2f</a>(calldata);
         <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&calldata));
         <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&result);
         <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&success);

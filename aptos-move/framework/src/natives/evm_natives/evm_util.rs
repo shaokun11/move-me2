@@ -5,9 +5,11 @@ use move_vm_types::{
     loaded_data::runtime_types::Type,
     values::{Value}
 };
+use move_core_types::{u256::U256 as move_u256};
 use move_vm_runtime::native_functions::NativeFunction;
 use std::collections::VecDeque;
 use smallvec::{smallvec, SmallVec};
+use num::{BigUint};
 
 fn native_new_fixed_length_vector(
     _context: &mut SafeNativeContext,
@@ -65,6 +67,15 @@ fn slice_with_default(vec: &Vec<u8>, pos: u64, size: u64) -> Vec<u8> {
     result
 }
 
+fn bit_length(
+    _context: &mut SafeNativeContext,
+    _ty_args: Vec<Type>,
+    mut args: VecDeque<Value>
+) -> SafeNativeResult<SmallVec<[Value; 1]>> {
+    let bytes = safely_pop_arg!(args, Vec<u8>);
+    let big_int = BigUint::from_bytes_be(&bytes);
+    Ok(smallvec![Value::u256(move_u256::from(big_int.bits() as u64))])
+}
 
 
 /***************************************************************************************************
@@ -77,7 +88,8 @@ pub fn make_all(
     let natives = [
         ("new_fixed_length_vector", native_new_fixed_length_vector as RawSafeNative),
         ("vector_extend", native_vector_extend as RawSafeNative),
-        ("vector_slice", native_vector_slice as RawSafeNative)
+        ("vector_slice", native_vector_slice as RawSafeNative),
+        ("bit_length", bit_length as RawSafeNative),
     ];
 
     builder.make_named_natives(natives)

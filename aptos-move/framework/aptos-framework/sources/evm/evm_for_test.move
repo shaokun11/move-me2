@@ -6,7 +6,7 @@ module aptos_framework::evm_for_test {
     use aptos_framework::evm_util::{to_32bit, get_contract_address, to_int256, data_to_u256, u256_to_data, mstore, copy_to_memory, to_u256, get_valid_jumps, expand_to_pos, vector_slice, vector_slice_u256, get_word_count};
     use std::string::utf8;
     use aptos_framework::event::EventHandle;
-    use aptos_framework::precompile::{is_precompile_address, run_precompile};
+    use aptos_framework::evm_precompile::{is_precompile_address, run_precompile};
     use aptos_std::simple_map;
     use aptos_std::simple_map::SimpleMap;
     use aptos_framework::evm_global_state::{new_run_state, add_gas_usage, get_gas_refund, RunState, add_call_state, revert_call_state, commit_call_state, get_gas_left, add_gas_left, clear_gas_refund};

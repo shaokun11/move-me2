@@ -1,13 +1,18 @@
-module aptos_framework::precompile {
+module aptos_framework::evm_precompile {
     use std::vector;
-    use aptos_framework::evm_util::{to_u256, to_32bit, vector_slice, vector_slice_u256, to_n_bit, get_word_count};
-    use aptos_std::secp256k1::{ecdsa_recover, ecdsa_signature_from_bytes, ecdsa_raw_public_key_to_bytes};
+    use aptos_framework::evm_util::{to_u256, to_32bit, vector_slice, vector_slice_u256, to_n_bit, get_word_count, bit_length};
     use aptos_std::aptos_hash::{keccak256, ripemd160};
-    use std::option::borrow;
     use aptos_std::debug;
     use std::hash::sha2_256;
-    use aptos_framework::evm_arithmetic::{mod_exp, bit_length, blake_2f, bn128_add, bn128_mul, bn128_pairing};
-    use std::option;
+
+    public native fun mod_exp(base: vector<u8>, exp_bytes: vector<u8>, mod: vector<u8>): vector<u8>;
+    public native fun bn128_add(a: vector<u8>): (bool, vector<u8>);
+    public native fun bn128_mul(a: vector<u8>): (bool, vector<u8>);
+    public native fun bn128_pairing(a: vector<u8>): (bool, u64, vector<u8>);
+    public native fun blake_2f(input: vector<u8>): (bool, u64, vector<u8>);
+    public native fun ecrecover_internal(message: vector<u8>,
+                                         recovery_id: u8,
+                                         signature: vector<u8>): (bool, vector<u8>);
 
     /// unsupport precomile address
     const UNSUPPORT: u64 = 50001;
@@ -44,13 +49,12 @@ module aptos_framework::precompile {
         if(v != 27 && v != 28) {
             return (true, x"", Ecrecover)
         };
-        let signature = ecdsa_signature_from_bytes(vector_slice(calldata, 64, 64));
         let recovery_id = if(v == 27) 0 else 1;
-        let pk_recover = ecdsa_recover(message_hash, recovery_id, &signature);
-        if(option::is_none(&pk_recover)) {
+        let (success, pk_recover) = ecrecover_internal(message_hash, recovery_id, vector_slice(calldata, 64, 64));
+        if(!success) {
             return (true, x"", Ecrecover)
         };
-        let pk = keccak256(ecdsa_raw_public_key_to_bytes(borrow(&pk_recover)));
+        let pk = keccak256(pk_recover);
         if(Ecrecover > gas_limit) {
             (false, x"", gas_limit)
         } else {

@@ -579,11 +579,8 @@
         gas = gas +  <a href="gas.md#0x1_evm_gas_calc_memory_expand">calc_memory_expand</a>(stack, 4, 5, run_state, gas_limit);
         gas = gas +  <a href="gas.md#0x1_evm_gas_calc_memory_expand">calc_memory_expand</a>(stack, 6, 7, run_state, gas_limit);
     } <b>else</b> {
-        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&gas);
         gas = gas +  <a href="gas.md#0x1_evm_gas_calc_memory_expand">calc_memory_expand</a>(stack, 3, 4, run_state, gas_limit);
-        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&gas);
         gas = gas +  <a href="gas.md#0x1_evm_gas_calc_memory_expand">calc_memory_expand</a>(stack, 5, 6, run_state, gas_limit);
-        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&gas);
     };
 
     gas = gas + <a href="gas.md#0x1_evm_gas_access_address">access_address</a>(<b>address</b>, trie);
@@ -771,9 +768,6 @@
         <b>return</b> gas_limit
     };
     gas = gas + <a href="gas.md#0x1_evm_gas_LogTopic">LogTopic</a> * topic_count + data_length * <a href="gas.md#0x1_evm_gas_LogData">LogData</a> + <a href="gas.md#0x1_evm_gas_LogTopic">LogTopic</a>;
-
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&gas);
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&data_length);
     gas
 }
 </code></pre>
@@ -911,7 +905,7 @@
     <b>let</b> gas_allow = gas_left - gas_left / 64;
     gas_limit = <b>if</b>(gas_limit &gt; gas_allow) gas_allow <b>else</b> gas_limit;
     <b>let</b> gas_stipend = 0;
-    <b>if</b>(opcode == 0xf1 && value &gt; 0) {
+    <b>if</b>((opcode == 0xf1 || opcode == 0xf2) && value &gt; 0) {
         gas_stipend = gas_stipend + <a href="gas.md#0x1_evm_gas_CallStipend">CallStipend</a>;
         gas_limit = gas_limit + <a href="gas.md#0x1_evm_gas_CallStipend">CallStipend</a>;
     };
@@ -939,12 +933,9 @@
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="gas.md#0x1_evm_gas_calc_base_gas">calc_base_gas</a>(memory: &<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): u256 {
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(memory);
     <b>let</b> gas = 0;
 
     for_each(*memory, |elem| gas = gas + <b>if</b>(elem == 0) 4 <b>else</b> 16);
-
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&gas);
     gas
 }
 </code></pre>

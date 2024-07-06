@@ -15,6 +15,7 @@ module aptos_framework::evm_util {
     public native fun new_fixed_length_vector(size: u64): vector<u8>;
     public native fun vector_extend(a: vector<u8>, b: vector<u8>): vector<u8>;
     public native fun vector_slice(a: vector<u8>, pos: u64, size: u64): vector<u8>;
+    public native fun bit_length(a: vector<u8>): u256;
 
     public fun vector_slice_u256(a: vector<u8>, pos: u256, size: u256): vector<u8> {
         if(pos > U64_MAX) {
