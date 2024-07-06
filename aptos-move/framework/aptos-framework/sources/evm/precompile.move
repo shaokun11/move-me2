@@ -38,7 +38,7 @@ module aptos_framework::precompile {
 
     fun ecrecover(calldata: vector<u8>, gas_limit: u256): (bool, vector<u8>, u256) {
         let message_hash = vector_slice(calldata, 0, 32);
-        let v = (to_u256(vector_slice(calldata, 32, 32)) as u64);
+        let v = to_u256(vector_slice(calldata, 32, 32));
         debug::print(&v);
         if(v != 27 && v != 28) {
             return (true, x"", Ecrecover)
