@@ -4,7 +4,6 @@ module aptos_framework::evm_trie {
     use aptos_std::simple_map::{SimpleMap};
     use aptos_std::simple_map;
     use aptos_framework::evm_precompile::is_precompile_address;
-    use aptos_std::debug;
 
     struct Trie has drop {
         context: vector<Checkpoint>,

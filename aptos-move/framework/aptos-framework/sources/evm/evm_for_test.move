@@ -219,9 +219,12 @@ module aptos_framework::evm_for_test {
                 if(!out_of_gas && success) {
                     new_account(evm_contract, deployed_codes, value, 1, trie)
                 }
-
             } else {
-                run(from, from, to, get_code(to, trie), data, value, gas_limit - base_cost, trie, run_state, true, &env);
+                if(is_precompile_address(to)) {
+                     precompile(to, data, gas_limit, run_state);
+                } else {
+                    run(from, from, to, get_code(to, trie), data, value, gas_limit - base_cost, trie, run_state, true, &env);
+                };
             };
             let gas_refund = get_gas_refund(run_state);
             let gas_left = get_gas_left(run_state);
@@ -247,9 +250,6 @@ module aptos_framework::evm_for_test {
             emit_event(state_root, gas_usage, gas_refund);
 
         }
-
-
-
     }
 
     fun handle_normal_revert(trie: &mut Trie, run_state: &mut RunState) {
@@ -912,16 +912,14 @@ module aptos_framework::evm_for_test {
                 let target = if (opcode == 0xf4 || opcode == 0xf2) to else evm_dest_addr;
                 let from = if (opcode == 0xf4) sender else to;
                 if(is_precompile) {
-                    let (success, bytes, gas) = precompile(evm_dest_addr, params, call_gas_limit);
+                    let (success, bytes) = precompile(evm_dest_addr, params, call_gas_limit, run_state);
                     if(success) {
                         if(msg_value > 0 && transfer_eth) {
                             transfer(to, target, msg_value, trie);
                         };
-                        debug::print(&bytes);
                         ret_bytes = bytes;
                         write_call_output(memory, ret_pos, ret_len, bytes);
                     };
-                    add_gas_usage(run_state, gas);
                     vector::push_back(stack, if(success) 1 else 0);
                 } else if (exist_contract(evm_dest_addr, trie)) {
 
@@ -1141,9 +1139,14 @@ module aptos_framework::evm_for_test {
 
 
     // This function is used to execute precompile EVM contracts.
-    fun precompile(to: vector<u8>, calldata: vector<u8>, gas_limit: u256): (bool, vector<u8>, u256)  {
+    fun precompile(to: vector<u8>, calldata: vector<u8>, gas_limit: u256, run_state: &mut RunState): (bool, vector<u8>)  {
         let (success, res, gas) = run_precompile(to, calldata, gas_limit);
-        if(gas > gas_limit) (false, res, gas_limit) else (success, res, gas)
+        if(gas > gas_limit) {
+            success = false;
+            gas = gas_limit;
+        };
+        add_gas_usage(run_state, gas);
+        (success, res)
     }
 
     public fun pop_stack_u64(stack: &mut vector<u256>, error_code: &mut u64): u64 {
