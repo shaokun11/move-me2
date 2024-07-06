@@ -906,15 +906,16 @@ module aptos_framework::evm_for_test {
                 let ret_pos = pop_stack(stack, error_code);
                 let ret_len = pop_stack(stack, error_code);
                 let params = vector_slice(*memory, m_pos, m_len);
-                let transfer_eth = if (opcode == 0xf1) true else false;
+                let transfer_eth = if (opcode == 0xf1 || opcode == 0xf2) true else false;
                 let is_precompile = is_precompile_address(evm_dest_addr);
                 debug::print(&is_precompile);
-
+                let target = if (opcode == 0xf4 || opcode == 0xf2) to else evm_dest_addr;
+                let from = if (opcode == 0xf4) sender else to;
                 if(is_precompile) {
                     let (success, bytes, gas) = precompile(evm_dest_addr, params, call_gas_limit);
                     if(success) {
-                        if(value > 0) {
-                            transfer(to, evm_dest_addr, msg_value, trie);
+                        if(msg_value > 0 && transfer_eth) {
+                            transfer(to, target, msg_value, trie);
                         };
                         ret_bytes = bytes;
                         copy_to_memory(memory, ret_pos , 0, ret_len, bytes);
@@ -922,8 +923,7 @@ module aptos_framework::evm_for_test {
                     add_gas_usage(run_state, gas);
                     vector::push_back(stack, if(success) 1 else 0);
                 } else if (exist_contract(evm_dest_addr, trie)) {
-                    let target = if (opcode == 0xf4 || opcode == 0xf2) to else evm_dest_addr;
-                    let from = if (opcode == 0xf4) sender else to;
+
                     let dest_code = if (is_precompile) x"" else get_code(evm_dest_addr, trie);
                     add_checkpoint(trie, is_static);
                     let (call_res, bytes) = run(sender, from, target, dest_code, params, msg_value, call_gas_limit, trie, run_state, transfer_eth, env);
