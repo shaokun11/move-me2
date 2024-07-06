@@ -39,9 +39,9 @@
 <b>use</b> <a href="arithmetic.md#0x1_evm_arithmetic">0x1::evm_arithmetic</a>;
 <b>use</b> <a href="gas.md#0x1_evm_gas">0x1::evm_gas</a>;
 <b>use</b> <a href="global_state.md#0x1_evm_global_state">0x1::evm_global_state</a>;
+<b>use</b> <a href="precompile.md#0x1_evm_precompile">0x1::evm_precompile</a>;
 <b>use</b> <a href="trie.md#0x1_evm_trie">0x1::evm_trie</a>;
 <b>use</b> <a href="util.md#0x1_evm_util">0x1::evm_util</a>;
-<b>use</b> <a href="precompile.md#0x1_precompile">0x1::precompile</a>;
 <b>use</b> <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map">0x1::simple_map</a>;
 <b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/string.md#0x1_string">0x1::string</a>;
 <b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">0x1::vector</a>;
@@ -1695,7 +1695,7 @@ invalid chain id in raw tx
             <b>let</b> target = <b>if</b> (opcode == 0xf4 || opcode == 0xf2) <b>to</b> <b>else</b> evm_dest_addr;
             <b>let</b> from = <b>if</b> (opcode == 0xf4) sender <b>else</b> <b>to</b>;
             <b>if</b>(is_precompile) {
-                <b>let</b> (success, bytes, gas) = <a href="precompile.md#0x1_precompile">precompile</a>(evm_dest_addr, params, call_gas_limit);
+                <b>let</b> (success, bytes, gas) = <a href="evm_for_test.md#0x1_evm_for_test_precompile">precompile</a>(evm_dest_addr, params, call_gas_limit);
                 <b>if</b>(success) {
                     <b>if</b>(msg_value &gt; 0 && transfer_eth) {
                         transfer(<b>to</b>, target, msg_value, trie);
@@ -1937,7 +1937,7 @@ invalid chain id in raw tx
 
 
 
-<pre><code><b>fun</b> <a href="precompile.md#0x1_precompile">precompile</a>(<b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_limit: u256): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, u256)
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_precompile">precompile</a>(<b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_limit: u256): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, u256)
 </code></pre>
 
 
@@ -1946,7 +1946,7 @@ invalid chain id in raw tx
 <summary>Implementation</summary>
 
 
-<pre><code><b>fun</b> <a href="precompile.md#0x1_precompile">precompile</a>(<b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_limit: u256): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, u256)  {
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_precompile">precompile</a>(<b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_limit: u256): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, u256)  {
     <b>let</b> (success, res, gas) = run_precompile(<b>to</b>, calldata, gas_limit);
     <b>if</b>(gas &gt; gas_limit) (<b>false</b>, res, gas_limit) <b>else</b> (success, res, gas)
 }

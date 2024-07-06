@@ -45,9 +45,9 @@
 -  [Function `put`](#0x1_evm_trie_put)
 
 
-<pre><code><b>use</b> <a href="util.md#0x1_evm_util">0x1::evm_util</a>;
+<pre><code><b>use</b> <a href="precompile.md#0x1_evm_precompile">0x1::evm_precompile</a>;
+<b>use</b> <a href="util.md#0x1_evm_util">0x1::evm_util</a>;
 <b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/option.md#0x1_option">0x1::option</a>;
-<b>use</b> <a href="precompile.md#0x1_precompile">0x1::precompile</a>;
 <b>use</b> <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map">0x1::simple_map</a>;
 </code></pre>
 

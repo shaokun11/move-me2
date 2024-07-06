@@ -83,4 +83,4 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
 
 let key = "CallEcrecover_Overflow"
 
-read("src/GeneralStateTests/stPreCompiledContracts2/CallEcrecover_Overflow.json", key, 0, 0, 0)
+read("src/GeneralStateTests/stPreCompiledContracts2/CallEcrecover_Overflow.json", key, 2, 0, 0)

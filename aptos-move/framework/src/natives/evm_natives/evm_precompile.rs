@@ -67,7 +67,7 @@ fn native_ecrecover(
             Value::bool(true),
             Value::vector_u8(pk.serialize()[1..].to_vec()),
         ]),
-        Err(_) => Ok(smallvec![Value::bool(true), Value::vector_u8([0u8; 0])]),
+        Err(_) => Ok(smallvec![Value::bool(false), Value::vector_u8([0u8; 0])]),
     }
 }
 
