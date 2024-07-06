@@ -158,6 +158,18 @@ module aptos_framework::evm_util {
         };
     }
 
+    public fun write_call_output(memory: &mut vector<u8>, out_offset: u256, out_len: u256, ret_data: vector<u8>) {
+        let data_len = vector::length(&ret_data);
+        let out_len = (out_len as u64);
+        if(data_len > 0) {
+            if(data_len < out_len) {
+                out_len = data_len;
+            };
+            let data = vector_slice(ret_data, 0, out_len);
+            copy_to_memory(memory, out_offset, 0, (out_len as u256), data);
+        }
+    }
+
     public fun copy_to_memory(memory: &mut vector<u8>, m_pos: u256, d_pos: u256, len: u256, data: vector<u8>) {
         expand_to_pos(memory, ((m_pos + len) as u64));
         let i = 0;

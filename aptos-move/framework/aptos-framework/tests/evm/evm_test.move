@@ -30,10 +30,10 @@ module aptos_framework::evm_test {
         initialize_for_test(&aptos_framework);
 
         let from = x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b";
-        let to = x"cccccccccccccccccccccccccccccccccccccccc";
-        let data = x"917694f918c547e4f7b0f325ad1e56f57e26c745b09a3e503d86e00e5255ff7f715d3d1c000000000000000000000000000000000000000000000000000000000000001cfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364140efffd310ac743f371de3b9f7f9cb56c0b28ad43601b4ab949f53faa07bd2c804";
-        let env = vector[u256_to_data(0x0a),x"2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",u256_to_data(0x020000),u256_to_data(0x00),u256_to_data(0xff112233445566),u256_to_data(0x01),x"0000000000000000000000000000000000000000000000000000000000020000",u256_to_data(0x03e8)];
-        let gas_limit = u256_to_data(0xf000000000);
+        let to = x"095e7baea6a6c7c4c2dfeb977efac326af552d87";
+        let data = x"";
+        let env = vector[u256_to_data(0x0a),x"2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",u256_to_data(0x020000),u256_to_data(0x00),u256_to_data(0x05f5e100),u256_to_data(0x01),x"0000000000000000000000000000000000000000000000000000000000020000",u256_to_data(0x03e8)];
+        let gas_limit = u256_to_data(0x989680);
         let gas_price = u256_to_data(0x0a);
         let value = u256_to_data(0x0186a0);
 
@@ -44,9 +44,9 @@ module aptos_framework::evm_test {
 
 
 
-        let addresses = vector[x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b", x"cccccccccccccccccccccccccccccccccccccccc"];
-        let balance_table = vector[0x0de0b6b3a7640000, 0x00];
-        let codes = vector[x"", x"6080600460003760206080806000806001610bb8f160005560805160015500"];
+        let addresses = vector[x"095e7baea6a6c7c4c2dfeb977efac326af552d87", x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b"];
+        let balance_table = vector[0x01312d00, 0x0de0b6b3a7640000];
+        let codes = vector[x"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff600052611234602052604060006020600060006004610258f15060205160005500", x""];
         let nonce_table = vector[0x00, 0x00];
         let i = 0;
         let balances = vector::empty<vector<u8>>();

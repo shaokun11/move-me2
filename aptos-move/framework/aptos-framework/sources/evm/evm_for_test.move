@@ -3,7 +3,7 @@ module aptos_framework::evm_for_test {
     use std::vector;
     use aptos_std::aptos_hash::keccak256;
     use aptos_std::debug;
-    use aptos_framework::evm_util::{to_32bit, get_contract_address, to_int256, data_to_u256, u256_to_data, mstore, copy_to_memory, to_u256, get_valid_jumps, expand_to_pos, vector_slice, vector_slice_u256, get_word_count};
+    use aptos_framework::evm_util::{to_32bit, get_contract_address, to_int256, data_to_u256, u256_to_data, mstore, copy_to_memory, to_u256, get_valid_jumps, expand_to_pos, vector_slice, vector_slice_u256, get_word_count, write_call_output};
     use std::string::utf8;
     use aptos_framework::event::EventHandle;
     use aptos_framework::evm_precompile::{is_precompile_address, run_precompile};
@@ -919,9 +919,7 @@ module aptos_framework::evm_for_test {
                         };
                         debug::print(&bytes);
                         ret_bytes = bytes;
-                        if(vector::length(&bytes) > 0) {
-                            copy_to_memory(memory, ret_pos , 0, ret_len, bytes);
-                        }
+                        write_call_output(memory, ret_pos, ret_len, bytes);
                     };
                     add_gas_usage(run_state, gas);
                     vector::push_back(stack, if(success) 1 else 0);
@@ -932,9 +930,7 @@ module aptos_framework::evm_for_test {
                     let (call_res, bytes) = run(sender, from, target, dest_code, params, msg_value, call_gas_limit, trie, run_state, transfer_eth, env);
                     if(call_res) {
                         ret_bytes = bytes;
-                        if(vector::length(&bytes) > 0) {
-                            copy_to_memory(memory, ret_pos , 0, ret_len, bytes);
-                        }
+                        write_call_output(memory, ret_pos, ret_len, bytes);
                     };
                     vector::push_back(stack,  if(call_res) 1 else 0);
                 } else {

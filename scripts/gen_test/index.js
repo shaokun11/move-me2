@@ -81,6 +81,6 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "CallEcrecover_Overflow"
+let key = "CallIdentity_6_inputShorterThanOutput"
 
-read("src/GeneralStateTests/stPreCompiledContracts2/CallEcrecover_Overflow.json", key, 2, 0, 0)
+read("src/GeneralStateTests/stPreCompiledContracts2/CallIdentity_6_inputShorterThanOutput.json", key, 0, 0, 0)
