@@ -33,7 +33,7 @@ module aptos_framework::evm_test {
         let to = x"095e7baea6a6c7c4c2dfeb977efac326af552d87";
         let data = x"";
         let env = vector[u256_to_data(0x0a),x"2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",u256_to_data(0x020000),u256_to_data(0x00),u256_to_data(0x989680),u256_to_data(0x01),x"0000000000000000000000000000000000000000000000000000000000020000",u256_to_data(0x03e8)];
-        let gas_limit = u256_to_data(0x37ba90);
+        let gas_limit = u256_to_data(0x0592a8);
         let gas_price = u256_to_data(0x0a);
         let value = u256_to_data(0x0186a0);
 
@@ -46,7 +46,7 @@ module aptos_framework::evm_test {
 
         let addresses = vector[x"095e7baea6a6c7c4c2dfeb977efac326af552d87", x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b"];
         let balance_table = vector[0x01312d00, 0x0de0b6b3a7640000];
-        let codes = vector[x"7ec547e4f7b0f325ad1e56f57e26c745b09a3e503d86e00e5255ff7f715d3d1c600052601c6020527eb1693892219d736caba55bdb67216e485557ea6b6af75f37096c9aa6a5a75f6040527eb940b1d03b21e36b0e47e79769f095fe2ab855bd91e3a38756b7d75a9c4549606052602060806080600060006001620493e0f260025560a060020a60805106600055600054321460015500", x""];
+        let codes = vector[x"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff6000526020600060206000600060046011f260025560005160005500", x""];
         let nonce_table = vector[0x00, 0x00];
         let i = 0;
         let balances = vector::empty<vector<u8>>();

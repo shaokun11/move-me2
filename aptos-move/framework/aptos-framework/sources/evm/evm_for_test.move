@@ -1142,7 +1142,8 @@ module aptos_framework::evm_for_test {
 
     // This function is used to execute precompile EVM contracts.
     fun precompile(to: vector<u8>, calldata: vector<u8>, gas_limit: u256): (bool, vector<u8>, u256)  {
-        run_precompile(to, calldata, gas_limit)
+        let (success, res, gas) = run_precompile(to, calldata, gas_limit);
+        if(gas > gas_limit) (false, res, gas_limit) else (success, res, gas)
     }
 
     public fun pop_stack_u64(stack: &mut vector<u256>, error_code: &mut u64): u64 {

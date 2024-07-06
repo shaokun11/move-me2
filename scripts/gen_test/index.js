@@ -81,6 +81,6 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "CALLCODEEcrecover80"
+let key = "CALLCODEIdentity_4_gas17"
 
-read("src/GeneralStateTests/stPreCompiledContracts2/CALLCODEEcrecover80.json", key, 0, 0, 0)
+read("src/GeneralStateTests/stPreCompiledContracts2/CALLCODEIdentity_4_gas17.json", key, 0, 0, 0)
