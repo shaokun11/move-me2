@@ -424,6 +424,9 @@ unsupport precomile address
         <b>let</b> exp_len = to_u256(vector_slice(calldata, 32, 32));
         <b>let</b> mod_len = to_u256(vector_slice(calldata, 64, 32));
 
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&base_len);
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&exp_len);
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&mod_len);
         <b>if</b>(base_len == 0 && mod_len == 0) {
             <b>return</b> (<b>true</b>, x"", 200)
         };
@@ -530,7 +533,7 @@ unsupport precomile address
         iteration_count = bit_length - 1;
     } <b>else</b> <b>if</b>(exponent_length &gt; 32) {
         <b>let</b> last_32_bit = vector_slice_u256(exponent_bytes, exponent_length - 32, 32);
-        iteration_count = (8 * (exponent_length - 32)) + (bit_length(last_32_bit) - 1)
+        iteration_count = (8 * (exponent_length - 32)) + bit_length(last_32_bit) - 1
     };
 
     <b>if</b>(iteration_count == 0) 1 <b>else</b> iteration_count

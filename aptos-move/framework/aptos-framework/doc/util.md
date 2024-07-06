@@ -170,6 +170,7 @@ owned.
 -  [Function `adjust_length`](#0x1_evm_util_adjust_length)
 -  [Function `u256_to_data`](#0x1_evm_util_u256_to_data)
 -  [Function `expand_to_pos`](#0x1_evm_util_expand_to_pos)
+-  [Function `write_call_output`](#0x1_evm_util_write_call_output)
 -  [Function `copy_to_memory`](#0x1_evm_util_copy_to_memory)
 -  [Function `mstore`](#0x1_evm_util_mstore)
 -  [Function `get_message_hash`](#0x1_evm_util_get_message_hash)
@@ -703,6 +704,38 @@ owned.
         <b>let</b> new_array = <a href="util.md#0x1_evm_util_new_fixed_length_vector">new_fixed_length_vector</a>(size);
         *memory = <a href="util.md#0x1_evm_util_vector_extend">vector_extend</a>(new_array, *memory)
     };
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_util_write_call_output"></a>
+
+## Function `write_call_output`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_write_call_output">write_call_output</a>(memory: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, out_offset: u256, out_len: u256, ret_data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_write_call_output">write_call_output</a>(memory: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, out_offset: u256, out_len: u256, ret_data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;) {
+    <b>let</b> data_len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&ret_data);
+    <b>let</b> out_len = (out_len <b>as</b> u64);
+    <b>if</b>(data_len &gt; 0) {
+        <b>if</b>(data_len &lt; out_len) {
+            out_len = data_len;
+        };
+        <b>let</b> data = <a href="util.md#0x1_evm_util_vector_slice">vector_slice</a>(ret_data, 0, out_len);
+        <a href="util.md#0x1_evm_util_copy_to_memory">copy_to_memory</a>(memory, out_offset, 0, (out_len <b>as</b> u256), data);
+    }
 }
 </code></pre>
 
