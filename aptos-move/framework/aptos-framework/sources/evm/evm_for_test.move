@@ -26,6 +26,9 @@ module aptos_framework::evm_for_test {
     const ACCOUNT_NOT_EXIST: u64 = 10008;
     /// invalid chain id in raw tx
     const INVALID_CHAINID: u64 = 10009;
+
+    const OPCODE_UNIMPLEMENT: u64 = 20011;
+
     const CONVERT_BASE: u256 = 10000000000;
     const CHAIN_ID: u64 = 0x150;
 
@@ -211,13 +214,12 @@ module aptos_framework::evm_for_test {
                     handle_tx_failed(trie);
                     return
                 };
-                debug::print(&get_gas_left(run_state));
-                debug::print(&out_of_gas);
-                let (success, deployed_codes) = run(from, from, to, data, x"", value, get_gas_left(run_state), trie, run_state, true, &env);
+                new_account(evm_contract, x"", 0, 1, trie);
+                let (success, deployed_codes) = run(from, from, evm_contract, data, x"", value, get_gas_left(run_state), trie, run_state, true, &env);
                 let store_fee = (200 * vector::length(&deployed_codes) as u256);
                 let out_of_gas = add_gas_usage(run_state, store_fee);
                 if(!out_of_gas && success) {
-                    new_account(evm_contract, deployed_codes, value, 1, trie)
+                    set_code(trie, evm_contract, deployed_codes);
                 }
             } else {
                 if(is_precompile_address(to)) {
@@ -736,6 +738,23 @@ module aptos_framework::evm_for_test {
                 //self balance
             else if(opcode == 0x47) {
                 vector::push_back(stack, get_balance(to, trie));
+                i = i + 1;
+            }
+                //self balance
+            else if(opcode == 0x48) {
+                vector::push_back(stack, env.base_fee);
+                i = i + 1;
+            }
+                //blob blob hash
+            else if(opcode == 0x49) {
+                assert!(false, OPCODE_UNIMPLEMENT);
+                // vector::push_back(stack, 0);
+                i = i + 1;
+            }
+                //blob blob hash
+            else if(opcode == 0x4a) {
+                assert!(false, OPCODE_UNIMPLEMENT);
+                // vector::push_back(stack, 0);
                 i = i + 1;
             }
                 // mload

@@ -31,7 +31,7 @@ module aptos_framework::evm_test {
 
         let from = x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b";
         let to = x"";
-        let data = x"6000600160016001600160016001600160010c60006000f3";
+        let data = x"6024600160016001600160016001600160014960006000f3";
         let env = vector[u256_to_data(0x0a),x"2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",u256_to_data(0x020000),u256_to_data(0x00),u256_to_data(0x0f4240),u256_to_data(0x01),x"0000000000000000000000000000000000000000000000000000000000020000",u256_to_data(0x03e8)];
         let gas_limit = u256_to_data(0x061a80);
         let gas_price = u256_to_data(0x0a);
