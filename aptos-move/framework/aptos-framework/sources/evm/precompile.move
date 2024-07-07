@@ -1,6 +1,6 @@
 module aptos_framework::evm_precompile {
     use std::vector;
-    use aptos_framework::evm_util::{to_u256, to_32bit, vector_slice, vector_slice_u256, to_n_bit, get_word_count, bit_length};
+    use aptos_framework::evm_util::{to_u256, to_32bit, vector_slice, get_word_count, to_n_bit, bit_length, vector_slice_u256};
     use aptos_std::aptos_hash::{keccak256, ripemd160};
     use aptos_std::debug;
     use std::hash::sha2_256;
