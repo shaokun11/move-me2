@@ -247,8 +247,8 @@ module aptos_framework::evm_gas {
             };
             gas = gas + calc_memory_expand(stack, 2, 4, run_state, gas_limit);
         };
-        let address = *vector::borrow(stack,len - 1);
-        gas = gas + access_address(u256_to_data(address), trie);
+        let address = get_valid_ethereum_address(*vector::borrow(stack,len - 1));
+        gas = gas + access_address(address, trie);
         gas
     }
 

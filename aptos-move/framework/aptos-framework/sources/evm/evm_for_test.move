@@ -664,8 +664,8 @@ module aptos_framework::evm_for_test {
             }
                 //extcodecopy
             else if(opcode == 0x3c) {
-                let target = vector_slice(u256_to_data(pop_stack(stack, error_code)), 12, 20);
-                let code = get_code(to_32bit(target), trie);
+                let target = get_valid_ethereum_address(pop_stack(stack, error_code));
+                let code = get_code(target, trie);
                 let m_pos = pop_stack(stack, error_code);
                 let d_pos = pop_stack(stack, error_code);
                 let len = pop_stack(stack, error_code);
