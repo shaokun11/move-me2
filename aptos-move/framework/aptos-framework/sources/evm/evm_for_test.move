@@ -745,18 +745,6 @@ module aptos_framework::evm_for_test {
                 vector::push_back(stack, env.base_fee);
                 i = i + 1;
             }
-                //blob blob hash
-            else if(opcode == 0x49) {
-                assert!(false, OPCODE_UNIMPLEMENT);
-                // vector::push_back(stack, 0);
-                i = i + 1;
-            }
-                //blob blob hash
-            else if(opcode == 0x4a) {
-                assert!(false, OPCODE_UNIMPLEMENT);
-                // vector::push_back(stack, 0);
-                i = i + 1;
-            }
                 // mload
             else if(opcode == 0x51) {
                 let pos = pop_stack_u64(stack, error_code);
@@ -1018,7 +1006,7 @@ module aptos_framework::evm_for_test {
                     add_nonce(to, trie);
                     add_checkpoint(trie, false);
                     new_account(new_evm_contract_addr, x"", 0, 1, trie);
-                    let (create_res, bytes) = run(to, sender, new_evm_contract_addr, new_codes, x"", msg_value, gas_limit, trie, run_state, true, env);
+                    let (create_res, bytes) = run(sender, to, new_evm_contract_addr, new_codes, x"", msg_value, gas_limit, trie, run_state, true, env);
                     if(create_res) {
                         add_gas_usage(run_state, 200 * ((vector::length(&bytes)) as u256));
                         set_code(trie, new_evm_contract_addr, bytes);
@@ -1139,6 +1127,12 @@ module aptos_framework::evm_for_test {
             else if(opcode == 0xfe){
                 *error_code = ERROR_INVALID_OPCODE;
                 i = i + 1
+            }
+                //blob blob hash
+            else if(opcode == 0x49 || opcode == 0x4a || opcode == 0xff) {
+                assert!(false, OPCODE_UNIMPLEMENT);
+                // vector::push_back(stack, 0);
+                i = i + 1;
             }
             else {
                 assert!(false, (opcode as u64));
