@@ -347,6 +347,9 @@
                     gas_limit: u256): u256 {
     <b>let</b> gas = 0;
     <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack);
+    <b>if</b>(len &lt; 3) {
+        <b>return</b>  gas_limit
+    };
     <b>let</b> length = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(stack,len - 3);
     <b>let</b> word_size = get_word_count(length);
     gas = gas +  <a href="gas.md#0x1_evm_gas_calc_memory_expand">calc_memory_expand</a>(stack, 1, 3, run_state, gas_limit);
@@ -566,7 +569,7 @@
                   trie: &<b>mut</b> Trie, run_state: &<b>mut</b> RunState, gas_limit: u256): u256 {
     <b>let</b> gas = 0;
     <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack);
-    <b>let</b> <b>address</b> = u256_to_data(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(stack,len - 2));
+    <b>let</b> <b>address</b> = get_valid_ethereum_address(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(stack,len - 2));
     <b>if</b>(opcode == 0xf1 || opcode == 0xf2) {
         <b>let</b> value = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(stack,len - 3);
 
@@ -651,8 +654,8 @@
 <pre><code><b>fun</b> <a href="gas.md#0x1_evm_gas_calc_address_access_gas">calc_address_access_gas</a>(stack: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u256&gt;,
                            trie: &<b>mut</b> Trie): u256 {
     <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack);
-    <b>let</b> <b>address</b> = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(stack,len - 1);
-    <a href="gas.md#0x1_evm_gas_access_address">access_address</a>(u256_to_data(<b>address</b>), trie)
+    <b>let</b> <b>address</b> = get_valid_ethereum_address(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(stack,len - 1));
+    <a href="gas.md#0x1_evm_gas_access_address">access_address</a>(<b>address</b>, trie)
 }
 </code></pre>
 
@@ -694,8 +697,8 @@
         };
         gas = gas + <a href="gas.md#0x1_evm_gas_calc_memory_expand">calc_memory_expand</a>(stack, 2, 4, run_state, gas_limit);
     };
-    <b>let</b> <b>address</b> = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(stack,len - 1);
-    gas = gas + <a href="gas.md#0x1_evm_gas_access_address">access_address</a>(u256_to_data(<b>address</b>), trie);
+    <b>let</b> <b>address</b> = get_valid_ethereum_address(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(stack,len - 1));
+    gas = gas + <a href="gas.md#0x1_evm_gas_access_address">access_address</a>(<b>address</b>, trie);
     gas
 }
 </code></pre>
@@ -1196,8 +1199,7 @@
         0
     }
     <b>else</b> {
-        <b>assert</b>!(<b>false</b>, (opcode <b>as</b> u64));
-        0
+        gas_limit
     };
     <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&gas);
     gas

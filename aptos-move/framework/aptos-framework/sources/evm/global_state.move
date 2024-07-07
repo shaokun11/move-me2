@@ -1,5 +1,6 @@
 module aptos_framework::evm_global_state {
     use std::vector;
+    use std::option;
 
     struct RunState has drop {
         call_state: vector<CallState>

@@ -995,6 +995,11 @@ module aptos_framework::evm_for_test {
                     let salt = u256_to_data(pop_stack(stack, error_code));
                     let new_codes = vector_slice(*memory, pos, (len as u64));
                     let p = vector::empty<u8>();
+                    let gas_left = get_gas_left(run_state);
+                    let (call_gas_limit, gas_stipend) = max_call_gas(gas_left, gas_left, msg_value, opcode);
+                    if(gas_stipend > 0) {
+                        add_gas_left(run_state, gas_stipend);
+                    };
                     // let contract_store = ;
                     vector::append(&mut p, x"ff");
                     // must be 20 bytes
@@ -1006,7 +1011,8 @@ module aptos_framework::evm_for_test {
                     add_nonce(to, trie);
                     add_checkpoint(trie, false);
                     new_account(new_evm_contract_addr, x"", 0, 1, trie);
-                    let (create_res, bytes) = run(sender, to, new_evm_contract_addr, new_codes, x"", msg_value, gas_limit, trie, run_state, true, env);
+
+                    let (create_res, bytes) = run(sender, to, new_evm_contract_addr, new_codes, x"", msg_value, call_gas_limit, trie, run_state, true, env);
                     if(create_res) {
                         add_gas_usage(run_state, 200 * ((vector::length(&bytes)) as u256));
                         set_code(trie, new_evm_contract_addr, bytes);

@@ -162,6 +162,7 @@ owned.
 -  [Function `create_empty_data`](#0x1_evm_util_create_empty_data)
 -  [Function `to_n_bit`](#0x1_evm_util_to_n_bit)
 -  [Function `to_32bit`](#0x1_evm_util_to_32bit)
+-  [Function `get_valid_ethereum_address`](#0x1_evm_util_get_valid_ethereum_address)
 -  [Function `get_contract_address`](#0x1_evm_util_get_contract_address)
 -  [Function `to_int256`](#0x1_evm_util_to_int256)
 -  [Function `to_u256`](#0x1_evm_util_to_u256)
@@ -445,6 +446,30 @@ owned.
     };
     <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> bytes, data);
     bytes
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_util_get_valid_ethereum_address"></a>
+
+## Function `get_valid_ethereum_address`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_get_valid_ethereum_address">get_valid_ethereum_address</a>(num: u256): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_get_valid_ethereum_address">get_valid_ethereum_address</a>(num: u256): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt; {
+    <a href="util.md#0x1_evm_util_to_32bit">to_32bit</a>(<a href="util.md#0x1_evm_util_vector_slice">vector_slice</a>(<a href="util.md#0x1_evm_util_u256_to_data">u256_to_data</a>(num), 12, 20))
 }
 </code></pre>
 
