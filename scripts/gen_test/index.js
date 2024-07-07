@@ -83,4 +83,4 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
 
 let key = "modexpRandomInput"
 
-read("src/GeneralStateTests/stPreCompiledContracts2/modexpRandomInput.json", key, 2, 1, 0)
+read("src/GeneralStateTests/stPreCompiledContracts2/modexpRandomInput.json", key, 2, 0, 0)
