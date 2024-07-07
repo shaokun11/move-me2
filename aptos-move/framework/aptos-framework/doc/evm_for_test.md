@@ -923,9 +923,12 @@ invalid chain id in raw tx
             <b>if</b>(!out_of_gas && success) {
                 new_account(evm_contract, deployed_codes, value, 1, trie)
             }
-
         } <b>else</b> {
-            <a href="evm_for_test.md#0x1_evm_for_test_run">run</a>(from, from, <b>to</b>, get_code(<b>to</b>, trie), data, value, gas_limit - base_cost, trie, run_state, <b>true</b>, &env);
+            <b>if</b>(is_precompile_address(<b>to</b>)) {
+                 <a href="evm_for_test.md#0x1_evm_for_test_precompile">precompile</a>(<b>to</b>, data, gas_limit, run_state);
+            } <b>else</b> {
+                <a href="evm_for_test.md#0x1_evm_for_test_run">run</a>(from, from, <b>to</b>, get_code(<b>to</b>, trie), data, value, gas_limit - base_cost, trie, run_state, <b>true</b>, &env);
+            };
         };
         <b>let</b> gas_refund = get_gas_refund(run_state);
         <b>let</b> gas_left = get_gas_left(run_state);
@@ -951,9 +954,6 @@ invalid chain id in raw tx
         <a href="evm_for_test.md#0x1_evm_for_test_emit_event">emit_event</a>(state_root, gas_usage, gas_refund);
 
     }
-
-
-
 }
 </code></pre>
 
@@ -1695,18 +1695,14 @@ invalid chain id in raw tx
             <b>let</b> target = <b>if</b> (opcode == 0xf4 || opcode == 0xf2) <b>to</b> <b>else</b> evm_dest_addr;
             <b>let</b> from = <b>if</b> (opcode == 0xf4) sender <b>else</b> <b>to</b>;
             <b>if</b>(is_precompile) {
-                <b>let</b> (success, bytes, gas) = <a href="evm_for_test.md#0x1_evm_for_test_precompile">precompile</a>(evm_dest_addr, params, call_gas_limit);
+                <b>let</b> (success, bytes) = <a href="evm_for_test.md#0x1_evm_for_test_precompile">precompile</a>(evm_dest_addr, params, call_gas_limit, run_state);
                 <b>if</b>(success) {
                     <b>if</b>(msg_value &gt; 0 && transfer_eth) {
                         transfer(<b>to</b>, target, msg_value, trie);
                     };
-                    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&bytes);
                     ret_bytes = bytes;
-                    <b>if</b>(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&bytes) &gt; 0) {
-                        copy_to_memory(memory, ret_pos , 0, ret_len, bytes);
-                    }
+                    write_call_output(memory, ret_pos, ret_len, bytes);
                 };
-                add_gas_usage(run_state, gas);
                 <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, <b>if</b>(success) 1 <b>else</b> 0);
             } <b>else</b> <b>if</b> (exist_contract(evm_dest_addr, trie)) {
 
@@ -1715,9 +1711,7 @@ invalid chain id in raw tx
                 <b>let</b> (call_res, bytes) = <a href="evm_for_test.md#0x1_evm_for_test_run">run</a>(sender, from, target, dest_code, params, msg_value, call_gas_limit, trie, run_state, transfer_eth, env);
                 <b>if</b>(call_res) {
                     ret_bytes = bytes;
-                    <b>if</b>(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&bytes) &gt; 0) {
-                        copy_to_memory(memory, ret_pos , 0, ret_len, bytes);
-                    }
+                    write_call_output(memory, ret_pos, ret_len, bytes);
                 };
                 <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack,  <b>if</b>(call_res) 1 <b>else</b> 0);
             } <b>else</b> {
@@ -1937,7 +1931,7 @@ invalid chain id in raw tx
 
 
 
-<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_precompile">precompile</a>(<b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_limit: u256): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, u256)
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_precompile">precompile</a>(<b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_limit: u256, run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)
 </code></pre>
 
 
@@ -1946,9 +1940,14 @@ invalid chain id in raw tx
 <summary>Implementation</summary>
 
 
-<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_precompile">precompile</a>(<b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_limit: u256): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, u256)  {
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_precompile">precompile</a>(<b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_limit: u256, run_state: &<b>mut</b> RunState): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)  {
     <b>let</b> (success, res, gas) = run_precompile(<b>to</b>, calldata, gas_limit);
-    <b>if</b>(gas &gt; gas_limit) (<b>false</b>, res, gas_limit) <b>else</b> (success, res, gas)
+    <b>if</b>(gas &gt; gas_limit) {
+        success = <b>false</b>;
+        gas = gas_limit;
+    };
+    add_gas_usage(run_state, gas);
+    (success, res)
 }
 </code></pre>
 

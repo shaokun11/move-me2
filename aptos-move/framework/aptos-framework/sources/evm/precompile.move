@@ -95,6 +95,9 @@ module aptos_framework::evm_precompile {
             pos = pos + exp_len;
             let mod_bytes = vector_slice_u256(calldata, pos, mod_len);
             let gas = calc_mod_exp_gas(base_len, exp_len, exp_bytes, mod_len);
+            if(gas > gas_limit) {
+                return (false, x"", gas)
+            };
 
             let result = mod_exp(base_bytes, exp_bytes, mod_bytes);
             result = if(mod_len == 0) x"" else to_n_bit(result, (mod_len as u64));
@@ -147,7 +150,7 @@ module aptos_framework::evm_precompile {
             iteration_count = bit_length - 1;
         } else if(exponent_length > 32) {
             let last_32_bit = vector_slice_u256(exponent_bytes, exponent_length - 32, 32);
-            iteration_count = (8 * (exponent_length - 32)) + (bit_length(last_32_bit) - 1)
+            iteration_count = (8 * (exponent_length - 32)) + bit_length(last_32_bit) - 1
         };
 
         if(iteration_count == 0) 1 else iteration_count
