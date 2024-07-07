@@ -88,16 +88,21 @@ module aptos_framework::evm_precompile {
             if(base_len > MAX_SIZE || mod_len > MAX_SIZE || exp_len > MAX_SIZE || (base_len + mod_len + exp_len + 96) > MAX_SIZE) {
                 return (false, x"", gas_limit)
             };
+
+            let gas = calc_mod_exp_gas(base_len, exp_len, mod_len, calldata);
+            if(gas > gas_limit) {
+                return (false, x"", gas)
+            };
             let pos = 96;
+            debug::print(&base_len);
+            debug::print(&exp_len);
+            debug::print(&mod_len);
             let base_bytes = vector_slice_u256(calldata, pos, base_len);
             pos = pos + base_len;
             let exp_bytes = vector_slice_u256(calldata, pos, exp_len);
             pos = pos + exp_len;
             let mod_bytes = vector_slice_u256(calldata, pos, mod_len);
-            let gas = calc_mod_exp_gas(base_len, exp_len, exp_bytes, mod_len);
-            if(gas > gas_limit) {
-                return (false, x"", gas)
-            };
+
 
             let result = mod_exp(base_bytes, exp_bytes, mod_bytes);
             result = if(mod_len == 0) x"" else to_n_bit(result, (mod_len as u64));
@@ -130,7 +135,8 @@ module aptos_framework::evm_precompile {
         }
     }
 
-    fun calc_mod_exp_gas(base_len: u256, exp_len: u256, exp_bytes: vector<u8>, mod_len: u256): u256 {
+    fun calc_mod_exp_gas(base_len: u256, exp_len: u256, mod_len: u256, calldata: vector<u8>): u256 {
+        let exp_bytes = vector_slice_u256(calldata, base_len + 96, exp_len);
         let multiplication_complexity = calculate_multiplication_complexity(base_len, mod_len);
         let iteration_count = calculate_iteration_count(exp_len, exp_bytes);
         let gas = multiplication_complexity * iteration_count / ModexpGquaddivisor;
