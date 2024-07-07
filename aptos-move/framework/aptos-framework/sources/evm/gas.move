@@ -77,6 +77,9 @@ module aptos_framework::evm_gas {
                         gas_limit: u256): u256 {
         let gas = 0;
         let len = vector::length(stack);
+        if(len < 3) {
+            return  gas_limit
+        };
         let length = *vector::borrow(stack,len - 3);
         let word_size = get_word_count(length);
         gas = gas +  calc_memory_expand(stack, 1, 3, run_state, gas_limit);
