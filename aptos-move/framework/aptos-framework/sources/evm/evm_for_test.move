@@ -3,7 +3,7 @@ module aptos_framework::evm_for_test {
     use std::vector;
     use aptos_std::aptos_hash::keccak256;
     use aptos_std::debug;
-    use aptos_framework::evm_util::{to_32bit, get_contract_address, to_int256, data_to_u256, u256_to_data, mstore, copy_to_memory, to_u256, get_valid_jumps, expand_to_pos, vector_slice, vector_slice_u256, get_word_count, write_call_output};
+    use aptos_framework::evm_util::{to_32bit, get_contract_address, to_int256, data_to_u256, u256_to_data, mstore, copy_to_memory, to_u256, get_valid_jumps, expand_to_pos, vector_slice, vector_slice_u256, get_word_count, write_call_output, get_valid_ethereum_address};
     use std::string::utf8;
     use aptos_framework::event::EventHandle;
     use aptos_framework::evm_precompile::{is_precompile_address, run_precompile};
@@ -594,8 +594,8 @@ module aptos_framework::evm_for_test {
             }
                 //balance
             else if(opcode == 0x31) {
-                let target = vector_slice(u256_to_data(pop_stack(stack, error_code)), 12, 20);
-                vector::push_back(stack, get_balance(to_32bit(target), trie));
+                let target = get_valid_ethereum_address(pop_stack(stack, error_code));
+                vector::push_back(stack, get_balance(target, trie));
                 i = i + 1;
             }
                 //origin

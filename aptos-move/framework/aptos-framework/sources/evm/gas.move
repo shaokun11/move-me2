@@ -1,6 +1,6 @@
 module aptos_framework::evm_gas {
     use std::vector;
-    use aptos_framework::evm_util::{u256_to_data, print_opcode, u256_bytes_length, get_word_count};
+    use aptos_framework::evm_util::{u256_to_data, print_opcode, u256_bytes_length, get_word_count, get_valid_ethereum_address};
     use aptos_framework::evm_global_state::{get_memory_cost, set_memory_cost, add_gas_refund, sub_gas_refund, get_memory_word_size, set_memory_word_size, RunState};
     use aptos_std::debug;
     use std::vector::for_each;
@@ -224,8 +224,8 @@ module aptos_framework::evm_gas {
     fun calc_address_access_gas(stack: &mut vector<u256>,
                                trie: &mut Trie): u256 {
         let len = vector::length(stack);
-        let address = *vector::borrow(stack,len - 1);
-        access_address(u256_to_data(address), trie)
+        let address = get_valid_ethereum_address(*vector::borrow(stack,len - 1));
+        access_address(address, trie)
     }
 
     fun calc_ext_code_copy_gas(stack: &mut vector<u256>,

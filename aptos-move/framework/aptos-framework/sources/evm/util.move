@@ -59,6 +59,10 @@ module aptos_framework::evm_util {
         bytes
     }
 
+    public fun get_valid_ethereum_address(num: u256): vector<u8> {
+        to_32bit(vector_slice(u256_to_data(num), 12, 20))
+    }
+
     public fun get_contract_address(addr: vector<u8>, nonce: u64): vector<u8> {
         let nonce_bytes = vector::empty<u8>();
         let l = 0;
