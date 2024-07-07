@@ -83,4 +83,4 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
 
 let key = "invalidAddr"
 
-read("src/GeneralStateTests/stBadOpcode/invalidAddr.json", key, 26, 0, 0)
+read("src/GeneralStateTests/stBadOpcode/invalidAddr.json", key, 42, 0, 0)

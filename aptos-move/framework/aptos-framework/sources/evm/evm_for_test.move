@@ -657,8 +657,8 @@ module aptos_framework::evm_for_test {
             }
                 //extcodesize
             else if(opcode == 0x3b) {
-                let target = vector_slice(u256_to_data(pop_stack(stack, error_code)), 12, 20);
-                let code = get_code(to_32bit(target), trie);
+                let target = get_valid_ethereum_address(pop_stack(stack, error_code));
+                let code = get_code(target, trie);
                 vector::push_back(stack, (vector::length(&code) as u256));
                 i = i + 1;
             }
@@ -689,8 +689,8 @@ module aptos_framework::evm_for_test {
             }
                 //extcodehash
             else if(opcode == 0x3f) {
-                let target = vector_slice(u256_to_data(pop_stack(stack, error_code)), 12, 20);
-                let code = get_code(to_32bit(target), trie);
+                let target = get_valid_ethereum_address(pop_stack(stack, error_code));
+                let code = get_code(target, trie);
                 if(vector::length(&code) > 0) {
                     let hash = keccak256(code);
                     vector::push_back(stack, to_u256(hash));
@@ -902,7 +902,7 @@ module aptos_framework::evm_for_test {
                 let is_static = if (opcode == 0xfa) true else false;
                 let gas_left = get_gas_left(run_state);
                 let gas = pop_stack(stack, error_code);
-                let evm_dest_addr = to_32bit(u256_to_data(pop_stack(stack, error_code)));
+                let evm_dest_addr = get_valid_ethereum_address(pop_stack(stack, error_code));
                 let msg_value = if (opcode == 0xf1 || opcode == 0xf2) pop_stack(stack, error_code) else if(opcode == 0xf4) value else 0;
                 let (call_gas_limit, gas_stipend) = max_call_gas(gas_left, gas, msg_value, opcode);
                 if(gas_stipend > 0) {
