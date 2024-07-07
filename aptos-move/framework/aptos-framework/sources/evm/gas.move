@@ -586,8 +586,7 @@ module aptos_framework::evm_gas {
             0
         }
         else {
-            assert!(false, (opcode as u64));
-            0
+            gas_limit
         };
         debug::print(&gas);
         gas
