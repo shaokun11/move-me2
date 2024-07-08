@@ -302,7 +302,6 @@ module aptos_framework::evm_for_test {
         let memory = &mut vector::empty<u8>();
         let len = (vector::length(&code) as u256);
         let i: u256 = 0;
-        let runtime_code = vector::empty<u8>();
         let ret_bytes = vector::empty<u8>();
         let error_code = &mut 0;
         let valid_jumps = get_valid_jumps(&code);
@@ -337,7 +336,6 @@ module aptos_framework::evm_for_test {
 
             // stop
             if(opcode == 0x00) {
-                ret_bytes = runtime_code;
                 break
             }
             else if(opcode == 0xf3) {
@@ -645,7 +643,6 @@ module aptos_framework::evm_for_test {
                 let m_pos = pop_stack(stack, error_code);
                 let d_pos = pop_stack(stack, error_code);
                 let len = pop_stack(stack, error_code);
-                runtime_code = vector_slice_u256(code, d_pos, len);
                 copy_to_memory(memory, m_pos, d_pos, len, code);
 
                 i = i + 1
@@ -975,6 +972,9 @@ module aptos_framework::evm_for_test {
                     new_account(new_evm_contract_addr, x"", 0, 1, trie);
                     let(create_res, bytes) = run(origin, to, new_evm_contract_addr, new_codes, x"", msg_value, call_gas_limit, trie, run_state, true, env);
                     if(create_res) {
+                        debug::print(&222333);
+                        debug::print(&bytes);
+                        debug::print(&(200 * ((vector::length(&bytes)) as u256)));
                         add_gas_usage(run_state, 200 * ((vector::length(&bytes)) as u256));
                         set_code(trie, new_evm_contract_addr, bytes);
                         ret_bytes = new_evm_contract_addr;

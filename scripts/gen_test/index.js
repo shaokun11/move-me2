@@ -81,6 +81,6 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "callcall_00"
+let key = "callcodeDynamicCode"
 
-read("src/GeneralStateTests/stCallCodes/callcall_00.json", key, 0, 0, 0)
+read("src/GeneralStateTests/stCallCodes/callcodeDynamicCode.json", key, 3, 0, 0)
