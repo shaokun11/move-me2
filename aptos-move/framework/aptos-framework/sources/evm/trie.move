@@ -151,10 +151,14 @@ module aptos_framework::evm_trie {
         });
     }
 
-    public fun sub_balance(contract_addr: vector<u8>, amount: u256, trie: &mut Trie) {
+    public fun sub_balance(contract_addr: vector<u8>, amount: u256, trie: &mut Trie): bool {
         let account = load_account_checkpoint_mut(trie, &contract_addr);
-        assert!(account.balance >= amount, 2);
-        account.balance = account.balance - amount;
+        if(account.balance >= amount) {
+            account.balance = account.balance - amount;
+            true
+        } else {
+            false
+        }
     }
 
     public fun add_balance(contract_addr: vector<u8>, amount: u256, trie: &mut Trie) {
@@ -167,11 +171,16 @@ module aptos_framework::evm_trie {
         account.nonce = account.nonce + 1;
     }
 
-    public fun transfer(from: vector<u8>, to: vector<u8>, amount: u256, trie: &mut Trie) {
+    public fun transfer(from: vector<u8>, to: vector<u8>, amount: u256, trie: &mut Trie): bool {
         if(amount > 0) {
-            sub_balance(from, amount, trie);
-            add_balance(to, amount, trie);
-        };
+            let success = sub_balance(from, amount, trie);
+            if(success) {
+                add_balance(to, amount, trie);
+            };
+            success
+        } else {
+            true
+        }
     }
 
     public fun exist_contract(contract_addr: vector<u8>, trie: &Trie): bool {

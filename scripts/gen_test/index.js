@@ -83,4 +83,4 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
 
 let key = "callcodeInInitcodeToEmptyContract"
 
-read("src/GeneralStateTests/stCallCodes/callcodeInInitcodeToEmptyContract.json", key, 1, 0, 0)
+read("src/GeneralStateTests/stCallCodes/callcodeInInitcodeToEmptyContract.json", key, 0, 0, 0)

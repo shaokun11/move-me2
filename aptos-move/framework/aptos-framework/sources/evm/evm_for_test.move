@@ -937,11 +937,9 @@ module aptos_framework::evm_for_test {
                     };
                     vector::push_back(stack,  if(call_res) 1 else 0);
                 } else {
-                    if(msg_value > 0 && opcode == 0xf1) {
-                        transfer(to, evm_dest_addr, msg_value, trie);
-                    };
-                    if(opcode == 0xf2) {
-                        vector::push_back(stack, 0);
+                    if(msg_value > 0 && (opcode == 0xf1 || opcode == 0xf2)) {
+                        let success = transfer(to, evm_dest_addr, msg_value, trie);
+                        vector::push_back(stack, if(success) 1 else 0);
                     } else {
                         vector::push_back(stack, 1);
                     };
