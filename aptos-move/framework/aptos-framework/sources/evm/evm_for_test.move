@@ -955,6 +955,8 @@ module aptos_framework::evm_for_test {
                 let len = pop_stack(stack, error_code);
                 if(len > MAX_INIT_CODE_SIZE) {
                     *error_code = ERROR_EXCEED_INITCODE_SIZE;
+                } else if(get_is_static(trie)) {
+                    *error_code = ERROR_STATIC_STATE_CHANGE;
                 } else {
                     let new_codes = vector_slice(*memory, pos, (len as u64));
                     // let contract_store = borrow_global_mut<Account>(move_contract_address);
@@ -992,6 +994,8 @@ module aptos_framework::evm_for_test {
                 let len = pop_stack(stack, error_code);
                 if(len > MAX_INIT_CODE_SIZE) {
                     *error_code = ERROR_EXCEED_INITCODE_SIZE;
+                } else if(get_is_static(trie)) {
+                    *error_code = ERROR_STATIC_STATE_CHANGE;
                 } else {
                     let salt = u256_to_data(pop_stack(stack, error_code));
                     let new_codes = vector_slice(*memory, pos, (len as u64));

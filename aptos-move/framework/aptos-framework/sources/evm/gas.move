@@ -325,6 +325,10 @@ module aptos_framework::evm_gas {
                         gas_limit: u256,
                         error_code: &mut u64): u256 {
         let len = vector::length(stack);
+        if(len < 3) {
+            *error_code = STACK_UNDERFLOW;
+            return 0
+        };
         let length = *vector::borrow(stack,len - 3);
         let gas = 0;
         let words = get_word_count(length);
