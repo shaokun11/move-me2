@@ -940,7 +940,11 @@ module aptos_framework::evm_for_test {
                     if(msg_value > 0 && opcode == 0xf1) {
                         transfer(to, evm_dest_addr, msg_value, trie);
                     };
-                    vector::push_back(stack, 1);
+                    if(opcode == 0xf2) {
+                        vector::push_back(stack, 0);
+                    } else {
+                        vector::push_back(stack, 1);
+                    };
                 };
                 // debug::print(&opcode);
                 i = i + 1
@@ -972,8 +976,6 @@ module aptos_framework::evm_for_test {
                     new_account(new_evm_contract_addr, x"", 0, 1, trie);
                     let(create_res, bytes) = run(origin, to, new_evm_contract_addr, new_codes, x"", msg_value, call_gas_limit, trie, run_state, true, env);
                     if(create_res) {
-                        debug::print(&222333);
-                        debug::print(&bytes);
                         debug::print(&(200 * ((vector::length(&bytes)) as u256)));
                         add_gas_usage(run_state, 200 * ((vector::length(&bytes)) as u256));
                         set_code(trie, new_evm_contract_addr, bytes);
