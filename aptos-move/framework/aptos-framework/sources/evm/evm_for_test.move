@@ -914,13 +914,13 @@ module aptos_framework::evm_for_test {
                 let transfer_eth = if (opcode == 0xf1 || opcode == 0xf2) true else false;
                 let is_precompile = is_precompile_address(evm_dest_addr);
                 debug::print(&is_precompile);
-                let target = if (opcode == 0xf4 || opcode == 0xf2) to else evm_dest_addr;
-                let from = if (opcode == 0xf4) sender else to;
+                let call_to = if (opcode == 0xf4 || opcode == 0xf2) to else evm_dest_addr;
+                let call_from = if (opcode == 0xf4) sender else to;
                 if(is_precompile) {
                     let (success, bytes) = precompile(evm_dest_addr, params, call_gas_limit, run_state);
                     if(success) {
                         if(msg_value > 0 && transfer_eth) {
-                            transfer(to, target, msg_value, trie);
+                            transfer(call_from, call_to, msg_value, trie);
                         };
                         ret_bytes = bytes;
                         write_call_output(memory, ret_pos, ret_len, bytes);
@@ -930,15 +930,15 @@ module aptos_framework::evm_for_test {
 
                     let dest_code = if (is_precompile) x"" else get_code(evm_dest_addr, trie);
                     add_checkpoint(trie, is_static);
-                    let (call_res, bytes) = run(origin, from, target, dest_code, params, msg_value, call_gas_limit, trie, run_state, transfer_eth, env);
+                    let (call_res, bytes) = run(origin, call_from, call_to, dest_code, params, msg_value, call_gas_limit, trie, run_state, transfer_eth, env);
                     if(call_res) {
                         ret_bytes = bytes;
                         write_call_output(memory, ret_pos, ret_len, bytes);
                     };
                     vector::push_back(stack,  if(call_res) 1 else 0);
                 } else {
-                    if(msg_value > 0 && (opcode == 0xf1 || opcode == 0xf2)) {
-                        let success = transfer(to, evm_dest_addr, msg_value, trie);
+                    if(msg_value > 0 && opcode == 0xf1 || opcode == 0xf2) {
+                        let success = transfer(call_from, call_to, msg_value, trie);
                         vector::push_back(stack, if(success) 1 else 0);
                     } else {
                         vector::push_back(stack, 1);
