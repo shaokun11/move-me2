@@ -30,25 +30,24 @@ module aptos_framework::evm_test {
         initialize_for_test(&aptos_framework);
 
         let from = x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b";
-        let to = x"b94f5374fce5edbc8e2a8697c15331677e6ebf0b";
-        let data = x"000000000000000000000000d94f5374fce5edbc8e2a8697c15331677e6ebf0b";
-        let env = vector[u256_to_data(0x0a),x"1000000000000000000000000000000000000000",u256_to_data(0x020000),u256_to_data(0x00),u256_to_data(0x54a60a4202e088),u256_to_data(0x01),x"0000000000000000000000000000000000000000000000000000000000020000",u256_to_data(0x03e8)];
-        let gas_limit = u256_to_data(0x01d4c0);
+        let to = x"1000000000000000000000000000000000000000";
+        let data = x"";
+        let env = vector[u256_to_data(0x0a),x"2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",u256_to_data(0x020000),u256_to_data(0x00),u256_to_data(0x01c9c380),u256_to_data(0x01),x"0000000000000000000000000000000000000000000000000000000000020000",u256_to_data(0x03e8)];
+        let gas_limit = u256_to_data(0x2dc6c0);
         let gas_price = u256_to_data(0x0a);
         let value = u256_to_data(0x00);
 
         let storage_maps = simple_map::new<vector<u8>, simple_map::SimpleMap<vector<u8>, vector<u8>>>();
         let (storage_keys, storage_values) = (vector::empty<vector<vector<u8>>>(), vector::empty<vector<vector<u8>>>());
-        simple_map::add(&mut storage_maps, x"b94f5374fce5edbc8e2a8697c15331677e6ebf0b", init_storage(vector[0x01], vector[0x01]
-));
+        
         // simple_map::add(&mut storage_maps, x"a00000000000000000000000000000000000000a", init_storage(vector[0x02], vector[0xffff]));
 
 
 
-        let addresses = vector[x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b", x"b94f5374fce5edbc8e2a8697c15331677e6ebf0b", x"c94f5374fce5edbc8e2a8697c15331677e6ebf0b", x"d94f5374fce5edbc8e2a8697c15331677e6ebf0b"];
-        let balance_table = vector[0x38beec8feeca2598, 0x00, 0x00, 0x00];
-        let codes = vector[x"", x"600060006000600060003562011170fa60015500", x"6001600152600160016001f060025500", x"60006000f0"];
-        let nonce_table = vector[0x00, 0x3f, 0x3f, 0x3f];
+        let addresses = vector[x"1000000000000000000000000000000000000000", x"1000000000000000000000000000000000000001", x"1000000000000000000000000000000000000002", x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b"];
+        let balance_table = vector[0x0de0b6b3a7640000, 0x0de0b6b3a7640000, 0x00, 0x0de0b6b3a7640000];
+        let codes = vector[x"6040600060406000600173100000000000000000000000000000000000000162055730f160005500", x"604060006040600060027310000000000000000000000000000000000000026203d090f160015500", x"600160025533600455346007553060e6553260e8553660ec553860ee553a60f05500", x""];
+        let nonce_table = vector[0x00, 0x00, 0x00, 0x00];
         let i = 0;
         let balances = vector::empty<vector<u8>>();
         let nonces = vector::empty<u64>();
