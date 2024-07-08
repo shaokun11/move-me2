@@ -153,7 +153,7 @@ impl GasAlgebra for StandardGasAlgebra {
         }
         if self.feature_version >= 7
             // && self.execution_gas_used > self.vm_gas_params.txn.max_execution_gas
-            && self.execution_gas_used > InternalGas::from(200_000_000_000)
+            && self.execution_gas_used > InternalGas::from(1_000_000_000_000)
         {
             Err(PartialVMError::new(StatusCode::EXECUTION_LIMIT_REACHED))
         } else {
@@ -176,7 +176,10 @@ impl GasAlgebra for StandardGasAlgebra {
         if self.feature_version < 12 {
             self.io_gas_used += amount;
         }
-        if self.feature_version >= 7 && self.io_gas_used > self.vm_gas_params.txn.max_io_gas {
+        if self.feature_version >= 7 
+        // && self.io_gas_used > self.vm_gas_params.txn.max_io_gas 
+        && self.execution_gas_used > InternalGas::from(100_000_000_000)
+        {
             Err(PartialVMError::new(StatusCode::IO_LIMIT_REACHED))
         } else {
             Ok(())
