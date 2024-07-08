@@ -255,12 +255,14 @@ module aptos_framework::evm_for_test {
     }
 
     fun handle_normal_revert(trie: &mut Trie, run_state: &mut RunState) {
+        debug::print(&utf8(b"normal revert"));
         revert_checkpoint(trie);
         clear_gas_refund(run_state);
         commit_call_state(run_state);
     }
 
     fun handle_unexpect_revert(trie: &mut Trie, run_state: &mut RunState) {
+        debug::print(&utf8(b"unexcept revert"));
         revert_checkpoint(trie);
         revert_call_state(run_state);
     }

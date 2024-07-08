@@ -8,14 +8,14 @@ module aptos_framework::evm_trie {
 
     struct Trie has drop {
         context: vector<Checkpoint>,
-        storage: SimpleMap<vector<u8>, TestAccount>,
-        origin: SimpleMap<vector<u8>, SimpleMap<u256, u256>>,
+        storage: SimpleMap<vector<u8>, TestAccount>
     }
 
     struct Checkpoint has copy, drop {
         state: SimpleMap<vector<u8>, TestAccount>,
         transient: SimpleMap<vector<u8>, SimpleMap<u256, u256>>,
         self_destruct: SimpleMap<vector<u8>, bool>,
+        origin: SimpleMap<vector<u8>, SimpleMap<u256, u256>>,
         is_static: bool
     }
 
@@ -230,8 +230,7 @@ module aptos_framework::evm_trie {
                         storage_values: vector<vector<vector<u8>>>): Trie {
         let trie = Trie {
             context: vector::empty(),
-            storage: simple_map::new(),
-            origin: simple_map::new()
+            storage: simple_map::new()
         };
 
         let pre_len = vector::length(&addresses);
@@ -265,6 +264,7 @@ module aptos_framework::evm_trie {
             state: simple_map::new(),
             self_destruct: simple_map::new(),
             transient: simple_map::new(),
+            origin: simple_map::new(),
             is_static: false
         });
         trie
@@ -298,8 +298,9 @@ module aptos_framework::evm_trie {
     }
 
     public fun add_warm_address(address: vector<u8>, trie: &mut Trie) {
-        if(!simple_map::contains_key(&trie.origin, &address)) {
-            simple_map::upsert(&mut trie.origin, address, simple_map::new<u256, u256>());
+        let checkpoint = get_lastest_checkpoint_mut(trie);
+        if(!simple_map::contains_key(&checkpoint.origin, &address)) {
+            simple_map::upsert(&mut checkpoint.origin, address, simple_map::new<u256, u256>());
         }
     }
 
@@ -307,9 +308,10 @@ module aptos_framework::evm_trie {
         if(is_precompile_address(address)) {
             return false
         };
-        let is_cold = !simple_map::contains_key(&trie.origin, &address);
+        let checkpoint = get_lastest_checkpoint_mut(trie);
+        let is_cold = !simple_map::contains_key(&checkpoint.origin, &address);
         if(is_cold) {
-            simple_map::add(&mut trie.origin, address, simple_map::new<u256, u256>());
+            simple_map::add(&mut checkpoint.origin, address, simple_map::new<u256, u256>());
         };
 
         is_cold
@@ -317,9 +319,11 @@ module aptos_framework::evm_trie {
 
     public fun get_cache(address: vector<u8>,
                          key: u256, trie: &mut Trie): (bool, bool, u256) {
+
         let is_cold_address = false;
-        if(simple_map::contains_key(&trie.origin, &address)) {
-            let storage = simple_map::borrow(&trie.origin, &address);
+        let checkpoint = get_lastest_checkpoint(trie);
+        if(simple_map::contains_key(&checkpoint.origin, &address)) {
+            let storage = simple_map::borrow(&checkpoint.origin, &address);
             if(simple_map::contains_key(storage, &key)) {
                 return (false, false, *simple_map::borrow(storage, &key))
             }
@@ -334,11 +338,12 @@ module aptos_framework::evm_trie {
     }
 
     fun put(address: vector<u8>, key: u256, value: u256, trie: &mut Trie) {
-        if(!simple_map::contains_key(&trie.origin, &address)) {
+        let checkpoint = get_lastest_checkpoint_mut(trie);
+        if(!simple_map::contains_key(&checkpoint.origin, &address)) {
             let new_table = simple_map::new<u256, u256>();
-            simple_map::add(&mut trie.origin, address, new_table);
+            simple_map::add(&mut checkpoint.origin, address, new_table);
         };
-        let table = simple_map::borrow_mut(&mut trie.origin, &address);
+        let table = simple_map::borrow_mut(&mut checkpoint.origin, &address);
         simple_map::upsert(table, key, value);
     }
 

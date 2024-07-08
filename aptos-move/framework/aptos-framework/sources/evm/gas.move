@@ -1,7 +1,7 @@
 module aptos_framework::evm_gas {
     use std::vector;
     use aptos_framework::evm_util::{u256_to_data, print_opcode, u256_bytes_length, get_word_count, get_valid_ethereum_address};
-    use aptos_framework::evm_global_state::{get_memory_cost, set_memory_cost, add_gas_refund, sub_gas_refund, get_memory_word_size, set_memory_word_size, RunState};
+    use aptos_framework::evm_global_state::{get_memory_cost, set_memory_cost, add_gas_refund, sub_gas_refund, get_memory_word_size, set_memory_word_size, RunState, get_gas_left};
     use aptos_std::debug;
     use std::vector::for_each;
     use aptos_framework::evm_trie::{Trie, get_state, exist_account, is_cold_address, get_cache, get_balance};
@@ -15,6 +15,7 @@ module aptos_framework::evm_gas {
     const SstoreClearRefundEIP2200: u256 = 4800;
     const SstoreInitRefundEIP2200: u256 = 19900;
     const SstoreCleanRefundEIP2200: u256 = 2800;
+    const SstoreSentryGasEIP2200: u256 = 2800;
     const Coldsload: u256 = 2100;
     const Warmstorageread: u256 = 100;
     const CallNewAccount: u256 = 25000;
@@ -119,12 +120,19 @@ module aptos_framework::evm_gas {
                         stack: &vector<u256>,
                         trie: &mut Trie,
                         run_state: &mut RunState): u256 {
+        debug::print(&132442);
+        debug::print(&get_gas_left(run_state));
+        if(get_gas_left(run_state) <= SstoreSentryGasEIP2200) {
+            return U64_MAX
+        };
+
         let len = vector::length(stack);
         let key = *vector::borrow(stack,len - 1);
         let (_, is_cold_slot, origin) = get_cache(address, key, trie);
         let current = get_state(address, key, trie);
         let new = *vector::borrow(stack,len - 2);
         let cold_cost = if(is_cold_slot) Coldsload else 0;
+        // debug::print(get)
         let gas_cost = cold_cost;
 
         if(current == new) {
