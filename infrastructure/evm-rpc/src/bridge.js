@@ -434,7 +434,7 @@ export async function sendRawTx(tx) {
     });
 }
 
-export async function callContract(from, contract, calldata, block) {
+export async function callContract(from, contract, calldata, value, block) {
     from = from || ZeroAddress;
     contract = contract || ZeroAddress;
     if (isHexString(block)) {
@@ -444,7 +444,7 @@ export async function callContract(from, contract, calldata, block) {
         // it maybe latest
         block = undefined;
     }
-    return view(from, contract, calldata, block);
+    return callContractImpl(from, contract, calldata, value, block);
 }
 /**
  * Estimate the gas needed for a transaction.
@@ -455,6 +455,7 @@ export async function callContract(from, contract, calldata, block) {
  *   - show_gas: number - The amount of gas to show,
  */
 export async function estimateGas(info) {
+    console.log('estimateGas error 0', info)
     // todo parse evm type
     // {
     //     id: 2,
@@ -553,7 +554,7 @@ export async function getTransactionByHash(evm_hash) {
     let block = await client.getBlockByVersion(info.version);
     const { to, from, data, nonce, value, v, r, s, hash, type } = parseMoveTxPayload(info);
     return {
-        blockHash: ZERO_HASH,
+        blockHash: block.block_hash,
         blockNumber: toHex(block.block_height),
         from: from,
         gas: toHex(info.gas_used),
@@ -709,17 +710,23 @@ async function getDeployedContract(info) {
     return null;
 }
 
-async function view(from, contract, calldata, version) {
+async function callContractImpl(from, contract, calldata, value, version) {
     let payload = {
-        function: EVM_CONTRACT + `::evm::query`,
+        function: EVM_CONTRACT + `::evm::query2`,
         type_arguments: [],
-        arguments: [from, contract, calldata],
+        arguments: [from, contract, calldata, toBeHex(value)],
     };
     try {
         let result = await client.view(payload, version);
         return result[0];
-    } catch (error) {
-        throw error.message;
+    } catch (error_raw) {
+        let message = error_raw.message
+        try {
+            // the error type maybe is json 
+            const json = JSON.parse(error_raw.message)
+            message = json.message
+        } catch (error) {}
+        throw new Error(message);
     }
 }
 
