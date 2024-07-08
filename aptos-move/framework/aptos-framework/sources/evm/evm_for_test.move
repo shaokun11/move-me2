@@ -43,6 +43,7 @@ module aptos_framework::evm_for_test {
     const CHAIN_ID_BYTES: vector<u8> = x"0150";
 
     const MAX_STACK_SIZE: u64 = 1024;
+    const MAX_DEPTH_SIZE: u64 = 1024;
     const MAX_INIT_CODE_SIZE: u256 = 49152;
 
     /// invalid pc
@@ -216,7 +217,7 @@ module aptos_framework::evm_for_test {
                 };
                 new_account(evm_contract, x"", 0, 1, trie);
                 transfer(from, evm_contract, value, trie);
-                let (success, deployed_codes) = run(from, from, evm_contract, data, x"", value, get_gas_left(run_state), trie, run_state, &env);
+                let (success, deployed_codes) = run(from, from, evm_contract, data, x"", value, get_gas_left(run_state), trie, run_state, &env, 0);
                 let store_fee = (200 * vector::length(&deployed_codes) as u256);
                 let out_of_gas = add_gas_usage(run_state, store_fee);
                 if(!out_of_gas && success) {
@@ -227,7 +228,7 @@ module aptos_framework::evm_for_test {
                 if(is_precompile_address(to)) {
                      precompile(to, data, gas_limit, run_state);
                 } else {
-                    run(from, from, to, get_code(to, trie), data, value, gas_limit - base_cost, trie, run_state, &env);
+                    run(from, from, to, get_code(to, trie), data, value, gas_limit - base_cost, trie, run_state, &env, 0);
                 };
             };
             let gas_refund = get_gas_refund(run_state);
@@ -285,7 +286,8 @@ module aptos_framework::evm_for_test {
             gas_limit: u256,
             trie: &mut Trie,
             run_state: &mut RunState,
-            env: &Env
+            env: &Env,
+            depth: u64
         ): (bool, vector<u8>) {
 
         if(to != ZERO_ADDR) {
@@ -913,6 +915,8 @@ module aptos_framework::evm_for_test {
                 let is_precompile = is_precompile_address(evm_dest_addr);
                 if((opcode == 0xf1 || opcode == 0xf2) && !transfer(call_from, call_to, msg_value, trie)) {
                     vector::push_back(stack, 0);
+                } else if(depth == MAX_DEPTH_SIZE){
+                    vector::push_back(stack, 0);
                 } else {
                     if(is_precompile) {
                         let (success, bytes) = precompile(code_address, params, call_gas_limit, run_state);
@@ -927,7 +931,7 @@ module aptos_framework::evm_for_test {
                     } else if (exist_contract(code_address, trie)) {
                         let dest_code = get_code(code_address, trie);
                         add_checkpoint(trie, is_static);
-                        let (call_res, bytes) = run(origin, call_from, call_to, dest_code, params, msg_value, call_gas_limit, trie, run_state, env);
+                        let (call_res, bytes) = run(origin, call_from, call_to, dest_code, params, msg_value, call_gas_limit, trie, run_state, env, depth + 1);
                         if(call_res) {
                             ret_bytes = bytes;
                             write_call_output(memory, ret_pos, ret_len, bytes);
@@ -960,7 +964,7 @@ module aptos_framework::evm_for_test {
                     };
 
                     let new_evm_contract_addr = get_contract_address(to, (nonce as u64));
-                    if(!sub_balance(to, msg_value, trie)) {
+                    if(depth == MAX_DEPTH_SIZE || !sub_balance(to, msg_value, trie)) {
                         vector::push_back(stack, 0);
                     } else {
                         debug::print(&utf8(b"create start"));
@@ -968,7 +972,7 @@ module aptos_framework::evm_for_test {
                         add_nonce(to, trie);
                         add_checkpoint(trie, false);
                         new_account(new_evm_contract_addr, x"", msg_value, 1, trie);
-                        let(create_res, bytes) = run(origin, to, new_evm_contract_addr, new_codes, x"", msg_value, call_gas_limit, trie, run_state, env);
+                        let(create_res, bytes) = run(origin, to, new_evm_contract_addr, new_codes, x"", msg_value, call_gas_limit, trie, run_state, env, depth + 1);
                         if(create_res) {
                             debug::print(&(200 * ((vector::length(&bytes)) as u256)));
                             add_gas_usage(run_state, 200 * ((vector::length(&bytes)) as u256));
@@ -989,7 +993,7 @@ module aptos_framework::evm_for_test {
                 let msg_value = pop_stack(stack, error_code);
                 let pos = pop_stack_u64(stack, error_code);
                 let len = pop_stack(stack, error_code);
-                if(len > MAX_INIT_CODE_SIZE) {
+                if(depth == MAX_DEPTH_SIZE || len > MAX_INIT_CODE_SIZE) {
                     *error_code = ERROR_EXCEED_INITCODE_SIZE;
                 } else if(get_is_static(trie)) {
                     *error_code = ERROR_STATIC_STATE_CHANGE;
@@ -1016,7 +1020,7 @@ module aptos_framework::evm_for_test {
                         add_checkpoint(trie, false);
                         new_account(new_evm_contract_addr, x"", msg_value, 1, trie);
 
-                        let (create_res, bytes) = run(origin, to, new_evm_contract_addr, new_codes, x"", msg_value, call_gas_limit, trie, run_state, env);
+                        let (create_res, bytes) = run(origin, to, new_evm_contract_addr, new_codes, x"", msg_value, call_gas_limit, trie, run_state, env, depth + 1);
                         if(create_res) {
                             add_gas_usage(run_state, 200 * ((vector::length(&bytes)) as u256));
                             set_code(trie, new_evm_contract_addr, bytes);
