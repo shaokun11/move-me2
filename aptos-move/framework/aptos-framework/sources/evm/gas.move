@@ -8,6 +8,10 @@ module aptos_framework::evm_gas {
 
     const U64_MAX: u256 = 18446744073709551615; // 18_446_744_073_709_551_615
 
+    const OUT_OF_GAS: u64 = 11;
+    const STACK_UNDERFLOW: u64 = 12;
+    const INVALID_OPCODE: u64 = 13;
+
     const SstoreNoopGasEIP2200: u256 = 100;
     const SstoreInitGasEIP2200: u256 = 20000;
     const SstoreCleanGasEIP2200: u256 = 2900;
@@ -33,7 +37,7 @@ module aptos_framework::evm_gas {
         if(is_cold_address(address, trie)) ColdAccountAccess else Warmstorageread
     }
 
-    fun calc_memory_expand(stack: &vector<u256>, pos: u64, size: u64, run_state: &mut RunState, gas_limit: u256): u256 {
+    fun calc_memory_expand(stack: &vector<u256>, pos: u64, size: u64, run_state: &mut RunState, gas_limit: u256, error_code: &mut u64): u256 {
         let len = vector::length(stack);
         let out_offset = *vector::borrow(stack,len - pos);
         let out_size = *vector::borrow(stack,len - size);
@@ -43,12 +47,13 @@ module aptos_framework::evm_gas {
         };
         // To prevent overflow
         if(out_offset > U64_MAX || out_size > U64_MAX || out_offset + out_size > U64_MAX) {
-            return gas_limit
+            *error_code = OUT_OF_GAS;
+            return 0
         };
-        calc_memory_expand_internal(out_offset + out_size, run_state, gas_limit)
+        calc_memory_expand_internal(out_offset + out_size, run_state, gas_limit, error_code)
     }
 
-    fun calc_memory_expand_internal(new_memory_size: u256, run_state: &mut RunState, gas_limit: u256): u256 {
+    fun calc_memory_expand_internal(new_memory_size: u256, run_state: &mut RunState, gas_limit: u256, error_code: &mut u64): u256 {
         if(new_memory_size == 0) {
             return 0
         };
@@ -60,7 +65,8 @@ module aptos_framework::evm_gas {
         };
         // To prevent overflow
         if(gas_limit / 3 < new_memory_word_size) {
-            return gas_limit
+            *error_code = OUT_OF_GAS;
+            return 0
         };
 
         let old_memory_cost = get_memory_cost(run_state);
@@ -75,16 +81,18 @@ module aptos_framework::evm_gas {
 
     fun calc_mcopy_gas(stack: &vector<u256>,
                         run_state: &mut RunState,
-                        gas_limit: u256): u256 {
+                        gas_limit: u256,
+                       error_code: &mut u64): u256 {
         let gas = 0;
         let len = vector::length(stack);
         if(len < 3) {
-            return  gas_limit
+            *error_code = STACK_UNDERFLOW;
+            return 0
         };
         let length = *vector::borrow(stack,len - 3);
         let word_size = get_word_count(length);
-        gas = gas +  calc_memory_expand(stack, 1, 3, run_state, gas_limit);
-        gas = gas +  calc_memory_expand(stack, 2, 3, run_state, gas_limit);
+        gas = gas +  calc_memory_expand(stack, 1, 3, run_state, gas_limit, error_code);
+        gas = gas +  calc_memory_expand(stack, 2, 3, run_state, gas_limit, error_code);
         gas = gas +  word_size * 3;
 
         gas + 3
@@ -92,19 +100,21 @@ module aptos_framework::evm_gas {
 
     fun calc_mstore_gas(stack: &vector<u256>,
                         run_state: &mut RunState,
-                        gas_limit: u256): u256 {
+                        gas_limit: u256,
+                        error_code: &mut u64): u256 {
         let len = vector::length(stack);
         let offset = *vector::borrow(stack,len - 1);
         // debug::print(&offset);
-        calc_memory_expand_internal(offset + 32, run_state, gas_limit)
+        calc_memory_expand_internal(offset + 32, run_state, gas_limit, error_code)
     }
 
     fun calc_mstore8_gas(stack: &vector<u256>,
-                        run_state: &mut RunState,
-                         gas_limit: u256): u256 {
+                         run_state: &mut RunState,
+                         gas_limit: u256,
+                         error_code: &mut u64): u256 {
         let len = vector::length(stack);
         let offset = *vector::borrow(stack,len - 1);
-        calc_memory_expand_internal(offset + 1, run_state, gas_limit)
+        calc_memory_expand_internal(offset + 1, run_state, gas_limit, error_code)
     }
 
     fun calc_sload_gas(address: vector<u8>,
@@ -119,11 +129,11 @@ module aptos_framework::evm_gas {
     fun calc_sstore_gas(address: vector<u8>,
                         stack: &vector<u256>,
                         trie: &mut Trie,
-                        run_state: &mut RunState): u256 {
-        debug::print(&132442);
-        debug::print(&get_gas_left(run_state));
+                        run_state: &mut RunState,
+                        error_code: &mut u64): u256 {
         if(get_gas_left(run_state) <= SstoreSentryGasEIP2200) {
-            return U64_MAX
+            *error_code = OUT_OF_GAS;
+            return 0
         };
 
         let len = vector::length(stack);
@@ -171,8 +181,12 @@ module aptos_framework::evm_gas {
         gas_cost
     }
 
-    fun calc_exp_gas(stack: &vector<u256>): u256 {
+    fun calc_exp_gas(stack: &vector<u256>, error_code: &mut u64): u256 {
         let len = vector::length(stack);
+        if(len < 2) {
+            *error_code = STACK_UNDERFLOW;
+            return 0
+        };
         let exponent = *vector::borrow(stack,len - 2);
         if(exponent == 0) {
             return 0
@@ -184,7 +198,7 @@ module aptos_framework::evm_gas {
 
     fun calc_call_gas(stack: &mut vector<u256>,
                       opcode: u8,
-                      trie: &mut Trie, run_state: &mut RunState, gas_limit: u256): u256 {
+                      trie: &mut Trie, run_state: &mut RunState, gas_limit: u256, error_code: &mut u64): u256 {
         let gas = 0;
         let len = vector::length(stack);
         let address = get_valid_ethereum_address(*vector::borrow(stack,len - 2));
@@ -197,11 +211,11 @@ module aptos_framework::evm_gas {
             if(value > 0) {
                 gas = gas + CallValueTransfer;
             };
-            gas = gas +  calc_memory_expand(stack, 4, 5, run_state, gas_limit);
-            gas = gas +  calc_memory_expand(stack, 6, 7, run_state, gas_limit);
+            gas = gas +  calc_memory_expand(stack, 4, 5, run_state, gas_limit, error_code);
+            gas = gas +  calc_memory_expand(stack, 6, 7, run_state, gas_limit, error_code);
         } else {
-            gas = gas +  calc_memory_expand(stack, 3, 4, run_state, gas_limit);
-            gas = gas +  calc_memory_expand(stack, 5, 6, run_state, gas_limit);
+            gas = gas +  calc_memory_expand(stack, 3, 4, run_state, gas_limit, error_code);
+            gas = gas +  calc_memory_expand(stack, 5, 6, run_state, gas_limit, error_code);
         };
 
         gas = gas + access_address(address, trie);
@@ -210,10 +224,11 @@ module aptos_framework::evm_gas {
     }
 
     fun calc_code_copy_gas(stack: &mut vector<u256>,
-                           run_state: &mut RunState, gas_limit: u256): u256 {
+                           run_state: &mut RunState, gas_limit: u256, error_code: &mut u64): u256 {
         let len = vector::length(stack);
         if(len < 3) {
-            return gas_limit
+            *error_code = STACK_UNDERFLOW;
+            return 0
         };
         let gas = 0;
         let data_length = *vector::borrow(stack,len - 3);
@@ -222,16 +237,22 @@ module aptos_framework::evm_gas {
             gas = gas + word_count * Copy;
             // Prevent overflow here; if the result is greater than gasLimit, return gasLimit directly
             if(gas > gas_limit) {
-                return gas_limit
+                *error_code = OUT_OF_GAS;
+                return 0
             };
-            gas = gas + calc_memory_expand(stack, 1, 3, run_state, gas_limit);
+            gas = gas + calc_memory_expand(stack, 1, 3, run_state, gas_limit, error_code);
         };
         gas + 3
     }
 
     fun calc_address_access_gas(stack: &mut vector<u256>,
-                               trie: &mut Trie): u256 {
+                                trie: &mut Trie,
+                                error_code: &mut u64): u256 {
         let len = vector::length(stack);
+        if(len == 0) {
+            *error_code = STACK_UNDERFLOW;
+            return 0
+        };
         let address = get_valid_ethereum_address(*vector::borrow(stack,len - 1));
         access_address(address, trie)
     }
@@ -239,10 +260,12 @@ module aptos_framework::evm_gas {
     fun calc_ext_code_copy_gas(stack: &mut vector<u256>,
                                run_state: &mut RunState,
                                trie: &mut Trie,
-                               gas_limit: u256): u256 {
+                               gas_limit: u256,
+                               error_code: &mut u64): u256 {
         let len = vector::length(stack);
         if(len < 4) {
-            return gas_limit
+            *error_code = STACK_UNDERFLOW;
+            return 0
         };
         let gas = 0;
         let data_length = *vector::borrow(stack,len - 4);
@@ -251,9 +274,10 @@ module aptos_framework::evm_gas {
             gas = gas + word_count * Copy;
             // Prevent overflow here; if the result is greater than gasLimit, return gasLimit directly
             if(gas > gas_limit) {
-                return gas_limit
+                *error_code = OUT_OF_GAS;
+                return 0
             };
-            gas = gas + calc_memory_expand(stack, 2, 4, run_state, gas_limit);
+            gas = gas + calc_memory_expand(stack, 2, 4, run_state, gas_limit, error_code);
         };
         let address = get_valid_ethereum_address(*vector::borrow(stack,len - 1));
         gas = gas + access_address(address, trie);
@@ -261,10 +285,11 @@ module aptos_framework::evm_gas {
     }
 
     fun calc_keccak256_gas(stack: &mut vector<u256>,
-                     run_state: &mut RunState, gas_limit: u256): u256 {
+                     run_state: &mut RunState, gas_limit: u256, error_code: &mut u64): u256 {
         let len = vector::length(stack);
         if(len < 2) {
-            return gas_limit
+            *error_code = STACK_UNDERFLOW;
+            return 0
         };
         let gas = 0;
         let data_length = *vector::borrow(stack,len - 2);
@@ -272,21 +297,22 @@ module aptos_framework::evm_gas {
         if(data_length > 0) {
             let word_count = get_word_count(data_length);
             gas = gas + word_count * Keccak256Word;
-            gas = gas + calc_memory_expand(stack, 1, 2, run_state, gas_limit);
+            gas = gas + calc_memory_expand(stack, 1, 2, run_state, gas_limit, error_code);
         };
 
         gas + 30
     }
 
     fun calc_log_gas(opcode: u8, stack: &mut vector<u256>,
-                           run_state: &mut RunState, gas_limit: u256): u256 {
+                           run_state: &mut RunState, gas_limit: u256, error_code: &mut u64): u256 {
         let topic_count = ((opcode - 0xa0) as u256);
         let len = vector::length(stack);
         let gas = 0;
         let data_length = *vector::borrow(stack,len - 2);
-        gas = gas + calc_memory_expand(stack, 1, 2, run_state, gas_limit);
+        gas = gas + calc_memory_expand(stack, 1, 2, run_state, gas_limit, error_code);
         if(data_length > gas_limit) {
-            return gas_limit
+            *error_code = OUT_OF_GAS;
+            return 0
         };
         gas = gas + LogTopic * topic_count + data_length * LogData + LogTopic;
         gas
@@ -296,12 +322,13 @@ module aptos_framework::evm_gas {
                         stack: &vector<u256>,
                         trie: &mut Trie,
                         run_state: &mut RunState,
-                        gas_limit: u256): u256 {
+                        gas_limit: u256,
+                        error_code: &mut u64): u256 {
         let len = vector::length(stack);
         let length = *vector::borrow(stack,len - 3);
         let gas = 0;
         let words = get_word_count(length);
-        gas = gas + calc_memory_expand(stack, 2, 3, run_state, gas_limit);
+        gas = gas + calc_memory_expand(stack, 2, 3, run_state, gas_limit, error_code);
         gas = gas + words * InitCodeWordCost;
 
         access_address(address, trie);
@@ -310,15 +337,16 @@ module aptos_framework::evm_gas {
     }
 
     fun calc_create2_gas(address: vector<u8>,
-                        stack: &vector<u256>,
-                        trie: &mut Trie,
-                        run_state: &mut RunState,
-                        gas_limit: u256): u256 {
+                         stack: &vector<u256>,
+                         trie: &mut Trie,
+                         run_state: &mut RunState,
+                         gas_limit: u256,
+                         error_code: &mut u64): u256 {
         let len = vector::length(stack);
         let length = *vector::borrow(stack,len - 3);
         let gas = 0;
         let words = get_word_count(length);
-        gas = gas + calc_memory_expand(stack, 2, 3, run_state, gas_limit);
+        gas = gas + calc_memory_expand(stack, 2, 3, run_state, gas_limit, error_code);
         gas = gas + words * InitCodeWordCost;
         gas = gas + words * Keccak256Word;
         access_address(address, trie);
@@ -366,6 +394,7 @@ module aptos_framework::evm_gas {
                              run_state: &mut RunState,
                              trie: &mut Trie,
                              gas_limit: u256,
+                             error_code: &mut u64
                             ): u256 {
         print_opcode(opcode);
         let gas = if (opcode == 0x00) {
@@ -400,7 +429,7 @@ module aptos_framework::evm_gas {
             8
         } else if (opcode == 0x0A) {
             // EXP (dynamic gas)
-            calc_exp_gas(stack) + 10
+            calc_exp_gas(stack, error_code) + 10
         } else if (opcode == 0x0B) {
             // SIGNEXTEND
             5
@@ -547,57 +576,55 @@ module aptos_framework::evm_gas {
             3
         } else if (opcode == 0x20) {
             // KECCAK256
-            calc_keccak256_gas(stack, run_state, gas_limit)
+            calc_keccak256_gas(stack, run_state, gas_limit, error_code)
         } else if (opcode == 0x31) {
             // BALANCE
-            calc_address_access_gas(stack, trie)
+            calc_address_access_gas(stack, trie, error_code)
         } else if (opcode == 0x3f || opcode == 0x3b) {
             // EXTCODEHASH
-            calc_address_access_gas(stack, trie)
+            calc_address_access_gas(stack, trie, error_code)
         } else if (opcode == 0xf0) {
             // CREATE
-            calc_create_gas(address, stack, trie, run_state, gas_limit) + 32000
+            calc_create_gas(address, stack, trie, run_state, gas_limit, error_code) + 32000
         } else if (opcode == 0xf5) {
             // CREATE2
-            calc_create2_gas(address, stack, trie, run_state, gas_limit) + 32000
+            calc_create2_gas(address, stack, trie, run_state, gas_limit, error_code) + 32000
         } else if(opcode == 0x53){
-            calc_mstore8_gas(stack, run_state, gas_limit) + 3
+            calc_mstore8_gas(stack, run_state, gas_limit, error_code) + 3
         } else if (opcode == 0x51 || opcode == 0x52) {
             // MSTORE & MLOAD
-            calc_mstore_gas(stack, run_state, gas_limit) + 3
+            calc_mstore_gas(stack, run_state, gas_limit, error_code) + 3
         } else if (opcode == 0xf1 || opcode == 0xf2 || opcode == 0xf4 || opcode == 0xfa) {
             // CALL
-            calc_call_gas(stack, opcode, trie, run_state, gas_limit)
+            calc_call_gas(stack, opcode, trie, run_state, gas_limit, error_code)
         } else if (opcode == 0xf3 || opcode == 0xfd) {
             // RETURN & REVERT
-            calc_memory_expand(stack, 1, 2, run_state, gas_limit)
+            calc_memory_expand(stack, 1, 2, run_state, gas_limit, error_code)
         } else if (opcode == 0x54) {
             // SLOAD
             calc_sload_gas(address, stack, trie)
         } else if (opcode == 0x55) {
             // SSTORE
-            calc_sstore_gas(address, stack, trie, run_state)
+            calc_sstore_gas(address, stack, trie, run_state, error_code)
         } else if (opcode == 0x5e) {
             // MCOPY
-            calc_mcopy_gas(stack, run_state, gas_limit)
+            calc_mcopy_gas(stack, run_state, gas_limit, error_code)
         } else if (opcode == 0x37 || opcode == 0x39 || opcode == 0x3e) {
             // CALLDATACOPY & CODECOPY & RETURNDATA COPY
-            calc_code_copy_gas(stack, run_state, gas_limit)
+            calc_code_copy_gas(stack, run_state, gas_limit, error_code)
         } else if (opcode == 0x3c) {
             // EXTCODECOPY
-            calc_ext_code_copy_gas(stack, run_state, trie, gas_limit)
+            calc_ext_code_copy_gas(stack, run_state, trie, gas_limit, error_code)
         } else if (opcode >= 0xa0 && opcode <= 0xa4) {
             // LOG
-            calc_log_gas(opcode, stack, run_state, gas_limit)
+            calc_log_gas(opcode, stack, run_state, gas_limit, error_code)
         } else if (opcode == 0xff) {
             // SELF DESTRUCT
             calc_self_destruct_gas(address, stack, trie)
-        } else if(opcode == 0xfe){
-            // KNOWN INVALID CODE
-            0
         }
         else {
-            gas_limit
+            *error_code = INVALID_OPCODE;
+            0
         };
         debug::print(&gas);
         gas
