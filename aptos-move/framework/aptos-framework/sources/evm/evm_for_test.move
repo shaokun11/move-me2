@@ -197,6 +197,7 @@ module aptos_framework::evm_for_test {
         let run_state = &mut new_run_state(gas_limit);
         add_checkpoint(trie, false);
         let data_size = (vector::length(&data) as u256);
+        debug::print(&data_size);
 
         if(to == ZERO_ADDR && data_size > MAX_INIT_CODE_SIZE) {
             handle_tx_failed(trie);
@@ -210,18 +211,23 @@ module aptos_framework::evm_for_test {
             };
             if(to == ZERO_ADDR) {
                 let evm_contract = get_contract_address(from, (get_nonce(from, trie) as u64));
-                out_of_gas = add_gas_usage(run_state, 2 * get_word_count(data_size) + 32000);
-                if(out_of_gas) {
-                    handle_tx_failed(trie);
-                    return
+                debug::print(&evm_contract);
+                if(exist_contract(evm_contract, trie) || get_nonce(evm_contract, trie) > 0) {
+                    add_gas_usage(run_state, gas_limit);
+                } else {
+                    out_of_gas = add_gas_usage(run_state, 2 * get_word_count(data_size) + 32000);
+                    if(out_of_gas) {
+                        handle_tx_failed(trie);
+                        return
+                    };
+                    new_account(evm_contract, x"", 0, 1, trie);
+                    let (success, deployed_codes) = run(from, from, evm_contract, data, x"", value, get_gas_left(run_state), trie, run_state, &env, true, 0);
+                    let store_fee = (200 * vector::length(&deployed_codes) as u256);
+                    let out_of_gas = add_gas_usage(run_state, store_fee);
+                    if(!out_of_gas && success) {
+                        set_code(trie, evm_contract, deployed_codes);
+                    };
                 };
-                new_account(evm_contract, x"", 0, 1, trie);
-                let (success, deployed_codes) = run(from, from, evm_contract, data, x"", value, get_gas_left(run_state), trie, run_state, &env, true, 0);
-                let store_fee = (200 * vector::length(&deployed_codes) as u256);
-                let out_of_gas = add_gas_usage(run_state, store_fee);
-                if(!out_of_gas && success) {
-                    set_code(trie, evm_contract, deployed_codes);
-                }
             } else {
                 if(is_precompile_address(to)) {
                      precompile(to, data, gas_limit, run_state);
