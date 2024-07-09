@@ -699,7 +699,7 @@ async function callContractImpl(from, contract, calldata, value, version) {
                 if (match) {
                     message = "reverted:" + match[1];
                 }else {
-                    message = "reverted"
+                    message = "reverted:"
                 }
             }
         } catch (error) { }

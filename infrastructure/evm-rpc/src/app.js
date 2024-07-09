@@ -22,8 +22,14 @@ server.applyMiddleware(async function (next, request, serverParams) {
         return await next(request, serverParams);
     } catch (error) {
         // console.error('error', error);
-        const message = typeof error === 'string' ? error : error?.message || 'Internal error';
-        const err = createJSONRPCErrorResponse(request.id, error?.code || -32000, message, request.params);
+        let message = typeof error === 'string' ? error : error?.message || 'Internal error';
+        let data = request.params;
+        if (message.startsWith('reverted:')) {
+            // for handle eth_call reverted message
+            data = message.slice(9);
+            message = 'execution reverted';
+        }
+        const err = createJSONRPCErrorResponse(request.id, error?.code || -32000, message, data);
         return err;
     }
 });
