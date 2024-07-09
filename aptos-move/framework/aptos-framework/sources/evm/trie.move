@@ -183,6 +183,15 @@ module aptos_framework::evm_trie {
         }
     }
 
+    public fun is_contract_or_created_account(contract_addr: vector<u8>, trie: &Trie): bool {
+        if(!exist_account(contract_addr, trie)) {
+            false
+        } else {
+            let code = get_code(contract_addr, trie);
+            vector::length(&code) > 0 || get_nonce(contract_addr, trie) > 0
+        }
+    }
+
     public fun exist_contract(contract_addr: vector<u8>, trie: &Trie): bool {
         if(!exist_account(contract_addr, trie)) {
             false
@@ -298,6 +307,8 @@ module aptos_framework::evm_trie {
             simple_map::upsert(&mut trie.storage, address, account);
             i = i + 1;
         };
+
+        debug::print(trie);
     }
 
     public fun commit_latest_checkpoint(trie: &mut Trie) {

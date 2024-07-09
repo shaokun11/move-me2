@@ -13,7 +13,7 @@ module aptos_framework::evm_for_test {
     use aptos_framework::evm_gas::{calc_exec_gas, calc_base_gas, max_call_gas};
     use aptos_framework::event;
     use aptos_framework::evm_arithmetic::{add, mul, sub, div, sdiv, mod, smod, add_mod, mul_mod, exp, shr, sar};
-    use aptos_framework::evm_trie::{pre_init, Trie, add_checkpoint, revert_checkpoint, commit_latest_checkpoint, TestAccount, get_code, sub_balance, add_nonce, transfer, get_balance, get_state, set_state, exist_contract, get_nonce, new_account, get_storage_copy, save, add_balance, add_warm_address, get_transient_storage, put_transient_storage, get_is_static, set_code};
+    use aptos_framework::evm_trie::{pre_init, Trie, add_checkpoint, revert_checkpoint, commit_latest_checkpoint, TestAccount, get_code, sub_balance, add_nonce, transfer, get_balance, get_state, set_state, exist_contract, get_nonce, new_account, get_storage_copy, save, add_balance, add_warm_address, get_transient_storage, put_transient_storage, get_is_static, set_code, is_contract_or_created_account};
     friend aptos_framework::genesis;
 
     const ADDR_LENGTH: u64 = 10001;
@@ -212,7 +212,7 @@ module aptos_framework::evm_for_test {
             if(to == ZERO_ADDR) {
                 let evm_contract = get_contract_address(from, (get_nonce(from, trie) as u64));
                 debug::print(&evm_contract);
-                if(exist_contract(evm_contract, trie) || get_nonce(evm_contract, trie) > 0) {
+                if(is_contract_or_created_account(evm_contract, trie)) {
                     add_gas_usage(run_state, gas_limit);
                 } else {
                     out_of_gas = add_gas_usage(run_state, 2 * get_word_count(data_size) + 32000);
@@ -977,12 +977,14 @@ module aptos_framework::evm_for_test {
                     };
 
                     let new_evm_contract_addr = get_contract_address(to, (nonce as u64));
-                    if(depth >= MAX_DEPTH_SIZE) {
+                    if(depth >= MAX_DEPTH_SIZE ||
+                        get_balance(to, trie) < msg_value ||
+                        is_contract_or_created_account(new_evm_contract_addr, trie)) {
                         vector::push_back(stack, 0);
                     } else {
                         debug::print(&utf8(b"create start"));
                         debug::print(&call_gas_limit);
-                        add_nonce(to, trie);
+                        // add_nonce(to, trie);
                         add_checkpoint(trie, false);
                         new_account(new_evm_contract_addr, x"", 0, 1, trie);
                         let(create_res, bytes) = run(origin, to, new_evm_contract_addr, new_codes, x"", msg_value, call_gas_limit, trie, run_state, env, true, depth + 1);
@@ -1026,7 +1028,9 @@ module aptos_framework::evm_for_test {
                     vector::append(&mut p, salt);
                     vector::append(&mut p, keccak256(new_codes));
                     let new_evm_contract_addr = to_32bit(vector_slice(keccak256(p), 12, 20));
-                    if(depth >= MAX_DEPTH_SIZE) {
+                    if(depth >= MAX_DEPTH_SIZE ||
+                        get_balance(to, trie) < msg_value ||
+                        is_contract_or_created_account(new_evm_contract_addr, trie)) {
                         vector::push_back(stack, 0);
                     } else {
                         add_nonce(to, trie);
