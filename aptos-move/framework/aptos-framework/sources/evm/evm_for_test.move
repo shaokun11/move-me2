@@ -1035,8 +1035,6 @@ module aptos_framework::evm_for_test {
                     } else {
                         add_nonce(to, trie);
                         add_checkpoint(trie, false);
-                        new_account(new_evm_contract_addr, x"", 0, 1, trie);
-
                         let (create_res, bytes) = run(origin, to, new_evm_contract_addr, new_codes, x"", msg_value, call_gas_limit, trie, run_state, env, true, true, depth + 1);
                         if(create_res) {
                             set_code(trie, new_evm_contract_addr, bytes);
