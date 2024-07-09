@@ -184,6 +184,8 @@ module aptos_framework::evm_util {
             *vector::borrow_mut(memory, ((m_pos + i) as u64)) = bytes;
             i = i + 1;
         };
+
+        debug::print(memory);
     }
 
     public fun mstore(memory: &mut vector<u8>, pos: u64, data: vector<u8>) {
@@ -195,8 +197,9 @@ module aptos_framework::evm_util {
                 *vector::borrow_mut(memory, pos + i) = *vector::borrow(&data, i);
                 i = i + 1
             };
-        }
+        };
 
+        debug::print(memory);
     }
 
     public fun get_message_hash(input: vector<vector<u8>>): vector<u8> {
