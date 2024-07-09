@@ -201,6 +201,11 @@ module aptos_framework::evm_gas {
                       trie: &mut Trie, run_state: &mut RunState, gas_limit: u256, error_code: &mut u64): u256 {
         let gas = 0;
         let len = vector::length(stack);
+        let size = if(opcode == 0xf1 || opcode == 0xf2) 7 else 6;
+        if(len < size) {
+            *error_code = STACK_UNDERFLOW;
+            return 0
+        };
         let address = get_valid_ethereum_address(*vector::borrow(stack,len - 2));
         if(opcode == 0xf1 || opcode == 0xf2) {
             let value = *vector::borrow(stack,len - 3);
