@@ -46,8 +46,8 @@ module aptos_framework::evm_test {
 
         let addresses = vector[x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b", x"b94f5374fce5edbc8e2a8697c15331677e6ebf0b"];
         let balance_table = vector[0x3b9aca00, 0x00];
-        let codes = vector[x"", x"7f600060005360016000f30000000000000000000000000000000000000000000060009081525b6101008110603657600161010055005b8060019182536000600a8180f515604d575b016026565b818155604856"];
-        let nonce_table = vector[0x00, 0x00];
+        let codes = vector[x"", x"6460016000f360d81b600090815260058180f56000556001805500"];
+        let nonce_table = vector[0x00, 0xffffffffffffffff];
         let i = 0;
         let balances = vector::empty<vector<u8>>();
         let nonces = vector::empty<u64>();

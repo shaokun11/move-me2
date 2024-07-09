@@ -981,6 +981,7 @@ module aptos_framework::evm_for_test {
 
                     let new_evm_contract_addr = get_contract_address(to, (nonce as u64));
                     if(depth >= MAX_DEPTH_SIZE ||
+                        get_nonce(to, trie) >= U64_MAX ||
                         get_balance(to, trie) < msg_value ||
                         is_contract_or_created_account(new_evm_contract_addr, trie)) {
                         vector::push_back(stack, 0);
@@ -1029,6 +1030,7 @@ module aptos_framework::evm_for_test {
                     vector::append(&mut p, keccak256(new_codes));
                     let new_evm_contract_addr = to_32bit(vector_slice(keccak256(p), 12, 20));
                     if(depth >= MAX_DEPTH_SIZE ||
+                        get_nonce(to, trie) >= U64_MAX ||
                         get_balance(to, trie) < msg_value ||
                         is_contract_or_created_account(new_evm_contract_addr, trie)) {
                         vector::push_back(stack, 0);
