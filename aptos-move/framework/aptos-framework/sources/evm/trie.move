@@ -308,7 +308,6 @@ module aptos_framework::evm_trie {
             i = i + 1;
         };
 
-        debug::print(trie);
     }
 
     public fun commit_latest_checkpoint(trie: &mut Trie) {
