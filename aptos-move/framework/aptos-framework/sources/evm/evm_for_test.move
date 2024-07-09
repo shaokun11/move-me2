@@ -1178,7 +1178,7 @@ module aptos_framework::evm_for_test {
         if(is_create) {
             let code_size = (vector::length(&ret_bytes) as u256);
             let out_of_gas = add_gas_usage(run_state, 200 * code_size);
-            if(code_size > MAX_CODE_SIZE || out_of_gas) {
+            if(code_size > MAX_CODE_SIZE || code_size == 0 || (*vector::borrow(&ret_bytes, 0)) == 0xef || out_of_gas) {
                 handle_unexpect_revert(trie, run_state);
                 return (false, ret_bytes)
             };
