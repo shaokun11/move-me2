@@ -242,7 +242,7 @@ module aptos_framework::evm_trie {
 
     public fun pre_init(addresses: vector<vector<u8>>,
                         codes: vector<vector<u8>>,
-                        nonces: vector<u64>,
+                        nonces: vector<vector<u8>>,
                         balances: vector<vector<u8>>,
                         storage_keys: vector<vector<vector<u8>>>,
                         storage_values: vector<vector<vector<u8>>>): Trie {
@@ -273,7 +273,7 @@ module aptos_framework::evm_trie {
             simple_map::add(&mut trie.storage, to_32bit(*vector::borrow(&addresses, i)), TestAccount {
                 balance: to_u256(*vector::borrow(&balances, i)),
                 code: *vector::borrow(&codes, i),
-                nonce: (*vector::borrow(&nonces, i) as u256),
+                nonce: to_u256(*vector::borrow(&nonces, i)),
                 storage,
             });
             i = i + 1;

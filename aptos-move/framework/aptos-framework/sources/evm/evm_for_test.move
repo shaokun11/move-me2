@@ -172,7 +172,7 @@ module aptos_framework::evm_for_test {
 
     public entry fun run_test(addresses: vector<vector<u8>>,
                               codes: vector<vector<u8>>,
-                              nonces: vector<u64>,
+                              nonces: vector<vector<u8>>,
                               balances: vector<vector<u8>>,
                               storage_keys: vector<vector<vector<u8>>>,
                               storage_values: vector<vector<vector<u8>>>,

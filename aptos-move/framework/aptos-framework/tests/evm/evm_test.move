@@ -50,11 +50,11 @@ module aptos_framework::evm_test {
         let nonce_table = vector[0x00, 0xffffffffffffffff];
         let i = 0;
         let balances = vector::empty<vector<u8>>();
-        let nonces = vector::empty<u64>();
+        let nonces = vector::empty<vector<u8>>();
         while(i < vector::length(&addresses)) {
             let address = *vector::borrow(&addresses, i);
             let nonce =  *vector::borrow(&nonce_table, i);
-            vector::push_back(&mut nonces, nonce);
+            vector::push_back(&mut nonces, u256_to_data(nonce));
 
             let balance = *vector::borrow(&balance_table, i);
             vector::push_back(&mut balances, u256_to_data(balance));
