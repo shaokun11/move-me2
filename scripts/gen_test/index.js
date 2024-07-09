@@ -81,6 +81,6 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "create2CodeSizeLimit"
+let key = "createCodeSizeLimit"
 
-read("src/GeneralStateTests/stCodeSizeLimit/create2CodeSizeLimit.json", key, 1, 0, 0)
+read("src/GeneralStateTests/stCodeSizeLimit/createCodeSizeLimit.json", key, 1, 0, 0)

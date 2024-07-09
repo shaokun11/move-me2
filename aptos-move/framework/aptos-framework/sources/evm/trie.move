@@ -307,7 +307,6 @@ module aptos_framework::evm_trie {
             simple_map::upsert(&mut trie.storage, address, account);
             i = i + 1;
         };
-
     }
 
     public fun commit_latest_checkpoint(trie: &mut Trie) {

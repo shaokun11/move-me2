@@ -987,7 +987,7 @@ module aptos_framework::evm_for_test {
                     } else {
                         debug::print(&utf8(b"create start"));
                         debug::print(&call_gas_limit);
-                        // add_nonce(to, trie);
+                        add_nonce(to, trie);
                         add_checkpoint(trie, false);
                         let(create_res, bytes) = run(origin, to, new_evm_contract_addr, new_codes, x"", msg_value, call_gas_limit, trie, run_state, env, true, true, depth + 1);
                         if(create_res) {
