@@ -35,6 +35,7 @@ module aptos_framework::evm_for_test {
     const ERROR_STATIC_STATE_CHANGE: u64 = 51;
     const ERROR_INVALID_OPCODE: u64 = 53;
     const ERROR_EXCEED_INITCODE_SIZE: u64 = 55;
+    const ERROR_INVALID_RETURN_DATA_COPY_SIZE: u64 = 56;
 
     const U64_MAX: u256 = 18446744073709551615; // 18_446_744_073_709_551_615
     const U256_MAX: u256 = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
@@ -694,8 +695,17 @@ module aptos_framework::evm_for_test {
                 let m_pos = pop_stack_u64(stack, error_code);
                 let d_pos = pop_stack_u64(stack, error_code);
                 let len = pop_stack_u64(stack, error_code);
-                let bytes = vector_slice(ret_bytes, d_pos, len);
-                mstore(memory, m_pos, bytes);
+                debug::print(&d_pos);
+                debug::print(&len);
+                debug::print(&ret_bytes);
+                debug::print(&vector::length(&ret_bytes));
+                if(d_pos + len > vector::length(&ret_bytes)) {
+                    *error_code = ERROR_INVALID_RETURN_DATA_COPY_SIZE;
+                } else {
+                    let bytes = vector_slice(ret_bytes, d_pos, len);
+                    mstore(memory, m_pos, bytes);
+                };
+
                 i = i + 1;
             }
                 //extcodehash
@@ -993,10 +1003,8 @@ module aptos_framework::evm_for_test {
                         let(create_res, bytes) = run(origin, to, new_evm_contract_addr, new_codes, x"", msg_value, call_gas_limit, trie, run_state, env, true, true, depth + 1);
                         if(create_res) {
                             set_code(trie, new_evm_contract_addr, bytes);
-                            ret_bytes = new_evm_contract_addr;
                             vector::push_back(stack, data_to_u256(new_evm_contract_addr, 0, 32));
                         } else {
-                            ret_bytes = bytes;
                             vector::push_back(stack, 0);
                         };
                     }
@@ -1040,10 +1048,8 @@ module aptos_framework::evm_for_test {
                         let (create_res, bytes) = run(origin, to, new_evm_contract_addr, new_codes, x"", msg_value, call_gas_limit, trie, run_state, env, true, true, depth + 1);
                         if(create_res) {
                             set_code(trie, new_evm_contract_addr, bytes);
-                            ret_bytes = new_evm_contract_addr;
                             vector::push_back(stack, data_to_u256(new_evm_contract_addr, 0, 32));
                         } else {
-                            ret_bytes = bytes;
                             vector::push_back(stack, 0);
                         };
                     }
