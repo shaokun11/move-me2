@@ -45,6 +45,7 @@ module aptos_framework::evm_for_test {
     const MAX_STACK_SIZE: u64 = 1024;
     const MAX_DEPTH_SIZE: u64 = 1024;
     const MAX_INIT_CODE_SIZE: u256 = 49152;
+    const MAX_CODE_SIZE: u256 = 24576;
 
     /// invalid pc
     const EVM_ERROR_INVALID_PC: u64 = 10000001;
@@ -211,7 +212,6 @@ module aptos_framework::evm_for_test {
             };
             if(to == ZERO_ADDR) {
                 let evm_contract = get_contract_address(from, (get_nonce(from, trie) as u64));
-                debug::print(&evm_contract);
                 if(is_contract_or_created_account(evm_contract, trie)) {
                     add_gas_usage(run_state, gas_limit);
                 } else {
@@ -220,19 +220,14 @@ module aptos_framework::evm_for_test {
                         handle_tx_failed(trie);
                         return
                     };
-                    new_account(evm_contract, x"", 0, 1, trie);
-                    let (success, deployed_codes) = run(from, from, evm_contract, data, x"", value, get_gas_left(run_state), trie, run_state, &env, true, 0);
-                    let store_fee = (200 * vector::length(&deployed_codes) as u256);
-                    let out_of_gas = add_gas_usage(run_state, store_fee);
-                    if(!out_of_gas && success) {
-                        set_code(trie, evm_contract, deployed_codes);
-                    };
+
+                    run(from, from, evm_contract, data, x"", value, get_gas_left(run_state), trie, run_state, &env, true, true, 0);
                 };
             } else {
                 if(is_precompile_address(to)) {
                      precompile(to, data, gas_limit, run_state);
                 } else {
-                    run(from, from, to, get_code(to, trie), data, value, gas_limit - base_cost, trie, run_state, &env, true, 0);
+                    run(from, from, to, get_code(to, trie), data, value, gas_limit - base_cost, trie, run_state, &env, true, false, 0);
                 };
             };
             let gas_refund = get_gas_refund(run_state);
@@ -292,6 +287,7 @@ module aptos_framework::evm_for_test {
             run_state: &mut RunState,
             env: &Env,
             transfer_eth: bool,
+            is_create: bool,
             depth: u64
         ): (bool, vector<u8>) {
 
@@ -299,12 +295,19 @@ module aptos_framework::evm_for_test {
         debug::print(&depth);
         add_warm_address(to, trie);
         add_call_state(run_state, gas_limit);
+
+        if(is_create) {
+            new_account(to, x"", 0, 1, trie);
+        };
+
         if(transfer_eth) {
             if(!transfer(sender, to, value, trie)) {
                 handle_normal_revert(trie, run_state);
                 return (false, x"")
             };
         };
+
+
 
         // let to_account = simple_map::borrow_mut(&mut trie, &to);
 
@@ -940,7 +943,7 @@ module aptos_framework::evm_for_test {
                     } else if (exist_contract(code_address, trie)) {
                         let dest_code = get_code(code_address, trie);
                         add_checkpoint(trie, is_static);
-                        let (call_res, bytes) = run(origin, call_from, call_to, dest_code, params, msg_value, call_gas_limit, trie, run_state, env, transfer_eth, depth + 1);
+                        let (call_res, bytes) = run(origin, call_from, call_to, dest_code, params, msg_value, call_gas_limit, trie, run_state, env, transfer_eth, false, depth + 1);
                         if(call_res) {
                             ret_bytes = bytes;
                             write_call_output(memory, ret_pos, ret_len, bytes);
@@ -986,11 +989,8 @@ module aptos_framework::evm_for_test {
                         debug::print(&call_gas_limit);
                         // add_nonce(to, trie);
                         add_checkpoint(trie, false);
-                        new_account(new_evm_contract_addr, x"", 0, 1, trie);
-                        let(create_res, bytes) = run(origin, to, new_evm_contract_addr, new_codes, x"", msg_value, call_gas_limit, trie, run_state, env, true, depth + 1);
+                        let(create_res, bytes) = run(origin, to, new_evm_contract_addr, new_codes, x"", msg_value, call_gas_limit, trie, run_state, env, true, true, depth + 1);
                         if(create_res) {
-                            debug::print(&(200 * ((vector::length(&bytes)) as u256)));
-                            add_gas_usage(run_state, 200 * ((vector::length(&bytes)) as u256));
                             set_code(trie, new_evm_contract_addr, bytes);
                             ret_bytes = new_evm_contract_addr;
                             vector::push_back(stack, data_to_u256(new_evm_contract_addr, 0, 32));
@@ -1037,9 +1037,8 @@ module aptos_framework::evm_for_test {
                         add_checkpoint(trie, false);
                         new_account(new_evm_contract_addr, x"", 0, 1, trie);
 
-                        let (create_res, bytes) = run(origin, to, new_evm_contract_addr, new_codes, x"", msg_value, call_gas_limit, trie, run_state, env, true, depth + 1);
+                        let (create_res, bytes) = run(origin, to, new_evm_contract_addr, new_codes, x"", msg_value, call_gas_limit, trie, run_state, env, true, true, depth + 1);
                         if(create_res) {
-                            add_gas_usage(run_state, 200 * ((vector::length(&bytes)) as u256));
                             set_code(trie, new_evm_contract_addr, bytes);
                             ret_bytes = new_evm_contract_addr;
                             vector::push_back(stack, data_to_u256(new_evm_contract_addr, 0, 32));
@@ -1178,7 +1177,18 @@ module aptos_framework::evm_for_test {
             }
         };
 
+        if(is_create) {
+            let code_size = (vector::length(&ret_bytes) as u256);
+            let out_of_gas = add_gas_usage(run_state, 200 * code_size);
+            if(code_size > MAX_CODE_SIZE || out_of_gas) {
+                handle_unexpect_revert(trie, run_state);
+                return (false, ret_bytes)
+            };
+
+            set_code(trie, to, ret_bytes);
+        };
         handle_commit(trie, run_state);
+
         (true, ret_bytes)
     }
 
