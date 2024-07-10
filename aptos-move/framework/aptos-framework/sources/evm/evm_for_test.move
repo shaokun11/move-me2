@@ -36,6 +36,7 @@ module aptos_framework::evm_for_test {
     const ERROR_INVALID_OPCODE: u64 = 53;
     const ERROR_EXCEED_INITCODE_SIZE: u64 = 55;
     const ERROR_INVALID_RETURN_DATA_COPY_SIZE: u64 = 56;
+    const ERROR_CREATE_CONTRACT_COLLISION: u64 = 57;
 
     const U64_MAX: u256 = 18446744073709551615; // 18_446_744_073_709_551_615
     const U256_MAX: u256 = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
@@ -259,7 +260,10 @@ module aptos_framework::evm_for_test {
                         error_code: &mut u64,
                         ret_bytes: &mut vector<u8>): u8 {
         *ret_bytes = x"";
-        if(init_len > MAX_INIT_CODE_SIZE || is_contract_or_created_account(created_address, trie)) {
+        if(is_contract_or_created_account(created_address, trie)) {
+            *error_code = ERROR_CREATE_CONTRACT_COLLISION;
+            return CALL_RESULT_UNEXPECT_ERROR
+        }else if(init_len > MAX_INIT_CODE_SIZE ) {
             *error_code = ERROR_EXCEED_INITCODE_SIZE;
             return CALL_RESULT_UNEXPECT_ERROR
         } else if(get_is_static(trie)) {
