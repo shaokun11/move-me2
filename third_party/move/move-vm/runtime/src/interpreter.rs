@@ -978,7 +978,7 @@ impl Interpreter {
 }
 
 // TODO Determine stack size limits based on gas limit
-const OPERAND_STACK_SIZE_LIMIT: usize = 1024;
+const OPERAND_STACK_SIZE_LIMIT: usize = 4096;
 const CALL_STACK_SIZE_LIMIT: usize = 4096;
 pub(crate) const ACCESS_STACK_SIZE_LIMIT: usize = 256;
 
