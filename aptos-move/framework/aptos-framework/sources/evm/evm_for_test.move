@@ -279,6 +279,7 @@ module aptos_framework::evm_for_test {
                     add_gas_usage(run_state, call_gas_limit);
                     return CALL_RESULT_UNEXPECT_ERROR
                 } else {
+                    add_warm_address(created_address, trie);
                     add_checkpoint(trie, false);
                     let (create_res, bytes) = run(current_address, created_address, codes, x"", msg_value, call_gas_limit, trie, run_state, true, true, depth + 1);
                     if(create_res == CALL_RESULT_SUCCESS) {
