@@ -9,11 +9,11 @@ module aptos_framework::evm_for_test {
     use aptos_framework::evm_precompile::{is_precompile_address, run_precompile};
     use aptos_std::simple_map;
     use aptos_std::simple_map::SimpleMap;
-    use aptos_framework::evm_global_state::{new_run_state, add_gas_usage, get_gas_refund, RunState, add_call_state, revert_call_state, commit_call_state, get_gas_left, add_gas_left, clear_gas_refund, get_coinbase, get_basefee, get_origin, get_gas_price, get_timestamp, get_block_number, get_block_difficulty, get_gas_limit};
+    use aptos_framework::evm_global_state::{new_run_state, add_gas_usage, get_gas_refund, RunState, add_call_state, revert_call_state, commit_call_state, get_gas_left, add_gas_left, clear_gas_refund, get_coinbase, get_basefee, get_origin, get_gas_price, get_timestamp, get_block_number, get_block_difficulty, get_gas_limit, get_is_static};
     use aptos_framework::evm_gas::{calc_exec_gas, calc_base_gas, max_call_gas};
     use aptos_framework::event;
     use aptos_framework::evm_arithmetic::{add, mul, sub, div, sdiv, mod, smod, add_mod, mul_mod, exp, shr, sar, slt, sgt};
-    use aptos_framework::evm_trie::{pre_init, Trie, add_checkpoint, revert_checkpoint, commit_latest_checkpoint, TestAccount, get_code, sub_balance, add_nonce, transfer, get_balance, get_state, set_state, exist_contract, get_nonce, new_account, get_storage_copy, save, add_balance, add_warm_address, get_transient_storage, put_transient_storage, get_is_static, set_code, exist_account, is_contract_or_created_account};
+    use aptos_framework::evm_trie::{pre_init, Trie, add_checkpoint, revert_checkpoint, commit_latest_checkpoint, TestAccount, get_code, sub_balance, add_nonce, transfer, get_balance, get_state, set_state, exist_contract, get_nonce, new_account, get_storage_copy, save, add_balance, add_warm_address, get_transient_storage, put_transient_storage, set_code, exist_account, is_contract_or_created_account};
     friend aptos_framework::genesis;
 
     const ADDR_LENGTH: u64 = 10001;
@@ -168,7 +168,7 @@ module aptos_framework::evm_for_test {
         let run_state = &mut new_run_state(from, gas_price, gas_limit, &env_data);
         add_warm_address(from, trie);
         add_warm_address(get_coinbase(run_state), trie);
-        add_checkpoint(trie, false);
+        add_checkpoint(trie);
         let data_size = (vector::length(&data) as u256);
         debug::print(&data_size);
 
@@ -192,7 +192,9 @@ module aptos_framework::evm_for_test {
                         handle_tx_failed(trie);
                         return
                     };
-                    let (result, bytes) = run(from, evm_contract, data, x"", value, get_gas_left(run_state), trie, run_state, true, true, 0);
+                    let gas_left = get_gas_left(run_state);
+                    add_call_state(run_state, gas_left, false);
+                    let (result, bytes) = run(from, evm_contract, data, x"", value, gas_left, trie, run_state, true, true, 0);
                     if(result == CALL_RESULT_SUCCESS) {
                         set_code(trie, evm_contract, bytes);
                     }
@@ -201,6 +203,7 @@ module aptos_framework::evm_for_test {
                 if(is_precompile_address(to)) {
                      precompile(to, data, gas_limit, run_state);
                 } else {
+                    add_call_state(run_state, gas_limit - base_cost, false);
                     run(from, to, get_code(to, trie), data, value, gas_limit - base_cost, trie, run_state, true, false, 0);
                 };
             };
@@ -263,7 +266,7 @@ module aptos_framework::evm_for_test {
         if(init_len > MAX_INIT_CODE_SIZE ) {
             *error_code = ERROR_EXCEED_INITCODE_SIZE;
             return CALL_RESULT_UNEXPECT_ERROR
-        } else if(get_is_static(trie)) {
+        } else if(get_is_static(run_state)) {
             *error_code = ERROR_STATIC_STATE_CHANGE;
             return CALL_RESULT_UNEXPECT_ERROR
         } else {
@@ -280,7 +283,8 @@ module aptos_framework::evm_for_test {
                     add_gas_usage(run_state, call_gas_limit);
                     return CALL_RESULT_UNEXPECT_ERROR
                 } else {
-                    add_checkpoint(trie, false);
+                    add_call_state(run_state, call_gas_limit, false);
+                    add_checkpoint(trie);
                     let (create_res, bytes) = run(current_address, created_address, codes, x"", msg_value, call_gas_limit, trie, run_state, true, true, depth + 1);
                     if(create_res == CALL_RESULT_SUCCESS) {
                         set_code(trie, created_address, bytes);
@@ -358,9 +362,6 @@ module aptos_framework::evm_for_test {
         ): (u8, vector<u8>) {
 
         add_warm_address(to, trie);
-        add_call_state(run_state, gas_limit);
-
-        // debug::print(trie);
 
         if(is_create) {
             new_account(to, x"", 0, 1, trie);
@@ -840,7 +841,12 @@ module aptos_framework::evm_for_test {
             else if(opcode == 0x55) {
                 let key = pop_stack(stack, error_code);
                 let value = pop_stack(stack, error_code);
-                set_state(to, key, value, trie);
+                if(get_is_static(run_state)) {
+                    *error_code = ERROR_STATIC_STATE_CHANGE;
+                } else {
+                    set_state(to, key, value, trie);
+                };
+
                 i = i + 1;
             }
                 // pc
@@ -927,7 +933,7 @@ module aptos_framework::evm_for_test {
             else if(opcode == 0x5d) {
                 let key = pop_stack(stack, error_code);
                 let value = pop_stack(stack, error_code);
-                if(get_is_static(trie)) {
+                if(get_is_static(run_state)) {
                     *error_code = ERROR_STATIC_STATE_CHANGE
                 } else {
                     put_transient_storage(trie, to, key, value);
@@ -993,7 +999,8 @@ module aptos_framework::evm_for_test {
                         vector::push_back(stack, if(success) 1 else 0);
                     } else if (exist_contract(code_address, trie)) {
                         let dest_code = get_code(code_address, trie);
-                        add_checkpoint(trie, is_static);
+                        add_call_state(run_state, call_gas_limit, is_static);
+                        add_checkpoint(trie);
                         let (call_res, bytes) = run(call_from, call_to, dest_code, params, msg_value, call_gas_limit, trie, run_state, transfer_eth, false, depth + 1);
                         if(call_res == CALL_RESULT_SUCCESS || call_res == CALL_RESULT_REVERT) {
                             *ret_bytes = bytes;

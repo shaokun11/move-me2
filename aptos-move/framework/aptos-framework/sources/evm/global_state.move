@@ -25,7 +25,8 @@ module aptos_framework::evm_global_state {
         highest_memory_word_size: u256,
         gas_refund: u256,
         gas_left: u256,
-        gas_limit: u256
+        gas_limit: u256,
+        is_static: bool
     }
 
     public fun new_run_state(sender: vector<u8>, gas_price: u256, gas_limit: u256, env_data: &vector<vector<u8>>): RunState {
@@ -33,18 +34,28 @@ module aptos_framework::evm_global_state {
             call_state: vector::empty(),
             env: parse_env(env_data, sender, gas_price)
         };
-        add_call_state(&mut state, gas_limit);
+        vector::push_back(&mut state.call_state, CallState {
+            highest_memory_cost: 0,
+            highest_memory_word_size: 0,
+            gas_refund: 0,
+            gas_left: gas_limit,
+            gas_limit,
+            is_static: false
+        });
         state
     }
 
-    public fun add_call_state(run_state: &mut RunState, gas_limit: u256) {
+    public fun add_call_state(run_state: &mut RunState, gas_limit: u256, is_static: bool) {
+        let state = get_lastest_state(run_state);
+        let static = state.is_static || is_static;
         vector::push_back(&mut run_state.call_state, CallState {
             highest_memory_cost: 0,
             highest_memory_word_size: 0,
             gas_refund: 0,
             gas_left: gas_limit,
-            gas_limit
-        })
+            gas_limit,
+            is_static: static
+        });
     }
 
     fun get_lastest_state_mut(run_state: &mut RunState): &mut CallState {
@@ -118,6 +129,11 @@ module aptos_framework::evm_global_state {
     public fun clear_gas_refund(run_state: &mut RunState) {
         let state = get_lastest_state_mut(run_state);
         state.gas_refund = 0;
+    }
+
+    public fun get_is_static(run_state: &RunState): bool {
+        let state = get_lastest_state(run_state);
+        state.is_static
     }
 
     public fun get_gas_left(run_state: &RunState): u256 {

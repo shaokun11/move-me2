@@ -16,7 +16,6 @@ module aptos_framework::evm_trie {
         transient: SimpleMap<vector<u8>, SimpleMap<u256, u256>>,
         self_destruct: SimpleMap<vector<u8>, bool>,
         origin: SimpleMap<vector<u8>, SimpleMap<u256, u256>>,
-        is_static: bool
     }
 
     struct TestAccount has drop, copy, store {
@@ -26,12 +25,9 @@ module aptos_framework::evm_trie {
         storage: SimpleMap<u256, u256>
     }
 
-    public fun add_checkpoint(trie: &mut Trie, is_static: bool) {
+    public fun add_checkpoint(trie: &mut Trie) {
         let len = vector::length(&trie.context);
         let elem = *vector::borrow(&mut trie.context, len - 1);
-        if(is_static) {
-            elem.is_static = true;
-        };
         vector::push_back(&mut trie.context, elem);
     }
 
@@ -85,11 +81,6 @@ module aptos_framework::evm_trie {
             simple_map::add(checkpoint, *contract_addr, *account);
             simple_map::borrow_mut(checkpoint, contract_addr)
         }
-    }
-
-    public fun get_is_static(trie: &Trie): bool {
-        let checkpoint = get_lastest_checkpoint(trie);
-        checkpoint.is_static
     }
 
     public fun get_transient_storage(trie: &mut Trie, contract_addr: vector<u8>, key: u256): u256{
@@ -296,8 +287,7 @@ module aptos_framework::evm_trie {
             state: simple_map::new(),
             self_destruct: simple_map::new(),
             transient: simple_map::new(),
-            origin: simple_map::new(),
-            is_static: false
+            origin: simple_map::new()
         });
         trie
     }
