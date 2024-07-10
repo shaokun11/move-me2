@@ -259,7 +259,7 @@ module aptos_framework::evm_for_test {
                         error_code: &mut u64,
                         ret_bytes: &mut vector<u8>): u8 {
         *ret_bytes = x"";
-        if(init_len > MAX_INIT_CODE_SIZE) {
+        if(init_len > MAX_INIT_CODE_SIZE || is_contract_or_created_account(created_address, trie)) {
             *error_code = ERROR_EXCEED_INITCODE_SIZE;
             return CALL_RESULT_UNEXPECT_ERROR
         } else if(get_is_static(trie)) {
@@ -270,8 +270,7 @@ module aptos_framework::evm_for_test {
             let (call_gas_limit, _) = max_call_gas(gas_left, gas_left, msg_value, false);
 
             if(depth >= MAX_DEPTH_SIZE ||
-                get_nonce(current_address, trie) >= U64_MAX ||
-                is_contract_or_created_account(created_address, trie)) {
+                get_nonce(current_address, trie) >= U64_MAX) {
                 return CALL_RESULT_UNEXPECT_ERROR
             } else {
                 add_nonce(current_address, trie);
