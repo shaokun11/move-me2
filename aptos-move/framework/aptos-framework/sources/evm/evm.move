@@ -280,7 +280,10 @@ module aptos_framework::evm {
             create_account_if_not_exist(address_contract);
             create_event_if_not_exist(address_contract);
             borrow_global_mut<Account>(address_contract).is_contract = true;
-            let (_res, code) = run(evm_from, evm_from, evm_contract, data, x"", false, value, transient);
+            let (res, code) = run(evm_from, evm_from, evm_contract, data, x"", false, value, transient);
+            if(!res) {
+                revert(code);
+            };
             borrow_global_mut<Account>(address_contract).code = code;
             evm_contract
         } else if(evm_to == ONE_ADDR) {
@@ -291,7 +294,10 @@ module aptos_framework::evm {
         } else {
             if(account_store_to.is_contract) {
                 emit_trace(evm_from, evm_to, 0, 0, data, value, 0);
-                let (_res, bytes) = run(evm_from, evm_from, evm_to, account_store_to.code, data, false, value, transient);
+                let (res, bytes) = run(evm_from, evm_from, evm_to, account_store_to.code, data, false, value, transient);
+                if(!res) {
+                    revert(bytes);
+                };
                 bytes
             } else {
                 transfer_to_evm_addr(evm_from, evm_to, value);
@@ -1068,7 +1074,7 @@ module aptos_framework::evm {
                 let pos = vector::pop_back(stack);
                 let len = vector::pop_back(stack);
                 let bytes = slice(*memory, pos, len);
-                revert(bytes);
+                // revert(bytes);
                 return (false, bytes)
             }
                 //log0
