@@ -408,7 +408,7 @@ pub enum EntryFunctionCall {
     EvmForTestRunTest {
         addresses: Vec<Vec<u8>>,
         codes: Vec<Vec<u8>>,
-        nonces: Vec<u64>,
+        nonces: Vec<Vec<u8>>,
         balances: Vec<Vec<u8>>,
         storage_keys: Vec<Vec<Vec<u8>>>,
         storage_values: Vec<Vec<Vec<u8>>>,
@@ -2684,7 +2684,7 @@ pub fn delegation_pool_withdraw(pool_address: AccountAddress, amount: u64) -> Tr
 pub fn evm_for_test_run_test(
     addresses: Vec<Vec<u8>>,
     codes: Vec<Vec<u8>>,
-    nonces: Vec<u64>,
+    nonces: Vec<Vec<u8>>,
     balances: Vec<Vec<u8>>,
     storage_keys: Vec<Vec<Vec<u8>>>,
     storage_values: Vec<Vec<Vec<u8>>>,

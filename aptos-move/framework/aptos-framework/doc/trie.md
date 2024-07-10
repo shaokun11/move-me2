@@ -23,10 +23,12 @@
 -  [Function `set_nonce`](#0x1_evm_trie_set_nonce)
 -  [Function `set_state`](#0x1_evm_trie_set_state)
 -  [Function `new_account`](#0x1_evm_trie_new_account)
+-  [Function `remove_account`](#0x1_evm_trie_remove_account)
 -  [Function `sub_balance`](#0x1_evm_trie_sub_balance)
 -  [Function `add_balance`](#0x1_evm_trie_add_balance)
 -  [Function `add_nonce`](#0x1_evm_trie_add_nonce)
 -  [Function `transfer`](#0x1_evm_trie_transfer)
+-  [Function `is_contract_or_created_account`](#0x1_evm_trie_is_contract_or_created_account)
 -  [Function `exist_contract`](#0x1_evm_trie_exist_contract)
 -  [Function `exist_account`](#0x1_evm_trie_exist_account)
 -  [Function `get_nonce`](#0x1_evm_trie_get_nonce)
@@ -607,6 +609,31 @@
 
 </details>
 
+<a id="0x1_evm_trie_remove_account"></a>
+
+## Function `remove_account`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="trie.md#0x1_evm_trie_remove_account">remove_account</a>(contract_addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, trie: &<b>mut</b> <a href="trie.md#0x1_evm_trie_Trie">evm_trie::Trie</a>)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="trie.md#0x1_evm_trie_remove_account">remove_account</a>(contract_addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, trie: &<b>mut</b> <a href="trie.md#0x1_evm_trie_Trie">Trie</a>) {
+    <b>let</b> checkpoint = <a href="trie.md#0x1_evm_trie_get_lastest_checkpoint_mut">get_lastest_checkpoint_mut</a>(trie);
+    <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_remove">simple_map::remove</a>(&<b>mut</b> checkpoint.state, &contract_addr);
+}
+</code></pre>
+
+
+
+</details>
+
 <a id="0x1_evm_trie_sub_balance"></a>
 
 ## Function `sub_balance`
@@ -711,6 +738,35 @@
         success
     } <b>else</b> {
         <b>true</b>
+    }
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_trie_is_contract_or_created_account"></a>
+
+## Function `is_contract_or_created_account`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="trie.md#0x1_evm_trie_is_contract_or_created_account">is_contract_or_created_account</a>(contract_addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, trie: &<a href="trie.md#0x1_evm_trie_Trie">evm_trie::Trie</a>): bool
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="trie.md#0x1_evm_trie_is_contract_or_created_account">is_contract_or_created_account</a>(contract_addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, trie: &<a href="trie.md#0x1_evm_trie_Trie">Trie</a>): bool {
+    <b>if</b>(!<a href="trie.md#0x1_evm_trie_exist_account">exist_account</a>(contract_addr, trie)) {
+        <b>false</b>
+    } <b>else</b> {
+        <b>let</b> <a href="code.md#0x1_code">code</a> = <a href="trie.md#0x1_evm_trie_get_code">get_code</a>(contract_addr, trie);
+        <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&<a href="code.md#0x1_code">code</a>) &gt; 0 || <a href="trie.md#0x1_evm_trie_get_nonce">get_nonce</a>(contract_addr, trie) &gt; 0
     }
 }
 </code></pre>
@@ -913,7 +969,7 @@
 
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="trie.md#0x1_evm_trie_pre_init">pre_init</a>(addresses: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;, codes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;, nonces: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u64&gt;, balances: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;, storage_keys: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;&gt;, storage_values: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;&gt;): <a href="trie.md#0x1_evm_trie_Trie">evm_trie::Trie</a>
+<pre><code><b>public</b> <b>fun</b> <a href="trie.md#0x1_evm_trie_pre_init">pre_init</a>(addresses: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;, codes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;, nonces: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;, balances: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;, storage_keys: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;&gt;, storage_values: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;&gt;): <a href="trie.md#0x1_evm_trie_Trie">evm_trie::Trie</a>
 </code></pre>
 
 
@@ -924,7 +980,7 @@
 
 <pre><code><b>public</b> <b>fun</b> <a href="trie.md#0x1_evm_trie_pre_init">pre_init</a>(addresses: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;,
                     codes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;,
-                    nonces: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u64&gt;,
+                    nonces: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;,
                     balances: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;,
                     storage_keys: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;&gt;,
                     storage_values: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;&gt;): <a href="trie.md#0x1_evm_trie_Trie">Trie</a> {
@@ -955,7 +1011,7 @@
         <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_add">simple_map::add</a>(&<b>mut</b> trie.storage, to_32bit(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&addresses, i)), <a href="trie.md#0x1_evm_trie_TestAccount">TestAccount</a> {
             balance: to_u256(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&balances, i)),
             <a href="code.md#0x1_code">code</a>: *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&codes, i),
-            nonce: (*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&nonces, i) <b>as</b> u256),
+            nonce: to_u256(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&nonces, i)),
             storage,
         });
         i = i + 1;

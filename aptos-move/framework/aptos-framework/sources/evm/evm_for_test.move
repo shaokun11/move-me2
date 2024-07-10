@@ -264,7 +264,8 @@ module aptos_framework::evm_for_test {
         } else {
             let gas_left = get_gas_left(run_state);
             let (call_gas_limit, _) = max_call_gas(gas_left, gas_left, msg_value, false);
-
+            debug::print(&utf8(b"depth"));
+            debug::print(&depth);
             if(depth >= MAX_DEPTH_SIZE ||
                 get_nonce(current_address, trie) >= U64_MAX ||
                 get_balance(current_address, trie) < msg_value ||

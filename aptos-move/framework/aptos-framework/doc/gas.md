@@ -29,7 +29,8 @@
 -  [Function `calc_exec_gas`](#0x1_evm_gas_calc_exec_gas)
 
 
-<pre><code><b>use</b> <a href="global_state.md#0x1_evm_global_state">0x1::evm_global_state</a>;
+<pre><code><b>use</b> <a href="../../aptos-stdlib/doc/debug.md#0x1_debug">0x1::debug</a>;
+<b>use</b> <a href="global_state.md#0x1_evm_global_state">0x1::evm_global_state</a>;
 <b>use</b> <a href="trie.md#0x1_evm_trie">0x1::evm_trie</a>;
 <b>use</b> <a href="util.md#0x1_evm_util">0x1::evm_util</a>;
 <b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">0x1::vector</a>;
@@ -621,6 +622,11 @@
                   trie: &<b>mut</b> Trie, run_state: &<b>mut</b> RunState, gas_limit: u256, error_code: &<b>mut</b> u64): u256 {
     <b>let</b> gas = 0;
     <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack);
+    <b>let</b> size = <b>if</b>(opcode == 0xf1 || opcode == 0xf2) 7 <b>else</b> 6;
+    <b>if</b>(len &lt; size) {
+        *error_code = <a href="gas.md#0x1_evm_gas_STACK_UNDERFLOW">STACK_UNDERFLOW</a>;
+        <b>return</b> 0
+    };
     <b>let</b> <b>address</b> = get_valid_ethereum_address(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(stack,len - 2));
     <b>if</b>(opcode == 0xf1 || opcode == 0xf2) {
         <b>let</b> value = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(stack,len - 3);
@@ -965,7 +971,7 @@
 
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="gas.md#0x1_evm_gas_max_call_gas">max_call_gas</a>(gas_left: u256, gas_limit: u256, value: u256, opcode: u8): (u256, u256)
+<pre><code><b>public</b> <b>fun</b> <a href="gas.md#0x1_evm_gas_max_call_gas">max_call_gas</a>(gas_left: u256, gas_limit: u256, value: u256, need_stipend: bool): (u256, u256)
 </code></pre>
 
 
@@ -974,11 +980,11 @@
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="gas.md#0x1_evm_gas_max_call_gas">max_call_gas</a>(gas_left: u256, gas_limit: u256, value: u256, opcode: u8): (u256, u256) {
+<pre><code><b>public</b> <b>fun</b> <a href="gas.md#0x1_evm_gas_max_call_gas">max_call_gas</a>(gas_left: u256, gas_limit: u256, value: u256, need_stipend: bool): (u256, u256) {
     <b>let</b> gas_allow = gas_left - gas_left / 64;
     gas_limit = <b>if</b>(gas_limit &gt; gas_allow) gas_allow <b>else</b> gas_limit;
     <b>let</b> gas_stipend = 0;
-    <b>if</b>((opcode == 0xf1 || opcode == 0xf2) && value &gt; 0) {
+    <b>if</b>(need_stipend && value &gt; 0) {
         gas_stipend = gas_stipend + <a href="gas.md#0x1_evm_gas_CallStipend">CallStipend</a>;
         gas_limit = gas_limit + <a href="gas.md#0x1_evm_gas_CallStipend">CallStipend</a>;
     };
@@ -1040,7 +1046,7 @@
                          gas_limit: u256,
                          error_code: &<b>mut</b> u64
                         ): u256 {
-    // print_opcode(opcode);
+    print_opcode(opcode);
     <b>let</b> gas = <b>if</b> (opcode == 0x00) {
         // STOP
         0
@@ -1270,7 +1276,7 @@
         *error_code = <a href="gas.md#0x1_evm_gas_INVALID_OPCODE">INVALID_OPCODE</a>;
         0
     };
-    // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&gas);
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&gas);
     gas
 }
 </code></pre>

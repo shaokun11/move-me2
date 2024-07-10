@@ -5,6 +5,7 @@
 
 
 
+-  [Struct `Env`](#0x1_evm_global_state_Env)
 -  [Struct `RunState`](#0x1_evm_global_state_RunState)
 -  [Struct `CallState`](#0x1_evm_global_state_CallState)
 -  [Function `new_run_state`](#0x1_evm_global_state_new_run_state)
@@ -24,11 +25,102 @@
 -  [Function `clear_gas_refund`](#0x1_evm_global_state_clear_gas_refund)
 -  [Function `get_gas_left`](#0x1_evm_global_state_get_gas_left)
 -  [Function `get_gas_refund`](#0x1_evm_global_state_get_gas_refund)
+-  [Function `get_coinbase`](#0x1_evm_global_state_get_coinbase)
+-  [Function `get_basefee`](#0x1_evm_global_state_get_basefee)
+-  [Function `get_gas_price`](#0x1_evm_global_state_get_gas_price)
+-  [Function `get_gas_limit`](#0x1_evm_global_state_get_gas_limit)
+-  [Function `get_timestamp`](#0x1_evm_global_state_get_timestamp)
+-  [Function `get_block_number`](#0x1_evm_global_state_get_block_number)
+-  [Function `get_block_difficulty`](#0x1_evm_global_state_get_block_difficulty)
+-  [Function `get_origin`](#0x1_evm_global_state_get_origin)
+-  [Function `parse_env`](#0x1_evm_global_state_parse_env)
 
 
-<pre><code></code></pre>
+<pre><code><b>use</b> <a href="util.md#0x1_evm_util">0x1::evm_util</a>;
+</code></pre>
 
 
+
+<a id="0x1_evm_global_state_Env"></a>
+
+## Struct `Env`
+
+
+
+<pre><code><b>struct</b> <a href="global_state.md#0x1_evm_global_state_Env">Env</a> <b>has</b> drop
+</code></pre>
+
+
+
+<details>
+<summary>Fields</summary>
+
+
+<dl>
+<dt>
+<code>base_fee: u256</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>coinbase: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>difficulty: u256</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>excess_blob_gas: u256</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>gas_limit: u256</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>gas_price: u256</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>number: u256</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>random: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code><a href="timestamp.md#0x1_timestamp">timestamp</a>: u256</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>sender: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+</dl>
+
+
+</details>
 
 <a id="0x1_evm_global_state_RunState"></a>
 
@@ -48,6 +140,12 @@
 <dl>
 <dt>
 <code>call_state: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="global_state.md#0x1_evm_global_state_CallState">evm_global_state::CallState</a>&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>env: <a href="global_state.md#0x1_evm_global_state_Env">evm_global_state::Env</a></code>
 </dt>
 <dd>
 
@@ -114,7 +212,7 @@
 
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_new_run_state">new_run_state</a>(gas_limit: u256): <a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_new_run_state">new_run_state</a>(sender: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_price: u256, gas_limit: u256, env_data: &<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;): <a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>
 </code></pre>
 
 
@@ -123,9 +221,10 @@
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_new_run_state">new_run_state</a>(gas_limit: u256): <a href="global_state.md#0x1_evm_global_state_RunState">RunState</a> {
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_new_run_state">new_run_state</a>(sender: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_price: u256, gas_limit: u256, env_data: &<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;): <a href="global_state.md#0x1_evm_global_state_RunState">RunState</a> {
     <b>let</b> state = <a href="global_state.md#0x1_evm_global_state_RunState">RunState</a> {
         call_state: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_empty">vector::empty</a>(),
+        env: <a href="global_state.md#0x1_evm_global_state_parse_env">parse_env</a>(env_data, sender, gas_price)
     };
     <a href="global_state.md#0x1_evm_global_state_add_call_state">add_call_state</a>(&<b>mut</b> state, gas_limit);
     state
@@ -542,6 +641,241 @@
 <pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_gas_refund">get_gas_refund</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>): u256 {
     <b>let</b> state = <a href="global_state.md#0x1_evm_global_state_get_lastest_state">get_lastest_state</a>(run_state);
     state.gas_refund
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_global_state_get_coinbase"></a>
+
+## Function `get_coinbase`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_coinbase">get_coinbase</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_coinbase">get_coinbase</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt; {
+    run_state.env.coinbase
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_global_state_get_basefee"></a>
+
+## Function `get_basefee`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_basefee">get_basefee</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>): u256
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_basefee">get_basefee</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>): u256 {
+    run_state.env.base_fee
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_global_state_get_gas_price"></a>
+
+## Function `get_gas_price`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_gas_price">get_gas_price</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>): u256
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_gas_price">get_gas_price</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>): u256 {
+    run_state.env.gas_price
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_global_state_get_gas_limit"></a>
+
+## Function `get_gas_limit`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_gas_limit">get_gas_limit</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>): u256
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_gas_limit">get_gas_limit</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>): u256 {
+    run_state.env.gas_limit
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_global_state_get_timestamp"></a>
+
+## Function `get_timestamp`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_timestamp">get_timestamp</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>): u256
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_timestamp">get_timestamp</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>): u256 {
+    run_state.env.<a href="timestamp.md#0x1_timestamp">timestamp</a>
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_global_state_get_block_number"></a>
+
+## Function `get_block_number`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_block_number">get_block_number</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>): u256
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_block_number">get_block_number</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>): u256 {
+    run_state.env.number
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_global_state_get_block_difficulty"></a>
+
+## Function `get_block_difficulty`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_block_difficulty">get_block_difficulty</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>): u256
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_block_difficulty">get_block_difficulty</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>): u256 {
+    run_state.env.difficulty
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_global_state_get_origin"></a>
+
+## Function `get_origin`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_origin">get_origin</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_origin">get_origin</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt; {
+    run_state.env.sender
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_global_state_parse_env"></a>
+
+## Function `parse_env`
+
+
+
+<pre><code><b>fun</b> <a href="global_state.md#0x1_evm_global_state_parse_env">parse_env</a>(env: &<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;, sender: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_price: u256): <a href="global_state.md#0x1_evm_global_state_Env">evm_global_state::Env</a>
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="global_state.md#0x1_evm_global_state_parse_env">parse_env</a>(env: &<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;, sender: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_price: u256): <a href="global_state.md#0x1_evm_global_state_Env">Env</a> {
+    <b>let</b> base_fee = to_u256(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(env, 0));
+    <b>let</b> coinbase = to_32bit(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(env, 1));
+    <b>let</b> difficulty = to_u256(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(env, 2));
+    <b>let</b> excess_blob_gas = to_u256(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(env, 3));
+    <b>let</b> gas_limit = to_u256(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(env, 4));
+    <b>let</b> number = to_u256(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(env, 5));
+    <b>let</b> random = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(env, 6);
+    <b>let</b> <a href="timestamp.md#0x1_timestamp">timestamp</a> = to_u256(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(env, 7));
+    <a href="global_state.md#0x1_evm_global_state_Env">Env</a> {
+        sender,
+        base_fee,
+        coinbase,
+        difficulty,
+        excess_blob_gas,
+        gas_limit,
+        gas_price,
+        number,
+        random,
+        <a href="timestamp.md#0x1_timestamp">timestamp</a>,
+    }
 }
 </code></pre>
 
