@@ -258,6 +258,7 @@ module aptos_framework::evm_for_test {
                         trie: &mut Trie,
                         error_code: &mut u64,
                         ret_bytes: &mut vector<u8>): u8 {
+        *ret_bytes = x"";
         if(init_len > MAX_INIT_CODE_SIZE) {
             *error_code = ERROR_EXCEED_INITCODE_SIZE;
             return CALL_RESULT_UNEXPECT_ERROR
@@ -282,6 +283,8 @@ module aptos_framework::evm_for_test {
                 } else if(create_res == CALL_RESULT_REVERT) {
                     *ret_bytes = bytes;
                 };
+                debug::print(&242352);
+                debug::print(ret_bytes);
 
                 return create_res
             }
