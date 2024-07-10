@@ -260,10 +260,7 @@ module aptos_framework::evm_for_test {
                         error_code: &mut u64,
                         ret_bytes: &mut vector<u8>): u8 {
         *ret_bytes = x"";
-        if(is_contract_or_created_account(created_address, trie)) {
-            *error_code = ERROR_CREATE_CONTRACT_COLLISION;
-            return CALL_RESULT_UNEXPECT_ERROR
-        }else if(init_len > MAX_INIT_CODE_SIZE ) {
+        if(init_len > MAX_INIT_CODE_SIZE ) {
             *error_code = ERROR_EXCEED_INITCODE_SIZE;
             return CALL_RESULT_UNEXPECT_ERROR
         } else if(get_is_static(trie)) {
@@ -272,12 +269,14 @@ module aptos_framework::evm_for_test {
         } else {
             let gas_left = get_gas_left(run_state);
             let (call_gas_limit, _) = max_call_gas(gas_left, gas_left, msg_value, false);
-
+            add_nonce(current_address, trie);
             if(depth >= MAX_DEPTH_SIZE ||
                 get_nonce(current_address, trie) >= U64_MAX) {
                 return CALL_RESULT_UNEXPECT_ERROR
-            } else {
-                add_nonce(current_address, trie);
+            } else if(is_contract_or_created_account(created_address, trie)) {
+                add_gas_usage(run_state, call_gas_limit);
+                return CALL_RESULT_UNEXPECT_ERROR
+            }else {
                 add_checkpoint(trie, false);
                 let (create_res, bytes) = run(current_address, created_address, codes, x"", msg_value, call_gas_limit, trie, run_state, true, true, depth + 1);
                 if(create_res == CALL_RESULT_SUCCESS) {
@@ -1128,12 +1127,12 @@ module aptos_framework::evm_for_test {
                 *error_code = ERROR_INVALID_OPCODE;
                 i = i + 1
             }
-                //blob blob hash
-            else if(opcode == 0x49 || opcode == 0x4a || opcode == 0xff) {
-                assert!(false, OPCODE_UNIMPLEMENT);
-                // vector::push_back(stack, 0);
-                i = i + 1;
-            }
+            //     //blob blob hash
+            // else if(opcode == 0x49 || opcode == 0x4a || opcode == 0xff) {
+            //     assert!(false, OPCODE_UNIMPLEMENT);
+            //     // vector::push_back(stack, 0);
+            //     i = i + 1;
+            // }
             else {
                 assert!(false, (opcode as u64));
             };
