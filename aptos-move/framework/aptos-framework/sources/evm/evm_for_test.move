@@ -275,11 +275,11 @@ module aptos_framework::evm_for_test {
                 return CALL_RESULT_UNEXPECT_ERROR
             } else {
                 add_nonce(current_address, trie);
+                add_warm_address(created_address, trie);
                 if(is_contract_or_created_account(created_address, trie)) {
                     add_gas_usage(run_state, call_gas_limit);
                     return CALL_RESULT_UNEXPECT_ERROR
                 } else {
-                    add_warm_address(created_address, trie);
                     add_checkpoint(trie, false);
                     let (create_res, bytes) = run(current_address, created_address, codes, x"", msg_value, call_gas_limit, trie, run_state, true, true, depth + 1);
                     if(create_res == CALL_RESULT_SUCCESS) {
@@ -809,7 +809,6 @@ module aptos_framework::evm_for_test {
                 // mload
             else if(opcode == 0x51) {
                 let pos = pop_stack_u64(stack, error_code);
-                debug::print(memory);
                 vector::push_back(stack, data_to_u256(vector_slice(*memory, pos, 32), 0, 32));
                 i = i + 1;
             }
