@@ -4,15 +4,13 @@ import cors from 'cors';
 import JsonRpc from 'json-rpc-2.0';
 import { rpc } from './rpc.js';
 import { SERVER_PORT } from './const.js';
-import { startBotTask } from "./task_bot.js"
-import { startFaucetTask } from "./task_faucet.js"
-
+import { startBotTask } from './task_bot.js';
+import { startFaucetTask } from './task_faucet.js';
 
 const { JSONRPCServer, createJSONRPCErrorResponse } = JsonRpc;
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
-
 
 const server = new JSONRPCServer();
 for (const [key, value] of Object.entries(rpc)) {
@@ -24,10 +22,14 @@ server.applyMiddleware(async function (next, request, serverParams) {
         return await next(request, serverParams);
     } catch (error) {
         // console.error('error', error);
-        const message = typeof error === 'string' ? error : error?.message || 'Internal error';
-        const err = createJSONRPCErrorResponse(request.id, error?.code || -32000, message, {
-            message,
-        });
+        let message = typeof error === 'string' ? error : error?.message || 'Internal error';
+        let data = request.params;
+        if (message.startsWith('reverted:')) {
+            // for handle eth_call reverted message
+            data = message.slice(9);
+            message = 'execution reverted';
+        }
+        const err = createJSONRPCErrorResponse(request.id, error?.code || -32000, message, data);
         return err;
     }
 });

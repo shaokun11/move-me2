@@ -104,12 +104,13 @@ export const rpc = {
      * @throws Will throw an error if the contract method invocation fails.
      */
     eth_call: async function (args) {
-        let { to, data: data_, from } = args[0];
+        let { to, data, from, value } = args[0];
         try {
             // for cast cast 0.2.0 (23700c9 2024-05-22T00:16:24.627116943Z)
             // the data is in the input field
-            if (!data_) data_ = args[0].input;
-            return await callContract(from, to, data_, args[1]);
+            if (!data) data = args[0].input;
+            if (!value || value === '0x') value = '0x0';
+            return await callContract(from, to, data, value, args[1]);
         } catch (error) {
             throw new JSONRPCErrorException(error.message || 'execution reverted', -32000);
         }
