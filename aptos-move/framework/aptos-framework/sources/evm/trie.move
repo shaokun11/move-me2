@@ -201,8 +201,8 @@ module aptos_framework::evm_trie {
         if(!exist_account(contract_addr, trie)) {
             false
         } else {
-            let code = get_code(contract_addr, trie);
-            vector::length(&code) > 0 || get_nonce(contract_addr, trie) > 0
+            let account = load_account_checkpoint(trie, &contract_addr);
+            vector::length(&account.code) > 0 || account.nonce > 0 || simple_map::length(&account.storage) > 0
         }
     }
 

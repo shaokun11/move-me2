@@ -39,14 +39,17 @@ module aptos_framework::evm_test {
 
         let storage_maps = simple_map::new<vector<u8>, simple_map::SimpleMap<vector<u8>, vector<u8>>>();
         let (storage_keys, storage_values) = (vector::empty<vector<vector<u8>>>(), vector::empty<vector<vector<u8>>>());
-        
+        simple_map::add(&mut storage_maps, x"af3ecba2fe09a4f6c19f16a9d119e44e08c2da01", init_storage(vector[0x00], vector[0x01]
+));simple_map::add(&mut storage_maps, x"e2b35478fdd26477cc576dd906e6277761246a3c", init_storage(vector[0x00], vector[0x01]
+));simple_map::add(&mut storage_maps, x"ec2c6832d00680ece8ff9254f81fdab0a5a2ac50", init_storage(vector[0x00], vector[0x01]
+));
         // simple_map::add(&mut storage_maps, x"a00000000000000000000000000000000000000a", init_storage(vector[0x02], vector[0xffff]));
 
 
 
         let addresses = vector[x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b", x"af3ecba2fe09a4f6c19f16a9d119e44e08c2da01", x"e2b35478fdd26477cc576dd906e6277761246a3c", x"ec2c6832d00680ece8ff9254f81fdab0a5a2ac50"];
-        let balance_table = vector[0x0de0b6b3a7640000, 0x00, 0x00, 0x00];
-        let codes = vector[x"", x"010203", x"010203", x"010203"];
+        let balance_table = vector[0x0de0b6b3a7640000, 0x0a, 0x0a, 0x0a];
+        let codes = vector[x"", x"", x"", x""];
         let nonce_table = vector[0x00, 0x00, 0x00, 0x00];
         let i = 0;
         let balances = vector::empty<vector<u8>>();
