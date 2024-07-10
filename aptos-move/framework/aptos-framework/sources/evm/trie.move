@@ -151,6 +151,11 @@ module aptos_framework::evm_trie {
         });
     }
 
+    public fun remove_account(contract_addr: vector<u8>, trie: &mut Trie) {
+        let checkpoint = get_lastest_checkpoint_mut(trie);
+        simple_map::remove(&mut checkpoint.state, &contract_addr);
+    }
+
     public fun sub_balance(contract_addr: vector<u8>, amount: u256, trie: &mut Trie): bool {
         let account = load_account_checkpoint_mut(trie, &contract_addr);
         if(account.balance >= amount) {

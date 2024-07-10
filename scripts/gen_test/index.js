@@ -81,6 +81,6 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "Create2OOGafterInitCodeRevert"
+let key = "Create2OnDepth1023"
 
-read("src/GeneralStateTests/stCreate2/Create2OOGafterInitCodeRevert.json", key, 0, 0, 0)
+read("src/GeneralStateTests/stCreate2/Create2OnDepth1023.json", key, 0, 0, 0)

@@ -9,11 +9,11 @@ module aptos_framework::evm_for_test {
     use aptos_framework::evm_precompile::{is_precompile_address, run_precompile};
     use aptos_std::simple_map;
     use aptos_std::simple_map::SimpleMap;
-    use aptos_framework::evm_global_state::{new_run_state, add_gas_usage, get_gas_refund, RunState, add_call_state, revert_call_state, commit_call_state, get_gas_left, add_gas_left, clear_gas_refund};
+    use aptos_framework::evm_global_state::{new_run_state, add_gas_usage, get_gas_refund, RunState, add_call_state, revert_call_state, commit_call_state, get_gas_left, add_gas_left, clear_gas_refund, get_coinbase, get_basefee, get_origin, get_gas_price, get_timestamp, get_block_number, get_block_difficulty, get_gas_limit};
     use aptos_framework::evm_gas::{calc_exec_gas, calc_base_gas, max_call_gas};
     use aptos_framework::event;
     use aptos_framework::evm_arithmetic::{add, mul, sub, div, sdiv, mod, smod, add_mod, mul_mod, exp, shr, sar, slt, sgt};
-    use aptos_framework::evm_trie::{pre_init, Trie, add_checkpoint, revert_checkpoint, commit_latest_checkpoint, TestAccount, get_code, sub_balance, add_nonce, transfer, get_balance, get_state, set_state, exist_contract, get_nonce, new_account, get_storage_copy, save, add_balance, add_warm_address, get_transient_storage, put_transient_storage, get_is_static, set_code, is_contract_or_created_account};
+    use aptos_framework::evm_trie::{pre_init, Trie, add_checkpoint, revert_checkpoint, commit_latest_checkpoint, TestAccount, get_code, sub_balance, add_nonce, transfer, get_balance, get_state, set_state, exist_contract, get_nonce, new_account, get_storage_copy, save, add_balance, add_warm_address, get_transient_storage, put_transient_storage, get_is_static, set_code, is_contract_or_created_account, remove_account};
     friend aptos_framework::genesis;
 
     const ADDR_LENGTH: u64 = 10001;
@@ -57,18 +57,6 @@ module aptos_framework::evm_for_test {
     const CALL_RESULT_REVERT: u8 = 1;
     const CALL_RESULT_OUT_OF_GAS: u8 = 2;
     const CALL_RESULT_UNEXPECT_ERROR: u8 = 3;
-
-    struct Env has drop {
-        base_fee: u256,
-        coinbase: vector<u8>,
-        difficulty: u256,
-        excess_blob_gas: u256,
-        gas_limit: u256,
-        gas_price: u256,
-        number: u256,
-        random: vector<u8>,
-        timestamp: u256,
-    }
 
     struct ExecResource has key {
         exec_event: EventHandle<ExecResultEvent>
@@ -149,27 +137,6 @@ module aptos_framework::evm_for_test {
         });
     }
 
-    fun parse_env(env: &vector<vector<u8>>, gas_price: u256): Env {
-        let base_fee = to_u256(*vector::borrow(env, 0));
-        let coinbase = to_32bit(*vector::borrow(env, 1));
-        let difficulty = to_u256(*vector::borrow(env, 2));
-        let excess_blob_gas = to_u256(*vector::borrow(env, 3));
-        let gas_limit = to_u256(*vector::borrow(env, 4));
-        let number = to_u256(*vector::borrow(env, 5));
-        let random = *vector::borrow(env, 6);
-        let timestamp = to_u256(*vector::borrow(env, 7));
-        Env {
-            base_fee,
-            coinbase,
-            difficulty,
-            excess_blob_gas,
-            gas_limit,
-            gas_price,
-            number,
-            random,
-            timestamp,
-        }
-    }
 
     fun handle_tx_failed(trie: &Trie) acquires ExecResource {
         let state_root = calculate_root(get_storage_copy(trie));
@@ -190,18 +157,16 @@ module aptos_framework::evm_for_test {
                               value_bytes: vector<u8>,
                               env_data: vector<vector<u8>>) acquires ExecResource {
         let gas_price = to_u256(gas_price_bytes);
-        let env = parse_env(&env_data, gas_price);
+        // let env = parse_env(&env_data, gas_price);
         let value = to_u256(value_bytes);
         let trie = &mut pre_init(addresses, codes, nonces, balances, storage_keys, storage_values);
 
         let gas_limit = to_u256(gas_limit_bytes);
         from = to_32bit(from);
         to = to_32bit(to);
-
+        let run_state = &mut new_run_state(from, gas_price, gas_limit, &env_data);
         add_warm_address(from, trie);
-        add_warm_address(env.coinbase, trie);
-        // debug::print(&trie);
-        let run_state = &mut new_run_state(gas_limit);
+        add_warm_address(get_coinbase(run_state), trie);
         add_checkpoint(trie, false);
         let data_size = (vector::length(&data) as u256);
         debug::print(&data_size);
@@ -227,13 +192,13 @@ module aptos_framework::evm_for_test {
                         return
                     };
 
-                    run(from, from, evm_contract, data, x"", value, get_gas_left(run_state), trie, run_state, &env, true, true, 0);
+                    run(from, evm_contract, data, x"", value, get_gas_left(run_state), trie, run_state, true, true, 0);
                 };
             } else {
                 if(is_precompile_address(to)) {
                      precompile(to, data, gas_limit, run_state);
                 } else {
-                    run(from, from, to, get_code(to, trie), data, value, gas_limit - base_cost, trie, run_state, &env, true, false, 0);
+                    run(from, to, get_code(to, trie), data, value, gas_limit - base_cost, trie, run_state, true, false, 0);
                 };
             };
             let gas_refund = get_gas_refund(run_state);
@@ -247,10 +212,10 @@ module aptos_framework::evm_for_test {
             let gasfee = gas_price * gas_usage;
             sub_balance(from, gasfee, trie);
             add_nonce(from, trie);
-
-            if(env.base_fee < gas_price) {
-                let miner_value = (gas_price - env.base_fee) * gas_usage;
-                add_balance(env.coinbase, miner_value, trie);
+            let basefee = get_basefee(run_state);
+            if(basefee < gas_price) {
+                let miner_value = (gas_price - basefee) * gas_usage;
+                add_balance(get_coinbase(run_state), miner_value, trie);
             };
 
             save(trie);
@@ -269,8 +234,9 @@ module aptos_framework::evm_for_test {
         commit_call_state(run_state);
     }
 
-    fun handle_unexpect_revert(trie: &mut Trie, run_state: &mut RunState) {
+    fun handle_unexpect_revert(trie: &mut Trie, run_state: &mut RunState, error_code: &u64) {
         debug::print(&utf8(b"unexcept revert"));
+        debug::print(error_code);
         revert_checkpoint(trie);
         revert_call_state(run_state);
     }
@@ -280,9 +246,97 @@ module aptos_framework::evm_for_test {
         commit_call_state(run_state);
     }
 
+    fun create_internal(init_len: u256,
+                        current_address: vector<u8>,
+                        created_address: vector<u8>,
+                        depth: u64,
+                        codes: vector<u8>,
+                        msg_value: u256,
+                        run_state: &mut RunState,
+                        trie: &mut Trie,
+                        error_code: &mut u64): bool {
+        if(init_len > MAX_INIT_CODE_SIZE) {
+            *error_code = ERROR_EXCEED_INITCODE_SIZE;
+            return false
+        } else if(get_is_static(trie)) {
+            *error_code = ERROR_STATIC_STATE_CHANGE;
+            return false
+        } else {
+            let gas_left = get_gas_left(run_state);
+            let (call_gas_limit, _) = max_call_gas(gas_left, gas_left, msg_value, false);
+
+            if(depth >= MAX_DEPTH_SIZE ||
+                get_nonce(current_address, trie) >= U64_MAX ||
+                get_balance(current_address, trie) < msg_value ||
+                is_contract_or_created_account(created_address, trie)) {
+                return false
+            } else {
+                add_nonce(current_address, trie);
+                add_checkpoint(trie, false);
+                let (create_res, bytes) = run(current_address, created_address, codes, x"", msg_value, call_gas_limit, trie, run_state, true, true, depth + 1);
+                if(create_res == CALL_RESULT_SUCCESS) {
+                    let storage_code_size = (vector::length(&bytes) as u256);
+                    let out_of_gas = add_gas_usage(run_state, 200 * storage_code_size);
+                    if(out_of_gas) {
+                        remove_account(created_address, trie);
+                    } else {
+                        set_code(trie, created_address, bytes);
+                    }
+                };
+
+                return (create_res == CALL_RESULT_SUCCESS)
+            }
+        }
+    }
+
+    fun create(memory: &mut vector<u8>,
+                stack: &mut vector<u256>,
+                depth: u64,
+                current_address: vector<u8>,
+                run_state: &mut RunState,
+                trie: &mut Trie,
+                error_code: &mut u64) {
+        let msg_value = pop_stack(stack, error_code);
+        let pos = pop_stack_u64(stack, error_code);
+        let len = pop_stack(stack, error_code);
+        let codes = vector_slice(*memory, pos, (len as u64));
+        let new_evm_contract_addr = get_contract_address(current_address, (get_nonce(current_address, trie) as u64));
+        let success = create_internal(len, current_address, new_evm_contract_addr, depth, codes, msg_value, run_state, trie, error_code);
+        if(success) {
+            vector::push_back(stack, to_u256(new_evm_contract_addr));
+        } else {
+            vector::push_back(stack, 0);
+        }
+    }
+
+    fun create2(memory: &mut vector<u8>,
+                stack: &mut vector<u256>,
+                depth: u64,
+                current_address: vector<u8>,
+                run_state: &mut RunState,
+                trie: &mut Trie,
+                error_code: &mut u64) {
+        let msg_value = pop_stack(stack, error_code);
+        let pos = pop_stack_u64(stack, error_code);
+        let len = pop_stack(stack, error_code);
+        let salt = u256_to_data(pop_stack(stack, error_code));
+        let codes = vector_slice(*memory, pos, (len as u64));
+        let p = vector::empty<u8>();
+        vector::append(&mut p, x"ff");
+        vector::append(&mut p, vector_slice(current_address, 12, 20));
+        vector::append(&mut p, salt);
+        vector::append(&mut p, keccak256(codes));
+        let new_evm_contract_addr = to_32bit(vector_slice(keccak256(p), 12, 20));
+        let success = create_internal(len, current_address, new_evm_contract_addr, depth, codes, msg_value, run_state, trie, error_code);
+        if(success) {
+            vector::push_back(stack, to_u256(new_evm_contract_addr));
+        } else {
+            vector::push_back(stack, 0);
+        }
+    }
+
 
     fun run(
-            origin: vector<u8>,
             sender: vector<u8>,
             to: vector<u8>,
             code: vector<u8>,
@@ -291,7 +345,6 @@ module aptos_framework::evm_for_test {
             gas_limit: u256,
             trie: &mut Trie,
             run_state: &mut RunState,
-            env: &Env,
             transfer_eth: bool,
             is_create: bool,
             depth: u64
@@ -311,8 +364,6 @@ module aptos_framework::evm_for_test {
             };
         };
 
-
-
         // let to_account = simple_map::borrow_mut(&mut trie, &to);
 
         let stack = &mut vector::empty<u256>();
@@ -331,7 +382,7 @@ module aptos_framework::evm_for_test {
             let gas = calc_exec_gas(opcode, to, stack, run_state, trie, gas_limit, error_code);
             let out_of_gas = add_gas_usage(run_state, gas);
             if(*error_code > 0 || out_of_gas) {
-                handle_unexpect_revert(trie, run_state);
+                handle_unexpect_revert(trie, run_state, error_code);
                 return (if(out_of_gas) CALL_RESULT_OUT_OF_GAS else CALL_RESULT_UNEXPECT_ERROR, ret_bytes)
             };
             // debug::print(&i);
@@ -595,7 +646,7 @@ module aptos_framework::evm_for_test {
             }
                 //origin
             else if(opcode == 0x32) {
-                let value = data_to_u256(origin, 0, 32);
+                let value = data_to_u256(get_origin(run_state), 0, 32);
                 vector::push_back(stack, value);
                 i = i + 1;
             }
@@ -645,8 +696,7 @@ module aptos_framework::evm_for_test {
             }
                 //gasprice
             else if(opcode == 0x3a) {
-                vector::push_back(stack, env.gas_price);
-
+                vector::push_back(stack, get_gas_price(run_state));
                 i = i + 1
             }
                 //extcodesize
@@ -710,27 +760,27 @@ module aptos_framework::evm_for_test {
             }
                 //coinbase
             else if(opcode == 0x41) {
-                vector::push_back(stack, to_u256(env.coinbase));
+                vector::push_back(stack, to_u256(get_coinbase(run_state)));
                 i = i + 1;
             }
                 //timestamp
             else if(opcode == 0x42) {
-                vector::push_back(stack, env.timestamp);
+                vector::push_back(stack, get_timestamp(run_state));
                 i = i + 1;
             }
                 //number
             else if(opcode == 0x43) {
-                vector::push_back(stack, env.number);
+                vector::push_back(stack, get_block_number(run_state));
                 i = i + 1;
             }
                 //difficulty
             else if(opcode == 0x44) {
-                vector::push_back(stack, env.difficulty);
+                vector::push_back(stack, get_block_difficulty(run_state));
                 i = i + 1;
             }
                 //gaslimit
             else if(opcode == 0x45) {
-                vector::push_back(stack, env.gas_limit);
+                vector::push_back(stack, get_gas_limit(run_state));
                 i = i + 1;
             }
                 //chainid
@@ -745,7 +795,7 @@ module aptos_framework::evm_for_test {
             }
                 //self balance
             else if(opcode == 0x48) {
-                vector::push_back(stack, env.base_fee);
+                vector::push_back(stack, get_basefee(run_state));
                 i = i + 1;
             }
                 // mload
@@ -907,8 +957,9 @@ module aptos_framework::evm_for_test {
                 let gas_left = get_gas_left(run_state);
                 let gas = pop_stack(stack, error_code);
                 let evm_dest_addr = get_valid_ethereum_address(pop_stack(stack, error_code));
+                let need_stipend = if (opcode == 0xf1 || opcode == 0xf2) true else false;
                 let msg_value = if (opcode == 0xf1 || opcode == 0xf2) pop_stack(stack, error_code) else if(opcode == 0xf4) value else 0;
-                let (call_gas_limit, gas_stipend) = max_call_gas(gas_left, gas, msg_value, opcode);
+                let (call_gas_limit, gas_stipend) = max_call_gas(gas_left, gas, msg_value, need_stipend);
                 if(gas_stipend > 0) {
                     add_gas_left(run_state, gas_stipend);
                 };
@@ -936,7 +987,7 @@ module aptos_framework::evm_for_test {
                     } else if (exist_contract(code_address, trie)) {
                         let dest_code = get_code(code_address, trie);
                         add_checkpoint(trie, is_static);
-                        let (call_res, bytes) = run(origin, call_from, call_to, dest_code, params, msg_value, call_gas_limit, trie, run_state, env, transfer_eth, false, depth + 1);
+                        let (call_res, bytes) = run(call_from, call_to, dest_code, params, msg_value, call_gas_limit, trie, run_state, transfer_eth, false, depth + 1);
                         if(call_res == CALL_RESULT_SUCCESS || call_res == CALL_RESULT_REVERT) {
                             ret_bytes = bytes;
                             write_call_output(memory, ret_pos, ret_len, bytes);
@@ -955,84 +1006,12 @@ module aptos_framework::evm_for_test {
             }
                 //create
             else if(opcode == 0xf0) {
-                let msg_value = pop_stack(stack, error_code);
-                let pos = pop_stack_u64(stack, error_code);
-                let len = pop_stack(stack, error_code);
-                if(len > MAX_INIT_CODE_SIZE) {
-                    *error_code = ERROR_EXCEED_INITCODE_SIZE;
-                } else if(get_is_static(trie)) {
-                    *error_code = ERROR_STATIC_STATE_CHANGE;
-                } else {
-                    let new_codes = vector_slice(*memory, pos, (len as u64));
-                    // let contract_store = borrow_global_mut<Account>(move_contract_address);
-                    let nonce = get_nonce(to, trie);
-                    let gas_left = get_gas_left(run_state);
-                    let (call_gas_limit, gas_stipend) = max_call_gas(gas_left, gas_left, msg_value, opcode);
-                    if(gas_stipend > 0) {
-                        add_gas_left(run_state, gas_stipend);
-                    };
-
-                    let new_evm_contract_addr = get_contract_address(to, (nonce as u64));
-                    if(depth >= MAX_DEPTH_SIZE ||
-                        get_nonce(to, trie) >= U64_MAX ||
-                        get_balance(to, trie) < msg_value ||
-                        is_contract_or_created_account(new_evm_contract_addr, trie)) {
-                        vector::push_back(stack, 0);
-                    } else {
-                        add_nonce(to, trie);
-                        add_checkpoint(trie, false);
-                        let(create_res, bytes) = run(origin, to, new_evm_contract_addr, new_codes, x"", msg_value, call_gas_limit, trie, run_state, env, true, true, depth + 1);
-                        if(create_res == CALL_RESULT_SUCCESS) {
-                            set_code(trie, new_evm_contract_addr, bytes);
-                        };
-
-                        vector::push_back(stack, if(create_res == CALL_RESULT_SUCCESS) data_to_u256(new_evm_contract_addr, 0, 32) else 0);
-                    }
-                };
-
+                create(memory, stack, depth, to, run_state, trie, error_code);
                 i = i + 1
             }
                 //create2
             else if(opcode == 0xf5) {
-                let msg_value = pop_stack(stack, error_code);
-                let pos = pop_stack_u64(stack, error_code);
-                let len = pop_stack(stack, error_code);
-                if(len > MAX_INIT_CODE_SIZE) {
-                    *error_code = ERROR_EXCEED_INITCODE_SIZE;
-                } else if(get_is_static(trie)) {
-                    *error_code = ERROR_STATIC_STATE_CHANGE;
-                } else {
-                    let salt = u256_to_data(pop_stack(stack, error_code));
-                    let new_codes = vector_slice(*memory, pos, (len as u64));
-                    let p = vector::empty<u8>();
-                    let gas_left = get_gas_left(run_state);
-                    let (call_gas_limit, gas_stipend) = max_call_gas(gas_left, gas_left, msg_value, opcode);
-                    if(gas_stipend > 0) {
-                        add_gas_left(run_state, gas_stipend);
-                    };
-                    // let contract_store = ;
-                    vector::append(&mut p, x"ff");
-                    // must be 20 bytes
-                    vector::append(&mut p, vector_slice(to, 12, 20));
-                    vector::append(&mut p, salt);
-                    vector::append(&mut p, keccak256(new_codes));
-                    let new_evm_contract_addr = to_32bit(vector_slice(keccak256(p), 12, 20));
-                    if(depth >= MAX_DEPTH_SIZE ||
-                        get_nonce(to, trie) >= U64_MAX ||
-                        get_balance(to, trie) < msg_value ||
-                        is_contract_or_created_account(new_evm_contract_addr, trie)) {
-                        vector::push_back(stack, 0);
-                    } else {
-                        add_nonce(to, trie);
-                        add_checkpoint(trie, false);
-                        let (create_res, bytes) = run(origin, to, new_evm_contract_addr, new_codes, x"", msg_value, call_gas_limit, trie, run_state, env, true, true, depth + 1);
-                        if(create_res == CALL_RESULT_SUCCESS) {
-                            set_code(trie, new_evm_contract_addr, bytes);
-                        };
-
-                        vector::push_back(stack, if(create_res == CALL_RESULT_SUCCESS) data_to_u256(new_evm_contract_addr, 0, 32) else 0);
-                    }
-                };
+                create2(memory, stack, depth, to, run_state, trie, error_code);
                 i = i + 1
             }
                 //revert
@@ -1157,19 +1136,17 @@ module aptos_framework::evm_for_test {
             // debug::print(&vector::length(stack));
 
             if(*error_code > 0 || vector::length(stack) > MAX_STACK_SIZE) {
-                handle_unexpect_revert(trie, run_state);
+                handle_unexpect_revert(trie, run_state, error_code);
                 return (CALL_RESULT_UNEXPECT_ERROR, ret_bytes)
             }
         };
 
         if(is_create) {
             let code_size = (vector::length(&ret_bytes) as u256);
-            let out_of_gas = add_gas_usage(run_state, 200 * code_size);
-            if(code_size > MAX_CODE_SIZE || code_size == 0 || (*vector::borrow(&ret_bytes, 0)) == 0xef || out_of_gas) {
-                handle_unexpect_revert(trie, run_state);
+            if(code_size > MAX_CODE_SIZE || (code_size > 0 && (*vector::borrow(&ret_bytes, 0)) == 0xef)) {
+                handle_unexpect_revert(trie, run_state, error_code);
                 return (CALL_RESULT_UNEXPECT_ERROR, ret_bytes)
             };
-
             set_code(trie, to, ret_bytes);
         };
         handle_commit(trie, run_state);
@@ -1280,21 +1257,6 @@ module aptos_framework::evm_for_test {
     //         })
     //     }
     // }
-
-    fun create2_address(sender: vector<u8>, t1: vector<u8>, t2: vector<u8>, fee: u256, hash: vector<u8>): vector<u8> {
-        let salt = vector::empty<u8>();
-        vector::append(&mut salt, t1);
-        vector::append(&mut salt, t2);
-        vector::append(&mut salt, u256_to_data(fee));
-        debug::print(&salt);
-        let p = vector::empty<u8>();
-        vector::append(&mut p, x"ff");
-        // must be 20 bytes
-        vector::append(&mut p, vector_slice(sender, 12, 20));
-        vector::append(&mut p, keccak256(salt));
-        vector::append(&mut p, hash);
-        to_32bit(vector_slice(keccak256(p), 12, 20))
-    }
 
     #[test_only]
     public fun initialize_for_test(aptos_framework: &signer) {
