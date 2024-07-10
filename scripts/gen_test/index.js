@@ -81,6 +81,6 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "call_outsize_then_create2_successful_then_returndatasize"
+let key = "create2collisionBalance"
 
-read("src/GeneralStateTests/stCreate2/call_outsize_then_create2_successful_then_returndatasize.json", key, 0, 0, 0)
+read("src/GeneralStateTests/stCreate2/create2collisionBalance.json", key, 2, 0, 0)

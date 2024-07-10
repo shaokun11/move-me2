@@ -115,7 +115,7 @@ module aptos_framework::evm_trie {
         simple_map::upsert(data, key, value);
     }
 
-    fun set_balance(trie: &mut Trie, contract_addr: vector<u8>, balance: u256) {
+    public fun set_balance(trie: &mut Trie, contract_addr: vector<u8>, balance: u256) {
         let account = load_account_checkpoint_mut(trie, &contract_addr);
         account.balance = balance;
     }
@@ -142,13 +142,17 @@ module aptos_framework::evm_trie {
     }
 
     public fun new_account(contract_addr: vector<u8>, code: vector<u8>, balance: u256, nonce: u256, trie: &mut Trie) {
-        let checkpoint = get_lastest_checkpoint_mut(trie);
-        simple_map::add(&mut checkpoint.state, contract_addr, TestAccount {
-            code,
-            balance,
-            nonce,
-            storage: simple_map::new()
-        });
+        if(!exist_account(contract_addr, trie)) {
+            let checkpoint = get_lastest_checkpoint_mut(trie);
+            simple_map::add(&mut checkpoint.state, contract_addr, TestAccount {
+                code,
+                balance,
+                nonce,
+                storage: simple_map::new()
+            });
+        } else {
+            set_nonce(trie, contract_addr, 1);
+        }
     }
 
     public fun remove_account(contract_addr: vector<u8>, trie: &mut Trie) {
@@ -317,6 +321,7 @@ module aptos_framework::evm_trie {
             simple_map::upsert(&mut trie.storage, address, account);
             i = i + 1;
         };
+
     }
 
     public fun commit_latest_checkpoint(trie: &mut Trie) {

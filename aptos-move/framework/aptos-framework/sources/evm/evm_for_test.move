@@ -13,7 +13,7 @@ module aptos_framework::evm_for_test {
     use aptos_framework::evm_gas::{calc_exec_gas, calc_base_gas, max_call_gas};
     use aptos_framework::event;
     use aptos_framework::evm_arithmetic::{add, mul, sub, div, sdiv, mod, smod, add_mod, mul_mod, exp, shr, sar, slt, sgt};
-    use aptos_framework::evm_trie::{pre_init, Trie, add_checkpoint, revert_checkpoint, commit_latest_checkpoint, TestAccount, get_code, sub_balance, add_nonce, transfer, get_balance, get_state, set_state, exist_contract, get_nonce, new_account, get_storage_copy, save, add_balance, add_warm_address, get_transient_storage, put_transient_storage, get_is_static, set_code, exist_account};
+    use aptos_framework::evm_trie::{pre_init, Trie, add_checkpoint, revert_checkpoint, commit_latest_checkpoint, TestAccount, get_code, sub_balance, add_nonce, transfer, get_balance, get_state, set_state, exist_contract, get_nonce, new_account, get_storage_copy, save, add_balance, add_warm_address, get_transient_storage, put_transient_storage, get_is_static, set_code, exist_account, is_contract_or_created_account};
     friend aptos_framework::genesis;
 
     const ADDR_LENGTH: u64 = 10001;
@@ -271,8 +271,7 @@ module aptos_framework::evm_for_test {
 
             if(depth >= MAX_DEPTH_SIZE ||
                 get_nonce(current_address, trie) >= U64_MAX ||
-                get_balance(current_address, trie) < msg_value ||
-                exist_account(created_address, trie)) {
+                is_contract_or_created_account(created_address, trie)) {
                 return CALL_RESULT_UNEXPECT_ERROR
             } else {
                 add_nonce(current_address, trie);
@@ -283,8 +282,6 @@ module aptos_framework::evm_for_test {
                 } else if(create_res == CALL_RESULT_REVERT) {
                     *ret_bytes = bytes;
                 };
-                debug::print(&242352);
-                debug::print(ret_bytes);
 
                 return create_res
             }
