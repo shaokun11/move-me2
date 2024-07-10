@@ -19,19 +19,24 @@ import {useAugmentToWithGlobalSearchParams} from "../../routing";
 
 export type SearchResult = {
   label: string;
+  label0: string| null;
   to: string | null;
 };
 
 export const NotFoundResult: SearchResult = {
   label: "No Results",
+  label0: null,
   to: null,
 };
 
-export default function useGetSearchResults(input: string) {
+export default function useGetSearchResults(input:{old:string,newstr:string}) {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [state, _setState] = useGlobalState();
 
-  const searchText = input.trim();
+  const {old, newstr} = input;
+  const isSame = old === newstr;
+
+  const searchText = newstr;
 
   const augmentToWithGlobalSearchParams = useAugmentToWithGlobalSearchParams();
 
@@ -52,8 +57,10 @@ export default function useGetSearchResults(input: string) {
 
       const namePromise = getAddressFromName(searchText, state.network_name)
         .then(({address, primaryName}): SearchResult | null => {
+          // console.log("namePromise", address, primaryName);
           if (address) {
             return {
+              label0:null,
               label: `Account ${truncateAddress(address)}${
                 primaryName ? ` | ${primaryName}.apt` : ``
               }`,
@@ -73,10 +80,22 @@ export default function useGetSearchResults(input: string) {
         state.network_value,
       )
         .then((): SearchResult => {
-          return {
-            label: `Account ${searchText}`,
-            to: `/account/${searchText}`,
-          };
+          // console.log("accountPromise", searchText);
+          if(isSame){
+            return {
+              label0:null,
+              label: `Account ${searchText}`,
+              to: `/account/${searchText}`,
+            };
+          }else{
+            return {
+              label0: `Account (MEVM) ${old}`,
+              label: `Account (MOVE)  ${searchText}`,
+              to: `/account/${searchText}`,
+            };
+          }
+
+          
         })
         .catch(() => {
           return null;
@@ -88,10 +107,20 @@ export default function useGetSearchResults(input: string) {
         state.network_value,
       )
         .then((): SearchResult => {
-          return {
-            label: `Transaction ${searchText}`,
-            to: `/txn/${searchText}`,
-          };
+          // console.log("txnPromise", searchText);
+          if(isSame){
+            return {
+              label0:null,
+              label: `Transaction ${searchText}`,
+              to: `/txn/${searchText}`,
+            };
+          }else{
+            return {
+              label: `Transaction (MOVE) ${searchText}`,
+              to: `/txn/${searchText}`,
+              label0: `Transaction (MEVM) ${old}`,
+            };
+          }
         })
         .catch(() => {
           return null;
@@ -103,7 +132,9 @@ export default function useGetSearchResults(input: string) {
         state.network_value,
       )
         .then((): SearchResult => {
+          // console.log("blockByHeightPromise", searchText);
           return {
+            label0:null,
             label: `Block ${searchText}`,
             to: `/block/${searchText}`,
           };
@@ -119,6 +150,7 @@ export default function useGetSearchResults(input: string) {
       )
         .then((block): SearchResult => {
           return {
+            label0:null,
             label: `Block with Txn Version ${searchText}`,
             to: `/block/${block.block_height}`,
           };
