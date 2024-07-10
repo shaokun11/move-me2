@@ -81,6 +81,6 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "Create2Recursive"
+let key = "RevertInCreateInInitCreate2Paris"
 
-read("src/GeneralStateTests/stCreate2/Create2Recursive.json", key, 0, 2, 0)
+read("src/GeneralStateTests/stCreate2/RevertInCreateInInitCreate2Paris.json", key, 0, 0, 0)

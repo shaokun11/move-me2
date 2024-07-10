@@ -176,6 +176,11 @@ module aptos_framework::evm_trie {
         account.nonce = account.nonce + 1;
     }
 
+    public fun clear_storage(contract_addr: vector<u8>, trie: &mut Trie) {
+        let account = load_account_checkpoint_mut(trie, &contract_addr);
+        account.storage = simple_map::new<u256, u256>();
+    }
+
     public fun transfer(from: vector<u8>, to: vector<u8>, amount: u256, trie: &mut Trie): bool {
         if(amount > 0) {
             let success = sub_balance(from, amount, trie);
