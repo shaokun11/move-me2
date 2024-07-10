@@ -297,8 +297,10 @@ module aptos_framework::evm_for_test {
         let codes = vector_slice(*memory, pos, (len as u64));
         let new_evm_contract_addr = get_contract_address(current_address, (get_nonce(current_address, trie) as u64));
         let result = create_internal(len, current_address, new_evm_contract_addr, depth, codes, msg_value, run_state, trie, error_code);
-        if(result == CALL_RESULT_SUCCESS || result == CALL_RESULT_REVERT) {
-            *ret_bytes = new_evm_contract_addr;
+        if(result == CALL_RESULT_SUCCESS) {
+            if(result == CALL_RESULT_REVERT) {
+                *ret_bytes = new_evm_contract_addr;
+            };
             vector::push_back(stack, to_u256(new_evm_contract_addr));
         } else {
             vector::push_back(stack, 0);
@@ -328,7 +330,9 @@ module aptos_framework::evm_for_test {
         debug::print(&32324);
         debug::print(&result);
         if(result == CALL_RESULT_SUCCESS || result == CALL_RESULT_REVERT) {
-            *ret_bytes = new_evm_contract_addr;
+            if(result == CALL_RESULT_REVERT) {
+                *ret_bytes = new_evm_contract_addr;
+            };
             vector::push_back(stack, to_u256(new_evm_contract_addr));
         } else {
             vector::push_back(stack, 0);
