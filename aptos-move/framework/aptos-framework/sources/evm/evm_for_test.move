@@ -175,6 +175,9 @@ module aptos_framework::evm_for_test {
         if(to == ZERO_ADDR && data_size > MAX_INIT_CODE_SIZE) {
             handle_tx_failed(trie);
             return
+        } else if(get_nonce(from, trie) >= U64_MAX) {
+            handle_tx_failed(trie);
+            return
         } else {
             let base_cost = calc_base_gas(&data) + 21000;
             let out_of_gas = add_gas_usage(run_state, base_cost);
