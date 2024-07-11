@@ -184,7 +184,7 @@ module aptos_framework::evm_for_test {
             handle_tx_failed(&trie);
             return
         };
-        if(get_balance(from, &trie) < base_cost * gas_price || gas_limit < base_cost) {
+        if(get_balance(from, &trie) < gas_limit * gas_price || gas_limit < base_cost) {
             handle_tx_failed(&trie);
             return
         } else if(to == ZERO_ADDR && data_size > MAX_INIT_CODE_SIZE) {

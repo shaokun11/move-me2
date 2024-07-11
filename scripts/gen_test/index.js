@@ -98,6 +98,6 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "lowGasPriceOldTypes"
+let key = "outOfFunds"
 
-read("src/GeneralStateTests/stEIP1559/lowGasPriceOldTypes.json", key, 1, 0, 0)
+read("src/GeneralStateTests/stEIP1559/outOfFunds.json", key, 0, 0, 1)
