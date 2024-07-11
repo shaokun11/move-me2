@@ -150,6 +150,8 @@ module aptos_framework::evm_for_test {
                               balances: vector<vector<u8>>,
                               storage_keys: vector<vector<vector<u8>>>,
                               storage_values: vector<vector<vector<u8>>>,
+                              access_addresses: vector<vector<u8>>,
+                              access_keys: vector<vector<vector<u8>>>,
                               from: vector<u8>,
                               to: vector<u8>,
                               data: vector<u8>,
@@ -160,46 +162,48 @@ module aptos_framework::evm_for_test {
         let gas_price = to_u256(gas_price_bytes);
         // let env = parse_env(&env_data, gas_price);
         let value = to_u256(value_bytes);
-        let trie = &mut pre_init(addresses, codes, nonces, balances, storage_keys, storage_values);
+        let (trie, access_address_count, access_slot_count) = pre_init(addresses, codes, nonces, balances, storage_keys, storage_values, access_addresses, access_keys);
 
         let gas_limit = to_u256(gas_limit_bytes);
         from = to_32bit(from);
         to = to_32bit(to);
         let run_state = &mut new_run_state(from, gas_price, gas_limit, &env_data);
-        add_warm_address(from, trie);
-        add_warm_address(get_coinbase(run_state), trie);
+        add_warm_address(from, &mut trie);
+        add_warm_address(get_coinbase(run_state), &mut trie);
         let data_size = (vector::length(&data) as u256);
-
-        if(to == ZERO_ADDR && data_size > MAX_INIT_CODE_SIZE) {
-            handle_tx_failed(trie);
+        let base_cost = calc_base_gas(&data, access_address_count, access_slot_count) + 21000;
+        if(get_balance(from, &trie) < base_cost * gas_price || gas_limit < base_cost) {
+            handle_tx_failed(&trie);
             return
-        } else if(get_nonce(from, trie) >= U64_MAX) {
-            handle_tx_failed(trie);
+        } else if(to == ZERO_ADDR && data_size > MAX_INIT_CODE_SIZE) {
+            handle_tx_failed(&trie);
+            return
+        } else if(get_nonce(from, &trie) >= U64_MAX) {
+            handle_tx_failed(&trie);
             return
         } else {
-            let base_cost = calc_base_gas(&data) + 21000;
             let out_of_gas = add_gas_usage(run_state, base_cost);
             if(out_of_gas) {
-                handle_tx_failed(trie);
+                handle_tx_failed(&trie);
                 return
             };
-            sub_balance(from, gas_limit * gas_price, trie);
-            add_checkpoint(trie);
+            sub_balance(from, gas_limit * gas_price, &mut trie);
+            add_checkpoint(&mut trie);
             if(to == ZERO_ADDR) {
-                let evm_contract = get_contract_address(from, (get_nonce(from, trie) as u64));
-                if(is_contract_or_created_account(evm_contract, trie)) {
+                let evm_contract = get_contract_address(from, (get_nonce(from, &trie) as u64));
+                if(is_contract_or_created_account(evm_contract, &trie)) {
                     add_gas_usage(run_state, gas_limit);
                 } else {
                     out_of_gas = add_gas_usage(run_state, 2 * get_word_count(data_size) + 32000);
                     if(out_of_gas) {
-                        handle_tx_failed(trie);
+                        handle_tx_failed(&trie);
                         return
                     };
                     let gas_left = get_gas_left(run_state);
                     add_call_state(run_state, gas_left, false);
-                    let (result, bytes) = run(from, evm_contract, data, x"", value, gas_left, trie, run_state, true, true, 0);
+                    let (result, bytes) = run(from, evm_contract, data, x"", value, gas_left, &mut trie, run_state, true, true, 0);
                     if(result == CALL_RESULT_SUCCESS) {
-                        set_code(trie, evm_contract, bytes);
+                        set_code(&mut trie, evm_contract, bytes);
                     }
                 };
             } else {
@@ -207,7 +211,7 @@ module aptos_framework::evm_for_test {
                      precompile(to, data, gas_limit, run_state);
                 } else {
                     add_call_state(run_state, gas_limit - base_cost, false);
-                    run(from, to, get_code(to, trie), data, value, gas_limit - base_cost, trie, run_state, true, false, 0);
+                    run(from, to, get_code(to, &trie), data, value, gas_limit - base_cost, &mut trie, run_state, true, false, 0);
                 };
             };
             let gas_refund = get_gas_refund(run_state);
@@ -217,15 +221,15 @@ module aptos_framework::evm_for_test {
                 gas_refund = gas_usage / 5
             };
             gas_usage = gas_usage - gas_refund;
-            add_nonce(from, trie);
+            add_nonce(from, &mut trie);
             let basefee = get_basefee(run_state);
             if(basefee < gas_price) {
                 let miner_value = (gas_price - basefee) * gas_usage;
-                add_balance(get_coinbase(run_state), miner_value, trie);
+                add_balance(get_coinbase(run_state), miner_value, &mut trie);
             };
-            add_balance(from, (gas_left + gas_refund) * gas_price, trie);
-            save(trie);
-            let state_root = calculate_root(get_storage_copy(trie));
+            add_balance(from, (gas_left + gas_refund) * gas_price, &mut trie);
+            save(&mut trie);
+            let state_root = calculate_root(get_storage_copy(&trie));
             let exec_cost = gas_usage - base_cost;
             debug::print(&exec_cost);
             emit_event(state_root, gas_usage, gas_refund);

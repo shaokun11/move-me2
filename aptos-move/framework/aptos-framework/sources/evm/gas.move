@@ -122,7 +122,7 @@ module aptos_framework::evm_gas {
                        trie: &mut Trie): u256 {
         let len = vector::length(stack);
         let key = *vector::borrow(stack,len - 1);
-        let (_, is_cold_slot, _) = get_cache(address, key, trie);
+        let (is_cold_slot, _) = get_cache(address, key, trie);
         if(is_cold_slot) Coldsload else Warmstorageread
     }
 
@@ -138,7 +138,7 @@ module aptos_framework::evm_gas {
 
         let len = vector::length(stack);
         let key = *vector::borrow(stack,len - 1);
-        let (_, is_cold_slot, origin) = get_cache(address, key, trie);
+        let (is_cold_slot, origin) = get_cache(address, key, trie);
         let current = get_state(address, key, trie);
         let new = *vector::borrow(stack,len - 2);
         let cold_cost = if(is_cold_slot) Coldsload else 0;
@@ -390,11 +390,11 @@ module aptos_framework::evm_gas {
         (gas_limit, gas_stipend)
     }
 
-    public fun calc_base_gas(memory: &vector<u8>): u256 {
+    public fun calc_base_gas(memory: &vector<u8>, access_address_count: u256, access_slot_count: u256): u256 {
         let gas = 0;
 
         for_each(*memory, |elem| gas = gas + if(elem == 0) 4 else 16);
-        gas
+        gas + access_address_count * 2400 + access_slot_count * 1900
     }
 
     public fun calc_exec_gas(opcode :u8,

@@ -22,11 +22,27 @@ function generateEvmTest(addresses, codes, balances, nonces, storages, transacti
     templateCode = templateCode.replace('$gas_price', gas_price);
     templateCode = templateCode.replace('$value', toData(transaction.value[valueIndex]));
 
+    let access_list = ''
+    if(transaction.accessLists && transaction.accessLists[dataIndex].length > 0) {
+        access_list = generateAccessList(transaction.accessLists[dataIndex])
+    }
+    templateCode = templateCode.replace('$access_list', access_list);
+
     // 保存到新文件
     const newFilePath = '../../aptos-move/framework/aptos-framework/tests/evm/evm_test.move';  // 请将此路径替换为保存文件的路径
     fs.writeFileSync(newFilePath, templateCode);
 
     console.log('代码生成完成并保存到新文件');
+}
+
+function generateAccessList(accessList) {
+    let content = ''
+    for(let item of accessList) {
+        content += `vector::push_back(&mut access_addresses, ${toBytes(item.address)});\n`
+        content += `vector::push_back(&mut access_keys, vector[${item.storageKeys.map(i => toBytes(i))}]);\n`
+    }
+
+    return content
 }
 
 function generateStorage(storage) {
@@ -81,6 +97,6 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "NewGasPriceForCodes"
+let key = "intrinsic"
 
-read("src/GeneralStateTests/stEIP150Specific/NewGasPriceForCodes.json", key, 0, 0, 0)
+read("src/GeneralStateTests/stEIP1559/intrinsic.json", key, 1, 0, 0)

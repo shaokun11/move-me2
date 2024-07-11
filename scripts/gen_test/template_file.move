@@ -42,6 +42,9 @@ module aptos_framework::evm_test {
         $storages
         // simple_map::add(&mut storage_maps, x"a00000000000000000000000000000000000000a", init_storage(vector[0x02], vector[0xffff]));
 
+        let access_addresses = vector::empty<vector<u8>>();
+        let access_keys = vector::empty<vector<vector<u8>>>();
+        $access_list
 
 
         let addresses = $addresses;
@@ -77,6 +80,8 @@ module aptos_framework::evm_test {
             balances,
             storage_keys,
             storage_values,
+            access_addresses,
+            access_keys,
             from,
             to,
             data,
