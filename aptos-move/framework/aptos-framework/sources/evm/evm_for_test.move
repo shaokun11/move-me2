@@ -163,6 +163,7 @@ module aptos_framework::evm_for_test {
         let value = to_u256(value_bytes);
         let (trie, access_address_count, access_slot_count) = pre_init(addresses, codes, nonces, balances, storage_keys, storage_values, access_addresses, access_keys);
 
+        debug::print(&access_slot_count);
         let gas_limit = to_u256(gas_limit_bytes);
         from = to_32bit(from);
         to = to_32bit(to);
@@ -188,6 +189,10 @@ module aptos_framework::evm_for_test {
             handle_tx_failed(&trie);
             return
         };
+
+        if(to == ZERO_ADDR) {
+            base_cost = base_cost + 2 * get_word_count(data_size) + 32000;
+        };
         if(get_balance(from, &trie) < up_cost || gas_limit < base_cost) {
             handle_tx_failed(&trie);
             return
@@ -210,11 +215,6 @@ module aptos_framework::evm_for_test {
                 if(is_contract_or_created_account(evm_contract, &trie)) {
                     add_gas_usage(run_state, gas_limit);
                 } else {
-                    out_of_gas = add_gas_usage(run_state, 2 * get_word_count(data_size) + 32000);
-                    if(out_of_gas) {
-                        handle_tx_failed(&trie);
-                        return
-                    };
                     let gas_left = get_gas_left(run_state);
                     add_call_state(run_state, gas_left, false);
                     let (result, bytes) = run(from, evm_contract, data, x"", value, gas_left, &mut trie, run_state, true, true, 0);

@@ -294,7 +294,7 @@ module aptos_framework::evm_trie {
         assert!(access_list_len == vector::length(&access_keys), 3);
         while (i < access_list_len) {
             let access_data = *vector::borrow(&access_keys, i);
-            let address = *vector::borrow(&access_addresses, i);
+            let address = to_32bit(*vector::borrow(&access_addresses, i));
             let access = simple_map::new<u256, bool>();
             let j = 0;
             let data_len = vector::length(&access_data);
