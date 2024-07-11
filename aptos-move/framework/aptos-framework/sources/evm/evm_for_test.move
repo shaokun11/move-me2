@@ -174,17 +174,21 @@ module aptos_framework::evm_for_test {
         add_warm_address(get_coinbase(run_state), &mut trie);
         let data_size = (vector::length(&data) as u256);
         let base_cost = calc_base_gas(&data, access_address_count, access_slot_count) + 21000;
+        let up_cost;
         if(is_eip_1559(run_state)) {
             if(get_basefee(run_state) > get_max_fee_per_gas(run_state) || get_max_priority_fee_per_gas(run_state) > get_max_fee_per_gas(run_state)) {
                 handle_tx_failed(&trie);
                 return
-            }
+            };
+            up_cost = get_max_fee_per_gas(run_state) * gas_limit + value;
+        } else {
+            up_cost = gas_limit * gas_price + value;
         };
         if(gas_limit > get_block_gas_limit(run_state) || gas_price < get_basefee(run_state)) {
             handle_tx_failed(&trie);
             return
         };
-        if(get_balance(from, &trie) < gas_limit * gas_price + value || gas_limit < base_cost) {
+        if(get_balance(from, &trie) < up_cost || gas_limit < base_cost) {
             handle_tx_failed(&trie);
             return
         } else if(to == ZERO_ADDR && data_size > MAX_INIT_CODE_SIZE) {
