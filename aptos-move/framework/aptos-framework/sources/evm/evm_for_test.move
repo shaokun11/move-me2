@@ -990,6 +990,7 @@ module aptos_framework::evm_for_test {
                 if(depth >= MAX_DEPTH_SIZE){
                     vector::push_back(stack, 0);
                 } else {
+                    *ret_bytes = x"";
                     if(is_precompile) {
                         let (success, bytes) = precompile(code_address, params, call_gas_limit, run_state);
                         if(success) {
@@ -1007,6 +1008,7 @@ module aptos_framework::evm_for_test {
                         let (call_res, bytes) = run(call_from, call_to, dest_code, params, msg_value, call_gas_limit, trie, run_state, transfer_eth, false, depth + 1);
                         if(call_res == CALL_RESULT_SUCCESS || call_res == CALL_RESULT_REVERT) {
                             *ret_bytes = bytes;
+                            // debug::print()
                             write_call_output(memory, ret_pos, ret_len, bytes);
                         };
                         vector::push_back(stack,  if(call_res == CALL_RESULT_SUCCESS) 1 else 0);
