@@ -1,6 +1,6 @@
 import {useParams} from "react-router-dom";
 import {Grid} from "@mui/material";
-import React, {useEffect} from "react";
+import React, {useEffect, useState} from "react";
 import AccountTabs, {TabValue} from "./Tabs";
 import AccountTitle from "./Title";
 import BalanceCard from "./BalanceCard";
@@ -15,6 +15,7 @@ import {Network} from "aptos";
 import {useGetAccountResources} from "../../api/hooks/useGetAccountResources";
 import {AccountAddress} from "@aptos-labs/ts-sdk";
 import {useNavigate} from "../../routing";
+import { getMoveHA } from "../../api/query-utils";
 
 const TAB_VALUES_FULL: TabValue[] = [
   "transactions",
@@ -52,10 +53,16 @@ export default function AccountPage({isObject = false}: AccountPageProps) {
   const navigate = useNavigate();
   const isGraphqlClientSupported = useGetIsGraphqlClientSupported();
   const maybeAddress = useParams().address;
-  const address =
+  const address1 =
     maybeAddress !== undefined
       ? AccountAddress.from(maybeAddress).toStringLong()
       : "";
+  if(maybeAddress?.length === 42) {
+    getMoveHA('debug_getMoveAddress',maybeAddress).then((res:any)=>{
+      setAddress(res.data);
+    });
+  }
+  const [address, setAddress] = useState<string>(maybeAddress?.length === 42 ? "" : address1);
   const {
     data: objectData,
     error: objectError,

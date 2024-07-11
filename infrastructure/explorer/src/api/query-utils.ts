@@ -28,3 +28,54 @@ export function combineQueries<
   const isLoading = queries.some((query) => query.isLoading);
   return {combinedQueryState: {error: error ?? null, isLoading}, queries};
 }
+
+
+interface RequestData {
+  id: string;
+  jsonrpc: string;
+  method: string;
+  params: string[];
+}
+
+interface RequestOptions {
+  method: string;
+  headers: Record<string, string>;
+  body: string;
+}
+
+
+//check move hash and address method(debug_getMoveHash/debug_getMoveAddress)
+export async function getMoveHA(method: string, param: string): Promise<any> {
+  const url = import.meta.env.REACT_APP_MOVE_EVMCHECK||'https://mevm.devnet.m1.movementlabs.xyz/';
+
+  const data: RequestData = {
+      id: "1",
+      jsonrpc: "2.0",
+      method: method,
+      params: [param]
+  };
+
+  const options: RequestOptions = {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+  };
+
+  try {
+      const response = await fetch(url, options);
+      const responseJson = await response.json();
+      if(responseJson.error){
+        return {code:0,data:param};
+      
+      }else{
+        return {code:1,data:responseJson.result};
+      }
+      // console.log('Response:', responseJson);
+      
+  } catch (error) {
+      // console.error('Error:', error);
+      return {code:0,data:param};
+  }
+}

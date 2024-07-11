@@ -1,6 +1,6 @@
 {
   "name": "aptos-explorer",
-  "version": "5.0.1",
+  "version": "7.0.1",
   "private": true,
   "packageManager": "pnpm@8.15.1",
   "type": "module",

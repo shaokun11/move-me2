@@ -23,13 +23,16 @@ import {
   isNumeric,
   truncateAddress,
 } from "../../utils";
+import { getMoveHA } from "../../../api/query-utils";
 
 export type SearchResult = {
+  label0: string | null;
   label: string;
   to: string | null;
 };
 
 export const NotFoundResult: SearchResult = {
+  label0: null,
   label: "No Results",
   to: null,
 };
@@ -53,7 +56,8 @@ export default function HeaderSearch() {
 
     if (mode !== "loading" && inputValue.trim().length > 0) {
       timer = setTimeout(() => {
-        fetchData(inputValue.trim());
+        getMoveha(inputValue.trim());
+        // fetchData(inputValue.trim());
       }, 500);
     }
 
@@ -61,7 +65,12 @@ export default function HeaderSearch() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inputValue]);
 
-  const fetchData = async (searchText: string) => {
+  const fetchData = async (input:{old:string,newstr:string}) => {
+    const {old, newstr} = input;
+    const isSame = old === newstr;
+
+    const searchText = newstr;
+
     setMode("loading");
     const searchPerformanceStart = GTMEvents.SEARCH_STATS + " start";
     const searchPerformanceEnd = GTMEvents.SEARCH_STATS + " end";
@@ -105,10 +114,20 @@ export default function HeaderSearch() {
           state.network_value,
         )
           .then((): SearchResult => {
-            return {
-              label: `Account ${searchText}`,
-              to: `/account/${searchText}`,
-            };
+            if(isSame){
+              return {
+                label0:null,
+                label: `Account ${searchText}`,
+                to: `/account/${searchText}`,
+              };
+            }else{
+              return {
+                label0: `Account (MEVM) ${old}`,
+                label: `Account (MOVE)  ${searchText}`,
+                to: `/account/${searchText}`,
+              };
+            }
+           
           })
           .catch(() => {
             return null;
@@ -128,6 +147,7 @@ export default function HeaderSearch() {
             });
             if (hasObjectCore) {
               return {
+                label0: null,
                 label: `Object ${searchText}`,
                 to: `/object/${searchText}`,
               };
@@ -147,10 +167,20 @@ export default function HeaderSearch() {
           state.network_value,
         )
           .then((): SearchResult => {
-            return {
-              label: `Transaction ${searchText}`,
-              to: `/txn/${searchText}`,
-            };
+            if(isSame){
+              return {
+                label0:null,
+                label: `Transaction ${searchText}`,
+                to: `/txn/${searchText}`,
+              };
+            }else{
+              return {
+                label: `Transaction (MOVE) ${searchText}`,
+                to: `/txn/${searchText}`,
+                label0: `Transaction (MEVM) ${old}`,
+              };
+            }
+           
           })
           .catch(() => {
             return null;
@@ -166,6 +196,7 @@ export default function HeaderSearch() {
         )
           .then((): SearchResult => {
             return {
+              label0: null,
               label: `Block ${searchText}`,
               to: `/block/${searchText}`,
             };
@@ -181,6 +212,7 @@ export default function HeaderSearch() {
         )
           .then((block): SearchResult => {
             return {
+              label0: null,
               label: `Block with Txn Version ${searchText}`,
               to: `/block/${block.block_height}`,
             };
@@ -227,6 +259,28 @@ export default function HeaderSearch() {
     setOptions(results);
     setMode("idle");
     setOpen(true);
+  };
+
+  const getMoveha= (address:string)=>{
+    const str = address.trim();
+    if(str.length === 0){
+      return;
+    }
+
+    if(str.length === 42){   //check if address is valid
+      getMoveHA('debug_getMoveAddress',str).then((res:any)=>{
+        fetchData({old:str,newstr:res.data});
+      });
+    }else if(str.length === 66){   //check if hash is valid
+      getMoveHA('debug_getMoveHash',str).then((res:any)=>{
+        fetchData({old:str,newstr:res.data});
+      });
+    }else{
+      fetchData({old:str,newstr:str});
+    }
+
+    
+
   };
 
   return (
@@ -292,7 +346,7 @@ export default function HeaderSearch() {
       renderOption={(props, option) => {
         return (
           <li {...props} key={props.id}>
-            <ResultLink to={option.to} text={option.label} />
+            <ResultLink to={option.to} text={option.label} text0={option.label0}  />
           </li>
         );
       }}

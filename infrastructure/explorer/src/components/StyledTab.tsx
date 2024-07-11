@@ -22,7 +22,7 @@ export default function StyledTab({
   } else {
     backgroundColor = theme.palette.mode === "dark" ? grey[700] : grey[200];
   }
-  console.log("label",props );
+  // console.log("label",props );
 
   return (
     <Tab
