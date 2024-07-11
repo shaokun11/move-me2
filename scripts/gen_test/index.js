@@ -6,7 +6,7 @@ function generateEvmTest(addresses, codes, balances, nonces, storages, transacti
     let templateCode = fs.readFileSync(templateFilePath, 'utf8');
     let envContent = generateEnv(env);
     let storageContent = generateStorage(storages)
-    let gas_price = transaction.maxPriorityFeePerGas ? `vector[${toData(transaction.maxFeePerGas)}, ${toData(transaction.maxPriorityFeePerGas)}]`: `vector[${toData(env.gasPrice)}]`
+    let gas_price = transaction.maxPriorityFeePerGas ? `vector[${toData(transaction.maxFeePerGas)}, ${toData(transaction.maxPriorityFeePerGas)}]`: `vector[${toData(transaction.gasPrice)}]`
     let tx_type = transaction.maxPriorityFeePerGas ? 1: 0
     // 替换占位符
     templateCode = templateCode.replace('$env', `vector[${envContent}]`);
@@ -24,7 +24,7 @@ function generateEvmTest(addresses, codes, balances, nonces, storages, transacti
     templateCode = templateCode.replace('$tx_type', tx_type);
 
     let access_list = ''
-    if(transaction.accessLists && transaction.accessLists[dataIndex].length > 0) {
+    if(transaction.accessLists && transaction.accessLists[dataIndex] && transaction.accessLists[dataIndex].length > 0) {
         access_list = generateAccessList(transaction.accessLists[dataIndex])
     }
     templateCode = templateCode.replace('$access_list', access_list);
@@ -98,6 +98,6 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "lowGasLimit"
+let key = "lowGasPriceOldTypes"
 
-read("src/GeneralStateTests/stEIP1559/lowGasLimit.json", key, 0, 2, 0)
+read("src/GeneralStateTests/stEIP1559/lowGasPriceOldTypes.json", key, 1, 0, 0)

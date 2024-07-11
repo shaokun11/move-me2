@@ -168,6 +168,8 @@ module aptos_framework::evm_for_test {
         to = to_32bit(to);
         let run_state = &mut new_run_state(from, gas_price_data, gas_limit, &env_data, tx_type);
         let gas_price = get_gas_price(run_state);
+        debug::print(&gas_price);
+        debug::print(&tx_type);
         add_warm_address(from, &mut trie);
         add_warm_address(get_coinbase(run_state), &mut trie);
         let data_size = (vector::length(&data) as u256);
@@ -178,7 +180,7 @@ module aptos_framework::evm_for_test {
                 return
             }
         };
-        if(gas_limit > get_block_gas_limit(run_state)) {
+        if(gas_limit > get_block_gas_limit(run_state) || gas_price < get_basefee(run_state)) {
             handle_tx_failed(&trie);
             return
         };
