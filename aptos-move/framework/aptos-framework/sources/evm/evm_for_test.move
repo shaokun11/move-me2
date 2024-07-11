@@ -9,7 +9,7 @@ module aptos_framework::evm_for_test {
     use aptos_framework::evm_precompile::{is_precompile_address, run_precompile};
     use aptos_std::simple_map;
     use aptos_std::simple_map::SimpleMap;
-    use aptos_framework::evm_global_state::{new_run_state, add_gas_usage, get_gas_refund, RunState, add_call_state, revert_call_state, commit_call_state, get_gas_left, add_gas_left, clear_gas_refund, get_coinbase, get_basefee, get_origin, get_gas_price, get_timestamp, get_block_number, get_block_difficulty, get_is_static, is_eip_1559, get_max_fee_per_gas, get_block_gas_limit};
+    use aptos_framework::evm_global_state::{new_run_state, add_gas_usage, get_gas_refund, RunState, add_call_state, revert_call_state, commit_call_state, get_gas_left, add_gas_left, clear_gas_refund, get_coinbase, get_basefee, get_origin, get_gas_price, get_timestamp, get_block_number, get_block_difficulty, get_is_static, is_eip_1559, get_max_fee_per_gas, get_block_gas_limit, get_max_priority_fee_per_gas};
     use aptos_framework::evm_gas::{calc_exec_gas, calc_base_gas, max_call_gas};
     use aptos_framework::event;
     use aptos_framework::evm_arithmetic::{add, mul, sub, div, sdiv, mod, smod, add_mod, mul_mod, exp, shr, sar, slt, sgt};
@@ -175,7 +175,7 @@ module aptos_framework::evm_for_test {
         let data_size = (vector::length(&data) as u256);
         let base_cost = calc_base_gas(&data, access_address_count, access_slot_count) + 21000;
         if(is_eip_1559(run_state)) {
-            if(get_basefee(run_state) > get_max_fee_per_gas(run_state)) {
+            if(get_basefee(run_state) > get_max_fee_per_gas(run_state) || get_max_priority_fee_per_gas(run_state) > get_max_fee_per_gas(run_state)) {
                 handle_tx_failed(&trie);
                 return
             }

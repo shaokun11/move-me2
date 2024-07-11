@@ -12,6 +12,7 @@ module aptos_framework::evm_global_state {
         excess_blob_gas: u256,
         block_gas_limit: u256,
         gas_price: u256,
+        max_priority_fee_per_gas: u256,
         max_fee_per_gas: u256,
         number: u256,
         random: vector<u8>,
@@ -187,6 +188,10 @@ module aptos_framework::evm_global_state {
         run_state.env.max_fee_per_gas
     }
 
+    public fun get_max_priority_fee_per_gas(run_state: &RunState): u256 {
+        run_state.env.max_priority_fee_per_gas
+    }
+
     public fun is_eip_1559(run_state: &RunState): bool {
         run_state.env.tx_type == TX_TYPE_1559
     }
@@ -204,17 +209,20 @@ module aptos_framework::evm_global_state {
         let timestamp = to_u256(*vector::borrow(env, 7));
         let gas_price;
         let max_fee_per_gas = 0;
+        let max_priority_fee_per_gas = 0;
         if(tx_type == TX_TYPE_NORMAL) {
             gas_price = to_u256(*vector::borrow(&gas_price_data, 0))
         } else {
             gas_price = base_fee + to_u256(*vector::borrow(&gas_price_data, 1));
             max_fee_per_gas = to_u256(*vector::borrow(&gas_price_data, 0));
+            max_priority_fee_per_gas = to_u256(*vector::borrow(&gas_price_data, 1));
             gas_price = if(gas_price > max_fee_per_gas) max_fee_per_gas else gas_price
         };
         Env {
             tx_type,
             sender,
             max_fee_per_gas,
+            max_priority_fee_per_gas,
             base_fee,
             coinbase,
             difficulty,
