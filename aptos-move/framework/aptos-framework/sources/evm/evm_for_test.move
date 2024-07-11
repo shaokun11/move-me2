@@ -168,9 +168,7 @@ module aptos_framework::evm_for_test {
         let run_state = &mut new_run_state(from, gas_price, gas_limit, &env_data);
         add_warm_address(from, trie);
         add_warm_address(get_coinbase(run_state), trie);
-        add_checkpoint(trie);
         let data_size = (vector::length(&data) as u256);
-        debug::print(&data_size);
 
         if(to == ZERO_ADDR && data_size > MAX_INIT_CODE_SIZE) {
             handle_tx_failed(trie);
@@ -185,6 +183,8 @@ module aptos_framework::evm_for_test {
                 handle_tx_failed(trie);
                 return
             };
+            sub_balance(from, gas_limit * gas_price, trie);
+            add_checkpoint(trie);
             if(to == ZERO_ADDR) {
                 let evm_contract = get_contract_address(from, (get_nonce(from, trie) as u64));
                 if(is_contract_or_created_account(evm_contract, trie)) {
@@ -213,20 +213,17 @@ module aptos_framework::evm_for_test {
             let gas_refund = get_gas_refund(run_state);
             let gas_left = get_gas_left(run_state);
             let gas_usage = gas_limit - gas_left;
-            debug::print(&gas_usage);
             if(gas_refund > gas_usage / 5) {
                 gas_refund = gas_usage / 5
             };
             gas_usage = gas_usage - gas_refund;
-            let gasfee = gas_price * gas_usage;
-            sub_balance(from, gasfee, trie);
             add_nonce(from, trie);
             let basefee = get_basefee(run_state);
             if(basefee < gas_price) {
                 let miner_value = (gas_price - basefee) * gas_usage;
                 add_balance(get_coinbase(run_state), miner_value, trie);
             };
-
+            add_balance(from, (gas_left + gas_refund) * gas_price, trie);
             save(trie);
             let state_root = calculate_root(get_storage_copy(trie));
             let exec_cost = gas_usage - base_cost;
