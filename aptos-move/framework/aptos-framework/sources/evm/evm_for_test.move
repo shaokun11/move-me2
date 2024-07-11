@@ -9,7 +9,7 @@ module aptos_framework::evm_for_test {
     use aptos_framework::evm_precompile::{is_precompile_address, run_precompile};
     use aptos_std::simple_map;
     use aptos_std::simple_map::SimpleMap;
-    use aptos_framework::evm_global_state::{new_run_state, add_gas_usage, get_gas_refund, RunState, add_call_state, revert_call_state, commit_call_state, get_gas_left, add_gas_left, clear_gas_refund, get_coinbase, get_basefee, get_origin, get_gas_price, get_timestamp, get_block_number, get_block_difficulty, get_gas_limit, get_is_static};
+    use aptos_framework::evm_global_state::{new_run_state, add_gas_usage, get_gas_refund, RunState, add_call_state, revert_call_state, commit_call_state, get_gas_left, add_gas_left, clear_gas_refund, get_coinbase, get_basefee, get_origin, get_gas_price, get_timestamp, get_block_number, get_block_difficulty, get_gas_limit, get_is_static, is_eip_1559, get_max_fee_per_gas};
     use aptos_framework::evm_gas::{calc_exec_gas, calc_base_gas, max_call_gas};
     use aptos_framework::event;
     use aptos_framework::evm_arithmetic::{add, mul, sub, div, sdiv, mod, smod, add_mod, mul_mod, exp, shr, sar, slt, sgt};
@@ -156,25 +156,29 @@ module aptos_framework::evm_for_test {
                               to: vector<u8>,
                               data: vector<u8>,
                               gas_limit_bytes: vector<u8>,
-                              gas_price_bytes:vector<u8>,
-                              max_fee_per_gas_bytes: vector<u8>,
+                              gas_price_data: vector<vector<u8>>,
                               value_bytes: vector<u8>,
-                              env_data: vector<vector<u8>>) acquires ExecResource {
-        let max_fee_per_gas = to_u256(max_fee_per_gas_bytes);
-        let gas_price = to_u256(gas_price_bytes);
-        // let env = parse_env(&env_data, gas_price);
+                              env_data: vector<vector<u8>>,
+                              tx_type: u8) acquires ExecResource {
         let value = to_u256(value_bytes);
         let (trie, access_address_count, access_slot_count) = pre_init(addresses, codes, nonces, balances, storage_keys, storage_values, access_addresses, access_keys);
 
         let gas_limit = to_u256(gas_limit_bytes);
         from = to_32bit(from);
         to = to_32bit(to);
-        let run_state = &mut new_run_state(from, gas_price, gas_limit, &env_data);
+        let run_state = &mut new_run_state(from, gas_price_data, gas_limit, &env_data, tx_type);
+        let gas_price = get_gas_price(run_state);
         add_warm_address(from, &mut trie);
         add_warm_address(get_coinbase(run_state), &mut trie);
         let data_size = (vector::length(&data) as u256);
         let base_cost = calc_base_gas(&data, access_address_count, access_slot_count) + 21000;
-        if(max_fee_per_gas < get_basefee(run_state) || get_balance(from, &trie) < base_cost * gas_price || gas_limit < base_cost) {
+        if(is_eip_1559(run_state)) {
+            if(get_basefee(run_state) > get_max_fee_per_gas(run_state)) {
+                handle_tx_failed(&trie);
+                return
+            }
+        };
+        if(get_balance(from, &trie) < base_cost * gas_price || gas_limit < base_cost) {
             handle_tx_failed(&trie);
             return
         } else if(to == ZERO_ADDR && data_size > MAX_INIT_CODE_SIZE) {

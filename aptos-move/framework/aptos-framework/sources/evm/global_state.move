@@ -2,6 +2,9 @@ module aptos_framework::evm_global_state {
     use std::vector;
     use aptos_framework::evm_util::{to_u256, to_32bit};
 
+    const TX_TYPE_NORMAL: u8 = 0;
+    const TX_TYPE_1559: u8 = 1;
+
     struct Env has drop {
         base_fee: u256,
         coinbase: vector<u8>,
@@ -9,10 +12,12 @@ module aptos_framework::evm_global_state {
         excess_blob_gas: u256,
         gas_limit: u256,
         gas_price: u256,
+        max_fee_per_gas: u256,
         number: u256,
         random: vector<u8>,
         timestamp: u256,
-        sender: vector<u8>
+        sender: vector<u8>,
+        tx_type: u8
     }
 
     struct RunState has drop {
@@ -29,10 +34,10 @@ module aptos_framework::evm_global_state {
         is_static: bool
     }
 
-    public fun new_run_state(sender: vector<u8>, gas_price: u256, gas_limit: u256, env_data: &vector<vector<u8>>): RunState {
+    public fun new_run_state(sender: vector<u8>, gas_price_data: vector<vector<u8>>, gas_limit: u256, env_data: &vector<vector<u8>>, tx_type: u8): RunState {
         let state = RunState {
             call_state: vector::empty(),
-            env: parse_env(env_data, sender, gas_price)
+            env: parse_env(env_data, sender, gas_price_data, tx_type)
         };
         vector::push_back(&mut state.call_state, CallState {
             highest_memory_cost: 0,
@@ -178,7 +183,17 @@ module aptos_framework::evm_global_state {
         run_state.env.sender
     }
 
-    fun parse_env(env: &vector<vector<u8>>, sender: vector<u8>, gas_price: u256): Env {
+    public fun get_max_fee_per_gas(run_state: &RunState): u256 {
+        run_state.env.max_fee_per_gas
+    }
+
+    public fun is_eip_1559(run_state: &RunState): bool {
+        run_state.env.tx_type == TX_TYPE_1559
+    }
+
+
+
+    fun parse_env(env: &vector<vector<u8>>, sender: vector<u8>, gas_price_data: vector<vector<u8>>, tx_type: u8): Env {
         let base_fee = to_u256(*vector::borrow(env, 0));
         let coinbase = to_32bit(*vector::borrow(env, 1));
         let difficulty = to_u256(*vector::borrow(env, 2));
@@ -187,8 +202,12 @@ module aptos_framework::evm_global_state {
         let number = to_u256(*vector::borrow(env, 5));
         let random = *vector::borrow(env, 6);
         let timestamp = to_u256(*vector::borrow(env, 7));
+        let gas_price = if(tx_type == TX_TYPE_NORMAL) to_u256(*vector::borrow(&gas_price_data, 0)) else base_fee + to_u256(*vector::borrow(&gas_price_data, 1));
+        let max_fee_per_gas = if(tx_type == TX_TYPE_NORMAL) 0 else to_u256(*vector::borrow(&gas_price_data, 0));
         Env {
+            tx_type,
             sender,
+            max_fee_per_gas,
             base_fee,
             coinbase,
             difficulty,

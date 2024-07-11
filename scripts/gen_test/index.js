@@ -6,8 +6,8 @@ function generateEvmTest(addresses, codes, balances, nonces, storages, transacti
     let templateCode = fs.readFileSync(templateFilePath, 'utf8');
     let envContent = generateEnv(env);
     let storageContent = generateStorage(storages)
-    let gas_price = transaction.maxPriorityFeePerGas ? toData(`${env.currentBaseFee} + ${transaction.maxPriorityFeePerGas}`): toData(transaction.gasPrice)
-
+    let gas_price = transaction.maxPriorityFeePerGas ? `vector[${toData(transaction.maxFeePerGas)}, ${toData(transaction.maxPriorityFeePerGas)}]`: `vector[${toData(env.gasPrice)}]`
+    let tx_type = transaction.maxPriorityFeePerGas ? 1: 0
     // 替换占位符
     templateCode = templateCode.replace('$env', `vector[${envContent}]`);
     templateCode = templateCode.replace('$storages', storageContent);
@@ -21,7 +21,7 @@ function generateEvmTest(addresses, codes, balances, nonces, storages, transacti
     templateCode = templateCode.replace('$gas_limit', toData(transaction.gasLimit[gasIndex]));
     templateCode = templateCode.replace('$gas_price', gas_price);
     templateCode = templateCode.replace('$value', toData(transaction.value[valueIndex]));
-    templateCode = templateCode.replace('$max_fee_per_gas', toData(transaction.maxFeePerGas ?? env.currentBaseFee));
+    templateCode = templateCode.replace('$tx_type', tx_type);
 
     let access_list = ''
     if(transaction.accessLists && transaction.accessLists[dataIndex].length > 0) {

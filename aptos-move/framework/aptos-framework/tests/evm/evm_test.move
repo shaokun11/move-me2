@@ -34,9 +34,9 @@ module aptos_framework::evm_test {
         let data = x"00";
         let env = vector[u256_to_data(0x03e8),x"2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",u256_to_data(0x020000),u256_to_data(0x00),u256_to_data(0xff112233445566),u256_to_data(0x01),x"0000000000000000000000000000000000000000000000000000000000020000",u256_to_data(0x03e8)];
         let gas_limit = u256_to_data(0x061a80);
-        let gas_price = u256_to_data(0x03e8 + 0x64);
-        let max_fee_per_gas = u256_to_data(0x03e7);
+        let gas_price = vector[u256_to_data(0x03e7), u256_to_data(0x64)];
         let value = u256_to_data(0x0186a0);
+        let tx_type = 1;
 
         let storage_maps = simple_map::new<vector<u8>, simple_map::SimpleMap<vector<u8>, vector<u8>>>();
         let (storage_keys, storage_values) = (vector::empty<vector<vector<u8>>>(), vector::empty<vector<vector<u8>>>());
@@ -88,9 +88,9 @@ module aptos_framework::evm_test {
             data,
             gas_limit,
             gas_price,
-            max_fee_per_gas,
             value,
-            env
+            env,
+            tx_type
         );
     }
 }

@@ -35,8 +35,8 @@ module aptos_framework::evm_test {
         let env = $env;
         let gas_limit = $gas_limit;
         let gas_price = $gas_price;
-        let max_fee_per_gas = $max_fee_per_gas;
         let value = $value;
+        let tx_type = $tx_type;
 
         let storage_maps = simple_map::new<vector<u8>, simple_map::SimpleMap<vector<u8>, vector<u8>>>();
         let (storage_keys, storage_values) = (vector::empty<vector<vector<u8>>>(), vector::empty<vector<vector<u8>>>());
@@ -88,9 +88,9 @@ module aptos_framework::evm_test {
             data,
             gas_limit,
             gas_price,
-            max_fee_per_gas,
             value,
-            env
+            env,
+            tx_type
         );
     }
 }
