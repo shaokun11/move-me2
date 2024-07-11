@@ -100,4 +100,4 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
 
 let key = "outOfFunds"
 
-read("src/GeneralStateTests/stEIP1559/outOfFunds.json", key, 0, 0, 1)
+read("src/GeneralStateTests/stEIP1559/outOfFunds.json", key, 0, 1, 1)
