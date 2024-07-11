@@ -31,11 +31,11 @@ module aptos_framework::evm_test {
 
         let from = x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b";
         let to = x"";
-        let data = x"60016000f3";
-        let env = vector[u256_to_data(0x0a),x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b",u256_to_data(0x01),u256_to_data(0x00),u256_to_data(0x0f4240),u256_to_data(0x01),x"0000000000000000000000000000000000000000000000000000000000000001",u256_to_data(0x03e8)];
-        let gas_limit = u256_to_data(0x015f90);
+        let data = x"6001600155";
+        let env = vector[u256_to_data(0x0a),x"2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",u256_to_data(0x020000),u256_to_data(0x00),u256_to_data(0x989680),u256_to_data(0x01),x"0000000000000000000000000000000000000000000000000000000000020000",u256_to_data(0x03e8)];
+        let gas_limit = u256_to_data(0x0927c0);
         let gas_price = u256_to_data(0x0a);
-        let value = u256_to_data(0x01);
+        let value = u256_to_data(0x00);
 
         let storage_maps = simple_map::new<vector<u8>, simple_map::SimpleMap<vector<u8>, vector<u8>>>();
         let (storage_keys, storage_values) = (vector::empty<vector<vector<u8>>>(), vector::empty<vector<vector<u8>>>());
@@ -44,10 +44,10 @@ module aptos_framework::evm_test {
 
 
 
-        let addresses = vector[x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b"];
-        let balance_table = vector[0x5af3107a4000];
-        let codes = vector[x""];
-        let nonce_table = vector[0xffffffffffffffff];
+        let addresses = vector[x"6295ee1b4f6dd65047762f924ecd367c17eabf8f", x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b"];
+        let balance_table = vector[0x0a, 0xe8d4a51000];
+        let codes = vector[x"", x""];
+        let nonce_table = vector[0x00, 0x00];
         let i = 0;
         let balances = vector::empty<vector<u8>>();
         let nonces = vector::empty<vector<u8>>();

@@ -13,7 +13,7 @@ module aptos_framework::evm_for_test {
     use aptos_framework::evm_gas::{calc_exec_gas, calc_base_gas, max_call_gas};
     use aptos_framework::event;
     use aptos_framework::evm_arithmetic::{add, mul, sub, div, sdiv, mod, smod, add_mod, mul_mod, exp, shr, sar, slt, sgt};
-    use aptos_framework::evm_trie::{pre_init, Trie, add_checkpoint, revert_checkpoint, commit_latest_checkpoint, TestAccount, get_code, sub_balance, add_nonce, transfer, get_balance, get_state, set_state, exist_contract, get_nonce, new_account, get_storage_copy, save, add_balance, add_warm_address, get_transient_storage, put_transient_storage, set_code, exist_account, is_contract_or_created_account};
+    use aptos_framework::evm_trie::{pre_init, Trie, add_checkpoint, revert_checkpoint, commit_latest_checkpoint, TestAccount, get_code, sub_balance, add_nonce, transfer, get_balance, get_state, set_state, exist_contract, get_nonce, new_account, get_storage_copy, save, add_balance, add_warm_address, get_transient_storage, put_transient_storage, set_code, is_contract_or_created_account};
     friend aptos_framework::genesis;
 
     const ADDR_LENGTH: u64 = 10001;
@@ -187,7 +187,7 @@ module aptos_framework::evm_for_test {
             };
             if(to == ZERO_ADDR) {
                 let evm_contract = get_contract_address(from, (get_nonce(from, trie) as u64));
-                if(exist_account(evm_contract, trie)) {
+                if(is_contract_or_created_account(evm_contract, trie)) {
                     add_gas_usage(run_state, gas_limit);
                 } else {
                     out_of_gas = add_gas_usage(run_state, 2 * get_word_count(data_size) + 32000);

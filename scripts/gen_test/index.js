@@ -81,6 +81,6 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "CreateTransactionHighNonce"
+let key = "TransactionCollisionToEmpty2"
 
-read("src/GeneralStateTests/stCreateTest/CreateTransactionHighNonce.json", key, 0, 0, 1)
+read("src/GeneralStateTests/stCreateTest/TransactionCollisionToEmpty2.json", key, 0, 0, 0)
