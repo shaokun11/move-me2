@@ -31,11 +31,11 @@ module aptos_framework::evm_test {
 
         let from = x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b";
         let to = x"cccccccccccccccccccccccccccccccccccccccc";
-        let data = x"00";
-        let env = vector[u256_to_data(0x03e8),x"2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",u256_to_data(0x020000),u256_to_data(0x00),u256_to_data(0xff112233445566),u256_to_data(0x01),x"0000000000000000000000000000000000000000000000000000000000020000",u256_to_data(0x03e8)];
-        let gas_limit = u256_to_data(0x9c40);
-        let gas_price = vector[u256_to_data(0x02540be400), u256_to_data(0x02540be400)];
-        let value = u256_to_data(0x0de0b6b3a7640000);
+        let data = x"";
+        let env = vector[u256_to_data(0x0b),x"2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",u256_to_data(0x01),u256_to_data(0x00),u256_to_data(0x01c9c380),u256_to_data(0x01),x"0000000000000000000000000000000000000000000000000000000000000001",u256_to_data(0x03e8)];
+        let gas_limit = u256_to_data(0xea60);
+        let gas_price = vector[u256_to_data(0x03e8), u256_to_data(0x64)];
+        let value = u256_to_data(0x00);
         let tx_type = 1;
 
         let storage_maps = simple_map::new<vector<u8>, simple_map::SimpleMap<vector<u8>, vector<u8>>>();
@@ -49,9 +49,9 @@ module aptos_framework::evm_test {
 
 
         let addresses = vector[x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b", x"cccccccccccccccccccccccccccccccccccccccc"];
-        let balance_table = vector[0x0de0b6b3a7640000, 0x0de0b6b3a7640000];
-        let codes = vector[x"", x"600260005500"];
-        let nonce_table = vector[0x01, 0x00];
+        let balance_table = vector[0x0de0b6b3a7640000, 0x00];
+        let codes = vector[x"", x"333160005500"];
+        let nonce_table = vector[0x00, 0x00];
         let i = 0;
         let balances = vector::empty<vector<u8>>();
         let nonces = vector::empty<vector<u8>>();
