@@ -10,7 +10,7 @@ module aptos_framework::evm_global_state {
         coinbase: vector<u8>,
         difficulty: u256,
         excess_blob_gas: u256,
-        gas_limit: u256,
+        block_gas_limit: u256,
         gas_price: u256,
         max_fee_per_gas: u256,
         number: u256,
@@ -163,8 +163,8 @@ module aptos_framework::evm_global_state {
         run_state.env.gas_price
     }
 
-    public fun get_gas_limit(run_state: &RunState): u256 {
-        run_state.env.gas_limit
+    public fun get_block_gas_limit(run_state: &RunState): u256 {
+        run_state.env.block_gas_limit
     }
 
     public fun get_timestamp(run_state: &RunState): u256 {
@@ -198,12 +198,19 @@ module aptos_framework::evm_global_state {
         let coinbase = to_32bit(*vector::borrow(env, 1));
         let difficulty = to_u256(*vector::borrow(env, 2));
         let excess_blob_gas = to_u256(*vector::borrow(env, 3));
-        let gas_limit = to_u256(*vector::borrow(env, 4));
+        let block_gas_limit = to_u256(*vector::borrow(env, 4));
         let number = to_u256(*vector::borrow(env, 5));
         let random = *vector::borrow(env, 6);
         let timestamp = to_u256(*vector::borrow(env, 7));
-        let gas_price = if(tx_type == TX_TYPE_NORMAL) to_u256(*vector::borrow(&gas_price_data, 0)) else base_fee + to_u256(*vector::borrow(&gas_price_data, 1));
-        let max_fee_per_gas = if(tx_type == TX_TYPE_NORMAL) 0 else to_u256(*vector::borrow(&gas_price_data, 0));
+        let gas_price;
+        let max_fee_per_gas = 0;
+        if(tx_type == TX_TYPE_NORMAL) {
+            gas_price = to_u256(*vector::borrow(&gas_price_data, 0))
+        } else {
+            gas_price = base_fee + to_u256(*vector::borrow(&gas_price_data, 1));
+            max_fee_per_gas = to_u256(*vector::borrow(&gas_price_data, 0));
+            gas_price = if(gas_price > max_fee_per_gas) max_fee_per_gas else gas_price
+        };
         Env {
             tx_type,
             sender,
@@ -212,7 +219,7 @@ module aptos_framework::evm_global_state {
             coinbase,
             difficulty,
             excess_blob_gas,
-            gas_limit,
+            block_gas_limit,
             gas_price,
             number,
             random,

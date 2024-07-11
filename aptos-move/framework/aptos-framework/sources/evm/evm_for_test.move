@@ -9,7 +9,7 @@ module aptos_framework::evm_for_test {
     use aptos_framework::evm_precompile::{is_precompile_address, run_precompile};
     use aptos_std::simple_map;
     use aptos_std::simple_map::SimpleMap;
-    use aptos_framework::evm_global_state::{new_run_state, add_gas_usage, get_gas_refund, RunState, add_call_state, revert_call_state, commit_call_state, get_gas_left, add_gas_left, clear_gas_refund, get_coinbase, get_basefee, get_origin, get_gas_price, get_timestamp, get_block_number, get_block_difficulty, get_gas_limit, get_is_static, is_eip_1559, get_max_fee_per_gas};
+    use aptos_framework::evm_global_state::{new_run_state, add_gas_usage, get_gas_refund, RunState, add_call_state, revert_call_state, commit_call_state, get_gas_left, add_gas_left, clear_gas_refund, get_coinbase, get_basefee, get_origin, get_gas_price, get_timestamp, get_block_number, get_block_difficulty, get_is_static, is_eip_1559, get_max_fee_per_gas, get_block_gas_limit};
     use aptos_framework::evm_gas::{calc_exec_gas, calc_base_gas, max_call_gas};
     use aptos_framework::event;
     use aptos_framework::evm_arithmetic::{add, mul, sub, div, sdiv, mod, smod, add_mod, mul_mod, exp, shr, sar, slt, sgt};
@@ -177,6 +177,10 @@ module aptos_framework::evm_for_test {
                 handle_tx_failed(&trie);
                 return
             }
+        };
+        if(gas_limit > get_block_gas_limit(run_state)) {
+            handle_tx_failed(&trie);
+            return
         };
         if(get_balance(from, &trie) < base_cost * gas_price || gas_limit < base_cost) {
             handle_tx_failed(&trie);
@@ -799,7 +803,7 @@ module aptos_framework::evm_for_test {
             }
                 //gaslimit
             else if(opcode == 0x45) {
-                vector::push_back(stack, get_gas_limit(run_state));
+                vector::push_back(stack, get_block_gas_limit(run_state));
                 i = i + 1;
             }
                 //chainid
