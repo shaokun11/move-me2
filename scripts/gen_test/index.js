@@ -99,4 +99,4 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
 
 let key = "intrinsic"
 
-read("src/GeneralStateTests/stEIP1559/intrinsic.json", key, 1, 0, 0)
+read("src/GeneralStateTests/stEIP1559/intrinsic.json", key, 2, 0, 0)

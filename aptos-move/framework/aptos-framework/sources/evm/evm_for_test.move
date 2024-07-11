@@ -157,8 +157,10 @@ module aptos_framework::evm_for_test {
                               data: vector<u8>,
                               gas_limit_bytes: vector<u8>,
                               gas_price_bytes:vector<u8>,
+                              maxFee_per_gas_bytes: vector<u8>,
                               value_bytes: vector<u8>,
                               env_data: vector<vector<u8>>) acquires ExecResource {
+        let max_fee_per_gas = to_u256(maxFee_per_gas_bytes);
         let gas_price = to_u256(gas_price_bytes);
         // let env = parse_env(&env_data, gas_price);
         let value = to_u256(value_bytes);
@@ -172,7 +174,7 @@ module aptos_framework::evm_for_test {
         add_warm_address(get_coinbase(run_state), &mut trie);
         let data_size = (vector::length(&data) as u256);
         let base_cost = calc_base_gas(&data, access_address_count, access_slot_count) + 21000;
-        if(get_balance(from, &trie) < base_cost * gas_price || gas_limit < base_cost) {
+        if(max_fee_per_gas < get_basefee(run_state) || get_balance(from, &trie) < base_cost * gas_price || gas_limit < base_cost) {
             handle_tx_failed(&trie);
             return
         } else if(to == ZERO_ADDR && data_size > MAX_INIT_CODE_SIZE) {

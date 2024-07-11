@@ -46,6 +46,8 @@ module aptos_framework::evm_test {
         let access_keys = vector::empty<vector<vector<u8>>>();
         vector::push_back(&mut access_addresses, x"f00000000000000000000000000000000000f101");
 vector::push_back(&mut access_keys, vector[]);
+vector::push_back(&mut access_addresses, x"f00000000000000000000000000000000000f102");
+vector::push_back(&mut access_keys, vector[]);
 
 
 
