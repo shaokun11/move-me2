@@ -157,10 +157,10 @@ module aptos_framework::evm_for_test {
                               data: vector<u8>,
                               gas_limit_bytes: vector<u8>,
                               gas_price_bytes:vector<u8>,
-                              maxFee_per_gas_bytes: vector<u8>,
+                              max_fee_per_gas_bytes: vector<u8>,
                               value_bytes: vector<u8>,
                               env_data: vector<vector<u8>>) acquires ExecResource {
-        let max_fee_per_gas = to_u256(maxFee_per_gas_bytes);
+        let max_fee_per_gas = to_u256(max_fee_per_gas_bytes);
         let gas_price = to_u256(gas_price_bytes);
         // let env = parse_env(&env_data, gas_price);
         let value = to_u256(value_bytes);

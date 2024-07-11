@@ -21,6 +21,7 @@ function generateEvmTest(addresses, codes, balances, nonces, storages, transacti
     templateCode = templateCode.replace('$gas_limit', toData(transaction.gasLimit[gasIndex]));
     templateCode = templateCode.replace('$gas_price', gas_price);
     templateCode = templateCode.replace('$value', toData(transaction.value[valueIndex]));
+    templateCode = templateCode.replace('$max_fee_per_gas', toData(transaction.maxFeePerGas ?? env.currentBaseFee));
 
     let access_list = ''
     if(transaction.accessLists && transaction.accessLists[dataIndex].length > 0) {
@@ -97,6 +98,6 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "intrinsic"
+let key = "lowFeeCap"
 
-read("src/GeneralStateTests/stEIP1559/intrinsic.json", key, 2, 0, 0)
+read("src/GeneralStateTests/stEIP1559/lowFeeCap.json", key, 0, 0, 0)
