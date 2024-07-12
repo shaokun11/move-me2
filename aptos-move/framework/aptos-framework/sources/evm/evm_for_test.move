@@ -13,7 +13,7 @@ module aptos_framework::evm_for_test {
     use aptos_framework::evm_gas::{calc_exec_gas, calc_base_gas, max_call_gas};
     use aptos_framework::event;
     use aptos_framework::evm_arithmetic::{add, mul, sub, div, sdiv, mod, smod, add_mod, mul_mod, exp, shr, sar, slt, sgt};
-    use aptos_framework::evm_trie::{pre_init, Trie, add_checkpoint, revert_checkpoint, commit_latest_checkpoint, TestAccount, get_code, sub_balance, add_nonce, transfer, get_balance, get_state, set_state, exist_contract, get_nonce, new_account, get_storage_copy, save, add_balance, add_warm_address, get_transient_storage, put_transient_storage, set_code, is_contract_or_created_account, get_code_length};
+    use aptos_framework::evm_trie::{pre_init, Trie, add_checkpoint, revert_checkpoint, commit_latest_checkpoint, TestAccount, get_code, sub_balance, add_nonce, transfer, get_balance, get_state, set_state, exist_contract, get_nonce, new_account, get_storage_copy, save, add_balance, add_warm_address, get_transient_storage, put_transient_storage, set_code, is_contract_or_created_account, get_code_length, exist_account};
     friend aptos_framework::genesis;
 
     const ADDR_LENGTH: u64 = 10001;
@@ -768,8 +768,8 @@ module aptos_framework::evm_for_test {
                 //extcodehash
             else if(opcode == 0x3f) {
                 let target = get_valid_ethereum_address(pop_stack(stack, error_code));
-                let code = get_code(target, trie);
-                if(vector::length(&code) > 0) {
+                if(exist_account(target, trie)) {
+                    let code = get_code(target, trie);
                     let hash = keccak256(code);
                     vector::push_back(stack, to_u256(hash));
                 } else {
