@@ -180,6 +180,10 @@ module aptos_framework::evm_global_state {
         run_state.env.difficulty
     }
 
+    public fun get_random(run_state: &RunState): vector<u8> {
+        run_state.env.random
+    }
+
     public fun get_origin(run_state: &RunState): vector<u8> {
         run_state.env.sender
     }
@@ -195,8 +199,6 @@ module aptos_framework::evm_global_state {
     public fun is_eip_1559(run_state: &RunState): bool {
         run_state.env.tx_type == TX_TYPE_1559
     }
-
-
 
     fun parse_env(env: &vector<vector<u8>>, sender: vector<u8>, gas_price_data: vector<vector<u8>>, tx_type: u8): Env {
         let base_fee = to_u256(*vector::borrow(env, 0));

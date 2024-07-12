@@ -98,6 +98,6 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "transactionCollidingWithNonEmptyAccount_calls"
+let key = "mergeTest"
 
-read("src/GeneralStateTests/stEIP3607/transactionCollidingWithNonEmptyAccount_calls.json", key, 0, 0, 0)
+read("src/GeneralStateTests/stExample/mergeTest.json", key, 0, 0, 0)
