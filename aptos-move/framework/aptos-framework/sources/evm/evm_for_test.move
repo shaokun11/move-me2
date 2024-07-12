@@ -435,9 +435,9 @@ module aptos_framework::evm_for_test {
             }
             // return
             else if(opcode == 0xf3) {
-                let pos = pop_stack_u64(stack, error_code);
-                let len = pop_stack_u64(stack, error_code);
-                ret_value = vector_slice(*memory, pos, len);
+                let pos = pop_stack(stack, error_code);
+                let len = pop_stack(stack, error_code);
+                ret_value = vector_slice_u256(*memory, pos, len);
                 break
             }
                 //add
