@@ -752,14 +752,14 @@ module aptos_framework::evm_for_test {
             else if(opcode == 0x3e) {
                 // mstore()
                 let m_pos = pop_stack_u64(stack, error_code);
-                let d_pos = pop_stack_u64(stack, error_code);
-                let len = pop_stack_u64(stack, error_code);
+                let d_pos = pop_stack(stack, error_code);
+                let len = pop_stack(stack, error_code);
                 debug::print(&utf8(b"return copy"));
                 debug::print(ret_bytes);
-                if(d_pos + len > vector::length(ret_bytes)) {
+                if(d_pos + len > (vector::length(ret_bytes) as u256)) {
                     *error_code = ERROR_INVALID_RETURN_DATA_COPY_SIZE;
                 } else {
-                    let bytes = vector_slice(*ret_bytes, d_pos, len);
+                    let bytes = vector_slice_u256(*ret_bytes, d_pos, len);
                     mstore(memory, m_pos, bytes);
                 };
 
