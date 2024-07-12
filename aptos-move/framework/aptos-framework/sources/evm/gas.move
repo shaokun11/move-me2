@@ -19,7 +19,7 @@ module aptos_framework::evm_gas {
     const SstoreClearRefundEIP2200: u256 = 4800;
     const SstoreInitRefundEIP2200: u256 = 19900;
     const SstoreCleanRefundEIP2200: u256 = 2800;
-    const SstoreSentryGasEIP2200: u256 = 2800;
+    const SstoreSentryGasEIP2200: u256 = 2300;
     const Coldsload: u256 = 2100;
     const Warmstorageread: u256 = 100;
     const CallNewAccount: u256 = 25000;
@@ -104,7 +104,6 @@ module aptos_framework::evm_gas {
                         error_code: &mut u64): u256 {
         let len = vector::length(stack);
         let offset = *vector::borrow(stack,len - 1);
-        // debug::print(&offset);
         calc_memory_expand_internal(offset + 32, run_state, gas_limit, error_code)
     }
 

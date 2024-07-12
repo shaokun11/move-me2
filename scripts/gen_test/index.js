@@ -98,6 +98,6 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "codeCopyZero_Paris"
+let key = "CallGoesOOGOnSecondLevelWithMemExpandingCalls"
 
-read("src/GeneralStateTests/stExtCodeHash/codeCopyZero_Paris.json", key, 0, 0, 0)
+read("src/GeneralStateTests/stMemExpandingEIP150Calls/CallGoesOOGOnSecondLevelWithMemExpandingCalls.json", key, 0, 0, 0)
