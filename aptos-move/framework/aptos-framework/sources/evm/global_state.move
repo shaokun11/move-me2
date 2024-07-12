@@ -32,7 +32,8 @@ module aptos_framework::evm_global_state {
         gas_refund: u256,
         gas_left: u256,
         gas_limit: u256,
-        is_static: bool
+        is_static: bool,
+        ret_bytes: vector<u8>
     }
 
     public fun new_run_state(sender: vector<u8>, gas_price_data: vector<vector<u8>>, gas_limit: u256, env_data: &vector<vector<u8>>, tx_type: u8): RunState {
@@ -46,7 +47,8 @@ module aptos_framework::evm_global_state {
             gas_refund: 0,
             gas_left: gas_limit,
             gas_limit,
-            is_static: false
+            is_static: false,
+            ret_bytes: vector::empty()
         });
         state
     }
@@ -60,7 +62,8 @@ module aptos_framework::evm_global_state {
             gas_refund: 0,
             gas_left: gas_limit,
             gas_limit,
-            is_static: static
+            is_static: static,
+            ret_bytes: vector::empty()
         });
     }
 
@@ -100,6 +103,21 @@ module aptos_framework::evm_global_state {
     public fun get_memory_word_size(run_state: &RunState) : u256 {
         let state = get_lastest_state(run_state);
         state.highest_memory_word_size
+    }
+
+    public fun set_ret_bytes(run_state: &mut RunState, bytes: vector<u8>) {
+        let state = get_lastest_state_mut(run_state);
+        state.ret_bytes = bytes
+    }
+
+    public fun get_ret_bytes(run_state: &RunState) : vector<u8> {
+        let state = get_lastest_state(run_state);
+        state.ret_bytes
+    }
+
+    public fun get_ret_size(run_state: &RunState): u256 {
+        let state = get_lastest_state(run_state);
+        (vector::length(&state.ret_bytes) as u256)
     }
 
     public fun set_memory_word_size(run_state: &mut RunState, count: u256) {

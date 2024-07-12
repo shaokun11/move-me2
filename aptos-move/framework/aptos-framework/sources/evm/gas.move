@@ -1,7 +1,7 @@
 module aptos_framework::evm_gas {
     use std::vector;
     use aptos_framework::evm_util::{u256_to_data, print_opcode, u256_bytes_length, get_word_count, get_valid_ethereum_address};
-    use aptos_framework::evm_global_state::{get_memory_cost, set_memory_cost, add_gas_refund, sub_gas_refund, get_memory_word_size, set_memory_word_size, RunState, get_gas_left};
+    use aptos_framework::evm_global_state::{get_memory_cost, set_memory_cost, add_gas_refund, sub_gas_refund, get_memory_word_size, set_memory_word_size, RunState, get_gas_left, get_ret_size};
     use aptos_std::debug;
     use std::vector::for_each;
     use aptos_framework::evm_trie::{Trie, get_state, exist_account, is_cold_address, get_cache, get_balance};
@@ -225,6 +225,23 @@ module aptos_framework::evm_gas {
         gas = gas + access_address(address, trie);
 
         gas
+    }
+
+    fun calc_return_data_copy_gas(stack: &mut vector<u256>,
+                           run_state: &mut RunState, gas_limit: u256, error_code: &mut u64): u256 {
+        let len = vector::length(stack);
+        if(len < 3) {
+            *error_code = STACK_UNDERFLOW;
+            return 0
+        };
+        let data_length = *vector::borrow(stack,len - 3);
+        let data_pos = *vector::borrow(stack,len - 1);
+        if(data_length + data_pos > get_ret_size(run_state)) {
+            *error_code = OUT_OF_GAS;
+            return 0
+        };
+
+        calc_code_copy_gas(stack, run_state, gas_limit, error_code)
     }
 
     fun calc_code_copy_gas(stack: &mut vector<u256>,
@@ -617,8 +634,11 @@ module aptos_framework::evm_gas {
         } else if (opcode == 0x5e) {
             // MCOPY
             calc_mcopy_gas(stack, run_state, gas_limit, error_code)
-        } else if (opcode == 0x37 || opcode == 0x39 || opcode == 0x3e) {
-            // CALLDATACOPY & CODECOPY & RETURNDATA COPY
+        } else if(opcode == 0x3e){
+            //RETURNDATA COPY
+            calc_return_data_copy_gas(stack, run_state, gas_limit, error_code)
+        } else if (opcode == 0x37 || opcode == 0x39) {
+            // CALLDATACOPY & CODECOPY
             calc_code_copy_gas(stack, run_state, gas_limit, error_code)
         } else if (opcode == 0x3c) {
             // EXTCODECOPY
