@@ -13,7 +13,7 @@ module aptos_framework::evm_for_test {
     use aptos_framework::evm_gas::{calc_exec_gas, calc_base_gas, max_call_gas};
     use aptos_framework::event;
     use aptos_framework::evm_arithmetic::{add, mul, sub, div, sdiv, mod, smod, add_mod, mul_mod, exp, shr, sar, slt, sgt};
-    use aptos_framework::evm_trie::{pre_init, Trie, add_checkpoint, revert_checkpoint, commit_latest_checkpoint, TestAccount, get_code, sub_balance, add_nonce, transfer, get_balance, get_state, set_state, exist_contract, get_nonce, new_account, get_storage_copy, save, add_balance, add_warm_address, get_transient_storage, put_transient_storage, set_code, is_contract_or_created_account};
+    use aptos_framework::evm_trie::{pre_init, Trie, add_checkpoint, revert_checkpoint, commit_latest_checkpoint, TestAccount, get_code, sub_balance, add_nonce, transfer, get_balance, get_state, set_state, exist_contract, get_nonce, new_account, get_storage_copy, save, add_balance, add_warm_address, get_transient_storage, put_transient_storage, set_code, is_contract_or_created_account, get_code_length};
     friend aptos_framework::genesis;
 
     const ADDR_LENGTH: u64 = 10001;
@@ -162,15 +162,11 @@ module aptos_framework::evm_for_test {
                               tx_type: u8) acquires ExecResource {
         let value = to_u256(value_bytes);
         let (trie, access_address_count, access_slot_count) = pre_init(addresses, codes, nonces, balances, storage_keys, storage_values, access_addresses, access_keys);
-
-        debug::print(&access_slot_count);
         let gas_limit = to_u256(gas_limit_bytes);
         from = to_32bit(from);
         to = to_32bit(to);
         let run_state = &mut new_run_state(from, gas_price_data, gas_limit, &env_data, tx_type);
         let gas_price = get_gas_price(run_state);
-        debug::print(&gas_price);
-        debug::print(&tx_type);
         add_warm_address(from, &mut trie);
         add_warm_address(get_coinbase(run_state), &mut trie);
         let data_size = (vector::length(&data) as u256);
@@ -193,7 +189,7 @@ module aptos_framework::evm_for_test {
         if(to == ZERO_ADDR) {
             base_cost = base_cost + 2 * get_word_count(data_size) + 32000;
         };
-        if(get_balance(from, &trie) < up_cost || gas_limit < base_cost) {
+        if(get_balance(from, &trie) < up_cost || get_code_length(from, &trie) > 0 || gas_limit < base_cost) {
             handle_tx_failed(&trie);
             return
         } else if(to == ZERO_ADDR && data_size > MAX_INIT_CODE_SIZE) {
