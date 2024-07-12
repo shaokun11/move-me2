@@ -100,4 +100,4 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
 
 let key = "bufferSrcOffset"
 
-read("src/GeneralStateTests/stMemoryTest/bufferSrcOffset.json", key, 85, 0, 0)
+read("src/GeneralStateTests/stMemoryTest/bufferSrcOffset.json", key, 76, 0, 0)

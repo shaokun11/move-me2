@@ -235,7 +235,7 @@ module aptos_framework::evm_gas {
             return 0
         };
         let data_length = *vector::borrow(stack,len - 3);
-        let data_pos = *vector::borrow(stack,len - 1);
+        let data_pos = *vector::borrow(stack,len - 2);
         if(data_length + data_pos > get_ret_size(run_state)) {
             *error_code = OUT_OF_GAS;
             return 0
