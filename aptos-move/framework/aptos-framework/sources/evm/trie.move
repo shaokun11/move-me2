@@ -295,16 +295,30 @@ module aptos_framework::evm_trie {
         while (i < access_list_len) {
             let access_data = *vector::borrow(&access_keys, i);
             let address = to_32bit(*vector::borrow(&access_addresses, i));
-            let access = simple_map::new<u256, bool>();
-            let j = 0;
-            let data_len = vector::length(&access_data);
-            while (j < data_len) {
-                let key = *vector::borrow(&access_data, j);
-                simple_map::add(&mut access, to_u256(key), true);
-                j = j + 1;
-                access_slot_count = access_slot_count + 1;
+            if(!simple_map::contains_key(&trie.access_list, &address)) {
+                let access = simple_map::new<u256, bool>();
+                let j = 0;
+                let data_len = vector::length(&access_data);
+                while (j < data_len) {
+                    let key = *vector::borrow(&access_data, j);
+                    simple_map::upsert(&mut access, to_u256(key), true);
+                    j = j + 1;
+                    access_slot_count = access_slot_count + 1;
+                };
+
+                simple_map::add(&mut trie.access_list, address, access);
+            } else {
+                let j = 0;
+                let data_len = vector::length(&access_data);
+                let access = simple_map::borrow_mut(&mut trie.access_list, &address);
+                while (j < data_len) {
+                    let key = *vector::borrow(&access_data, j);
+                    simple_map::upsert(access, to_u256(key), true);
+                    j = j + 1;
+                    access_slot_count = access_slot_count + 1;
+                };
             };
-            simple_map::add(&mut trie.access_list, address, access);
+
             i = i + 1;
         };
 
