@@ -440,7 +440,8 @@ module aptos_framework::evm_for_test {
             else if(opcode == 0x01) {
                 let a = pop_stack(stack, error_code);
                 let b = pop_stack(stack, error_code);
-                vector::push_back(stack, add(a, b));
+                let (c, _) = add(a, b);
+                vector::push_back(stack, c);
                 i = i + 1;
             }
                 //mul

@@ -793,8 +793,6 @@ owned.
         *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow_mut">vector::borrow_mut</a>(memory, ((m_pos + i) <b>as</b> u64)) = bytes;
         i = i + 1;
     };
-
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(memory);
 }
 </code></pre>
 
@@ -827,8 +825,6 @@ owned.
             i = i + 1
         };
     };
-
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(memory);
 }
 </code></pre>
 
@@ -1116,6 +1112,8 @@ owned.
         <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"DIFFICULTY"));
     } <b>else</b> <b>if</b>(opcode == 0x45) {
         <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"GASLIMIT"));
+    } <b>else</b> <b>if</b>(opcode == 0x48) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PREVRANDAO"));
     } <b>else</b> <b>if</b>(opcode == 0x50) {
         <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"POP"));
     } <b>else</b> <b>if</b>(opcode == 0x51) {

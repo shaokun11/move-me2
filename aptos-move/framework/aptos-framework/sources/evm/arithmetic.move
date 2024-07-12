@@ -1,5 +1,5 @@
 module aptos_framework::evm_arithmetic {
-    public native fun add(a: u256, b: u256): u256;
+    public native fun add(a: u256, b: u256): (u256, bool);
     public native fun mul(a: u256, b: u256): u256;
     public native fun sub(a: u256, b: u256): u256;
     public native fun div(a: u256, b: u256): u256;

@@ -5,8 +5,7 @@ module aptos_framework::evm_gas {
     use aptos_std::debug;
     use std::vector::for_each;
     use aptos_framework::evm_trie::{Trie, get_state, exist_account, is_cold_address, get_cache, get_balance};
-
-    const U64_MAX: u256 = 18446744073709551615; // 18_446_744_073_709_551_615
+    use aptos_framework::evm_arithmetic::add;
 
     const OUT_OF_GAS: u64 = 11;
     const STACK_UNDERFLOW: u64 = 12;
@@ -45,12 +44,12 @@ module aptos_framework::evm_gas {
         if(out_size == 0) {
             return 0
         };
-        // To prevent overflow
-        if(out_offset > U64_MAX || out_size > U64_MAX || out_offset + out_size > U64_MAX) {
+        let (new_size, overflow) = add(out_offset, out_size);
+        if(overflow) {
             *error_code = OUT_OF_GAS;
             return 0
         };
-        calc_memory_expand_internal(out_offset + out_size, run_state, gas_limit, error_code)
+        calc_memory_expand_internal(new_size, run_state, gas_limit, error_code)
     }
 
     fun calc_memory_expand_internal(new_memory_size: u256, run_state: &mut RunState, gas_limit: u256, error_code: &mut u64): u256 {
@@ -236,7 +235,8 @@ module aptos_framework::evm_gas {
         };
         let data_length = *vector::borrow(stack,len - 3);
         let data_pos = *vector::borrow(stack,len - 2);
-        if(data_length + data_pos > get_ret_size(run_state)) {
+        let (data_size, overflow) = add(data_length, data_pos);
+        if(overflow || data_size > get_ret_size(run_state)) {
             *error_code = OUT_OF_GAS;
             return 0
         };
@@ -635,7 +635,7 @@ module aptos_framework::evm_gas {
             // MCOPY
             calc_mcopy_gas(stack, run_state, gas_limit, error_code)
         } else if(opcode == 0x3e){
-            //RETURNDATA COPY
+            //RETURNDATACOPY
             calc_return_data_copy_gas(stack, run_state, gas_limit, error_code)
         } else if (opcode == 0x37 || opcode == 0x39) {
             // CALLDATACOPY & CODECOPY

@@ -31,7 +31,7 @@
 
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="arithmetic.md#0x1_evm_arithmetic_add">add</a>(a: u256, b: u256): u256
+<pre><code><b>public</b> <b>fun</b> <a href="arithmetic.md#0x1_evm_arithmetic_add">add</a>(a: u256, b: u256): (u256, bool)
 </code></pre>
 
 
@@ -40,7 +40,7 @@
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b> <b>native</b> <b>fun</b> <a href="arithmetic.md#0x1_evm_arithmetic_add">add</a>(a: u256, b: u256): u256;
+<pre><code><b>public</b> <b>native</b> <b>fun</b> <a href="arithmetic.md#0x1_evm_arithmetic_add">add</a>(a: u256, b: u256): (u256, bool);
 </code></pre>
 
 

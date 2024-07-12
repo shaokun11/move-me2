@@ -8,6 +8,7 @@
 -  [Struct `Env`](#0x1_evm_global_state_Env)
 -  [Struct `RunState`](#0x1_evm_global_state_RunState)
 -  [Struct `CallState`](#0x1_evm_global_state_CallState)
+-  [Constants](#@Constants_0)
 -  [Function `new_run_state`](#0x1_evm_global_state_new_run_state)
 -  [Function `add_call_state`](#0x1_evm_global_state_add_call_state)
 -  [Function `get_lastest_state_mut`](#0x1_evm_global_state_get_lastest_state_mut)
@@ -17,22 +18,30 @@
 -  [Function `get_memory_cost`](#0x1_evm_global_state_get_memory_cost)
 -  [Function `set_memory_cost`](#0x1_evm_global_state_set_memory_cost)
 -  [Function `get_memory_word_size`](#0x1_evm_global_state_get_memory_word_size)
+-  [Function `set_ret_bytes`](#0x1_evm_global_state_set_ret_bytes)
+-  [Function `get_ret_bytes`](#0x1_evm_global_state_get_ret_bytes)
+-  [Function `get_ret_size`](#0x1_evm_global_state_get_ret_size)
 -  [Function `set_memory_word_size`](#0x1_evm_global_state_set_memory_word_size)
 -  [Function `add_gas_usage`](#0x1_evm_global_state_add_gas_usage)
 -  [Function `add_gas_left`](#0x1_evm_global_state_add_gas_left)
 -  [Function `add_gas_refund`](#0x1_evm_global_state_add_gas_refund)
 -  [Function `sub_gas_refund`](#0x1_evm_global_state_sub_gas_refund)
 -  [Function `clear_gas_refund`](#0x1_evm_global_state_clear_gas_refund)
+-  [Function `get_is_static`](#0x1_evm_global_state_get_is_static)
 -  [Function `get_gas_left`](#0x1_evm_global_state_get_gas_left)
 -  [Function `get_gas_refund`](#0x1_evm_global_state_get_gas_refund)
 -  [Function `get_coinbase`](#0x1_evm_global_state_get_coinbase)
 -  [Function `get_basefee`](#0x1_evm_global_state_get_basefee)
 -  [Function `get_gas_price`](#0x1_evm_global_state_get_gas_price)
--  [Function `get_gas_limit`](#0x1_evm_global_state_get_gas_limit)
+-  [Function `get_block_gas_limit`](#0x1_evm_global_state_get_block_gas_limit)
 -  [Function `get_timestamp`](#0x1_evm_global_state_get_timestamp)
 -  [Function `get_block_number`](#0x1_evm_global_state_get_block_number)
 -  [Function `get_block_difficulty`](#0x1_evm_global_state_get_block_difficulty)
+-  [Function `get_random`](#0x1_evm_global_state_get_random)
 -  [Function `get_origin`](#0x1_evm_global_state_get_origin)
+-  [Function `get_max_fee_per_gas`](#0x1_evm_global_state_get_max_fee_per_gas)
+-  [Function `get_max_priority_fee_per_gas`](#0x1_evm_global_state_get_max_priority_fee_per_gas)
+-  [Function `is_eip_1559`](#0x1_evm_global_state_is_eip_1559)
 -  [Function `parse_env`](#0x1_evm_global_state_parse_env)
 
 
@@ -82,13 +91,25 @@
 
 </dd>
 <dt>
-<code>gas_limit: u256</code>
+<code>block_gas_limit: u256</code>
 </dt>
 <dd>
 
 </dd>
 <dt>
 <code>gas_price: u256</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>max_priority_fee_per_gas: u256</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>max_fee_per_gas: u256</code>
 </dt>
 <dd>
 
@@ -113,6 +134,12 @@
 </dd>
 <dt>
 <code>sender: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>tx_type: u8</code>
 </dt>
 <dd>
 
@@ -201,10 +228,45 @@
 <dd>
 
 </dd>
+<dt>
+<code>is_static: bool</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>ret_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
 </dl>
 
 
 </details>
+
+<a id="@Constants_0"></a>
+
+## Constants
+
+
+<a id="0x1_evm_global_state_TX_TYPE_1559"></a>
+
+
+
+<pre><code><b>const</b> <a href="global_state.md#0x1_evm_global_state_TX_TYPE_1559">TX_TYPE_1559</a>: u8 = 1;
+</code></pre>
+
+
+
+<a id="0x1_evm_global_state_TX_TYPE_NORMAL"></a>
+
+
+
+<pre><code><b>const</b> <a href="global_state.md#0x1_evm_global_state_TX_TYPE_NORMAL">TX_TYPE_NORMAL</a>: u8 = 0;
+</code></pre>
+
+
 
 <a id="0x1_evm_global_state_new_run_state"></a>
 
@@ -212,7 +274,7 @@
 
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_new_run_state">new_run_state</a>(sender: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_price: u256, gas_limit: u256, env_data: &<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;): <a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_new_run_state">new_run_state</a>(sender: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_price_data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;, gas_limit: u256, env_data: &<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;, tx_type: u8): <a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>
 </code></pre>
 
 
@@ -221,12 +283,20 @@
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_new_run_state">new_run_state</a>(sender: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_price: u256, gas_limit: u256, env_data: &<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;): <a href="global_state.md#0x1_evm_global_state_RunState">RunState</a> {
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_new_run_state">new_run_state</a>(sender: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_price_data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;, gas_limit: u256, env_data: &<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;, tx_type: u8): <a href="global_state.md#0x1_evm_global_state_RunState">RunState</a> {
     <b>let</b> state = <a href="global_state.md#0x1_evm_global_state_RunState">RunState</a> {
         call_state: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_empty">vector::empty</a>(),
-        env: <a href="global_state.md#0x1_evm_global_state_parse_env">parse_env</a>(env_data, sender, gas_price)
+        env: <a href="global_state.md#0x1_evm_global_state_parse_env">parse_env</a>(env_data, sender, gas_price_data, tx_type)
     };
-    <a href="global_state.md#0x1_evm_global_state_add_call_state">add_call_state</a>(&<b>mut</b> state, gas_limit);
+    <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(&<b>mut</b> state.call_state, <a href="global_state.md#0x1_evm_global_state_CallState">CallState</a> {
+        highest_memory_cost: 0,
+        highest_memory_word_size: 0,
+        gas_refund: 0,
+        gas_left: gas_limit,
+        gas_limit,
+        is_static: <b>false</b>,
+        ret_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_empty">vector::empty</a>()
+    });
     state
 }
 </code></pre>
@@ -241,7 +311,7 @@
 
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_add_call_state">add_call_state</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>, gas_limit: u256)
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_add_call_state">add_call_state</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>, gas_limit: u256, is_static: bool)
 </code></pre>
 
 
@@ -250,14 +320,18 @@
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_add_call_state">add_call_state</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>, gas_limit: u256) {
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_add_call_state">add_call_state</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>, gas_limit: u256, is_static: bool) {
+    <b>let</b> state = <a href="global_state.md#0x1_evm_global_state_get_lastest_state">get_lastest_state</a>(run_state);
+    <b>let</b> static = state.is_static || is_static;
     <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(&<b>mut</b> run_state.call_state, <a href="global_state.md#0x1_evm_global_state_CallState">CallState</a> {
         highest_memory_cost: 0,
         highest_memory_word_size: 0,
         gas_refund: 0,
         gas_left: gas_limit,
-        gas_limit
-    })
+        gas_limit,
+        is_static: static,
+        ret_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_empty">vector::empty</a>()
+    });
 }
 </code></pre>
 
@@ -443,6 +517,81 @@
 
 </details>
 
+<a id="0x1_evm_global_state_set_ret_bytes"></a>
+
+## Function `set_ret_bytes`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_set_ret_bytes">set_ret_bytes</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>, bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_set_ret_bytes">set_ret_bytes</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>, bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;) {
+    <b>let</b> state = <a href="global_state.md#0x1_evm_global_state_get_lastest_state_mut">get_lastest_state_mut</a>(run_state);
+    state.ret_bytes = bytes
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_global_state_get_ret_bytes"></a>
+
+## Function `get_ret_bytes`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_ret_bytes">get_ret_bytes</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_ret_bytes">get_ret_bytes</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>) : <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt; {
+    <b>let</b> state = <a href="global_state.md#0x1_evm_global_state_get_lastest_state">get_lastest_state</a>(run_state);
+    state.ret_bytes
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_global_state_get_ret_size"></a>
+
+## Function `get_ret_size`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_ret_size">get_ret_size</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>): u256
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_ret_size">get_ret_size</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>): u256 {
+    <b>let</b> state = <a href="global_state.md#0x1_evm_global_state_get_lastest_state">get_lastest_state</a>(run_state);
+    (<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&state.ret_bytes) <b>as</b> u256)
+}
+</code></pre>
+
+
+
+</details>
+
 <a id="0x1_evm_global_state_set_memory_word_size"></a>
 
 ## Function `set_memory_word_size`
@@ -598,6 +747,31 @@
 
 </details>
 
+<a id="0x1_evm_global_state_get_is_static"></a>
+
+## Function `get_is_static`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_is_static">get_is_static</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>): bool
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_is_static">get_is_static</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>): bool {
+    <b>let</b> state = <a href="global_state.md#0x1_evm_global_state_get_lastest_state">get_lastest_state</a>(run_state);
+    state.is_static
+}
+</code></pre>
+
+
+
+</details>
+
 <a id="0x1_evm_global_state_get_gas_left"></a>
 
 ## Function `get_gas_left`
@@ -720,13 +894,13 @@
 
 </details>
 
-<a id="0x1_evm_global_state_get_gas_limit"></a>
+<a id="0x1_evm_global_state_get_block_gas_limit"></a>
 
-## Function `get_gas_limit`
+## Function `get_block_gas_limit`
 
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_gas_limit">get_gas_limit</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>): u256
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_block_gas_limit">get_block_gas_limit</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>): u256
 </code></pre>
 
 
@@ -735,8 +909,8 @@
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_gas_limit">get_gas_limit</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>): u256 {
-    run_state.env.gas_limit
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_block_gas_limit">get_block_gas_limit</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>): u256 {
+    run_state.env.block_gas_limit
 }
 </code></pre>
 
@@ -816,6 +990,30 @@
 
 </details>
 
+<a id="0x1_evm_global_state_get_random"></a>
+
+## Function `get_random`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_random">get_random</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_random">get_random</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt; {
+    run_state.env.random
+}
+</code></pre>
+
+
+
+</details>
+
 <a id="0x1_evm_global_state_get_origin"></a>
 
 ## Function `get_origin`
@@ -840,13 +1038,13 @@
 
 </details>
 
-<a id="0x1_evm_global_state_parse_env"></a>
+<a id="0x1_evm_global_state_get_max_fee_per_gas"></a>
 
-## Function `parse_env`
+## Function `get_max_fee_per_gas`
 
 
 
-<pre><code><b>fun</b> <a href="global_state.md#0x1_evm_global_state_parse_env">parse_env</a>(env: &<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;, sender: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_price: u256): <a href="global_state.md#0x1_evm_global_state_Env">evm_global_state::Env</a>
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_max_fee_per_gas">get_max_fee_per_gas</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>): u256
 </code></pre>
 
 
@@ -855,22 +1053,108 @@
 <summary>Implementation</summary>
 
 
-<pre><code><b>fun</b> <a href="global_state.md#0x1_evm_global_state_parse_env">parse_env</a>(env: &<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;, sender: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_price: u256): <a href="global_state.md#0x1_evm_global_state_Env">Env</a> {
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_max_fee_per_gas">get_max_fee_per_gas</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>): u256 {
+    run_state.env.max_fee_per_gas
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_global_state_get_max_priority_fee_per_gas"></a>
+
+## Function `get_max_priority_fee_per_gas`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_max_priority_fee_per_gas">get_max_priority_fee_per_gas</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>): u256
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_max_priority_fee_per_gas">get_max_priority_fee_per_gas</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>): u256 {
+    run_state.env.max_priority_fee_per_gas
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_global_state_is_eip_1559"></a>
+
+## Function `is_eip_1559`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_is_eip_1559">is_eip_1559</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>): bool
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_is_eip_1559">is_eip_1559</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>): bool {
+    run_state.env.tx_type == <a href="global_state.md#0x1_evm_global_state_TX_TYPE_1559">TX_TYPE_1559</a>
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_global_state_parse_env"></a>
+
+## Function `parse_env`
+
+
+
+<pre><code><b>fun</b> <a href="global_state.md#0x1_evm_global_state_parse_env">parse_env</a>(env: &<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;, sender: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_price_data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;, tx_type: u8): <a href="global_state.md#0x1_evm_global_state_Env">evm_global_state::Env</a>
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="global_state.md#0x1_evm_global_state_parse_env">parse_env</a>(env: &<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;, sender: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_price_data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;, tx_type: u8): <a href="global_state.md#0x1_evm_global_state_Env">Env</a> {
     <b>let</b> base_fee = to_u256(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(env, 0));
     <b>let</b> coinbase = to_32bit(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(env, 1));
     <b>let</b> difficulty = to_u256(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(env, 2));
     <b>let</b> excess_blob_gas = to_u256(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(env, 3));
-    <b>let</b> gas_limit = to_u256(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(env, 4));
+    <b>let</b> block_gas_limit = to_u256(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(env, 4));
     <b>let</b> number = to_u256(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(env, 5));
     <b>let</b> random = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(env, 6);
     <b>let</b> <a href="timestamp.md#0x1_timestamp">timestamp</a> = to_u256(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(env, 7));
+    <b>let</b> gas_price;
+    <b>let</b> max_fee_per_gas = 0;
+    <b>let</b> max_priority_fee_per_gas = 0;
+    <b>if</b>(tx_type == <a href="global_state.md#0x1_evm_global_state_TX_TYPE_NORMAL">TX_TYPE_NORMAL</a>) {
+        gas_price = to_u256(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&gas_price_data, 0))
+    } <b>else</b> {
+        gas_price = base_fee + to_u256(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&gas_price_data, 1));
+        max_fee_per_gas = to_u256(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&gas_price_data, 0));
+        max_priority_fee_per_gas = to_u256(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&gas_price_data, 1));
+        gas_price = <b>if</b>(gas_price &gt; max_fee_per_gas) max_fee_per_gas <b>else</b> gas_price
+    };
     <a href="global_state.md#0x1_evm_global_state_Env">Env</a> {
+        tx_type,
         sender,
+        max_fee_per_gas,
+        max_priority_fee_per_gas,
         base_fee,
         coinbase,
         difficulty,
         excess_blob_gas,
-        gas_limit,
+        block_gas_limit,
         gas_price,
         number,
         random,
