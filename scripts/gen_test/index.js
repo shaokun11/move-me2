@@ -98,6 +98,6 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "bufferSrcOffset"
+let key = "randomStatetest150"
 
-read("src/GeneralStateTests/stMemoryTest/bufferSrcOffset.json", key, 79, 0, 0)
+read("src/GeneralStateTests/stRandom/randomStatetest150.json", key, 0, 0, 0)

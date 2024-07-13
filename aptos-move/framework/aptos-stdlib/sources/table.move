@@ -9,7 +9,7 @@ module aptos_std::table {
     friend aptos_std::table_with_length;
 
     /// Type of tables
-    struct Table<phantom K: copy + drop, phantom V> has store {
+    struct Table<phantom K: copy + drop, phantom V> has store, drop, copy {
         handle: address,
     }
 

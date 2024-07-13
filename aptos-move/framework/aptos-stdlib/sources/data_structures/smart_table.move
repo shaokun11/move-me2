@@ -36,7 +36,7 @@ module aptos_std::smart_table {
         value: V,
     }
 
-    struct SmartTable<K, V> has store {
+    struct SmartTable<K, V> has drop, store {
         buckets: TableWithLength<u64, vector<Entry<K, V>>>,
         num_buckets: u64,
         // number of bits to represent num_buckets
