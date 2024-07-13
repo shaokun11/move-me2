@@ -88,7 +88,6 @@ module aptos_framework::evm_trie {
                 storage
             });
         });
-        debug::print(&map);
         map
     }
 
