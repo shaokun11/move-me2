@@ -12,12 +12,12 @@ crate::gas_schedule::macros::define_gas_parameters!(
     NativeGasParameters => .table,
     [
         // These are dummy value, they copied from storage gas in aptos-core/aptos-vm/src/aptos_vm_impl.rs
-        [common_load_base_legacy: InternalGas, "common.load.base", 302385],
-        [common_load_base_new: InternalGas, { 7.. => "common.load.base_new" }, 302385],
-        [common_load_per_byte: InternalGasPerByte, "common.load.per_byte", 151],
+        [common_load_base_legacy: InternalGas, "common.load.base", 0],
+        [common_load_base_new: InternalGas, { 7.. => "common.load.base_new" }, 0],
+        [common_load_per_byte: InternalGasPerByte, "common.load.per_byte", 0],
         [common_load_failure: InternalGas, "common.load.failure", 0],
 
-                [new_table_handle_base: InternalGas, "new_table_handle.base", 0],
+        [new_table_handle_base: InternalGas, "new_table_handle.base", 0],
 
         [add_box_base: InternalGas, "add_box.base", 0],
         [add_box_per_byte_serialized: InternalGasPerByte, "add_box.per_byte_serialized", 0],
@@ -34,6 +34,11 @@ crate::gas_schedule::macros::define_gas_parameters!(
         [destroy_empty_box_base: InternalGas, "destroy_empty_box.base", 0],
 
         [drop_unchecked_box_base: InternalGas, "drop_unchecked_box.base", 0],
+
+        // [common_load_base_legacy: InternalGas, "common.load.base", 302385],
+        // [common_load_base_new: InternalGas, { 7.. => "common.load.base_new" }, 302385],
+        // [common_load_per_byte: InternalGasPerByte, "common.load.per_byte", 151],
+        // [common_load_failure: InternalGas, "common.load.failure", 0],
 
         // [new_table_handle_base: InternalGas, "new_table_handle.base", 3676],
 
