@@ -990,15 +990,17 @@ module aptos_framework::evm_for_test {
                 let params = vector_slice(*memory, m_pos, m_len);
                 let (call_from, call_to, code_address) = get_call_info(sender, to, evm_dest_addr, opcode);
                 let is_precompile = is_precompile_address(evm_dest_addr);
-                let transfer_eth = if(opcode == 0xf1 || opcode == 0xf2) true else false;
+                let transfer_eth = if((opcode == 0xf1 || opcode == 0xf2) && msg_value > 0) true else false;
                 set_ret_bytes(run_state, x"");
-                if(depth >= MAX_DEPTH_SIZE){
+                if(get_is_static(run_state) && transfer_eth) {
+                    *error_code = ERROR_STATIC_STATE_CHANGE;
+                } else if(depth >= MAX_DEPTH_SIZE){
                     vector::push_back(stack, 0);
                 } else {
                     if(is_precompile) {
                         let (success, bytes) = precompile(code_address, params, call_gas_limit, run_state);
                         if(success) {
-                            if(msg_value > 0 && (opcode == 0xf1 || opcode == 0xf2)) {
+                            if(transfer_eth) {
                                 transfer(call_from, call_to, msg_value, trie);
                             };
                             set_ret_bytes(run_state, bytes);
