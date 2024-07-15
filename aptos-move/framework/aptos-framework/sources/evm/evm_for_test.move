@@ -992,9 +992,6 @@ module aptos_framework::evm_for_test {
                 let is_precompile = is_precompile_address(evm_dest_addr);
                 let transfer_eth = if((opcode == 0xf1 || opcode == 0xf2) && msg_value > 0) true else false;
                 set_ret_bytes(run_state, x"");
-                debug::print(&2222);
-                debug::print(run_state);
-                debug::print(&transfer_eth);
                 if(get_is_static(run_state) && transfer_eth && call_from != call_to) {
                     *error_code = ERROR_STATIC_STATE_CHANGE;
                 } else if(depth >= MAX_DEPTH_SIZE){
