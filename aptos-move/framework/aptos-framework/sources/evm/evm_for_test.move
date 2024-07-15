@@ -186,7 +186,7 @@ module aptos_framework::evm_for_test {
             return
         };
 
-        if(to == ZERO_ADDR) {
+        if(to == ZERO_ADDR && data_size > 0) {
             base_cost = base_cost + 2 * get_word_count(data_size) + 32000;
         };
         if(get_balance(from, &trie) < up_cost || get_code_length(from, &trie) > 0 || gas_limit < base_cost) {
@@ -205,25 +205,29 @@ module aptos_framework::evm_for_test {
                 return
             };
             sub_balance(from, gas_limit * gas_price, &mut trie);
-            add_checkpoint(&mut trie);
-            if(to == ZERO_ADDR) {
-                let evm_contract = get_contract_address(from, (get_nonce(from, &trie) as u64));
-                if(is_contract_or_created_account(evm_contract, &trie)) {
-                    add_gas_usage(run_state, gas_limit);
-                } else {
-                    let gas_left = get_gas_left(run_state);
-                    add_call_state(run_state, gas_left, false);
-                    let (result, bytes) = run(from, evm_contract, data, x"", value, gas_left, &mut trie, run_state, true, true, 0);
-                    if(result == CALL_RESULT_SUCCESS) {
-                        set_code(&mut trie, evm_contract, bytes);
-                    }
-                };
+            if(data_size == 0) {
+                transfer(from, to, value, &mut trie);
             } else {
-                if(is_precompile_address(to)) {
-                     precompile(to, data, gas_limit, run_state);
+                add_checkpoint(&mut trie);
+                if(to == ZERO_ADDR) {
+                    let evm_contract = get_contract_address(from, (get_nonce(from, &trie) as u64));
+                    if(is_contract_or_created_account(evm_contract, &trie)) {
+                        add_gas_usage(run_state, gas_limit);
+                    } else {
+                        let gas_left = get_gas_left(run_state);
+                        add_call_state(run_state, gas_left, false);
+                        let (result, bytes) = run(from, evm_contract, data, x"", value, gas_left, &mut trie, run_state, true, true, 0);
+                        if(result == CALL_RESULT_SUCCESS) {
+                            set_code(&mut trie, evm_contract, bytes);
+                        }
+                    };
                 } else {
-                    add_call_state(run_state, gas_limit - base_cost, false);
-                    run(from, to, get_code(to, &trie), data, value, gas_limit - base_cost, &mut trie, run_state, true, false, 0);
+                    if(is_precompile_address(to)) {
+                        precompile(to, data, gas_limit, run_state);
+                    } else {
+                        add_call_state(run_state, gas_limit - base_cost, false);
+                        run(from, to, get_code(to, &trie), data, value, gas_limit - base_cost, &mut trie, run_state, true, false, 0);
+                    };
                 };
             };
             let gas_refund = get_gas_refund(run_state);
