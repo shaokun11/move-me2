@@ -1,14 +1,14 @@
 const fs = require('fs');
 
 function generateEvmTest(addresses, codes, balances, nonces, storages, transaction, env, dataIndex, gasIndex, valueIndex) {
-    // 读取模板文件
-    const templateFilePath = './template_file.move';  // 请将此路径替换为实际文件路径
+
+    const templateFilePath = './template_file.move';
     let templateCode = fs.readFileSync(templateFilePath, 'utf8');
     let envContent = generateEnv(env);
     let storageContent = generateStorage(storages)
     let gas_price = transaction.maxPriorityFeePerGas ? `vector[${toData(transaction.maxFeePerGas)}, ${toData(transaction.maxPriorityFeePerGas)}]`: `vector[${toData(transaction.gasPrice)}]`
     let tx_type = transaction.maxPriorityFeePerGas ? 1: 0
-    // 替换占位符
+
     templateCode = templateCode.replace('$env', `vector[${envContent}]`);
     templateCode = templateCode.replace('$storages', storageContent);
     templateCode = templateCode.replace('$addresses', `vector[${addresses.map(addr => toBytes(addr)).join(', ')}]`);
@@ -29,11 +29,8 @@ function generateEvmTest(addresses, codes, balances, nonces, storages, transacti
     }
     templateCode = templateCode.replace('$access_list', access_list);
 
-    // 保存到新文件
-    const newFilePath = '../../aptos-move/framework/aptos-framework/tests/evm/evm_test.move';  // 请将此路径替换为保存文件的路径
+    const newFilePath = '../../aptos-move/framework/aptos-framework/tests/evm/evm_test.move';
     fs.writeFileSync(newFilePath, templateCode);
-
-    console.log('代码生成完成并保存到新文件');
 }
 
 function generateAccessList(accessList) {
