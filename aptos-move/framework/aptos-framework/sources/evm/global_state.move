@@ -73,6 +73,7 @@ module aptos_framework::evm_global_state {
     }
 
     fun get_lastest_state(run_state: &RunState): &CallState {
+
         let len = vector::length(&run_state.call_state);
         vector::borrow(&run_state.call_state, len - 1)
     }

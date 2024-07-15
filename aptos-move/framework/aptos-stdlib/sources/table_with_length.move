@@ -11,7 +11,7 @@ module aptos_std::table_with_length {
     const ENOT_EMPTY: u64 = 102;
 
     /// Type of tables
-    struct TableWithLength<phantom K: copy + drop, phantom V> has store {
+    struct TableWithLength<phantom K: copy + drop, phantom V> has store, copy, drop {
         inner: Table<K, V>,
         length: u64,
     }

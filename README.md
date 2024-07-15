@@ -1,183 +1,49 @@
-  
-Running movement subnet by yourself.
+
+
+# Warning
+
+This branch is primarily used for testing [ethtest](https://github.com/ethereum/tests) and is currently in the early stages of development.
+
 ---
 
 ## System Requirements
 - System: AWS Ubuntu 22.04
-- Configuration: c5.4xlarge
+- Configuration: c5.2xlarge
 - Hard Disk: 500GB
 
-## Step Setup
-0. Prepare system env
+## Setup Steps
+0. Prepare the system environment:
 ```bash
 sudo apt update
 sudo apt install build-essential
 sudo apt install git
 ```
-1. Get the source code
+
+1. Install Docker and Docker Compose following the [Docker installation guide](https://docs.docker.com/engine/install/ubuntu/).
+
+2. Get the source code:
 ```bash
 git clone https://github.com/movementlabsxyz/movement-v2
+git checkout mevm-retesteth
 ```
-2. Set up the build environment:
+
+3. Set up the build environment:
 ```bash
 cd ~/movement-v2
 ./scripts/dev_setup.sh
 ```
-3. Build the subnet binary file:
+
+4. Run the Move chain:
+> This will start the Move chain on port 8080 and the gas faucet functionality on port 8081.
 ```bash
 cd ~/movement-v2
-cargo build -p subnet --release
+cargo run --bin aptos node run-local-testnet --with-indexer-api --force-restart
 ```
-4. Configure the Avalanche environment:
+
+5. Get the gas token 
 ```bash
-# Go to the user's root directory
-cd ~
-# Download and extract avalanchego
-wget https://github.com/ava-labs/avalanchego/releases/download/v1.11.1/avalanchego-linux-amd64-v1.11.1.tar.gz
-tar -cvf avalanchego-linux-amd64-v1.11.1.tar.gz
-# Install avalanche-network-runner
-curl -sSfL https://raw.githubusercontent.com/ava-labs/avalanche-network-runner/main/scripts/install.sh | sh -s
-   ```
-5. Create the subnet configuration files:
-```bash
-cd ~
-mkdir config
-cd config
-echo "{}" > genesis.json
-mkdir plugins
-cd plugins
-# q69acQzi35gi6ppPAuRowDV2EwUJaAwzMoCd9bwCGm3KwFknK, do not change the file name
-cp ~/movement-v2/target/release/subnet q69acQzi35gi6ppPAuRowDV2EwUJaAwzMoCd9bwCGm3KwFknK
-```
-6. Start the `avalanche-network-runner`:
-```bash
-avalanche-network-runner server --log-level debug --port=":8080" --grpc-gateway-port=":8081"
-```
-7. Start the subnet:
-> Open a new terminal,it will start the server at `http://127.0.0.1:9650/ext/bc/{chainId}/rpc`. For more options you can refer [avalanche-network-runner](https://github.com/ava-labs/avalanche-network-runner/blob/main/docs/examples.md)
-
-```bash
-curl -X POST -k http://localhost:8081/v1/control/start -d '{"execPath":"/home/ubuntu/avalanchego-v1.11.1/avalanchego","numNodes":1,"logLevel":"INFO","pluginDir":"/home/ubuntu/config/plugins","blockchainSpecs":[{"vm_name":"m1","genesis":"/home/ubuntu/config/genesis.json"}]}'
-```
->Note down the value of `output.chainIds[0]` in the output, for example, `LHYzmqQ1vCmymoHvkkjC6A5CPDZ9TWNXbdhjyK1ESL4vfbn3f`.
-
-```json
-{
-    "clusterInfo": {
-        "nodeNames": [
-            "node1"
-        ],
-        "nodeInfos": {
-            "node1": {
-                "name": "node1",
-                "execPath": "/home/ubuntu/avalanchego-v1.11.1/avalanchego",
-                "uri": "http://127.0.0.1:9650",
-                "id": "NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg",
-                "logDir": "/tmp/network-runner-root-data/network_20240423_125557/node1/logs",
-                "dbDir": "/tmp/network-runner-root-data/network_20240423_125557/node1/db",
-                "pluginDir": "/home/ubuntu/config/plugins",
-                "whitelistedSubnets": "2c1CbR7FGYdeFPB4WaeWphHZrChLH7TQ92FRW6U4mCWTnaxVsB",
-                "config": "",
-                "paused": false
-            }
-        },
-        "pid": 261376,
-        "rootDataDir": "/tmp/network-runner-root-data/network_20240423_125557",
-        "healthy": true,
-        "attachedPeerInfos": {
-
-        },
-        "customChainsHealthy": true,
-        "customChains": {
-            "LHYzmqQ1vCmymoHvkkjC6A5CPDZ9TWNXbdhjyK1ESL4vfbn3f": {
-                "chainName": "m1",
-                "vmId": "q69acQzi35gi6ppPAuRowDV2EwUJaAwzMoCd9bwCGm3KwFknK",
-                "subnetId": "2c1CbR7FGYdeFPB4WaeWphHZrChLH7TQ92FRW6U4mCWTnaxVsB",
-                "chainId": "LHYzmqQ1vCmymoHvkkjC6A5CPDZ9TWNXbdhjyK1ESL4vfbn3f"
-            }
-        },
-        "subnets": {
-            "2c1CbR7FGYdeFPB4WaeWphHZrChLH7TQ92FRW6U4mCWTnaxVsB": {
-                "isElastic": false,
-                "elasticSubnetId": "11111111111111111111111111111111LpoYY",
-                "subnetParticipants": {
-                    "nodeNames": [
-                        "node1"
-                    ]
-                }
-            }
-        },
-        "networkId": 1337
-    },
-    "chainIds": [
-        "LHYzmqQ1vCmymoHvkkjC6A5CPDZ9TWNXbdhjyK1ESL4vfbn3f"
-    ]
-}
-```
-
-8. Start the Aptos SDK compatible server:
-> Make sure *LHYzmqQ1vCmymoHvkkjC6A5CPDZ9TWNXbdhjyK1ESL4vfbn3f* come from step 7, this will start server at `http://127.0.0.1:3001`
-
-```bash
-cd ~/movement-v2/infrastructure/subnet-proxy
-# this is subnet server
-echo "URL=http://127.0.0.1:9650/ext/bc/LHYzmqQ1vCmymoHvkkjC6A5CPDZ9TWNXbdhjyK1ESL4vfbn3f/rpc" > .env
-npm i
-npm start
-```
-
-9. Start the EVM-RPC:
-> this will start server at `http://127.0.0.1:3044`, EVM chainId is 336
-
-```bash
-    cd ~/movement-v2/infrastructure/evm-rpc
-    # This is the private key of the move account, used to send evm transactions to the subnet, the corresponding address is       `0xf8be0c08312090f3f9f17ec76d1575d94c032c78c235c3eee562cc5c7b332fcd`
-    echo "EVM_SENDER =0xf238ff22567c56bdaa18105f229ac0dacc2d9f73dfc5bf08a2a2a4a0fac4d221" > .env
-    # This is the private key of the move account, used to exchange move gas token for eth gas token to the eth account
-    echo "FAUCET_SENDER =0xf238ff22567c56bdaa18105f229ac0dacc2d9f73dfc5bf08a2a2a4a0fac4d221" >> .env
-    # This is subnet proxy server
-    echo "NODE_URL=http://127.0.0.1:3001/v1" >> .env
-    npm start
-```
-
-10.  Faucet test tokens to your account:
-
-```bash
-# Get move test tokens to your move address
-curl http://127.0.0.1:3001/v1/mint?address=0xf8be0c08312090f3f9f17ec76d1575d94c032c78c235c3eee562cc5c7b332fcd
-# Get move-evm test token to your eth address, please ensure the FAUCET_SENDER account has move tokens
-curl --location 'http://127.0.0.1:3044' \
---header 'Content-Type: application/json' \
---data '{
-    "id": "1",
-    "jsonrpc": "2.0",
-    "method": "eth_faucet",
-    "params": [
-        "0xfcA2FBA9427f9100c14c6c2f175BC9eC744a77cf"
-    ]
-}'
-```
-
-11.  Deploy the browser:
-> this will start the server at `http://127.0.0.1:3000` 
-```bash
-cd ~/movement-v2/infrastructure/explorer
-npm install --legacy-peer-deps
-echo "REACT_APP_MOVE_ENDPOINT=http://127.0.0.1:3001">.env.development
-pnpm run start
-```
-12.  Deploy the faucet web page
-> this will start the server at `http://127.0.0.1:3100` ,if the port is used ,you can refer [vue-cli config](https://cli.vuejs.org/guide/cli-service.html#vue-cli-service-serve) to change it
-```bash
-cd ~/move-dest-v13/infrastructure/bridge-faucet
-npm i -g pnpm
-pnpm i
-echo "VUE_APP_MOVE_RPC=http://127.0.0.1:3001/v1">.env.development
-echo "VUE_APP_MOVE_SYMBOL=MOVE">>.env.development
-echo "VUE_APP_EXPLORER=http://127.0.0.1:3000">>.env.development
-echo "VUE_APP_EVM_RPC=http://127.0.0.1:3044">>.env.development
-echo "VUE_APP_CHAINID=336">>.env.development
-echo "VUE_APP_SYMBOL=METH">>.env.development
-pnpm run start:dev
+cargo run --bin aptos account fund-with-faucet --faucet-url http://127.0.0.1:8081 --url http://127.0.0.1:8080 --account 0x51db4a29acaa390e45422f031e1f10acb88c2422ac79bac2102c285ed959ebbf --amount 10000000000000
 
 ```
+6. Running test from 
+[movement-mevm-retesteth](https://github.com/movementlabsxyz/movement-mevm-retesteth)

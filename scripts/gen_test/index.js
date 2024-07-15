@@ -99,5 +99,4 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
 }
 
 let key = "modexp_modsize0_returndatasize"
-
 read("src/GeneralStateTests/stReturnDataTest/modexp_modsize0_returndatasize.json", key, 2, 0, 0)
