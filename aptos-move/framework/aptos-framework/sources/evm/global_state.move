@@ -90,7 +90,6 @@ module aptos_framework::evm_global_state {
     public fun revert_call_state(run_state: &mut RunState) {
         let new_state = vector::pop_back(&mut run_state.call_state);
         let old_state = get_lastest_state_mut(run_state);
-        old_state.gas_refund = new_state.gas_refund;
         old_state.gas_left = old_state.gas_left - new_state.gas_limit;
     }
 

@@ -97,5 +97,5 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "SstoreCallToSelfSubRefundBelowZero"
-read("src/GeneralStateTests/stSStoreTest/SstoreCallToSelfSubRefundBelowZero.json", key, 0, 0, 0)
+let key = "InitCollisionNonZeroNonce"
+read("src/GeneralStateTests/stSStoreTest/InitCollisionNonZeroNonce.json", key, 3, 0, 0)
