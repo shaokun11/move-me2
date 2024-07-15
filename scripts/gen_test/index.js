@@ -31,6 +31,8 @@ function generateEvmTest(addresses, codes, balances, nonces, storages, transacti
 
     const newFilePath = '../../aptos-move/framework/aptos-framework/tests/evm/evm_test.move';
     fs.writeFileSync(newFilePath, templateCode);
+
+    console.log("gen complete")
 }
 
 function generateAccessList(accessList) {
@@ -96,4 +98,4 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
 }
 
 let key = "modexp_modsize0_returndatasize"
-read("src/GeneralStateTests/stReturnDataTest/modexp_modsize0_returndatasize.json", key, 2, 0, 0)
+read("src/GeneralStateTests/stReturnDataTest/modexp_modsize0_returndatasize.json", key, 4, 0, 0)
