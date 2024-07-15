@@ -97,5 +97,5 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "CallWithNOTZeroValueToPrecompileFromCalledContract"
-read("src/GeneralStateTests/stStaticFlagEnabled/CallWithNOTZeroValueToPrecompileFromCalledContract.json", key, 2, 0, 0)
+let key = "CallcodeToPrecompileFromContractInitialization"
+read("src/GeneralStateTests/stStaticFlagEnabled/CallcodeToPrecompileFromContractInitialization.json", key, 0, 0, 0)
