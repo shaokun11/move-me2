@@ -38,6 +38,10 @@ module aptos_framework::evm_gas {
 
     fun calc_memory_expand(stack: &vector<u256>, pos: u64, size: u64, run_state: &mut RunState, gas_limit: u256, error_code: &mut u64): u256 {
         let len = vector::length(stack);
+        if(len < pos || len < size) {
+            *error_code = STACK_UNDERFLOW;
+            return 0
+        };
         let out_offset = *vector::borrow(stack,len - pos);
         let out_size = *vector::borrow(stack,len - size);
 

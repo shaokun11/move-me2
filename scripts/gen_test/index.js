@@ -97,5 +97,5 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "modexp_modsize0_returndatasize"
-read("src/GeneralStateTests/stReturnDataTest/modexp_modsize0_returndatasize.json", key, 4, 0, 0)
+let key = "returndatacopy_after_failing_callcode"
+read("src/GeneralStateTests/stReturnDataTest/returndatacopy_after_failing_callcode.json", key, 0, 0, 0)
