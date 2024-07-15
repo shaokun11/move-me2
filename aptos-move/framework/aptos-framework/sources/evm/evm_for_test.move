@@ -321,9 +321,9 @@ module aptos_framework::evm_for_test {
                 trie: &mut Trie,
                 error_code: &mut u64) {
         let msg_value = pop_stack(stack, error_code);
-        let pos = pop_stack_u64(stack, error_code);
+        let pos = pop_stack(stack, error_code);
         let len = pop_stack(stack, error_code);
-        let codes = vector_slice(*memory, pos, (len as u64));
+        let codes = vector_slice_u256(*memory, pos, len);
         let new_evm_contract_addr = get_contract_address(current_address, (get_nonce(current_address, trie) as u64));
         let result = create_internal(len, current_address, new_evm_contract_addr, depth, codes, msg_value, run_state, trie, error_code);
         if(result == CALL_RESULT_SUCCESS) {
@@ -341,10 +341,10 @@ module aptos_framework::evm_for_test {
                 trie: &mut Trie,
                 error_code: &mut u64) {
         let msg_value = pop_stack(stack, error_code);
-        let pos = pop_stack_u64(stack, error_code);
+        let pos = pop_stack(stack, error_code);
         let len = pop_stack(stack, error_code);
         let salt = u256_to_data(pop_stack(stack, error_code));
-        let codes = vector_slice(*memory, pos, (len as u64));
+        let codes = vector_slice_u256(*memory, pos, len);
         let p = vector::empty<u8>();
         vector::append(&mut p, x"ff");
         vector::append(&mut p, vector_slice(current_address, 12, 20));

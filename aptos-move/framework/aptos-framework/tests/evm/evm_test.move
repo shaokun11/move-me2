@@ -32,8 +32,8 @@ module aptos_framework::evm_test {
         let from = x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b";
         let to = x"095e7baea6a6c7c4c2dfeb977efac326af552d87";
         let data = x"";
-        let env = vector[u256_to_data(0x0a),x"2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",u256_to_data(0x020000),u256_to_data(0x00),u256_to_data(0x02540be400),u256_to_data(0x01),x"0000000000000000000000000000000000000000000000000000000000020000",u256_to_data(0x03e8)];
-        let gas_limit = u256_to_data(0x3b9aca00);
+        let env = vector[u256_to_data(0x0a),x"2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",u256_to_data(0x020000),u256_to_data(0x00),u256_to_data(0x0f4240),u256_to_data(0x01),x"0000000000000000000000000000000000000000000000000000000000020000",u256_to_data(0x03e8)];
+        let gas_limit = u256_to_data(0x0493e0);
         let gas_price = vector[u256_to_data(0x0a)];
         let value = u256_to_data(0x0186a0);
         let tx_type = 0;
@@ -48,10 +48,10 @@ module aptos_framework::evm_test {
         
 
 
-        let addresses = vector[x"095e7baea6a6c7c4c2dfeb977efac326af552d87", x"945304eb96065b2a98b57a48a06ae28d285a71b5", x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b"];
-        let balance_table = vector[0x0de0b6b3a7640000, 0x17, 0x0de0b6b3a7640000];
-        let codes = vector[x"6000600060006000601873945304eb96065b2a98b57a48a06ae28d285a71b5620186a05a03f1585500", x"6000600060006000601773095e7baea6a6c7c4c2dfeb977efac326af552d87620186a05a03f1600101585500", x""];
-        let nonce_table = vector[0x00, 0x00, 0x00];
+        let addresses = vector[x"095e7baea6a6c7c4c2dfeb977efac326af552d87", x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b"];
+        let balance_table = vector[0x0de0b6b3a7640000, 0x0de0b6b3a7640000];
+        let codes = vector[x"7c601080600c6000396000f3006000355415600957005b6020356000355560005260007fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff6017f060005500", x""];
+        let nonce_table = vector[0x00, 0x00];
         let i = 0;
         let balances = vector::empty<vector<u8>>();
         let nonces = vector::empty<vector<u8>>();
