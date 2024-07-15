@@ -106,6 +106,10 @@ module aptos_framework::evm_gas {
                         gas_limit: u256,
                         error_code: &mut u64): u256 {
         let len = vector::length(stack);
+        if(len < 1) {
+            *error_code = STACK_UNDERFLOW;
+            return 0
+        };
         let offset = *vector::borrow(stack,len - 1);
         calc_memory_expand_internal(offset + 32, run_state, gas_limit, error_code)
     }
@@ -121,8 +125,13 @@ module aptos_framework::evm_gas {
 
     fun calc_sload_gas(address: vector<u8>,
                        stack: &vector<u256>,
-                       trie: &mut Trie): u256 {
+                       trie: &mut Trie,
+                       error_code: &mut u64): u256 {
         let len = vector::length(stack);
+        if(len < 1) {
+            *error_code = STACK_UNDERFLOW;
+            return 0
+        };
         let key = *vector::borrow(stack,len - 1);
         let (is_cold_slot, _) = get_cache(address, key, trie);
         if(is_cold_slot) Coldsload else Warmstorageread
@@ -139,6 +148,11 @@ module aptos_framework::evm_gas {
         };
 
         let len = vector::length(stack);
+        if(len < 2) {
+            *error_code = STACK_UNDERFLOW;
+            return 0
+        };
+
         let key = *vector::borrow(stack,len - 1);
         let (is_cold_slot, origin) = get_cache(address, key, trie);
         let current = get_state(address, key, trie);
@@ -332,6 +346,10 @@ module aptos_framework::evm_gas {
                            run_state: &mut RunState, gas_limit: u256, error_code: &mut u64): u256 {
         let topic_count = ((opcode - 0xa0) as u256);
         let len = vector::length(stack);
+        if(len < 2) {
+            *error_code = STACK_UNDERFLOW;
+            return 0
+        };
         let gas = 0;
         let data_length = *vector::borrow(stack,len - 2);
         gas = gas + calc_memory_expand(stack, 1, 2, run_state, gas_limit, error_code);
@@ -631,7 +649,7 @@ module aptos_framework::evm_gas {
             calc_memory_expand(stack, 1, 2, run_state, gas_limit, error_code)
         } else if (opcode == 0x54) {
             // SLOAD
-            calc_sload_gas(address, stack, trie)
+            calc_sload_gas(address, stack, trie, error_code)
         } else if (opcode == 0x55) {
             // SSTORE
             calc_sstore_gas(address, stack, trie, run_state, error_code)
