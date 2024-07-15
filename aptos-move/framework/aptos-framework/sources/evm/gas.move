@@ -403,9 +403,14 @@ module aptos_framework::evm_gas {
 
     fun calc_self_destruct_gas(address: vector<u8>,
                                stack: &mut vector<u256>,
-                               trie: &mut Trie): u256 {
+                               trie: &mut Trie,
+                               error_code: &mut u64): u256 {
         let balance = get_balance(address, trie);
         let len = vector::length(stack);
+        if(len < 1) {
+            *error_code = STACK_UNDERFLOW;
+            return 0
+        };
         let to = u256_to_data(*vector::borrow(stack,len - 1));
         let gas = 0;
         if(balance > 0) {
@@ -670,7 +675,7 @@ module aptos_framework::evm_gas {
             calc_log_gas(opcode, stack, run_state, gas_limit, error_code)
         } else if (opcode == 0xff) {
             // SELF DESTRUCT
-            calc_self_destruct_gas(address, stack, trie)
+            calc_self_destruct_gas(address, stack, trie, error_code)
         }
         else {
             *error_code = INVALID_OPCODE;
