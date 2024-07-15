@@ -1,6 +1,7 @@
 module aptos_framework::evm_global_state {
     use std::vector;
     use aptos_framework::evm_util::{to_u256, to_32bit};
+    use aptos_std::debug;
 
     const TX_TYPE_NORMAL: u8 = 0;
     const TX_TYPE_1559: u8 = 1;
@@ -56,10 +57,11 @@ module aptos_framework::evm_global_state {
     public fun add_call_state(run_state: &mut RunState, gas_limit: u256, is_static: bool) {
         let state = get_lastest_state(run_state);
         let static = state.is_static || is_static;
+        let gas_refund = state.gas_refund;
         vector::push_back(&mut run_state.call_state, CallState {
             highest_memory_cost: 0,
             highest_memory_word_size: 0,
-            gas_refund: 0,
+            gas_refund,
             gas_left: gas_limit,
             gas_limit,
             is_static: static,
@@ -81,13 +83,14 @@ module aptos_framework::evm_global_state {
     public fun commit_call_state(run_state: &mut RunState) {
         let new_state = vector::pop_back(&mut run_state.call_state);
         let old_state = get_lastest_state_mut(run_state);
-        old_state.gas_refund = old_state.gas_refund + new_state.gas_refund;
+        old_state.gas_refund = new_state.gas_refund;
         old_state.gas_left = old_state.gas_left - (new_state.gas_limit - new_state.gas_left);
     }
 
     public fun revert_call_state(run_state: &mut RunState) {
         let new_state = vector::pop_back(&mut run_state.call_state);
         let old_state = get_lastest_state_mut(run_state);
+        old_state.gas_refund = new_state.gas_refund;
         old_state.gas_left = old_state.gas_left - new_state.gas_limit;
     }
 
@@ -144,11 +147,12 @@ module aptos_framework::evm_global_state {
     public fun add_gas_refund(run_state: &mut RunState, refund: u256) {
         let state = get_lastest_state_mut(run_state);
         state.gas_refund = state.gas_refund + refund;
+        debug::print(&10011);
     }
 
     public fun sub_gas_refund(run_state: &mut RunState, refund: u256) {
         let state = get_lastest_state_mut(run_state);
-        state.gas_refund = state.gas_refund - refund;
+        state.gas_refund = if(state.gas_refund > refund) state.gas_refund - refund else 0;
     }
 
     public fun clear_gas_refund(run_state: &mut RunState) {
