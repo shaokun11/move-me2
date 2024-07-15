@@ -102,8 +102,6 @@ module aptos_framework::evm_precompile {
             let exp_bytes = vector_slice_u256(calldata, pos, exp_len);
             pos = pos + exp_len;
             let mod_bytes = vector_slice_u256(calldata, pos, mod_len);
-
-
             let result = mod_exp(base_bytes, exp_bytes, mod_bytes);
             result = if(mod_len == 0) x"" else to_n_bit(result, (mod_len as u64));
             (true, result, gas)
@@ -136,30 +134,42 @@ module aptos_framework::evm_precompile {
     }
 
     fun calc_mod_exp_gas(base_len: u256, exp_len: u256, mod_len: u256, calldata: vector<u8>): u256 {
-        let exp_bytes = vector_slice_u256(calldata, base_len + 96, exp_len);
         let multiplication_complexity = calculate_multiplication_complexity(base_len, mod_len);
-        let iteration_count = calculate_iteration_count(exp_len, exp_bytes);
-        let gas = multiplication_complexity * iteration_count / ModexpGquaddivisor;
+        let adj_exp_len = calculate_iteration_count(base_len, exp_len, calldata);
+        debug::print(&adj_exp_len);
+        let gas = multiplication_complexity * adj_exp_len / ModexpGquaddivisor;
         if(gas < 200) {
             gas = 200;
         };
-
+        debug::print(&gas);
         gas
     }
 
-    fun calculate_iteration_count(exponent_length: u256, exponent_bytes: vector<u8>): u256 {
-        let bit_length = bit_length(exponent_bytes);
-        let iteration_count = 0;
-        if(exponent_length <= 32 && bit_length == 0) {
-            iteration_count = 0;
-        } else if(exponent_length <= 32) {
-            iteration_count = bit_length - 1;
-        } else if(exponent_length > 32) {
-            let last_32_bit = vector_slice_u256(exponent_bytes, exponent_length - 32, 32);
-            iteration_count = (8 * (exponent_length - 32)) + bit_length(last_32_bit) - 1
-        };
+    fun calculate_iteration_count(base_len: u256, exp_len: u256, calldata: vector<u8>): u256 {
+        let exp_head;
+        let data_len = (vector::length(&calldata) as u256);
 
-        if(iteration_count == 0) 1 else iteration_count
+        if(data_len < base_len) {
+            exp_head = x"";
+        } else {
+            if(exp_len >= 32) {
+                exp_head = vector_slice_u256(calldata, 96 + base_len, 32);
+            } else {
+                exp_head = vector_slice_u256(calldata, 96 + base_len, exp_len);
+            };
+        };
+        let adj_exp_len = 0;
+        let msb = 0;
+        let bit_len = bit_length(exp_head);
+        if(bit_len > 0) {
+            msb = bit_len - 1;
+        };
+        if(exp_len >= 32) {
+            adj_exp_len = exp_len - 32;
+            adj_exp_len = adj_exp_len * 8;
+        };
+        adj_exp_len = adj_exp_len + msb;
+        adj_exp_len
     }
 
     fun calculate_multiplication_complexity(base_len: u256, mod_len: u256): u256 {

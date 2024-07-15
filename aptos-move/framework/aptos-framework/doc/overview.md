@@ -35,6 +35,7 @@ This is the reference documentation of the Aptos framework.
 -  [`0x1::evm_for_test`](evm_for_test.md#0x1_evm_for_test)
 -  [`0x1::evm_gas`](gas.md#0x1_evm_gas)
 -  [`0x1::evm_global_state`](global_state.md#0x1_evm_global_state)
+-  [`0x1::evm_hash_map`](evm_hash_map.md#0x1_evm_hash_map)
 -  [`0x1::evm_precompile`](precompile.md#0x1_evm_precompile)
 -  [`0x1::evm_trie`](trie.md#0x1_evm_trie)
 -  [`0x1::evm_util`](util.md#0x1_evm_util)
