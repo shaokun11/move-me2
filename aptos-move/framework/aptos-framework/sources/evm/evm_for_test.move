@@ -12,7 +12,7 @@ module aptos_framework::evm_for_test {
     use aptos_framework::evm_gas::{calc_exec_gas, calc_base_gas, max_call_gas};
     use aptos_framework::event;
     use aptos_framework::evm_arithmetic::{add, mul, sub, div, sdiv, mod, smod, add_mod, mul_mod, exp, shr, sar, slt, sgt};
-    use aptos_framework::evm_trie::{pre_init, Trie, add_checkpoint, revert_checkpoint, commit_latest_checkpoint, get_code, sub_balance, add_nonce, transfer, get_balance, get_state, set_state, exist_contract, get_nonce, new_account, get_storage_copy, save, add_balance, add_warm_address, get_transient_storage, put_transient_storage, set_code, is_contract_or_created_account, get_code_length, exist_account, TestAccountForRoot};
+    use aptos_framework::evm_trie::{pre_init, Trie, add_checkpoint, revert_checkpoint, commit_latest_checkpoint, get_code, sub_balance, add_nonce, transfer, get_balance, get_state, set_state, exist_contract, get_nonce, new_account, get_storage_copy, save, add_balance, add_warm_address, get_transient_storage, put_transient_storage, set_code, is_contract_or_created_account, get_code_length, exist_account, TestAccount};
     use aptos_std::simple_map::SimpleMap;
     friend aptos_framework::genesis;
 
@@ -117,7 +117,7 @@ module aptos_framework::evm_for_test {
     );
 
     native fun calculate_root(
-        trie: SimpleMap<vector<u8>, TestAccountForRoot>
+        trie: SimpleMap<vector<u8>, TestAccount>
     ): vector<u8>;
 
     public(friend) fun initialize(aptos_framework: &signer) {
