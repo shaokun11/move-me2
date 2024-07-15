@@ -21,11 +21,12 @@ export default function TransactionPage() {
   if(txnHashOrVersion1.length === 66) {
     getMoveHA('debug_getMoveHash',txnHashOrVersion1).then((res:any)=>{
       setTxnHashOrVersion(res.data);
-      console.log('txnHashOrVersion',txnHashOrVersion1,txnHashOrVersion,res);
+      // console.log('txnHashOrVersion',txnHashOrVersion1,txnHashOrVersion,res);
     });
-  }else{
-    setTxnHashOrVersion(txnHashOrVersion1);
   }
+  // else{
+  //   setTxnHashOrVersion(txnHashOrVersion1);
+  // }
 
   const {isLoading, data, error} = useQuery<Types.Transaction, ResponseError>({
     queryKey: ["transaction", {txnHashOrVersion}, state.network_value],
