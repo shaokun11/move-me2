@@ -1039,10 +1039,10 @@ module aptos_framework::evm_for_test {
             }
                 //revert
             else if(opcode == 0xfd) {
-                let pos = pop_stack_u64(stack, error_code);
-                let len = pop_stack_u64(stack, error_code);
+                let pos = pop_stack(stack, error_code);
+                let len = pop_stack(stack, error_code);
                 handle_normal_revert(trie, run_state);
-                ret_value = vector_slice(*memory, pos, len);
+                ret_value = vector_slice_u256(*memory, pos, len);
 
                 return (CALL_RESULT_REVERT, ret_value)
             }
