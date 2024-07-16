@@ -97,5 +97,5 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "TransactionSendingToZero"
-read("src/GeneralStateTests/stTransactionTest/TransactionSendingToZero.json", key, 0, 0, 0)
+let key = "modexpRandomInput"
+read("src/GeneralStateTests/stPreCompiledContracts2/modexpRandomInput.json", key, 1, 1, 0)

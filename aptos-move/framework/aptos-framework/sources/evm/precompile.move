@@ -4,6 +4,7 @@ module aptos_framework::evm_precompile {
     use aptos_std::aptos_hash::{keccak256, ripemd160};
     use aptos_std::debug;
     use std::hash::sha2_256;
+    use aptos_framework::evm_arithmetic::mul;
 
     public native fun mod_exp(base: vector<u8>, exp_bytes: vector<u8>, mod: vector<u8>): vector<u8>;
     public native fun bn128_add(a: vector<u8>): (bool, vector<u8>);
@@ -85,8 +86,8 @@ module aptos_framework::evm_precompile {
                 return (true, x"", 200)
             };
 
-            let gas = calc_mod_exp_gas(base_len, exp_len, mod_len, calldata);
-            if(base_len > MAX_SIZE || mod_len > MAX_SIZE || exp_len > MAX_SIZE || (base_len + mod_len + exp_len + 96) > MAX_SIZE) {
+            let (overflow, gas) = calc_mod_exp_gas(base_len, exp_len, mod_len, calldata);
+            if(overflow || base_len > MAX_SIZE || mod_len > MAX_SIZE || exp_len > MAX_SIZE || (base_len + mod_len + exp_len + 96) > MAX_SIZE) {
                 return (false, x"", gas_limit)
             };
 
@@ -130,8 +131,11 @@ module aptos_framework::evm_precompile {
         }
     }
 
-    fun calc_mod_exp_gas(base_len: u256, exp_len: u256, mod_len: u256, calldata: vector<u8>): u256 {
-        let multiplication_complexity = calculate_multiplication_complexity(base_len, mod_len);
+    fun calc_mod_exp_gas(base_len: u256, exp_len: u256, mod_len: u256, calldata: vector<u8>): (bool, u256) {
+        let (multiplication_complexity, overflow) = calculate_multiplication_complexity(base_len, mod_len);
+        if(overflow) {
+            return (false, 0)
+        };
         let adj_exp_len = calculate_iteration_count(base_len, exp_len, calldata);
 
         let gas = multiplication_complexity * adj_exp_len / ModexpGquaddivisor;
@@ -143,7 +147,7 @@ module aptos_framework::evm_precompile {
             gas = 200;
         };
         debug::print(&gas);
-        gas
+        (true, gas)
     }
 
     fun calculate_iteration_count(base_len: u256, exp_len: u256, calldata: vector<u8>): u256 {
@@ -159,8 +163,6 @@ module aptos_framework::evm_precompile {
                 exp_head = vector_slice_u256(calldata, 96 + base_len, exp_len);
             };
         };
-        debug::print(&exp_head);
-        debug::print(&exp_len);
         let adj_exp_len = 0;
         let msb = 0;
         let bit_len = bit_length(exp_head);
@@ -176,10 +178,10 @@ module aptos_framework::evm_precompile {
         if(adj_exp_len < 1) 1 else adj_exp_len
     }
 
-    fun calculate_multiplication_complexity(base_len: u256, mod_len: u256): u256 {
+    fun calculate_multiplication_complexity(base_len: u256, mod_len: u256): (u256, bool) {
         let max_length = if(base_len > mod_len) base_len else mod_len;
         let words = (max_length + 7) / 8;
-        words * words
+        mul(words, words)
     }
 
     #[view]
