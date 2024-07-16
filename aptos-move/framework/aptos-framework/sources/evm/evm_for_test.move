@@ -40,7 +40,7 @@ module aptos_framework::evm_for_test {
 
     const U64_MAX: u256 = 18446744073709551615; // 18_446_744_073_709_551_615
     const U256_MAX: u256 = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
-    const ZERO_ADDR: vector<u8> =      x"0000000000000000000000000000000000000000000000000000000000000000";
+    const EMPTY_ADDR: vector<u8> =      x"";
     const ONE_ADDR: vector<u8> =       x"0000000000000000000000000000000000000000000000000000000000000001";
     const CHAIN_ID_BYTES: vector<u8> = x"0150";
 
@@ -164,7 +164,7 @@ module aptos_framework::evm_for_test {
         let (trie, access_address_count, access_slot_count) = pre_init(addresses, codes, nonces, balances, storage_keys, storage_values, access_addresses, access_keys);
         let gas_limit = to_u256(gas_limit_bytes);
         from = to_32bit(from);
-        to = to_32bit(to);
+
         let run_state = &mut new_run_state(from, gas_price_data, gas_limit, &env_data, tx_type);
         let gas_price = get_gas_price(run_state);
         add_warm_address(from, &mut trie);
@@ -193,49 +193,46 @@ module aptos_framework::evm_for_test {
             return
         };
 
-        if(to == ZERO_ADDR && data_size > 0) {
+        if(to == EMPTY_ADDR) {
+            if(data_size > MAX_INIT_CODE_SIZE) {
+                handle_tx_failed(&trie);
+                return
+            };
             base_cost = base_cost + 2 * get_word_count(data_size) + 32000;
         };
         if(get_balance(from, &trie) < up_cost || get_code_length(from, &trie) > 0 || gas_limit < base_cost) {
-            handle_tx_failed(&trie);
-            return
-        } else if(to == ZERO_ADDR && data_size > MAX_INIT_CODE_SIZE) {
             handle_tx_failed(&trie);
             return
         } else if(get_nonce(from, &trie) >= U64_MAX) {
             handle_tx_failed(&trie);
             return
         } else {
+            sub_balance(from, gas_limit * gas_price, &mut trie);
             let out_of_gas = add_gas_usage(run_state, base_cost);
             if(out_of_gas) {
                 handle_tx_failed(&trie);
                 return
             };
-
-            sub_balance(from, gas_limit * gas_price, &mut trie);
-            if(data_size == 0 && !exist_contract(to, &trie)) {
-                transfer(from, to, value, &mut trie);
-            } else {
-                add_checkpoint(&mut trie);
-                if(to == ZERO_ADDR) {
-                    let evm_contract = get_contract_address(from, (get_nonce(from, &trie) as u64));
-                    if(is_contract_or_created_account(evm_contract, &trie)) {
-                        add_gas_usage(run_state, gas_limit);
-                    } else {
-                        let gas_left = get_gas_left(run_state);
-                        add_call_state(run_state, gas_left, false);
-                        let (result, bytes) = run(from, evm_contract, data, x"", value, gas_left, &mut trie, run_state, true, true, 0);
-                        if(result == CALL_RESULT_SUCCESS) {
-                            set_code(&mut trie, evm_contract, bytes);
-                        }
-                    };
+            add_checkpoint(&mut trie);
+            if(to == EMPTY_ADDR) {
+                let evm_contract = get_contract_address(from, (get_nonce(from, &trie) as u64));
+                if(is_contract_or_created_account(evm_contract, &trie)) {
+                    add_gas_usage(run_state, gas_limit);
                 } else {
-                    if(is_precompile_address(to)) {
-                        precompile(to, data, gas_limit, run_state);
-                    } else {
-                        add_call_state(run_state, gas_limit - base_cost, false);
-                        run(from, to, get_code(to, &trie), data, value, gas_limit - base_cost, &mut trie, run_state, true, false, 0);
-                    };
+                    let gas_left = get_gas_left(run_state);
+                    add_call_state(run_state, gas_left, false);
+                    let (result, bytes) = run(from, evm_contract, data, x"", value, gas_left, &mut trie, run_state, true, true, 0);
+                    if(result == CALL_RESULT_SUCCESS) {
+                        set_code(&mut trie, evm_contract, bytes);
+                    }
+                };
+            } else {
+                to = to_32bit(to);
+                if(is_precompile_address(to)) {
+                    precompile(to, data, gas_limit, run_state);
+                } else {
+                    add_call_state(run_state, gas_limit - base_cost, false);
+                    run(from, to, get_code(to, &trie), data, value, gas_limit - base_cost, &mut trie, run_state, true, false, 0);
                 };
             };
             let gas_refund = get_gas_refund(run_state);
