@@ -134,7 +134,7 @@ module aptos_framework::evm_precompile {
     fun calc_mod_exp_gas(base_len: u256, exp_len: u256, mod_len: u256, calldata: vector<u8>): (bool, u256) {
         let (multiplication_complexity, overflow) = calculate_multiplication_complexity(base_len, mod_len);
         if(overflow) {
-            return (false, 0)
+            return (true, 0)
         };
         let adj_exp_len = calculate_iteration_count(base_len, exp_len, calldata);
 
@@ -147,7 +147,7 @@ module aptos_framework::evm_precompile {
             gas = 200;
         };
         debug::print(&gas);
-        (true, gas)
+        (false, gas)
     }
 
     fun calculate_iteration_count(base_len: u256, exp_len: u256, calldata: vector<u8>): u256 {
