@@ -172,16 +172,23 @@ module aptos_framework::evm_for_test {
         let data_size = (vector::length(&data) as u256);
         let base_cost = calc_base_gas(&data, access_address_count, access_slot_count) + 21000;
         let up_cost;
+        let overflow;
         if(is_eip_1559(run_state)) {
             if(get_basefee(run_state) > get_max_fee_per_gas(run_state) || get_max_priority_fee_per_gas(run_state) > get_max_fee_per_gas(run_state)) {
                 handle_tx_failed(&trie);
                 return
             };
-            up_cost = get_max_fee_per_gas(run_state) * gas_limit + value;
+            (up_cost, overflow) = mul(get_max_fee_per_gas(run_state), gas_limit);
+            if(!overflow) {
+                (up_cost, overflow) = add(up_cost, value);
+            };
         } else {
-            up_cost = gas_limit * gas_price + value;
+            (up_cost, overflow) = mul(gas_limit, gas_price);
+            if(!overflow) {
+                (up_cost, overflow) = add(up_cost, value);
+            };
         };
-        if(gas_limit > get_block_gas_limit(run_state) || gas_price < get_basefee(run_state)) {
+        if(overflow || gas_limit > get_block_gas_limit(run_state) || gas_price < get_basefee(run_state)) {
             handle_tx_failed(&trie);
             return
         };
@@ -204,6 +211,7 @@ module aptos_framework::evm_for_test {
                 handle_tx_failed(&trie);
                 return
             };
+
             sub_balance(from, gas_limit * gas_price, &mut trie);
             if(data_size == 0) {
                 transfer(from, to, value, &mut trie);
@@ -452,7 +460,8 @@ module aptos_framework::evm_for_test {
             else if(opcode == 0x02) {
                 let a = pop_stack(stack, error_code);
                 let b = pop_stack(stack, error_code);
-                vector::push_back(stack, mul(a, b));
+                let (c, _) = mul(a, b);
+                vector::push_back(stack, c);
                 i = i + 1;
             }
                 //sub

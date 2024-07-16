@@ -45,7 +45,8 @@
 -  [Function `parse_env`](#0x1_evm_global_state_parse_env)
 
 
-<pre><code><b>use</b> <a href="util.md#0x1_evm_util">0x1::evm_util</a>;
+<pre><code><b>use</b> <a href="../../aptos-stdlib/doc/debug.md#0x1_debug">0x1::debug</a>;
+<b>use</b> <a href="util.md#0x1_evm_util">0x1::evm_util</a>;
 </code></pre>
 
 
@@ -323,10 +324,11 @@
 <pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_add_call_state">add_call_state</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>, gas_limit: u256, is_static: bool) {
     <b>let</b> state = <a href="global_state.md#0x1_evm_global_state_get_lastest_state">get_lastest_state</a>(run_state);
     <b>let</b> static = state.is_static || is_static;
+    <b>let</b> gas_refund = state.gas_refund;
     <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(&<b>mut</b> run_state.call_state, <a href="global_state.md#0x1_evm_global_state_CallState">CallState</a> {
         highest_memory_cost: 0,
         highest_memory_word_size: 0,
-        gas_refund: 0,
+        gas_refund,
         gas_left: gas_limit,
         gas_limit,
         is_static: static,
@@ -380,6 +382,7 @@
 
 
 <pre><code><b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_lastest_state">get_lastest_state</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>): &<a href="global_state.md#0x1_evm_global_state_CallState">CallState</a> {
+
     <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&run_state.call_state);
     <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&run_state.call_state, len - 1)
 }
@@ -407,7 +410,7 @@
 <pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_commit_call_state">commit_call_state</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>) {
     <b>let</b> new_state = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(&<b>mut</b> run_state.call_state);
     <b>let</b> old_state = <a href="global_state.md#0x1_evm_global_state_get_lastest_state_mut">get_lastest_state_mut</a>(run_state);
-    old_state.gas_refund = old_state.gas_refund + new_state.gas_refund;
+    old_state.gas_refund = new_state.gas_refund;
     old_state.gas_left = old_state.gas_left - (new_state.gas_limit - new_state.gas_left);
 }
 </code></pre>
@@ -434,7 +437,7 @@
 <pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_revert_call_state">revert_call_state</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>) {
     <b>let</b> new_state = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_pop_back">vector::pop_back</a>(&<b>mut</b> run_state.call_state);
     <b>let</b> old_state = <a href="global_state.md#0x1_evm_global_state_get_lastest_state_mut">get_lastest_state_mut</a>(run_state);
-    old_state.gas_left = old_state.gas_left - new_state.gas_limit;
+    old_state.gas_left = <b>if</b>(old_state.gas_left &gt; new_state.gas_limit) old_state.gas_left - new_state.gas_limit <b>else</b> 0;
 }
 </code></pre>
 
@@ -690,6 +693,7 @@
 <pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_add_gas_refund">add_gas_refund</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>, refund: u256) {
     <b>let</b> state = <a href="global_state.md#0x1_evm_global_state_get_lastest_state_mut">get_lastest_state_mut</a>(run_state);
     state.gas_refund = state.gas_refund + refund;
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&10011);
 }
 </code></pre>
 
@@ -714,7 +718,7 @@
 
 <pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_sub_gas_refund">sub_gas_refund</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>, refund: u256) {
     <b>let</b> state = <a href="global_state.md#0x1_evm_global_state_get_lastest_state_mut">get_lastest_state_mut</a>(run_state);
-    state.gas_refund = state.gas_refund - refund;
+    state.gas_refund = <b>if</b>(state.gas_refund &gt; refund) state.gas_refund - refund <b>else</b> 0;
 }
 </code></pre>
 

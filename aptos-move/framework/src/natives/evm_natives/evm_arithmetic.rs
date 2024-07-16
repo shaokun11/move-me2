@@ -53,10 +53,11 @@ fn native_mul(
     let b = move_u256_to_evm_u256(&safely_pop_arg!(args, move_u256));
     let a = move_u256_to_evm_u256(&safely_pop_arg!(args, move_u256));
 
-    let n = a.overflowing_mul(b).0;
+    let n = a.overflowing_mul(b);
 
     Ok(smallvec![
-        Value::u256(evm_u256_to_move_u256(&n))
+        Value::u256(evm_u256_to_move_u256(&n.0)),
+        Value::bool(n.1)
     ])
 }
 

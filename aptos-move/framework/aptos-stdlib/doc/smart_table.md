@@ -122,7 +122,7 @@ SmartTable entry contains both the key and value.
 
 
 
-<pre><code><b>struct</b> <a href="smart_table.md#0x1_smart_table_SmartTable">SmartTable</a>&lt;K, V&gt; <b>has</b> store
+<pre><code><b>struct</b> <a href="smart_table.md#0x1_smart_table_SmartTable">SmartTable</a>&lt;K, V&gt; <b>has</b> drop, store
 </code></pre>
 
 
@@ -1244,7 +1244,7 @@ Return true if any key-value pair in the table satisfies the predicate.
 ### Struct `SmartTable`
 
 
-<pre><code><b>struct</b> <a href="smart_table.md#0x1_smart_table_SmartTable">SmartTable</a>&lt;K, V&gt; <b>has</b> store
+<pre><code><b>struct</b> <a href="smart_table.md#0x1_smart_table_SmartTable">SmartTable</a>&lt;K, V&gt; <b>has</b> drop, store
 </code></pre>
 
 

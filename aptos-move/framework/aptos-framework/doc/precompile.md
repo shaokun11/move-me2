@@ -428,11 +428,12 @@ unsupport precomile address
             <b>return</b> (<b>true</b>, x"", 200)
         };
 
+        <b>let</b> gas = <a href="precompile.md#0x1_evm_precompile_calc_mod_exp_gas">calc_mod_exp_gas</a>(base_len, exp_len, mod_len, calldata);
         <b>if</b>(base_len &gt; <a href="precompile.md#0x1_evm_precompile_MAX_SIZE">MAX_SIZE</a> || mod_len &gt; <a href="precompile.md#0x1_evm_precompile_MAX_SIZE">MAX_SIZE</a> || exp_len &gt; <a href="precompile.md#0x1_evm_precompile_MAX_SIZE">MAX_SIZE</a> || (base_len + mod_len + exp_len + 96) &gt; <a href="precompile.md#0x1_evm_precompile_MAX_SIZE">MAX_SIZE</a>) {
             <b>return</b> (<b>false</b>, x"", gas_limit)
         };
 
-        <b>let</b> gas = <a href="precompile.md#0x1_evm_precompile_calc_mod_exp_gas">calc_mod_exp_gas</a>(base_len, exp_len, mod_len, calldata);
+
         <b>if</b>(gas &gt; gas_limit) {
             <b>return</b> (<b>false</b>, x"", gas)
         };
@@ -445,8 +446,6 @@ unsupport precomile address
         <b>let</b> exp_bytes = vector_slice_u256(calldata, pos, exp_len);
         pos = pos + exp_len;
         <b>let</b> mod_bytes = vector_slice_u256(calldata, pos, mod_len);
-
-
         <b>let</b> result = <a href="precompile.md#0x1_evm_precompile_mod_exp">mod_exp</a>(base_bytes, exp_bytes, mod_bytes);
         result = <b>if</b>(mod_len == 0) x"" <b>else</b> to_n_bit(result, (mod_len <b>as</b> u64));
         (<b>true</b>, result, gas)
@@ -464,10 +463,6 @@ unsupport precomile address
             <b>return</b> (<b>false</b>, x"", gas_limit)
         };
         <b>let</b> (success, gas_cost, result) = <a href="precompile.md#0x1_evm_precompile_blake_2f">blake_2f</a>(calldata);
-        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&calldata));
-        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&result);
-        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&success);
-        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&gas_cost);
         <b>if</b>(!success) {
             <b>return</b> (<b>false</b>, x"", gas_limit)
         } <b>else</b> {
@@ -499,14 +494,18 @@ unsupport precomile address
 
 
 <pre><code><b>fun</b> <a href="precompile.md#0x1_evm_precompile_calc_mod_exp_gas">calc_mod_exp_gas</a>(base_len: u256, exp_len: u256, mod_len: u256, calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): u256 {
-    <b>let</b> exp_bytes = vector_slice_u256(calldata, base_len + 96, exp_len);
     <b>let</b> multiplication_complexity = <a href="precompile.md#0x1_evm_precompile_calculate_multiplication_complexity">calculate_multiplication_complexity</a>(base_len, mod_len);
-    <b>let</b> iteration_count = <a href="precompile.md#0x1_evm_precompile_calculate_iteration_count">calculate_iteration_count</a>(exp_len, exp_bytes);
-    <b>let</b> gas = multiplication_complexity * iteration_count / <a href="precompile.md#0x1_evm_precompile_ModexpGquaddivisor">ModexpGquaddivisor</a>;
+    <b>let</b> adj_exp_len = <a href="precompile.md#0x1_evm_precompile_calculate_iteration_count">calculate_iteration_count</a>(base_len, exp_len, calldata);
+
+    <b>let</b> gas = multiplication_complexity * adj_exp_len / <a href="precompile.md#0x1_evm_precompile_ModexpGquaddivisor">ModexpGquaddivisor</a>;
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&848484);
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&multiplication_complexity);
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&adj_exp_len);
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&gas);
     <b>if</b>(gas &lt; 200) {
         gas = 200;
     };
-
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&gas);
     gas
 }
 </code></pre>
@@ -521,7 +520,7 @@ unsupport precomile address
 
 
 
-<pre><code><b>fun</b> <a href="precompile.md#0x1_evm_precompile_calculate_iteration_count">calculate_iteration_count</a>(exponent_length: u256, exponent_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): u256
+<pre><code><b>fun</b> <a href="precompile.md#0x1_evm_precompile_calculate_iteration_count">calculate_iteration_count</a>(base_len: u256, exp_len: u256, calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): u256
 </code></pre>
 
 
@@ -530,19 +529,34 @@ unsupport precomile address
 <summary>Implementation</summary>
 
 
-<pre><code><b>fun</b> <a href="precompile.md#0x1_evm_precompile_calculate_iteration_count">calculate_iteration_count</a>(exponent_length: u256, exponent_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): u256 {
-    <b>let</b> bit_length = bit_length(exponent_bytes);
-    <b>let</b> iteration_count = 0;
-    <b>if</b>(exponent_length &lt;= 32 && bit_length == 0) {
-        iteration_count = 0;
-    } <b>else</b> <b>if</b>(exponent_length &lt;= 32) {
-        iteration_count = bit_length - 1;
-    } <b>else</b> <b>if</b>(exponent_length &gt; 32) {
-        <b>let</b> last_32_bit = vector_slice_u256(exponent_bytes, exponent_length - 32, 32);
-        iteration_count = (8 * (exponent_length - 32)) + bit_length(last_32_bit) - 1
-    };
+<pre><code><b>fun</b> <a href="precompile.md#0x1_evm_precompile_calculate_iteration_count">calculate_iteration_count</a>(base_len: u256, exp_len: u256, calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): u256 {
+    <b>let</b> exp_head;
+    <b>let</b> data_len = (<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&calldata) <b>as</b> u256);
 
-    <b>if</b>(iteration_count == 0) 1 <b>else</b> iteration_count
+    <b>if</b>(data_len &lt; base_len) {
+        exp_head = x"";
+    } <b>else</b> {
+        <b>if</b>(exp_len &gt;= 32) {
+            exp_head = vector_slice_u256(calldata, 96 + base_len, 32);
+        } <b>else</b> {
+            exp_head = vector_slice_u256(calldata, 96 + base_len, exp_len);
+        };
+    };
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&exp_head);
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&exp_len);
+    <b>let</b> adj_exp_len = 0;
+    <b>let</b> msb = 0;
+    <b>let</b> bit_len = bit_length(exp_head);
+    <b>if</b>(bit_len &gt; 0) {
+        msb = bit_len - 1;
+    };
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&bit_len);
+    <b>if</b>(exp_len &gt;= 32) {
+        adj_exp_len = exp_len - 32;
+        adj_exp_len = adj_exp_len * 8;
+    };
+    adj_exp_len = adj_exp_len + msb;
+    <b>if</b>(adj_exp_len &lt; 1) 1 <b>else</b> adj_exp_len
 }
 </code></pre>
 
@@ -567,10 +581,7 @@ unsupport precomile address
 
 <pre><code><b>fun</b> <a href="precompile.md#0x1_evm_precompile_calculate_multiplication_complexity">calculate_multiplication_complexity</a>(base_len: u256, mod_len: u256): u256 {
     <b>let</b> max_length = <b>if</b>(base_len &gt; mod_len) base_len <b>else</b> mod_len;
-    <b>let</b> words = max_length / 8;
-    <b>if</b>(max_length % 8 != 0) {
-        words = words + 1;
-    };
+    <b>let</b> words = (max_length + 7) / 8;
     words * words
 }
 </code></pre>

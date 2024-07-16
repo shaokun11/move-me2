@@ -876,7 +876,7 @@ invalid chain id in raw tx
         <b>return</b>
     };
 
-    <b>if</b>(<b>to</b> == <a href="evm_for_test.md#0x1_evm_for_test_ZERO_ADDR">ZERO_ADDR</a>) {
+    <b>if</b>(<b>to</b> == <a href="evm_for_test.md#0x1_evm_for_test_ZERO_ADDR">ZERO_ADDR</a> && data_size &gt; 0) {
         base_cost = base_cost + 2 * get_word_count(data_size) + 32000;
     };
     <b>if</b>(get_balance(from, &trie) &lt; up_cost || get_code_length(from, &trie) &gt; 0 || gas_limit &lt; base_cost) {
@@ -895,25 +895,29 @@ invalid chain id in raw tx
             <b>return</b>
         };
         sub_balance(from, gas_limit * gas_price, &<b>mut</b> trie);
-        add_checkpoint(&<b>mut</b> trie);
-        <b>if</b>(<b>to</b> == <a href="evm_for_test.md#0x1_evm_for_test_ZERO_ADDR">ZERO_ADDR</a>) {
-            <b>let</b> evm_contract = get_contract_address(from, (get_nonce(from, &trie) <b>as</b> u64));
-            <b>if</b>(is_contract_or_created_account(evm_contract, &trie)) {
-                add_gas_usage(run_state, gas_limit);
-            } <b>else</b> {
-                <b>let</b> gas_left = get_gas_left(run_state);
-                add_call_state(run_state, gas_left, <b>false</b>);
-                <b>let</b> (result, bytes) = <a href="evm_for_test.md#0x1_evm_for_test_run">run</a>(from, evm_contract, data, x"", value, gas_left, &<b>mut</b> trie, run_state, <b>true</b>, <b>true</b>, 0);
-                <b>if</b>(result == <a href="evm_for_test.md#0x1_evm_for_test_CALL_RESULT_SUCCESS">CALL_RESULT_SUCCESS</a>) {
-                    set_code(&<b>mut</b> trie, evm_contract, bytes);
-                }
-            };
+        <b>if</b>(data_size == 0) {
+            transfer(from, <b>to</b>, value, &<b>mut</b> trie);
         } <b>else</b> {
-            <b>if</b>(is_precompile_address(<b>to</b>)) {
-                 <a href="evm_for_test.md#0x1_evm_for_test_precompile">precompile</a>(<b>to</b>, data, gas_limit, run_state);
+            add_checkpoint(&<b>mut</b> trie);
+            <b>if</b>(<b>to</b> == <a href="evm_for_test.md#0x1_evm_for_test_ZERO_ADDR">ZERO_ADDR</a>) {
+                <b>let</b> evm_contract = get_contract_address(from, (get_nonce(from, &trie) <b>as</b> u64));
+                <b>if</b>(is_contract_or_created_account(evm_contract, &trie)) {
+                    add_gas_usage(run_state, gas_limit);
+                } <b>else</b> {
+                    <b>let</b> gas_left = get_gas_left(run_state);
+                    add_call_state(run_state, gas_left, <b>false</b>);
+                    <b>let</b> (result, bytes) = <a href="evm_for_test.md#0x1_evm_for_test_run">run</a>(from, evm_contract, data, x"", value, gas_left, &<b>mut</b> trie, run_state, <b>true</b>, <b>true</b>, 0);
+                    <b>if</b>(result == <a href="evm_for_test.md#0x1_evm_for_test_CALL_RESULT_SUCCESS">CALL_RESULT_SUCCESS</a>) {
+                        set_code(&<b>mut</b> trie, evm_contract, bytes);
+                    }
+                };
             } <b>else</b> {
-                add_call_state(run_state, gas_limit - base_cost, <b>false</b>);
-                <a href="evm_for_test.md#0x1_evm_for_test_run">run</a>(from, <b>to</b>, get_code(<b>to</b>, &trie), data, value, gas_limit - base_cost, &<b>mut</b> trie, run_state, <b>true</b>, <b>false</b>, 0);
+                <b>if</b>(is_precompile_address(<b>to</b>)) {
+                    <a href="evm_for_test.md#0x1_evm_for_test_precompile">precompile</a>(<b>to</b>, data, gas_limit, run_state);
+                } <b>else</b> {
+                    add_call_state(run_state, gas_limit - base_cost, <b>false</b>);
+                    <a href="evm_for_test.md#0x1_evm_for_test_run">run</a>(from, <b>to</b>, get_code(<b>to</b>, &trie), data, value, gas_limit - base_cost, &<b>mut</b> trie, run_state, <b>true</b>, <b>false</b>, 0);
+                };
             };
         };
         <b>let</b> gas_refund = get_gas_refund(run_state);
@@ -1111,9 +1115,9 @@ invalid chain id in raw tx
             trie: &<b>mut</b> Trie,
             error_code: &<b>mut</b> u64) {
     <b>let</b> msg_value = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
-    <b>let</b> pos = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack_u64">pop_stack_u64</a>(stack, error_code);
+    <b>let</b> pos = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
     <b>let</b> len = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
-    <b>let</b> codes = vector_slice(*memory, pos, (len <b>as</b> u64));
+    <b>let</b> codes = vector_slice_u256(*memory, pos, len);
     <b>let</b> new_evm_contract_addr = get_contract_address(current_address, (get_nonce(current_address, trie) <b>as</b> u64));
     <b>let</b> result = <a href="evm_for_test.md#0x1_evm_for_test_create_internal">create_internal</a>(len, current_address, new_evm_contract_addr, depth, codes, msg_value, run_state, trie, error_code);
     <b>if</b>(result == <a href="evm_for_test.md#0x1_evm_for_test_CALL_RESULT_SUCCESS">CALL_RESULT_SUCCESS</a>) {
@@ -1151,10 +1155,10 @@ invalid chain id in raw tx
             trie: &<b>mut</b> Trie,
             error_code: &<b>mut</b> u64) {
     <b>let</b> msg_value = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
-    <b>let</b> pos = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack_u64">pop_stack_u64</a>(stack, error_code);
+    <b>let</b> pos = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
     <b>let</b> len = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
     <b>let</b> salt = u256_to_data(<a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code));
-    <b>let</b> codes = vector_slice(*memory, pos, (len <b>as</b> u64));
+    <b>let</b> codes = vector_slice_u256(*memory, pos, len);
     <b>let</b> p = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_empty">vector::empty</a>&lt;u8&gt;();
     <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> p, x"ff");
     <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> p, vector_slice(current_address, 12, 20));
@@ -1277,7 +1281,8 @@ invalid chain id in raw tx
         <b>else</b> <b>if</b>(opcode == 0x02) {
             <b>let</b> a = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
             <b>let</b> b = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
-            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, mul(a, b));
+            <b>let</b> (c, _) = mul(a, b);
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, c);
             i = i + 1;
         }
             //sub
@@ -1819,15 +1824,17 @@ invalid chain id in raw tx
             <b>let</b> params = vector_slice(*memory, m_pos, m_len);
             <b>let</b> (call_from, call_to, code_address) = <a href="evm_for_test.md#0x1_evm_for_test_get_call_info">get_call_info</a>(sender, <b>to</b>, evm_dest_addr, opcode);
             <b>let</b> is_precompile = is_precompile_address(evm_dest_addr);
-            <b>let</b> transfer_eth = <b>if</b>(opcode == 0xf1 || opcode == 0xf2) <b>true</b> <b>else</b> <b>false</b>;
+            <b>let</b> transfer_eth = <b>if</b>((opcode == 0xf1 || opcode == 0xf2) && msg_value &gt; 0) <b>true</b> <b>else</b> <b>false</b>;
             set_ret_bytes(run_state, x"");
-            <b>if</b>(depth &gt;= <a href="evm_for_test.md#0x1_evm_for_test_MAX_DEPTH_SIZE">MAX_DEPTH_SIZE</a>){
+            <b>if</b>(get_is_static(run_state) && transfer_eth && call_from != call_to) {
+                *error_code = <a href="evm_for_test.md#0x1_evm_for_test_ERROR_STATIC_STATE_CHANGE">ERROR_STATIC_STATE_CHANGE</a>;
+            } <b>else</b> <b>if</b>(depth &gt;= <a href="evm_for_test.md#0x1_evm_for_test_MAX_DEPTH_SIZE">MAX_DEPTH_SIZE</a>){
                 <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 0);
             } <b>else</b> {
                 <b>if</b>(is_precompile) {
                     <b>let</b> (success, bytes) = <a href="evm_for_test.md#0x1_evm_for_test_precompile">precompile</a>(code_address, params, call_gas_limit, run_state);
                     <b>if</b>(success) {
-                        <b>if</b>(msg_value &gt; 0 && (opcode == 0xf1 || opcode == 0xf2)) {
+                        <b>if</b>(transfer_eth) {
                             transfer(call_from, call_to, msg_value, trie);
                         };
                         set_ret_bytes(run_state, bytes);
@@ -1868,10 +1875,10 @@ invalid chain id in raw tx
         }
             //revert
         <b>else</b> <b>if</b>(opcode == 0xfd) {
-            <b>let</b> pos = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack_u64">pop_stack_u64</a>(stack, error_code);
-            <b>let</b> len = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack_u64">pop_stack_u64</a>(stack, error_code);
+            <b>let</b> pos = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
+            <b>let</b> len = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
             <a href="evm_for_test.md#0x1_evm_for_test_handle_normal_revert">handle_normal_revert</a>(trie, run_state);
-            ret_value = vector_slice(*memory, pos, len);
+            ret_value = vector_slice_u256(*memory, pos, len);
 
             <b>return</b> (<a href="evm_for_test.md#0x1_evm_for_test_CALL_RESULT_REVERT">CALL_RESULT_REVERT</a>, ret_value)
         }

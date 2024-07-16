@@ -47,7 +47,7 @@ Extends Table and provides functions such as length and the ability to be destro
 Type of tables
 
 
-<pre><code><b>struct</b> <a href="table_with_length.md#0x1_table_with_length_TableWithLength">TableWithLength</a>&lt;K: <b>copy</b>, drop, V&gt; <b>has</b> store
+<pre><code><b>struct</b> <a href="table_with_length.md#0x1_table_with_length_TableWithLength">TableWithLength</a>&lt;K: <b>copy</b>, drop, V&gt; <b>has</b> <b>copy</b>, drop, store
 </code></pre>
 
 
@@ -417,7 +417,7 @@ Returns true iff <code><a href="table.md#0x1_table">table</a></code> contains an
 ### Struct `TableWithLength`
 
 
-<pre><code><b>struct</b> <a href="table_with_length.md#0x1_table_with_length_TableWithLength">TableWithLength</a>&lt;K: <b>copy</b>, drop, V&gt; <b>has</b> store
+<pre><code><b>struct</b> <a href="table_with_length.md#0x1_table_with_length_TableWithLength">TableWithLength</a>&lt;K: <b>copy</b>, drop, V&gt; <b>has</b> <b>copy</b>, drop, store
 </code></pre>
 
 
