@@ -127,7 +127,8 @@ module aptos_framework::evm_precompile {
                 return (true, result, (gas_cost as u256))
             }
         } else {
-            (false, x"", gas_limit)
+            assert!(false, 0x0a);
+            (true, x"", gas_limit)
         }
     }
 

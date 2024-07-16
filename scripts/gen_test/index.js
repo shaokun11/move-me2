@@ -97,5 +97,5 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "modexp"
-read("src/GeneralStateTests/stPreCompiledContracts/modexp.json", key, 37, 1, 0)
+let key = "src/GeneralStateTestsFiller/Pyspecs/cancun/eip4844_blobs/test_point_evaluation_precompile.py::test_valid_precompile_calls[fork_Cancun-state_test-success_True-in_bounds_z]"
+read("src/GeneralStateTests/Pyspecs/cancun/eip4844_blobs/valid_precompile_calls.json", key, 0, 0, 0)
