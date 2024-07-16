@@ -213,7 +213,7 @@ module aptos_framework::evm_for_test {
             };
 
             sub_balance(from, gas_limit * gas_price, &mut trie);
-            if(data_size == 0) {
+            if(data_size == 0 && !exist_contract(to, &trie)) {
                 transfer(from, to, value, &mut trie);
             } else {
                 add_checkpoint(&mut trie);
