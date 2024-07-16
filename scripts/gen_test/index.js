@@ -97,5 +97,5 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "modexpRandomInput"
-read("src/GeneralStateTests/stPreCompiledContracts2/modexpRandomInput.json", key, 1, 1, 0)
+let key = "modexp"
+read("src/GeneralStateTests/stPreCompiledContracts/modexp.json", key, 37, 1, 0)

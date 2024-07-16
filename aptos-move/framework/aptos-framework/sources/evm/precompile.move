@@ -132,11 +132,17 @@ module aptos_framework::evm_precompile {
     }
 
     fun calc_mod_exp_gas(base_len: u256, exp_len: u256, mod_len: u256, calldata: vector<u8>): (bool, u256) {
-        let (multiplication_complexity, overflow) = calculate_multiplication_complexity(base_len, mod_len);
+        let multiplication_complexity;
+        let overflow;
+        let adj_exp_len;
+        (multiplication_complexity, overflow) = calculate_multiplication_complexity(base_len, mod_len);
         if(overflow) {
             return (true, 0)
         };
-        let adj_exp_len = calculate_iteration_count(base_len, exp_len, calldata);
+        (adj_exp_len, overflow) = calculate_iteration_count(base_len, exp_len, calldata);
+        if(overflow) {
+            return (true, 0)
+        };
 
         let gas = multiplication_complexity * adj_exp_len / ModexpGquaddivisor;
         debug::print(&848484);
@@ -150,7 +156,7 @@ module aptos_framework::evm_precompile {
         (false, gas)
     }
 
-    fun calculate_iteration_count(base_len: u256, exp_len: u256, calldata: vector<u8>): u256 {
+    fun calculate_iteration_count(base_len: u256, exp_len: u256, calldata: vector<u8>): (u256, bool) {
         let exp_head;
         let data_len = (vector::length(&calldata) as u256);
 
@@ -164,6 +170,7 @@ module aptos_framework::evm_precompile {
             };
         };
         let adj_exp_len = 0;
+        let overflow = false;
         let msb = 0;
         let bit_len = bit_length(exp_head);
         if(bit_len > 0) {
@@ -172,15 +179,19 @@ module aptos_framework::evm_precompile {
         debug::print(&bit_len);
         if(exp_len >= 32) {
             adj_exp_len = exp_len - 32;
-            adj_exp_len = adj_exp_len * 8;
+            (adj_exp_len, overflow) = mul(adj_exp_len, 8);
         };
         adj_exp_len = adj_exp_len + msb;
-        if(adj_exp_len < 1) 1 else adj_exp_len
+        adj_exp_len = if(adj_exp_len < 1) 1 else adj_exp_len;
+        (adj_exp_len, overflow)
     }
 
     fun calculate_multiplication_complexity(base_len: u256, mod_len: u256): (u256, bool) {
         let max_length = if(base_len > mod_len) base_len else mod_len;
-        let words = (max_length + 7) / 8;
+        let words = max_length / 8;
+        if(max_length % 8 != 0) {
+            words = words + 1;
+        };
         mul(words, words)
     }
 
