@@ -287,6 +287,19 @@ module aptos_framework::evm {
         deposit_to(sender, to_32bit(evm_addr), amount);
     }
 
+    public entry fun batch_deposit(sender: &signer, evm_addr_list: vector<vector<u8>>, amount_bytes_list: vector<vector<u8>>)  {
+        let len = vector::length(&evm_addr_list);
+        assert!(len == vector::length(&amount_bytes_list), 1);
+        let i = 0;
+        while (i < len) {
+            let amount = to_u256(*vector::borrow(&amount_bytes_list, i));
+            let evm_addr = *vector::borrow(&evm_addr_list, i);
+            assert!(vector::length(&evm_addr) == 20, VM_ERROR_ADDR_LENGTH);
+            deposit_to(sender, to_32bit(evm_addr), amount);
+            i = i + 1;
+        }
+    }
+
     #[view]
     public fun query(sender:vector<u8>,
                      contract_addr: vector<u8>,
