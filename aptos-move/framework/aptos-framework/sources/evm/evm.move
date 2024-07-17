@@ -24,6 +24,8 @@ module aptos_framework::evm {
     use aptos_framework::coin;
     #[test_only]
     use std::string;
+    use aptos_framework::coin::register;
+    use aptos_framework::aptos_coin::AptosCoin;
 
     friend aptos_framework::genesis;
 
@@ -98,6 +100,7 @@ module aptos_framework::evm {
             call_event: new_event_handle<vector<CallEvent>>(aptos_framework),
             exec_event: new_event_handle<ExecResultEvent>(aptos_framework)
         });
+        register<AptosCoin>(aptos_framework);
     }
 
     public entry fun send_tx(
