@@ -28,7 +28,7 @@ module aptos_framework::evm {
     friend aptos_framework::genesis;
 
     const CONVERT_BASE: u256 = 10000000000;
-    const CHAIN_ID: u64 = 0x150;
+    const CHAIN_ID: u64 = 30731;
     const U64_MAX: u256 = 18446744073709551615; // 18_446_744_073_709_551_615
     const U256_MAX: u256 = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
 
