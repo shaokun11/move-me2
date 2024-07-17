@@ -33,6 +33,7 @@ module aptos_framework::evm {
     const U256_MAX: u256 = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
 
     const VM_ERROR_ADDR_LENGTH: u64 = 10001;
+    const VM_ERROR_PARAMS_LENGTH: u64 = 10002;
 
     const ERROR_STATIC_STATE_CHANGE: u64 = 51;
     const ERROR_INVALID_OPCODE: u64 = 53;
@@ -289,7 +290,7 @@ module aptos_framework::evm {
 
     public entry fun batch_deposit(sender: &signer, evm_addr_list: vector<vector<u8>>, amount_bytes_list: vector<vector<u8>>)  {
         let len = vector::length(&evm_addr_list);
-        assert!(len == vector::length(&amount_bytes_list), 1);
+        assert!(len == vector::length(&amount_bytes_list), VM_ERROR_PARAMS_LENGTH);
         let i = 0;
         while (i < len) {
             let amount = to_u256(*vector::borrow(&amount_bytes_list, i));
