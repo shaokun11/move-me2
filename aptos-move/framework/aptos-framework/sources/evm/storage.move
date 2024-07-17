@@ -7,6 +7,7 @@ module aptos_framework::evm_storage {
     use aptos_framework::coin;
     use aptos_framework::aptos_coin::AptosCoin;
     use aptos_framework::evm_util::{data_to_u256, vector_slice, to_32bit};
+    use aptos_std::debug;
 
     friend aptos_framework::evm_trie;
     friend aptos_framework::evm;

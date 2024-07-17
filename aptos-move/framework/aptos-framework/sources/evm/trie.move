@@ -4,6 +4,7 @@ module aptos_framework::evm_trie {
     use aptos_std::simple_map;
     use aptos_framework::evm_precompile::is_precompile_address;
     use aptos_framework::evm_storage::{exist_account_storage, load_account_storage, get_state_storage, save_account_storage, save_account_state};
+    use aptos_std::debug;
 
     friend aptos_framework::evm;
     friend aptos_framework::evm_gas;
