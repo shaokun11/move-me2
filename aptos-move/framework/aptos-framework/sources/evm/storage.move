@@ -6,7 +6,7 @@ module aptos_framework::evm_storage {
     use std::vector;
     use aptos_framework::coin;
     use aptos_framework::aptos_coin::AptosCoin;
-    use aptos_framework::evm_util::{data_to_u256, vector_slice};
+    use aptos_framework::evm_util::{data_to_u256, vector_slice, to_32bit};
 
     friend aptos_framework::evm_trie;
     friend aptos_framework::evm;
@@ -29,7 +29,7 @@ module aptos_framework::evm_storage {
     }
 
     public fun get_move_address(evm_address: vector<u8>): address {
-        to_address(evm_address)
+        to_address(to_32bit(evm_address))
     }
 
     public fun exist_account_storage(contract_addr: vector<u8>): bool {

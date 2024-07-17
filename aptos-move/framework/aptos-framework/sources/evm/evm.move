@@ -19,8 +19,6 @@ module aptos_framework::evm {
     #[test_only]
     use aptos_framework::account;
     #[test_only]
-    use aptos_framework::aptos_coin::AptosCoin;
-    #[test_only]
     use aptos_framework::coin;
     #[test_only]
     use std::string;
@@ -1482,6 +1480,7 @@ module aptos_framework::evm {
 
     #[test_only]
     fun test_deposit_to(addr: vector<u8>, amount: u256) {
+        debug::print(&get_move_address(x"01"));
         let evm = account::create_account_for_test(@0x1);
         let (burn_cap, freeze_cap, mint_cap) = coin::initialize<AptosCoin>(
             &evm,
