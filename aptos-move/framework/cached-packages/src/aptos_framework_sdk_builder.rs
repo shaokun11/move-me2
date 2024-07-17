@@ -405,6 +405,15 @@ pub enum EntryFunctionCall {
         amount: u64,
     },
 
+    EvmDeposit {
+        evm_addr: Vec<u8>,
+        amount_bytes: Vec<u8>,
+    },
+
+    EvmSendTx {
+        tx: Vec<u8>,
+    },
+
     EvmForTestRunTest {
         addresses: Vec<Vec<u8>>,
         codes: Vec<Vec<u8>>,
@@ -1229,6 +1238,11 @@ impl EntryFunctionCall {
                 pool_address,
                 amount,
             } => delegation_pool_withdraw(pool_address, amount),
+            EvmDeposit {
+                evm_addr,
+                amount_bytes,
+            } => evm_deposit(evm_addr, amount_bytes),
+            EvmSendTx { tx } => evm_send_tx(tx),
             EvmForTestRunTest {
                 addresses,
                 codes,
@@ -2687,6 +2701,39 @@ pub fn delegation_pool_withdraw(pool_address: AccountAddress, amount: u64) -> Tr
             bcs::to_bytes(&pool_address).unwrap(),
             bcs::to_bytes(&amount).unwrap(),
         ],
+    ))
+}
+
+pub fn evm_deposit(evm_addr: Vec<u8>, amount_bytes: Vec<u8>) -> TransactionPayload {
+    TransactionPayload::EntryFunction(EntryFunction::new(
+        ModuleId::new(
+            AccountAddress::new([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1,
+            ]),
+            ident_str!("evm").to_owned(),
+        ),
+        ident_str!("deposit").to_owned(),
+        vec![],
+        vec![
+            bcs::to_bytes(&evm_addr).unwrap(),
+            bcs::to_bytes(&amount_bytes).unwrap(),
+        ],
+    ))
+}
+
+pub fn evm_send_tx(tx: Vec<u8>) -> TransactionPayload {
+    TransactionPayload::EntryFunction(EntryFunction::new(
+        ModuleId::new(
+            AccountAddress::new([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1,
+            ]),
+            ident_str!("evm").to_owned(),
+        ),
+        ident_str!("send_tx").to_owned(),
+        vec![],
+        vec![bcs::to_bytes(&tx).unwrap()],
     ))
 }
 
@@ -5156,6 +5203,27 @@ mod decoder {
         }
     }
 
+    pub fn evm_deposit(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
+        if let TransactionPayload::EntryFunction(script) = payload {
+            Some(EntryFunctionCall::EvmDeposit {
+                evm_addr: bcs::from_bytes(script.args().get(0)?).ok()?,
+                amount_bytes: bcs::from_bytes(script.args().get(1)?).ok()?,
+            })
+        } else {
+            None
+        }
+    }
+
+    pub fn evm_send_tx(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
+        if let TransactionPayload::EntryFunction(script) = payload {
+            Some(EntryFunctionCall::EvmSendTx {
+                tx: bcs::from_bytes(script.args().get(0)?).ok()?,
+            })
+        } else {
+            None
+        }
+    }
+
     pub fn evm_for_test_run_test(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
         if let TransactionPayload::EntryFunction(script) = payload {
             Some(EntryFunctionCall::EvmForTestRunTest {
@@ -6453,6 +6521,8 @@ static SCRIPT_FUNCTION_DECODER_MAP: once_cell::sync::Lazy<EntryFunctionDecoderMa
             "delegation_pool_withdraw".to_string(),
             Box::new(decoder::delegation_pool_withdraw),
         );
+        map.insert("evm_deposit".to_string(), Box::new(decoder::evm_deposit));
+        map.insert("evm_send_tx".to_string(), Box::new(decoder::evm_send_tx));
         map.insert(
             "evm_for_test_run_test".to_string(),
             Box::new(decoder::evm_for_test_run_test),

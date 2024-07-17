@@ -28,7 +28,7 @@
                 "9" : "forward_disjoint_1"
             },
             "lllcversion" : "Version: 0.5.14-develop.2023.7.11+commit.c58ab2c6.mod.Linux.g++",
-            "solidity" : "Version: 0.8.21+commit.d9974bed.Linux.g++",
+            "solidity" : "Version: 0.8.21+commit.d99 ç74bed.Linux.g++",
             "source" : "src/GeneralStateTestsFiller/Cancun/stEIP5656-MCOPY/MCOPYFiller.yml",
             "sourceHash" : "955ef7cfae4529ba350ca356678512c27bb6c048dfe080572eced633ac793e82"
         },

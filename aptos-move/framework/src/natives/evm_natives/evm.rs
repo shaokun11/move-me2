@@ -1,3 +1,6 @@
+use crate::natives::evm_natives::{
+    helpers::{evm_u256_to_move_u256}
+};
 use move_binary_format::errors::PartialVMError;
 use aptos_types::{vm_status::StatusCode};
 use aptos_native_interface::{
@@ -7,7 +10,6 @@ use move_vm_types::{
     loaded_data::runtime_types::Type,
     values::{Value}
 };
-use move_core_types::{u256::U256 as move_u256};
 use move_vm_runtime::native_functions::NativeFunction;
 use std::collections::VecDeque;
 use smallvec::{smallvec, SmallVec};
@@ -15,6 +17,7 @@ use ethers::types::{Transaction};
 use ethers::utils::rlp::{Rlp, Decodable};
 use ethers::types::{U256};
 use hex;
+
 
 fn native_revert(
     _context: &mut SafeNativeContext,
@@ -52,14 +55,38 @@ fn native_decode_raw_tx(
             Some(a) => U256::as_u64(&a),
             None => 0,
         };
+        let gas_price = match data.gas_price {
+            Some(a) => a,
+            None => U256::zero(),
+        };
+
+        let max_fee_per_gas = match data.max_fee_per_gas {
+            Some(a) => a,
+            None => U256::zero(),
+        };
+
+        let max_priority_fee_per_gas = match data.max_priority_fee_per_gas {
+            Some(a) => a,
+            None => U256::zero(),
+        };
+
+        let tx_type = match data.transaction_type {
+            Some(a) => a.as_u64(),
+            None => 0,
+        };
 
         Ok(smallvec![
             Value::u64(chain_id),
-            Value::u64(U256::as_u64(&data.nonce)),
             Value::vector_u8(from),
             Value::vector_u8(to),
-            Value::u256(move_u256::from_str_radix(&data.value.to_string(), 10).unwrap()),
-            Value::vector_u8(data.input)
+            Value::u256(evm_u256_to_move_u256(&data.nonce)),
+            Value::u256(evm_u256_to_move_u256(&data.value)),
+            Value::vector_u8(data.input),
+            Value::u256(evm_u256_to_move_u256(&data.gas)),
+            Value::u256(evm_u256_to_move_u256(&gas_price)),
+            Value::u256(evm_u256_to_move_u256(&max_fee_per_gas)),
+            Value::u256(evm_u256_to_move_u256(&max_priority_fee_per_gas)),
+            Value::u64(tx_type)
         ])
     }
 

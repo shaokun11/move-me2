@@ -604,5 +604,6 @@ module aptos_framework::evm_util {
         vector::append(&mut res, *data);
         res
     }
+    
 }
 

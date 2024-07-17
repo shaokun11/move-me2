@@ -1,11 +1,10 @@
-module aptos_framework::evm_global_state {
+module aptos_framework::evm_global_state_for_test {
     use std::vector;
-    use aptos_framework::evm_util::{to_32bit};
+    use aptos_framework::evm_util::{to_u256, to_32bit};
     use aptos_std::debug;
-    use aptos_framework::block::{get_current_block_height, get_epoch_interval_secs};
 
-    const TX_TYPE_NORMAL: u64 = 1;
-    const TX_TYPE_1559: u64 = 2;
+    const TX_TYPE_NORMAL: u8 = 0;
+    const TX_TYPE_1559: u8 = 1;
 
     struct Env has drop {
         base_fee: u256,
@@ -16,30 +15,16 @@ module aptos_framework::evm_global_state {
         gas_price: u256,
         max_priority_fee_per_gas: u256,
         max_fee_per_gas: u256,
+        number: u256,
         random: vector<u8>,
+        timestamp: u256,
         sender: vector<u8>,
-        to: vector<u8>,
-        tx_type: u64
-    }
-
-    struct CallEvent has drop, copy, store {
-        from: vector<u8>,
-        to: vector<u8>,
-        gas: u256,
-        gas_used: u256,
-        input: vector<u8>,
-        value: u256,
-        type: u8,
-        depth: u64,
-        version: u8,
-        extra: vector<u8>
+        tx_type: u8
     }
 
     struct RunState has drop {
         call_state: vector<CallState>,
-        traces: vector<CallEvent>,
-        env: Env,
-        gas_used: u256
+        env: Env
     }
 
     struct CallState has drop{
@@ -52,50 +37,10 @@ module aptos_framework::evm_global_state {
         ret_bytes: vector<u8>
     }
 
-    fun default_env(sender: vector<u8>,
-                    to: vector<u8>,
-                    gas_price: u256,
-                    max_fee_per_gas: u256,
-                    max_priority_fee_per_gas: u256,
-                    tx_type: u64): Env {
-        let base_fee = 0x00;
-        let coinbase = to_32bit(x"2adc25665018aa1fe0e6bc666dac8fc2697ff9ba");
-        let difficulty = 0x00;
-        let excess_blob_gas = 0x0e0000;
-        let block_gas_limit = 30000000;
-        let random = x"0000000000000000000000000000000000000000000000000000000000000000";
-        if(tx_type == TX_TYPE_1559) {
-            gas_price = base_fee + max_priority_fee_per_gas;
-            gas_price = if(gas_price > max_fee_per_gas) max_fee_per_gas else gas_price
-        };
-        Env {
-            tx_type,
-            sender,
-            to,
-            max_fee_per_gas,
-            max_priority_fee_per_gas,
-            base_fee,
-            coinbase,
-            difficulty,
-            excess_blob_gas,
-            block_gas_limit,
-            gas_price,
-            random,
-        }
-    }
-
-    public fun new_run_state(sender: vector<u8>,
-                             to: vector<u8>,
-                             gas_limit: u256,
-                             gas_price: u256,
-                             max_fee_per_gas: u256,
-                             max_priority_per_gas: u256,
-                             tx_type: u64): RunState {
+    public fun new_run_state(sender: vector<u8>, gas_price_data: vector<vector<u8>>, gas_limit: u256, env_data: &vector<vector<u8>>, tx_type: u8): RunState {
         let state = RunState {
-            gas_used: 0,
             call_state: vector::empty(),
-            traces: vector::empty(),
-            env: default_env(sender, to, gas_price, max_fee_per_gas, max_priority_per_gas, tx_type)
+            env: parse_env(env_data, sender, gas_price_data, tx_type)
         };
         vector::push_back(&mut state.call_state, CallState {
             highest_memory_cost: 0,
@@ -107,25 +52,6 @@ module aptos_framework::evm_global_state {
             ret_bytes: vector::empty()
         });
         state
-    }
-
-    public fun add_trace(run_state: &mut RunState, from: vector<u8>, to: vector<u8>, gas: u256, gas_used: u256, input: vector<u8>, depth: u64, value: u256, type: u8) {
-        vector::push_back(&mut run_state.traces, CallEvent {
-            from,
-            to,
-            gas,
-            gas_used,
-            input,
-            value,
-            depth,
-            type,
-            version: 1,
-            extra: x""
-        })
-    }
-
-    public fun get_traces(run_state: &RunState): vector<CallEvent> {
-        run_state.traces
     }
 
     public fun add_call_state(run_state: &mut RunState, gas_limit: u256, is_static: bool) {
@@ -159,14 +85,12 @@ module aptos_framework::evm_global_state {
         let old_state = get_lastest_state_mut(run_state);
         old_state.gas_refund = new_state.gas_refund;
         old_state.gas_left = old_state.gas_left - (new_state.gas_limit - new_state.gas_left);
-        run_state.gas_used = run_state.gas_used + (new_state.gas_limit - new_state.gas_left);
     }
 
     public fun revert_call_state(run_state: &mut RunState) {
         let new_state = vector::pop_back(&mut run_state.call_state);
         let old_state = get_lastest_state_mut(run_state);
         old_state.gas_left = if(old_state.gas_left > new_state.gas_limit) old_state.gas_left - new_state.gas_limit else 0;
-        run_state.gas_used = run_state.gas_used + if(old_state.gas_left > new_state.gas_limit) new_state.gas_limit else old_state.gas_left;
     }
 
     public fun get_memory_cost(run_state: &RunState) : u256 {
@@ -266,12 +190,12 @@ module aptos_framework::evm_global_state {
         run_state.env.block_gas_limit
     }
 
-    public fun get_timestamp(_run_state: &RunState): u256 {
-        ((get_epoch_interval_secs() / 1000000) as u256)
+    public fun get_timestamp(run_state: &RunState): u256 {
+        run_state.env.timestamp
     }
 
-    public fun get_block_number(_run_state: &RunState): u256 {
-        (get_current_block_height() as u256)
+    public fun get_block_number(run_state: &RunState): u256 {
+        run_state.env.number
     }
 
     public fun get_block_difficulty(run_state: &RunState): u256 {
@@ -283,15 +207,7 @@ module aptos_framework::evm_global_state {
     }
 
     public fun get_origin(run_state: &RunState): vector<u8> {
-        to_32bit(run_state.env.sender)
-    }
-
-    public fun get_sender(run_state: &RunState): vector<u8> {
         run_state.env.sender
-    }
-
-    public fun get_to(run_state: &RunState): vector<u8> {
-        run_state.env.to
     }
 
     public fun get_max_fee_per_gas(run_state: &RunState): u256 {
@@ -304,6 +220,43 @@ module aptos_framework::evm_global_state {
 
     public fun is_eip_1559(run_state: &RunState): bool {
         run_state.env.tx_type == TX_TYPE_1559
+    }
+
+    fun parse_env(env: &vector<vector<u8>>, sender: vector<u8>, gas_price_data: vector<vector<u8>>, tx_type: u8): Env {
+        let base_fee = to_u256(*vector::borrow(env, 0));
+        let coinbase = to_32bit(*vector::borrow(env, 1));
+        let difficulty = to_u256(*vector::borrow(env, 2));
+        let excess_blob_gas = to_u256(*vector::borrow(env, 3));
+        let block_gas_limit = to_u256(*vector::borrow(env, 4));
+        let number = to_u256(*vector::borrow(env, 5));
+        let random = *vector::borrow(env, 6);
+        let timestamp = to_u256(*vector::borrow(env, 7));
+        let gas_price;
+        let max_fee_per_gas = 0;
+        let max_priority_fee_per_gas = 0;
+        if(tx_type == TX_TYPE_NORMAL) {
+            gas_price = to_u256(*vector::borrow(&gas_price_data, 0))
+        } else {
+            gas_price = base_fee + to_u256(*vector::borrow(&gas_price_data, 1));
+            max_fee_per_gas = to_u256(*vector::borrow(&gas_price_data, 0));
+            max_priority_fee_per_gas = to_u256(*vector::borrow(&gas_price_data, 1));
+            gas_price = if(gas_price > max_fee_per_gas) max_fee_per_gas else gas_price
+        };
+        Env {
+            tx_type,
+            sender,
+            max_fee_per_gas,
+            max_priority_fee_per_gas,
+            base_fee,
+            coinbase,
+            difficulty,
+            excess_blob_gas,
+            block_gas_limit,
+            gas_price,
+            number,
+            random,
+            timestamp,
+        }
     }
 }
 

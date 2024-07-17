@@ -14,7 +14,7 @@ module aptos_framework::create_signer {
     friend aptos_framework::genesis;
     friend aptos_framework::multisig_account;
     friend aptos_framework::object;
-    friend aptos_framework::evm;
+    friend aptos_framework::evm_storage;
 
     public(friend) native fun create_signer(addr: address): signer;
 }

@@ -8,26 +8,13 @@ module aptos_framework::evm_for_test {
     use aptos_framework::event::EventHandle;
     use aptos_framework::evm_precompile::{is_precompile_address, run_precompile};
     use aptos_std::simple_map;
-    use aptos_framework::evm_global_state::{new_run_state, add_gas_usage, get_gas_refund, RunState, add_call_state, revert_call_state, commit_call_state, get_gas_left, add_gas_left, clear_gas_refund, get_coinbase, get_basefee, get_origin, get_gas_price, get_timestamp, get_block_number, get_is_static, is_eip_1559, get_max_fee_per_gas, get_block_gas_limit, get_max_priority_fee_per_gas, get_random, get_ret_bytes, set_ret_bytes, get_ret_size};
-    use aptos_framework::evm_gas::{calc_exec_gas, calc_base_gas, max_call_gas};
+    use aptos_framework::evm_global_state_for_test::{new_run_state, add_gas_usage, get_gas_refund, RunState, add_call_state, revert_call_state, commit_call_state, get_gas_left, add_gas_left, clear_gas_refund, get_coinbase, get_basefee, get_origin, get_gas_price, get_timestamp, get_block_number, get_is_static, is_eip_1559, get_max_fee_per_gas, get_block_gas_limit, get_max_priority_fee_per_gas, get_random, get_ret_bytes, set_ret_bytes, get_ret_size};
+    use aptos_framework::evm_gas_for_test::{calc_exec_gas, calc_base_gas, max_call_gas};
     use aptos_framework::event;
     use aptos_framework::evm_arithmetic::{add, mul, sub, div, sdiv, mod, smod, add_mod, mul_mod, exp, shr, sar, slt, sgt};
-    use aptos_framework::evm_trie::{pre_init, Trie, add_checkpoint, revert_checkpoint, commit_latest_checkpoint, get_code, sub_balance, add_nonce, transfer, get_balance, get_state, set_state, exist_contract, get_nonce, new_account, get_storage_copy, save, add_balance, add_warm_address, get_transient_storage, put_transient_storage, set_code, is_contract_or_created_account, get_code_length, exist_account, TestAccount};
+    use aptos_framework::evm_trie_for_test::{pre_init, Trie, add_checkpoint, revert_checkpoint, commit_latest_checkpoint, get_code, sub_balance, add_nonce, transfer, get_balance, get_state, set_state, exist_contract, get_nonce, new_account, get_storage_copy, save, add_balance, add_warm_address, get_transient_storage, put_transient_storage, set_code, is_contract_or_created_account, get_code_length, exist_account, TestAccount, add_log};
     use aptos_std::simple_map::SimpleMap;
     friend aptos_framework::genesis;
-
-    const ADDR_LENGTH: u64 = 10001;
-    const SIGNATURE: u64 = 10002;
-    const INSUFFIENT_BALANCE: u64 = 10003;
-    const NONCE: u64 = 10004;
-    const CONTRACT_READ_ONLY: u64 = 10005;
-    const CONTRACT_DEPLOYED: u64 = 10006;
-    const TX_NOT_SUPPORT: u64 = 10007;
-    const ACCOUNT_NOT_EXIST: u64 = 10008;
-    /// invalid chain id in raw tx
-    const INVALID_CHAINID: u64 = 10009;
-
-    const OPCODE_UNIMPLEMENT: u64 = 20011;
 
     const CONVERT_BASE: u256 = 10000000000;
     const CHAIN_ID: u64 = 0x150;
@@ -37,6 +24,9 @@ module aptos_framework::evm_for_test {
     const ERROR_EXCEED_INITCODE_SIZE: u64 = 55;
     const ERROR_INVALID_RETURN_DATA_COPY_SIZE: u64 = 56;
     const ERROR_CREATE_CONTRACT_COLLISION: u64 = 57;
+    const ERROR_INVALID_PC: u64 = 58;
+    const ERROR_POP_STACK: u64 = 59;
+    const ERROR_INVALID_CHAINID: u64 = 60;
 
     const U64_MAX: u256 = 18446744073709551615; // 18_446_744_073_709_551_615
     const U256_MAX: u256 = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
@@ -48,11 +38,6 @@ module aptos_framework::evm_for_test {
     const MAX_DEPTH_SIZE: u64 = 1024;
     const MAX_INIT_CODE_SIZE: u256 = 49152;
     const MAX_CODE_SIZE: u256 = 24576;
-
-    /// invalid pc
-    const EVM_ERROR_INVALID_PC: u64 = 10000001;
-    /// invalid pop stack
-    const EVM_ERROR_POP_STACK: u64 = 10000002;
 
     const CALL_RESULT_SUCCESS: u8 = 0;
     const CALL_RESULT_REVERT: u8 = 1;
@@ -914,7 +899,7 @@ module aptos_framework::evm_for_test {
             else if(opcode == 0x56) {
                 i = pop_stack(stack, error_code);
                 if(i >= len || !*vector::borrow(&valid_jumps, (i as u64))) {
-                    *error_code = EVM_ERROR_INVALID_PC;
+                    *error_code = ERROR_INVALID_PC;
                 }
             }
                 //jumpi
@@ -924,7 +909,7 @@ module aptos_framework::evm_for_test {
                 if(condition > 0) {
                     i = dest;
                     if(i >= len || !*vector::borrow(&valid_jumps, (i as u64))) {
-                        *error_code = EVM_ERROR_INVALID_PC;
+                        *error_code = ERROR_INVALID_PC;
                     }
                 } else {
                     i = i + 1
@@ -1062,95 +1047,50 @@ module aptos_framework::evm_for_test {
             else if(opcode == 0xa0) {
                 let pos = pop_stack_u64(stack, error_code);
                 let len = pop_stack_u64(stack, error_code);
-                let _data = vector_slice(*memory, pos, len);
-                // let event_store = borrow_global_mut<ContractEvent>(move_contract_address);
-                // event::emit_event<Log0Event>(
-                //     &mut event_store.log0Event,
-                //     Log0Event{
-                //         contract: evm_contract_address,
-                //         data,
-                //     },
-                // );
+                let data = vector_slice(*memory, pos, len);
+                add_log(trie, to, data, vector[]);
                 i = i + 1
             }
                 //log1
             else if(opcode == 0xa1) {
                 let pos = pop_stack_u64(stack, error_code);
                 let len = pop_stack_u64(stack, error_code);
-                let _data = vector_slice(*memory, pos, len);
-                let _topic0 = u256_to_data(pop_stack(stack, error_code));
-                // let event_store = borrow_global_mut<ContractEvent>(move_contract_address);
-                // event::emit_event<Log1Event>(
-                //     &mut event_store.log1Event,
-                //     Log1Event{
-                //         contract: evm_contract_address,
-                //         data,
-                //         topic0,
-                //     },
-                // );
+                let data = vector_slice(*memory, pos, len);
+                let topic0 = u256_to_data(pop_stack(stack, error_code));
+                add_log(trie, to, data, vector[topic0]);
                 i = i + 1
             }
                 //log2
             else if(opcode == 0xa2) {
                 let pos = pop_stack_u64(stack, error_code);
                 let len = pop_stack_u64(stack, error_code);
-                let _data = vector_slice(*memory, pos, len);
-                let _topic0 = u256_to_data(pop_stack(stack, error_code));
-                let _topic1 = u256_to_data(pop_stack(stack, error_code));
-                // let event_store = borrow_global_mut<ContractEvent>(move_contract_address);
-                // event::emit_event<Log2Event>(
-                //     &mut event_store.log2Event,
-                //     Log2Event{
-                //         contract: evm_contract_address,
-                //         data,
-                //         topic0,
-                //         topic1
-                //     },
-                // );
+                let data = vector_slice(*memory, pos, len);
+                let topic0 = u256_to_data(pop_stack(stack, error_code));
+                let topic1 = u256_to_data(pop_stack(stack, error_code));
+                add_log(trie, to, data, vector[topic0, topic1]);
                 i = i + 1
             }
                 //log3
             else if(opcode == 0xa3) {
                 let pos = pop_stack_u64(stack, error_code);
                 let len = pop_stack_u64(stack, error_code);
-                let _data = vector_slice(*memory, pos, len);
-                let _topic0 = u256_to_data(pop_stack(stack, error_code));
-                let _topic1 = u256_to_data(pop_stack(stack, error_code));
-                let _topic2 = u256_to_data(pop_stack(stack, error_code));
-                // let event_store = borrow_global_mut<ContractEvent>(move_contract_address);
-                // event::emit_event<Log3Event>(
-                //     &mut event_store.log3Event,
-                //     Log3Event{
-                //         contract: evm_contract_address,
-                //         data,
-                //         topic0,
-                //         topic1,
-                //         topic2
-                //     },
-                // );
+                let data = vector_slice(*memory, pos, len);
+                let topic0 = u256_to_data(pop_stack(stack, error_code));
+                let topic1 = u256_to_data(pop_stack(stack, error_code));
+                let topic2 = u256_to_data(pop_stack(stack, error_code));
+                add_log(trie, to, data, vector[topic0, topic1, topic2]);
                 i = i + 1
             }
                 //log4
             else if(opcode == 0xa4) {
                 let pos = pop_stack_u64(stack, error_code);
                 let len = pop_stack_u64(stack, error_code);
-                let _data = vector_slice(*memory, pos, len);
-                let _topic0 = u256_to_data(pop_stack(stack, error_code));
-                let _topic1 = u256_to_data(pop_stack(stack, error_code));
-                let _topic2 = u256_to_data(pop_stack(stack, error_code));
-                let _topic3 = u256_to_data(pop_stack(stack, error_code));
-                // let event_store = borrow_global_mut<ContractEvent>(move_contract_address);
-                // event::emit_event<Log4Event>(
-                //     &mut event_store.log4Event,
-                //     Log4Event{
-                //         contract: evm_contract_address,
-                //         data,
-                //         topic0,
-                //         topic1,
-                //         topic2,
-                //         topic3
-                //     },
-                // );
+                let data = vector_slice(*memory, pos, len);
+                let topic0 = u256_to_data(pop_stack(stack, error_code));
+                let topic1 = u256_to_data(pop_stack(stack, error_code));
+                let topic2 = u256_to_data(pop_stack(stack, error_code));
+                let topic3 = u256_to_data(pop_stack(stack, error_code));
+                add_log(trie, to, data, vector[topic0, topic1, topic2, topic3]);
                 i = i + 1
             }
                 //invalid opcode
@@ -1213,20 +1153,20 @@ module aptos_framework::evm_for_test {
         (success, res)
     }
 
-    public fun pop_stack_u64(stack: &mut vector<u256>, error_code: &mut u64): u64 {
+    fun pop_stack_u64(stack: &mut vector<u256>, error_code: &mut u64): u64 {
         if(vector::length(stack) > 0) {
             (vector::pop_back(stack) as u64)
         } else {
-            *error_code = EVM_ERROR_POP_STACK;
+            *error_code = ERROR_POP_STACK;
             0
         }
     }
 
-    public fun pop_stack(stack: &mut vector<u256>, error_code: &mut u64): u256 {
+    fun pop_stack(stack: &mut vector<u256>, error_code: &mut u64): u256 {
         if(vector::length(stack) > 0) {
             vector::pop_back(stack)
         } else {
-            *error_code = EVM_ERROR_POP_STACK;
+            *error_code = ERROR_POP_STACK;
             0
         }
     }

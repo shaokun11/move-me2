@@ -22,6 +22,7 @@
 
 <pre><code><b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/hash.md#0x1_aptos_hash">0x1::aptos_hash</a>;
 <b>use</b> <a href="../../aptos-stdlib/doc/debug.md#0x1_debug">0x1::debug</a>;
+<b>use</b> <a href="arithmetic.md#0x1_evm_arithmetic">0x1::evm_arithmetic</a>;
 <b>use</b> <a href="util.md#0x1_evm_util">0x1::evm_util</a>;
 <b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/hash.md#0x1_hash">0x1::hash</a>;
 </code></pre>
@@ -428,8 +429,8 @@ unsupport precomile address
             <b>return</b> (<b>true</b>, x"", 200)
         };
 
-        <b>let</b> gas = <a href="precompile.md#0x1_evm_precompile_calc_mod_exp_gas">calc_mod_exp_gas</a>(base_len, exp_len, mod_len, calldata);
-        <b>if</b>(base_len &gt; <a href="precompile.md#0x1_evm_precompile_MAX_SIZE">MAX_SIZE</a> || mod_len &gt; <a href="precompile.md#0x1_evm_precompile_MAX_SIZE">MAX_SIZE</a> || exp_len &gt; <a href="precompile.md#0x1_evm_precompile_MAX_SIZE">MAX_SIZE</a> || (base_len + mod_len + exp_len + 96) &gt; <a href="precompile.md#0x1_evm_precompile_MAX_SIZE">MAX_SIZE</a>) {
+        <b>let</b> (overflow, gas) = <a href="precompile.md#0x1_evm_precompile_calc_mod_exp_gas">calc_mod_exp_gas</a>(base_len, exp_len, mod_len, calldata);
+        <b>if</b>(overflow || base_len &gt; <a href="precompile.md#0x1_evm_precompile_MAX_SIZE">MAX_SIZE</a> || mod_len &gt; <a href="precompile.md#0x1_evm_precompile_MAX_SIZE">MAX_SIZE</a> || exp_len &gt; <a href="precompile.md#0x1_evm_precompile_MAX_SIZE">MAX_SIZE</a> || (base_len + mod_len + exp_len + 96) &gt; <a href="precompile.md#0x1_evm_precompile_MAX_SIZE">MAX_SIZE</a>) {
             <b>return</b> (<b>false</b>, x"", gas_limit)
         };
 
@@ -469,7 +470,8 @@ unsupport precomile address
             <b>return</b> (<b>true</b>, result, (gas_cost <b>as</b> u256))
         }
     } <b>else</b> {
-        (<b>false</b>, x"", gas_limit)
+        <b>assert</b>!(<b>false</b>, 0x0a);
+        (<b>true</b>, x"", gas_limit)
     }
 }
 </code></pre>
@@ -484,7 +486,7 @@ unsupport precomile address
 
 
 
-<pre><code><b>fun</b> <a href="precompile.md#0x1_evm_precompile_calc_mod_exp_gas">calc_mod_exp_gas</a>(base_len: u256, exp_len: u256, mod_len: u256, calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): u256
+<pre><code><b>fun</b> <a href="precompile.md#0x1_evm_precompile_calc_mod_exp_gas">calc_mod_exp_gas</a>(base_len: u256, exp_len: u256, mod_len: u256, calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): (bool, u256)
 </code></pre>
 
 
@@ -493,9 +495,18 @@ unsupport precomile address
 <summary>Implementation</summary>
 
 
-<pre><code><b>fun</b> <a href="precompile.md#0x1_evm_precompile_calc_mod_exp_gas">calc_mod_exp_gas</a>(base_len: u256, exp_len: u256, mod_len: u256, calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): u256 {
-    <b>let</b> multiplication_complexity = <a href="precompile.md#0x1_evm_precompile_calculate_multiplication_complexity">calculate_multiplication_complexity</a>(base_len, mod_len);
-    <b>let</b> adj_exp_len = <a href="precompile.md#0x1_evm_precompile_calculate_iteration_count">calculate_iteration_count</a>(base_len, exp_len, calldata);
+<pre><code><b>fun</b> <a href="precompile.md#0x1_evm_precompile_calc_mod_exp_gas">calc_mod_exp_gas</a>(base_len: u256, exp_len: u256, mod_len: u256, calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): (bool, u256) {
+    <b>let</b> multiplication_complexity;
+    <b>let</b> overflow;
+    <b>let</b> adj_exp_len;
+    (multiplication_complexity, overflow) = <a href="precompile.md#0x1_evm_precompile_calculate_multiplication_complexity">calculate_multiplication_complexity</a>(base_len, mod_len);
+    <b>if</b>(overflow) {
+        <b>return</b> (<b>true</b>, 0)
+    };
+    (adj_exp_len, overflow) = <a href="precompile.md#0x1_evm_precompile_calculate_iteration_count">calculate_iteration_count</a>(base_len, exp_len, calldata);
+    <b>if</b>(overflow) {
+        <b>return</b> (<b>true</b>, 0)
+    };
 
     <b>let</b> gas = multiplication_complexity * adj_exp_len / <a href="precompile.md#0x1_evm_precompile_ModexpGquaddivisor">ModexpGquaddivisor</a>;
     <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&848484);
@@ -506,7 +517,7 @@ unsupport precomile address
         gas = 200;
     };
     <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&gas);
-    gas
+    (<b>false</b>, gas)
 }
 </code></pre>
 
@@ -520,7 +531,7 @@ unsupport precomile address
 
 
 
-<pre><code><b>fun</b> <a href="precompile.md#0x1_evm_precompile_calculate_iteration_count">calculate_iteration_count</a>(base_len: u256, exp_len: u256, calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): u256
+<pre><code><b>fun</b> <a href="precompile.md#0x1_evm_precompile_calculate_iteration_count">calculate_iteration_count</a>(base_len: u256, exp_len: u256, calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): (u256, bool)
 </code></pre>
 
 
@@ -529,7 +540,7 @@ unsupport precomile address
 <summary>Implementation</summary>
 
 
-<pre><code><b>fun</b> <a href="precompile.md#0x1_evm_precompile_calculate_iteration_count">calculate_iteration_count</a>(base_len: u256, exp_len: u256, calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): u256 {
+<pre><code><b>fun</b> <a href="precompile.md#0x1_evm_precompile_calculate_iteration_count">calculate_iteration_count</a>(base_len: u256, exp_len: u256, calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): (u256, bool) {
     <b>let</b> exp_head;
     <b>let</b> data_len = (<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&calldata) <b>as</b> u256);
 
@@ -542,9 +553,8 @@ unsupport precomile address
             exp_head = vector_slice_u256(calldata, 96 + base_len, exp_len);
         };
     };
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&exp_head);
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&exp_len);
     <b>let</b> adj_exp_len = 0;
+    <b>let</b> overflow = <b>false</b>;
     <b>let</b> msb = 0;
     <b>let</b> bit_len = bit_length(exp_head);
     <b>if</b>(bit_len &gt; 0) {
@@ -553,10 +563,11 @@ unsupport precomile address
     <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&bit_len);
     <b>if</b>(exp_len &gt;= 32) {
         adj_exp_len = exp_len - 32;
-        adj_exp_len = adj_exp_len * 8;
+        (adj_exp_len, overflow) = mul(adj_exp_len, 8);
     };
     adj_exp_len = adj_exp_len + msb;
-    <b>if</b>(adj_exp_len &lt; 1) 1 <b>else</b> adj_exp_len
+    adj_exp_len = <b>if</b>(adj_exp_len &lt; 1) 1 <b>else</b> adj_exp_len;
+    (adj_exp_len, overflow)
 }
 </code></pre>
 
@@ -570,7 +581,7 @@ unsupport precomile address
 
 
 
-<pre><code><b>fun</b> <a href="precompile.md#0x1_evm_precompile_calculate_multiplication_complexity">calculate_multiplication_complexity</a>(base_len: u256, mod_len: u256): u256
+<pre><code><b>fun</b> <a href="precompile.md#0x1_evm_precompile_calculate_multiplication_complexity">calculate_multiplication_complexity</a>(base_len: u256, mod_len: u256): (u256, bool)
 </code></pre>
 
 
@@ -579,10 +590,13 @@ unsupport precomile address
 <summary>Implementation</summary>
 
 
-<pre><code><b>fun</b> <a href="precompile.md#0x1_evm_precompile_calculate_multiplication_complexity">calculate_multiplication_complexity</a>(base_len: u256, mod_len: u256): u256 {
+<pre><code><b>fun</b> <a href="precompile.md#0x1_evm_precompile_calculate_multiplication_complexity">calculate_multiplication_complexity</a>(base_len: u256, mod_len: u256): (u256, bool) {
     <b>let</b> max_length = <b>if</b>(base_len &gt; mod_len) base_len <b>else</b> mod_len;
-    <b>let</b> words = (max_length + 7) / 8;
-    words * words
+    <b>let</b> words = max_length / 8;
+    <b>if</b>(max_length % 8 != 0) {
+        words = words + 1;
+    };
+    mul(words, words)
 }
 </code></pre>
 
