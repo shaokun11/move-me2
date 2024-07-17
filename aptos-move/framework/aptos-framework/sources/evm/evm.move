@@ -282,7 +282,7 @@ module aptos_framework::evm {
         let logs = get_logs(&trie);
         save(&mut trie);
 
-        emit_event(run_state, gas_usage, exception, message, logs);
+        emit_event(run_state, gas_usage, exception, message, created_address, logs);
         emit_trace(run_state);
 
         (exception, gas_usage, return_value)
