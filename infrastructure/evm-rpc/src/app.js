@@ -7,7 +7,7 @@ import { SERVER_PORT } from './const.js';
 import { startBotTask } from './task_bot.js';
 import { startFaucetTask } from './task_faucet.js';
 
-const { JSONRPCServer, createJSONRPCErrorResponse } = JsonRpc;
+const { JSONRPCServer, createJSONRPCErrorResponse, JSONRPCErrorException } = JsonRpc;
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
@@ -22,14 +22,17 @@ server.applyMiddleware(async function (next, request, serverParams) {
         return await next(request, serverParams);
     } catch (error) {
         // console.error('error', error);
+        if (error instanceof JSONRPCErrorException) {
+            return createJSONRPCErrorResponse(request.id, error?.code || -32000, error.message, error.data);
+        }
         let message = typeof error === 'string' ? error : error?.message || 'Internal error';
-        let data = request.params;
+        let data = serverParams.params;
         const err = createJSONRPCErrorResponse(request.id, error?.code || -32000, message, data);
         return err;
     }
 });
 
-app.use('/', async function (req, res, next) {
+app.use('/', async function (req, res) {
     const context = {
         ip:
             req.headers['cf-connecting-ip'] ||
@@ -39,7 +42,7 @@ app.use('/', async function (req, res, next) {
         token: req.headers['token'] || null, // for faucet google recaptcha token
     };
     // console.log('>>> %s %s', context.ip, req.body.method);
-    let str_req = `<<< ${JSON.stringify(req.body)}`;
+    // let str_req = `<<< ${JSON.stringify(req.body)}`;
     server.receive(req.body, context).then(jsonRPCResponse => {
         if (jsonRPCResponse.error) {
             // console.error(str_req, jsonRPCResponse);

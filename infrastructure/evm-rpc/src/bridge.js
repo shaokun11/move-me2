@@ -18,7 +18,7 @@ import { move2ethAddress } from './helper.js';
 import { parseMoveTxPayload } from './helper.js';
 import { googleRecaptcha } from './provider.js';
 import { addToFaucetTask } from './task_faucet.js';
-import { vmErrors } from './vm_error.js';
+import { inspect } from 'node:util';
 const locker = new Lock({
     maxExecutionTime: 15 * 1000,
     maxPending: SENDER_ACCOUNT_COUNT * 30,
@@ -38,22 +38,23 @@ function isSuccessTx(info) {
 
 export async function getMoveAddress(acc) {
     acc = acc.toLowerCase();
-    let moveAddress = CACHE_ETH_ADDRESS_TO_MOVE[acc];
-    try {
-        if (!moveAddress) {
-            let payload = {
-                function: `0x1::evm::get_move_address`,
-                type_arguments: [],
-                arguments: [acc],
-            };
-            let result = await client.view(payload);
-            moveAddress = result[0];
-            CACHE_ETH_ADDRESS_TO_MOVE[acc] = moveAddress;
-        }
-    } catch (error) {
-        // maybe error so the account not found in move
-    }
-    return moveAddress || '0x0';
+    return acc;
+    // let moveAddress = CACHE_ETH_ADDRESS_TO_MOVE[acc];
+    // try {
+    //     if (!moveAddress) {
+    //         let payload = {
+    //             function: `0x1::evm::get_move_address`,
+    //             type_arguments: [],
+    //             arguments: [acc],
+    //         };
+    //         let result = await client.view(payload);
+    //         moveAddress = result[0];
+    //         CACHE_ETH_ADDRESS_TO_MOVE[acc] = moveAddress;
+    //     }
+    // } catch (error) {
+    //     // maybe error so the account not found in move
+    // }
+    // return moveAddress || '0x0';
 }
 
 export async function get_move_hash(evm_hash) {
@@ -64,6 +65,8 @@ export async function get_move_hash(evm_hash) {
 }
 
 export async function traceTransaction(hash) {
+    // now it is not support
+    return {}
     const move_hash = await getMoveHash(hash);
     const info = await client.getTransactionByHash(move_hash);
     const callType = ['CALL', 'STATIC_CALL', 'DELEGATE_CALL'];
@@ -74,11 +77,13 @@ export async function traceTransaction(hash) {
         gasUsed: toHex(data.gas_used),
         to: toEtherAddress(data.to),
         input: data.input,
-        output: data.output || '0x', // TODO
+        output: data.output || '0x',
         value: toHex(data.value),
         type: callType[data.type],
     });
-    const traces = info.events.filter(it => it.type === '0x1::evm::CallEvent');
+    const traces = info.events.find(it => it.type === 'vector<0x1::evm_global_state::CallEvent>');
+    traces.data.sort((a, b) => parseInt(a.depth) - parseInt(b.depth));
+    console.log('traceTransaction', inspect(traces, false, null, true));
     const root_call = format_item(traces.data.shift());
 
     const find_caller = (item, trace) => {
@@ -97,7 +102,7 @@ export async function traceTransaction(hash) {
             }
         }
     };
-    traces.data.forEach(({ data }) => {
+    traces.data.forEach((data) => {
         find_caller(format_item(data), root_call);
     });
     return root_call;
@@ -145,7 +150,7 @@ export async function faucet(addr) {
     const signedTxn = await client.signTransaction(FAUCET_SENDER_ACCOUNT, txnRequest);
     const transactionRes = await client.submitTransaction(signedTxn);
     // this not do any check , but we make it slowly to keep this function
-    // await sleep(5);
+    await sleep(5);
     try {
         const res = await client.waitForTransactionWithResult(transactionRes.hash);
         console.log('faucet %s %s %s', addr, transactionRes.hash, res.vm_status);
@@ -274,7 +279,7 @@ export async function getBlockByNumber(block, withTx) {
         parentHash: parentHash,
         receiptsRoot: genHash(3),
         sha3Uncles: genHash(4),
-        size: toHex(1000000),
+        size: toHex(30_000_000),
         stateRoot: genHash(5),
         timestamp: toHex(Math.trunc(info.block_timestamp / 1e6)),
         totalDifficulty: '0x0000000000000000',
@@ -403,6 +408,13 @@ export async function estimateGas(info) {
     }
     const nonce = await getNonce(info.from);
     if (!info.data) info.data = '0x';
+    let type = info.type === '0x1' ? '1' : '2';
+    let gasPrice = toBeHex(await getGasPrice());
+    let maxFeePerGas = toBeHex(1);
+    if (type === '2' && info.maxFeePerGas) {
+        gasPrice = toBeHex(1);
+        maxFeePerGas = toBeHex(info.maxFeePerGas);
+    }
     const payload = {
         function: `0x1::evm::query`,
         type_arguments: [],
@@ -413,10 +425,10 @@ export async function estimateGas(info) {
             toBeHex(info.value || '0x0'),
             info.data === '0x' ? '0x' : toBeHex(info.data),
             toBeHex(3 * 1e7), // gas_limit 30_000_000
-            toBeHex(1), // gas_price
-            toBeHex(1), // max_fee_per_gas
+            gasPrice, // gas_price
+            maxFeePerGas, // max_fee_per_gas
             toBeHex(1), // max_priority_per_gas
-            '1', //  if the tx type is 1 , only gas price is effect
+            type, //  if the tx type is 1 , only gas price is effect
         ],
     };
     const result = await client.view(payload);
@@ -424,8 +436,8 @@ export async function estimateGas(info) {
     const ret = {
         success: isSuccess,
         gas_used: isSuccess ? result[1] : 3e7,
-        show_gas: isSuccess ? result[1] : 3e7,
-        error: vmErrors[result[0]] || result[2],
+        code: result[0],
+        message: result[2],
     };
     return ret;
 }
@@ -507,6 +519,7 @@ export async function getTransactionReceipt(evm_hash) {
     const { to, from, type } = parseMoveTxPayload(info);
     let contractAddress = await getDeployedContract(info);
     const transactionIndex = toHex(await getTransactionIndex(block.block_height, evm_hash));
+    // we could get it from indexer , but is also to parse it directly to reduce the request
     const logs = parseLogs(info, block.block_height, block.block_hash, evm_hash, transactionIndex);
     const txResult = info.events.find(it => it.type === '0x1::evm::ExecResultEvent');
     const status = isSuccessTx(info) ? '0x1' : '0x0';
@@ -599,8 +612,8 @@ async function sendTx(sender, payload, option = {}) {
         const transactionRes = await client.submitTransaction(signedTxn);
         console.log('sendTx', transactionRes.hash);
         // no need care the result
-        await client.waitForTransactionWithResult(transactionRes.hash,{
-            timeoutSecs:10
+        await client.waitForTransactionWithResult(transactionRes.hash, {
+            timeoutSecs: 10,
         });
         return transactionRes.hash;
     } catch (error) {
@@ -640,23 +653,15 @@ async function callContractImpl(from, contract, calldata, value, version) {
             '1',
         ],
     };
-    try {
-        let result = await client.view(payload, version);
-        const code = result[0];
-        if (code !== '200') {
-            let msg = '';
-            if (vmErrors[result[0]]) {
-                msg = vmErrors[result[0]];
-            } else {
-                msg = result[2];
-            }
-            throw new Error(msg);
-        }
-        return result[2];
-    } catch (error) {
-        let message = error.message;
-        throw new Error(message);
-    }
+    const result = await client.view(payload);
+    const isSuccess = result[0] === '200';
+    const ret = {
+        success: isSuccess,
+        gas_used: isSuccess ? result[1] : 3e7,
+        code: result[0],
+        message: result[2],
+    };
+    return ret;
 }
 
 export async function getLogs(obj) {
@@ -688,7 +693,7 @@ function parseLogs(info, blockNumber, blockHash, evm_hash, transactionIndex) {
     // this could from indexer get, but we could get them from the tx hash
     let logs = [];
     let events = info.events || [];
-    events = events.filter(it => it.type === '0x1::evm::EventEvent');
+    events = events.filter(it => it.type === '0x1::evm::ExecResultEvent');
     if (events.length > 0) {
         const tx_logs = events[0].data.logs;
         for (let i = 0; i < tx_logs.length; i++) {
