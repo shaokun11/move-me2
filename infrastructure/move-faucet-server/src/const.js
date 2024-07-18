@@ -10,6 +10,7 @@ export const RECAPTCHA_SECRET = process.env.RECAPTCHA_SECRET
 export const FAUCET_SENDER_ACCOUNT = AptosAccount.fromAptosAccountObject({
     privateKeyHex: FAUCET_SENDER,
 });
+console.log(`Faucet sender: ${FAUCET_SENDER_ACCOUNT.address().hexString}`);
 
 export const ENV_IS_PRO = process.env.NODE_ENV === 'production';
 
