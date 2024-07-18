@@ -28,6 +28,7 @@ module aptos_framework::evm_global_state {
         gas: u256,
         gas_used: u256,
         input: vector<u8>,
+        output: vector<u8>,
         value: u256,
         type: u8,
         depth: u64,
@@ -59,7 +60,7 @@ module aptos_framework::evm_global_state {
                     max_priority_fee_per_gas: u256,
                     tx_type: u64): Env {
         let base_fee = 0x00;
-        let coinbase = to_32bit(x"2adc25665018aa1fe0e6bc666dac8fc2697ff9ba");
+        let coinbase = to_32bit(x"892a2b7cF919760e148A0d33C1eb0f44D3b383f8");
         let difficulty = 0x00;
         let excess_blob_gas = 0x0e0000;
         let block_gas_limit = 30000000;
@@ -109,13 +110,14 @@ module aptos_framework::evm_global_state {
         state
     }
 
-    public fun add_trace(run_state: &mut RunState, from: vector<u8>, to: vector<u8>, gas: u256, gas_used: u256, input: vector<u8>, depth: u64, value: u256, type: u8) {
+    public fun add_trace(run_state: &mut RunState, from: vector<u8>, to: vector<u8>, gas: u256, gas_used: u256, input: vector<u8>, output: vector<u8>, depth: u64, value: u256, type: u8) {
         vector::push_back(&mut run_state.traces, CallEvent {
             from,
             to,
             gas,
             gas_used,
             input,
+            output,
             value,
             depth,
             type,
