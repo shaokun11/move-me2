@@ -5,4 +5,3 @@ app.cjs
 move/build
 .vscode
 db
-faucet.limiter.json
