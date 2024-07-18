@@ -45,7 +45,7 @@ export const SENDER_ACCOUNT_COUNT = senderAccounts.length;
 export const FAUCET_SENDER_ACCOUNT = AptosAccount.fromAptosAccountObject({
     privateKeyHex: FAUCET_SENDER,
 });
-
+console.log(`Faucet sender: ${FAUCET_SENDER_ACCOUNT.address().hexString}`);
 export const client = new AptosClient(NODE_URL);
 export const indexer_client = new Client({
     url: process.env.INDEXER_URL,
