@@ -74,10 +74,10 @@ pub fn build_dkg_pvss_config(
         maybe_fast_path_secrecy_threshold,
     );
 
-    println!(
-        "[Randomness] rounding: epoch {} starts, profile = {:?}",
-        cur_epoch, dkg_rounding.profile
-    );
+    // println!(
+    //     "[Randomness] rounding: epoch {} starts, profile = {:?}",
+    //     cur_epoch, dkg_rounding.profile
+    // );
 
     let validator_consensus_keys: Vec<bls12381::PublicKey> = next_validators
         .iter()

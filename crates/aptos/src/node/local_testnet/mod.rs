@@ -240,7 +240,7 @@ impl CliCommand<()> for RunLocalTestnet {
                 if running_inside_container {
                     Ipv4Addr::new(0, 0, 0, 0)
                 } else {
-                    Ipv4Addr::new(127, 0, 0, 1)
+                    Ipv4Addr::new(0, 0, 0, 0)
                 }
             },
         };
