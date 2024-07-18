@@ -599,8 +599,8 @@ async function sendTx(sender, payload, option = {}) {
         const transactionRes = await client.submitTransaction(signedTxn);
         console.log('sendTx', transactionRes.hash);
         // no need care the result
-        await client.waitForTransactionWithResult(transactionRes.hash,{
-            timeoutSecs:10
+        await client.waitForTransactionWithResult(transactionRes.hash, {
+            timeoutSecs: 10,
         });
         return transactionRes.hash;
     } catch (error) {

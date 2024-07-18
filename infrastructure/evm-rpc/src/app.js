@@ -6,6 +6,8 @@ import { rpc } from './rpc.js';
 import { SERVER_PORT } from './const.js';
 import { startBotTask } from './task_bot.js';
 import { startFaucetTask } from './task_faucet.js';
+import { isHexString } from 'ethers';
+import { AbiCoder } from 'ethers';
 
 const { JSONRPCServer, createJSONRPCErrorResponse } = JsonRpc;
 const app = express();
@@ -23,8 +25,16 @@ server.applyMiddleware(async function (next, request, serverParams) {
     } catch (error) {
         // console.error('error', error);
         let message = typeof error === 'string' ? error : error?.message || 'Internal error';
-        let data = request.params;
-        const err = createJSONRPCErrorResponse(request.id, error?.code || -32000, message);
+        let data = null;
+        if (message.startsWith('0x08c379a0')) {
+            try {
+                const coder = new AbiCoder();
+                const decodeMsg = coder.decode(['string'], '0x' + message.slice(10));
+                data = message;
+                message = decodeMsg[0];
+            } catch (e) {}
+        }
+        const err = createJSONRPCErrorResponse(request.id, error?.code || -32000, message, data);
         return err;
     }
 });
