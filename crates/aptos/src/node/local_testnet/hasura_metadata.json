@@ -9,6 +9,18 @@
         "tables": [
           {
             "table": {
+              "name": "evm_logs",
+              "schema": "public"
+            }
+          },
+          {
+            "table": {
+              "name": "evm_move_hash",
+              "schema": "public"
+            }
+          },
+          {
+            "table": {
               "name": "account_transactions",
               "schema": "public"
             },
