@@ -481,7 +481,7 @@ module aptos_framework::evm {
         is_create: bool,
         depth: u64
     ): (u8, vector<u8>) acquires ExecResource {
-        add_trace(run_state, sender, to, gas_limit, 0, data, depth, value, if(is_create) 2 else 1);
+
         add_warm_address(to, trie);
 
         if(is_create) {
@@ -1238,6 +1238,7 @@ module aptos_framework::evm {
                 return (CALL_RESULT_UNEXPECT_ERROR, x"")
             };
         };
+        add_trace(run_state, sender, to, gas_limit, gas_limit - get_gas_left(run_state), data, ret_value, depth, value, if(is_create) 2 else 1);
         handle_commit(trie, run_state);
 
         (CALL_RESULT_SUCCESS, ret_value)
