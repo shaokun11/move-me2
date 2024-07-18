@@ -18,7 +18,7 @@ import { move2ethAddress } from './helper.js';
 import { parseMoveTxPayload } from './helper.js';
 import { googleRecaptcha } from './provider.js';
 import { addToFaucetTask } from './task_faucet.js';
-import { vmErrors } from './vm_error.js';
+import { inspect } from 'node:util';
 const locker = new Lock({
     maxExecutionTime: 15 * 1000,
     maxPending: SENDER_ACCOUNT_COUNT * 30,
@@ -78,7 +78,8 @@ export async function traceTransaction(hash) {
         value: toHex(data.value),
         type: callType[data.type],
     });
-    const traces = info.events.filter(it => it.type === '0x1::evm::CallEvent');
+    const traces = info.events.find(it => it.type === 'vector<0x1::evm_global_state::CallEvent>');
+    // console.log('traceTransaction', inspect(traces, false, null, true));
     const root_call = format_item(traces.data.shift());
 
     const find_caller = (item, trace) => {
@@ -274,7 +275,7 @@ export async function getBlockByNumber(block, withTx) {
         parentHash: parentHash,
         receiptsRoot: genHash(3),
         sha3Uncles: genHash(4),
-        size: toHex(1000000),
+        size: toHex(30_000_000),
         stateRoot: genHash(5),
         timestamp: toHex(Math.trunc(info.block_timestamp / 1e6)),
         totalDifficulty: '0x0000000000000000',
