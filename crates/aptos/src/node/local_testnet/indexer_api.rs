@@ -208,7 +208,7 @@ impl ServiceManager for IndexerApiManager {
             ..Default::default()
         });
 
-        println!("Starting indexer API with this config: {:?}", config);
+        info!("Starting indexer API with this config: {:?}", config);
 
         let id = docker.create_container(options, config).await?.id;
 
