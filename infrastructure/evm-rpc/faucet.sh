@@ -37,3 +37,10 @@ do
 
     sleep 1
 done
+
+#  curl --location 'http://127.0.0.1:8081/fund' \
+#  --header 'Content-Type: application/json' \
+#  --data '{
+#      "address": "0x43f1fa2559bb529ea189b4d582532306be79a5fe7b33a4f1fffc29b33aa18e42",
+#      "amount": 1000000000000
+# }'
