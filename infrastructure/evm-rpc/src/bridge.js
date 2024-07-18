@@ -7,6 +7,7 @@ import {
     CHAIN_ID,
     FAUCET_AMOUNT,
     SENDER_ACCOUNT_COUNT,
+    ENV_IS_PRO
 } from './const.js';
 import { parseRawTx, sleep, toHex, toNumber, toHexStrict } from './helper.js';
 import { getMoveHash, getBlockHeightByHash, getEvmLogs } from './db.js';
@@ -133,6 +134,9 @@ export async function batch_faucet(addr, token, ip) {
 let IS_FAUCET_RUNNING = false;
 
 export async function faucet(addr) {
+    if(ENV_IS_PRO) {
+        throw "please get the test token from web page"
+    }
     if (!ethers.isAddress(addr)) {
         throw 'Eth address format error';
     }

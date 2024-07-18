@@ -57,3 +57,5 @@ export const AUTO_SEND_TX = process.env.AUTO_SEND_TX || false;
 export const ROBOT_SENDER_ACCOUNT = AptosAccount.fromAptosAccountObject({
     privateKeyHex: ROBOT_SENDER || EVM_SENDER[0],
 });
+
+export const ENV_IS_PRO = process.env.NODE_ENV === 'production';
