@@ -74,7 +74,7 @@ export async function traceTransaction(hash) {
         gasUsed: toHex(data.gas_used),
         to: toEtherAddress(data.to),
         input: data.input,
-        // output: "0x0",// TODO
+        output: data.output || '0x', // TODO
         value: toHex(data.value),
         type: callType[data.type],
     });
@@ -423,8 +423,8 @@ export async function estimateGas(info) {
     const isSuccess = result[0] === '200';
     const ret = {
         success: isSuccess,
-        gas_used: isSuccess ? result[1] : 1e7,
-        show_gas: isSuccess ? result[1] : 1e7,
+        gas_used: isSuccess ? result[1] : 3e7,
+        show_gas: isSuccess ? result[1] : 3e7,
         error: vmErrors[result[0]] || result[2],
     };
     return ret;
@@ -599,7 +599,9 @@ async function sendTx(sender, payload, option = {}) {
         const transactionRes = await client.submitTransaction(signedTxn);
         console.log('sendTx', transactionRes.hash);
         // no need care the result
-        await client.waitForTransaction(transactionRes.hash);
+        await client.waitForTransactionWithResult(transactionRes.hash,{
+            timeoutSecs:10
+        });
         return transactionRes.hash;
     } catch (error) {
         // this is system error ,we also throw the real reason to the client

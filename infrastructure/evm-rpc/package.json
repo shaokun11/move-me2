@@ -5,6 +5,7 @@
     "main": "index.js",
     "type": "module",
     "scripts": {
+        "postinstall": "patch-package",
         "start:evm:rpc": "node src/app.js",
         "format": "prettier --write src/**/*.js "
     },
@@ -26,6 +27,7 @@
         "json-rpc-2.0": "^1.7.0",
         "lowdb": "^7.0.1",
         "node-fetch": "^3.3.2",
+        "patch-package": "^8.0.0",
         "radash": "^12.1.0"
     },
     "devDependencies": {

@@ -21,7 +21,7 @@ server.applyMiddleware(async function (next, request, serverParams) {
     try {
         return await next(request, serverParams);
     } catch (error) {
-        console.error('error', error);
+        // console.error('error', error);
         let message = typeof error === 'string' ? error : error?.message || 'Internal error';
         let data = request.params;
         const err = createJSONRPCErrorResponse(request.id, error?.code || -32000, message, data);
@@ -42,9 +42,9 @@ app.use('/', async function (req, res, next) {
     let str_req = `<<< ${JSON.stringify(req.body)}`;
     server.receive(req.body, context).then(jsonRPCResponse => {
         if (jsonRPCResponse.error) {
-            console.error(str_req, jsonRPCResponse);
+            // console.error(str_req, jsonRPCResponse);
         } else {
-            console.log(str_req, jsonRPCResponse);
+            // console.log(str_req, jsonRPCResponse);
         }
         if (Array.isArray(req.body) && req.body.length === 1) {
             res.json([jsonRPCResponse]);
