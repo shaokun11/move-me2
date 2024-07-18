@@ -111,10 +111,8 @@ export const rpc = {
             if (!data) data = args[0].input;
             if (!value || value === '0x') value = '0x0';
             let res = await callContract(from, to, data, value, args[1]);
-            console.log("eth_call",res);   
             return res; 
         } catch (error) {
-            console.error("eth_call",error);
             throw new JSONRPCErrorException(error.message || 'execution reverted', -32000);
         }
     },
