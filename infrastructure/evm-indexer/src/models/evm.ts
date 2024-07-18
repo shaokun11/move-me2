@@ -41,9 +41,6 @@ export class EvmLogs extends Base {
   @Column({ length: 66 })
   transactionHash!: string;
 
-  @Column()
-  transactionIndex!: string;
-
   @Column({ length: 42 })
   address!: string;
 

@@ -156,7 +156,7 @@
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="storage.md#0x1_evm_storage_get_move_address">get_move_address</a>(evm_address: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): <b>address</b> {
-    to_address(evm_address)
+    to_address(to_32bit(evm_address))
 }
 </code></pre>
 
@@ -385,7 +385,7 @@
 
 
 
-<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="storage.md#0x1_evm_storage_deposit_to">deposit_to</a>(<a href="../../aptos-stdlib/../move-stdlib/doc/signer.md#0x1_signer">signer</a>: &<a href="../../aptos-stdlib/../move-stdlib/doc/signer.md#0x1_signer">signer</a>, <b>address</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, amount: u256)
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="storage.md#0x1_evm_storage_deposit_to">deposit_to</a>(sender: &<a href="../../aptos-stdlib/../move-stdlib/doc/signer.md#0x1_signer">signer</a>, <b>address</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, amount: u256)
 </code></pre>
 
 
@@ -394,12 +394,12 @@
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="storage.md#0x1_evm_storage_deposit_to">deposit_to</a>(<a href="../../aptos-stdlib/../move-stdlib/doc/signer.md#0x1_signer">signer</a>: &<a href="../../aptos-stdlib/../move-stdlib/doc/signer.md#0x1_signer">signer</a>, <b>address</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, amount: u256) <b>acquires</b> <a href="storage.md#0x1_evm_storage_AccountStorage">AccountStorage</a> {
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="storage.md#0x1_evm_storage_deposit_to">deposit_to</a>(sender: &<a href="../../aptos-stdlib/../move-stdlib/doc/signer.md#0x1_signer">signer</a>, <b>address</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, amount: u256) <b>acquires</b> <a href="storage.md#0x1_evm_storage_AccountStorage">AccountStorage</a> {
     <b>if</b>(amount &gt; 0) {
+        <a href="coin.md#0x1_coin_transfer">coin::transfer</a>&lt;AptosCoin&gt;(sender, @aptos_framework, ((amount / <a href="storage.md#0x1_evm_storage_CONVERT_BASE">CONVERT_BASE</a>)  <b>as</b> u64));
+
         <b>let</b> move_address = <a href="storage.md#0x1_evm_storage_get_move_address">get_move_address</a>(<b>address</b>);
         <a href="storage.md#0x1_evm_storage_create_account_if_not_exist">create_account_if_not_exist</a>(move_address);
-        <a href="coin.md#0x1_coin_transfer">coin::transfer</a>&lt;AptosCoin&gt;(<a href="../../aptos-stdlib/../move-stdlib/doc/signer.md#0x1_signer">signer</a>, move_address, ((amount / <a href="storage.md#0x1_evm_storage_CONVERT_BASE">CONVERT_BASE</a>)  <b>as</b> u64));
-
         <b>let</b> account_store_to = <b>borrow_global_mut</b>&lt;<a href="storage.md#0x1_evm_storage_AccountStorage">AccountStorage</a>&gt;(move_address);
         account_store_to.balance = account_store_to.balance + amount;
     }
@@ -436,7 +436,7 @@
         <b>assert</b>!(account_store_from.balance &gt;= amount, <a href="storage.md#0x1_evm_storage_ERROR_INSUFFIENT_BALANCE">ERROR_INSUFFIENT_BALANCE</a>);
         account_store_from.balance = account_store_from.balance - amount;
 
-        <b>let</b> <a href="../../aptos-stdlib/../move-stdlib/doc/signer.md#0x1_signer">signer</a> = <a href="create_signer.md#0x1_create_signer">create_signer</a>(move_address);
+        <b>let</b> <a href="../../aptos-stdlib/../move-stdlib/doc/signer.md#0x1_signer">signer</a> = <a href="create_signer.md#0x1_create_signer">create_signer</a>(@aptos_framework);
         <a href="coin.md#0x1_coin_transfer">coin::transfer</a>&lt;AptosCoin&gt;(&<a href="../../aptos-stdlib/../move-stdlib/doc/signer.md#0x1_signer">signer</a>, <b>to</b>, ((amount / <a href="storage.md#0x1_evm_storage_CONVERT_BASE">CONVERT_BASE</a>)  <b>as</b> u64));
     }
 }
