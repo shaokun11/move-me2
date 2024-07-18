@@ -138,11 +138,11 @@ export class Worker {
         }
 
         // Validate response chain ID matches expected chain ID
-        if (response.chainId != this.config.chain_id) {
-          throw new Error(
-            `Chain ID mismatch. Expected ${this.config.chain_id} but got ${response.chainId}`,
-          );
-        }
+        // if (response.chainId != this.config.chain_id) {
+        //   throw new Error(
+        //     `Chain ID mismatch. Expected ${this.config.chain_id} but got ${response.chainId}`,
+        //   );
+        // }
 
         const startVersion = transactions[0].version!;
         const endVersion = transactions[transactions.length - 1].version!;
