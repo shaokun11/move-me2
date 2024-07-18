@@ -2,7 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { createHash } from "node:crypto"
-import { SERVER_PORT, FAUCET_AMOUNT, FAUCET_NODE_URL } from './const.js';
+import { SERVER_PORT, FAUCET_AMOUNT, FAUCET_NODE_URL, ENV_IS_PRO } from './const.js';
 const app = express();
 import axios from 'axios';
 import { canRequest, setRequest } from './rate.js';
@@ -19,6 +19,9 @@ const get_ip = (req) => {
 
 // for petra wallet faucet
 app.post('/fund', async function (req, res) {
+    if(ENV_IS_PRO) {
+        throw "Please use web page to request faucet"
+    }
     const ip = get_ip(req);
     const [pass, time] = await canRequest(ip)
     if (!pass) {
@@ -48,6 +51,9 @@ app.post('/fund', async function (req, res) {
 
 // for aptos cli faucet
 app.post('/mint', async function (req, res) {
+    if(ENV_IS_PRO) {
+        throw "Please use web page to request faucet"
+    }
     const response = await axios({
         method: req.method,
         url: FAUCET_NODE_URL + req.path,

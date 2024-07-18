@@ -11,6 +11,7 @@ export const FAUCET_SENDER_ACCOUNT = AptosAccount.fromAptosAccountObject({
     privateKeyHex: FAUCET_SENDER,
 });
 
+export const ENV_IS_PRO = process.env.NODE_ENV === 'production';
 
 
 
