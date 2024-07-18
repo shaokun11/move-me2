@@ -39,7 +39,7 @@ app.use('/', async function (req, res, next) {
         token: req.headers['token'] || null, // for faucet google recaptcha token
     };
     // console.log('>>> %s %s', context.ip, req.body.method);
-    let str_req = `<<< ${JSON.stringify(req.body)}`;
+    // let str_req = `<<< ${JSON.stringify(req.body)}`;
     server.receive(req.body, context).then(jsonRPCResponse => {
         if (jsonRPCResponse.error) {
             // console.error(str_req, jsonRPCResponse);
