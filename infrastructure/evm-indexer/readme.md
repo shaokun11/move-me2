@@ -1,5 +1,9 @@
 ### sync evm metadata
 
 ```bash
-curl -d '{"type":"replace_metadata", "args":'"$(cat hasura_metadata.json)"'}' http://localhost:8090/v1/metadata
+npm i 
+npm run build
+node dist/index.js
+chmod +x sync.sh
+./sync.sh
 ```
