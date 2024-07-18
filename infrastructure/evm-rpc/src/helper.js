@@ -21,6 +21,7 @@ export function parseRawTx(tx) {
         from: from,
         type: toHex(txJson.type || 0),
         messageHash: tx_.unsignedHash,
+        accessList: txJson.accessList,
         gasPrice: gasPrice,
         limit: toHex(txJson.gasLimit),
         to: txJson.to?.toLowerCase() || ZeroAddress,
@@ -84,7 +85,7 @@ export function move2ethAddress(addr) {
 }
 export function parseMoveTxPayload(info) {
     const args = info.payload.arguments;
-    const tx = parseRawTx(args[1]);
+    const tx = parseRawTx(args[0]);
     return {
         value: tx.value,
         from: tx.from,
@@ -99,5 +100,7 @@ export function parseMoveTxPayload(info) {
         hash: tx.hash,
         limit: tx.limit,
         gasPrice: tx.gasPrice,
+        maxPriorityFeePerGas: tx.maxPriorityFeePerGas,
+        maxFeePerGas: tx.maxFeePerGas,
     };
 }

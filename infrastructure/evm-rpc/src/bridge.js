@@ -1,5 +1,4 @@
 import {
-    EVM_CONTRACT,
     GET_SENDER_ACCOUNT,
     client,
     ZERO_HASH,
@@ -19,6 +18,7 @@ import { move2ethAddress } from './helper.js';
 import { parseMoveTxPayload } from './helper.js';
 import { googleRecaptcha } from './provider.js';
 import { addToFaucetTask } from './task_faucet.js';
+import { vmErrors } from './vm_error.js';
 const locker = new Lock({
     maxExecutionTime: 15 * 1000,
     maxPending: SENDER_ACCOUNT_COUNT * 30,
@@ -29,13 +29,20 @@ let SEND_TX_ACCOUNT_INDEX = 0;
 const CACHE_ETH_ADDRESS_TO_MOVE = {};
 const CACHE_MOVE_HASH_TO_BLOCK_HEIGHT = {};
 
+const ETH_ADDRESS_ONE = '0x0000000000000000000000000000000000000001';
+
+function isSuccessTx(info) {
+    const txResult = info.events.find(it => it.type === '0x1::evm::ExecResultEvent');
+    return txResult.data.exception === '200';
+}
+
 export async function getMoveAddress(acc) {
     acc = acc.toLowerCase();
     let moveAddress = CACHE_ETH_ADDRESS_TO_MOVE[acc];
     try {
         if (!moveAddress) {
             let payload = {
-                function: `${EVM_CONTRACT}::evm::get_move_address`,
+                function: `0x1::evm::get_move_address`,
                 type_arguments: [],
                 arguments: [acc],
             };
@@ -72,8 +79,8 @@ export async function traceTransaction(hash) {
         type: callType[data.type],
     });
     const traces = info.events.filter(it => it.type === '0x1::evm::CallEvent');
-    // .sort((a, b) => parseInt(a.sequence_number) - parseInt(b.sequence_number));
-    const root_call = format_item(traces.shift().data);
+    const root_call = format_item(traces.data.shift());
+
     const find_caller = (item, trace) => {
         if (trace.to === item.from) {
             if (!trace.calls) trace['calls'] = [];
@@ -90,7 +97,7 @@ export async function traceTransaction(hash) {
             }
         }
     };
-    traces.forEach(({ data }) => {
+    traces.data.forEach(({ data }) => {
         find_caller(format_item(data), root_call);
     });
     return root_call;
@@ -128,7 +135,7 @@ export async function faucet(addr) {
         throw 'System busy, please try later';
     }
     const payload = {
-        function: `${EVM_CONTRACT}::evm::deposit`,
+        function: `0x1::evm::deposit`,
         type_arguments: [],
         arguments: [toBuffer(addr), toBuffer(toBeHex(BigNumber(FAUCET_AMOUNT).times(1e18).toString()))],
     };
@@ -156,7 +163,7 @@ export async function faucet(addr) {
 
 export async function eth_feeHistory() {
     const block = await getBlock();
-    const baseFeePerGas = toHex(1500 * 10 ** 9);
+    const baseFeePerGas = toHex(5 * 10 ** 9);
     return {
         oldestBlock: toHex(toNumber(block) - 4),
         reward: [
@@ -166,7 +173,7 @@ export async function eth_feeHistory() {
             ['0x5f5e100', '0x77359400'],
         ],
         baseFeePerGas: Array.from({ length: 4 }, () => baseFeePerGas),
-        gasUsedRatio: [0.5329073333333333, 0.3723229, 0.9996228333333333, 0.5487537333333333],
+        gasUsedRatio: [0.5329073333333333, 0.3723229, 0.6996228333333333, 0.5487537333333333],
     };
 }
 
@@ -253,7 +260,7 @@ export async function getBlockByNumber(block, withTx) {
         evm_tx = await Promise.all(evm_tx.map(it => getTransactionByHash(it)));
     }
     return {
-        baseFeePerGas: '0xc', // eip1559
+        baseFeePerGas: await getGasPrice(), // eip1559
         difficulty: '0x0',
         extraData: genHash(1),
         gasLimit: toHex(30_000_000),
@@ -302,7 +309,7 @@ export async function getCode(addr) {
 export async function getStorageAt(addr, pos) {
     let res = '0x';
     let payload = {
-        function: EVM_CONTRACT + `::evm::get_storage_at`,
+        function: `0x1::evm::get_storage_at`,
         type_arguments: [],
         arguments: [addr, toHexStrict(pos)],
     };
@@ -333,7 +340,7 @@ async function checkAddressNonce(info) {
             continue;
         }
         if (Date.now() - startTs > 30 * 1000) {
-            throw 'Timeout to Discard. Please send tx follow address nonce order';
+            throw 'Timeout to discard from memory pool. Please send tx follow address nonce order';
         }
         await sleep(0.5);
     }
@@ -344,66 +351,18 @@ async function checkAddressNonce(info) {
 // We can directly read it from the blockchain instead of relying on user input.
 export async function sendRawTx(tx) {
     const info = parseRawTx(tx);
-    console.log('sendRawTx', info);
     const payload = {
-        function: `${EVM_CONTRACT}::evm::send_tx`,
+        function: `0x1::evm::send_tx`,
         type_arguments: [],
         arguments: [toBuffer(tx)],
     };
-    return sendTx(FAUCET_SENDER_ACCOUNT, payload, true);
     // this guarantee the nonce order for same from address
     await checkAddressNonce(info);
     const SENDER_ACCOUNT = GET_SENDER_ACCOUNT(SEND_TX_ACCOUNT_INDEX % SENDER_ACCOUNT_COUNT);
     SEND_TX_ACCOUNT_INDEX++;
     // this guarantee the the sender address is order
     return locker.acquire('sendTx:' + SEND_TX_ACCOUNT_INDEX, async function (done) {
-        let fee = '0x01';
-        let gasPrice = toNumber(BigNumber(info.gasPrice).div(1e10).decimalPlaces(0));
-        // we don't need too large gasPrice for send tx
-        // now it enough to finish this tx
-        // now it will cost the sender gas , so set it a limit
-        if (gasPrice > 300) gasPrice = 300;
-        if (gasPrice < 100) gasPrice = 100;
-        const payload = {
-            function: `${EVM_CONTRACT}::evm::send_tx`,
-            type_arguments: [],
-            arguments: [
-                toBuffer(info.from), // // useless will remove at next version
-                toBuffer(tx),
-                toBuffer(fee),
-                1, // useless will remove at next version
-            ],
-        };
-        let gasInfo;
-        try {
-            const txnRequest = await client.generateTransaction(SENDER_ACCOUNT.address(), payload);
-            let res = await client.simulateTransaction(SENDER_ACCOUNT, txnRequest, {
-                estimatePrioritizedGasUnitPrice: true,
-            });
-            gasInfo = {
-                success: res[0].success,
-                gas_used: res[0].gas_used,
-                error: res[0].vm_status,
-            };
-        } catch (error) {
-            gasInfo = {
-                success: false,
-                gas_used: 0,
-                error: error.message || 'sendTx error',
-            };
-        }
-        if (!gasInfo.success) {
-            if (gasInfo.error.includes('0x2713')) {
-                return done('insufficient funds');
-            }
-            return done(gasInfo.error);
-        }
-        fee = toBeHex(BigNumber(gasPrice).times(gasInfo.gas_used).decimalPlaces(0).toFixed(0));
-        console.log('nonce %s,fee:%s', info.nonce, fee);
-        payload.arguments[2] = toBuffer(fee);
-        sendTx(SENDER_ACCOUNT, payload, true, {
-            gas_unit_price: gasPrice,
-        })
+        sendTx(SENDER_ACCOUNT, payload)
             .then(hash => {
                 done(null, info.hash);
             })
@@ -414,7 +373,7 @@ export async function sendRawTx(tx) {
 }
 
 export async function callContract(from, contract, calldata, value, block) {
-    from = from || '0x0000000000000000000000000000000000000001';
+    from = from || ETH_ADDRESS_ONE;
     contract = contract || ZeroAddress;
     if (isHexString(block)) {
         let info = await client.getBlockByHeight(toNumber(block), false);
@@ -434,79 +393,44 @@ export async function callContract(from, contract, calldata, value, block) {
  *   - show_gas: number - The amount of gas to show,
  */
 export async function estimateGas(info) {
-    // TODO parse evm type
-    // {
-    //     id: 2,
-    //     jsonrpc: '2.0',
-    //     error: {
-    //       code: 3,
-    //       message: 'execution reverted',
-    //       data: '0x8c9053680000000000000000000000000000000000000000000000008ac7230489e800000000000000000000000000000000000000000000000000000000000000000001'
-    //     }
-    //   }
     if (!info.data && info.input) {
         // for cast cast 0.2.0 (23700c9 2024-05-22T00:16:24.627116943Z)
         // the data is in the input field
         info.data = info.input;
     }
+    if (!info.from) {
+        info.from = ETH_ADDRESS_ONE;
+    }
+    const nonce = await getNonce(info.from);
     if (!info.data) info.data = '0x';
     const payload = {
-        function: `${EVM_CONTRACT}::evm::estimate_tx_gas`,
+        function: `0x1::evm::query`,
         type_arguments: [],
         arguments: [
-            // The arguments for the function.
-            toBuffer(info.from), // The sender's address.
-            toBuffer(info.to || ZeroAddress), // The receiver's address, or the zero address if no receiver is specified.
-            toBuffer(info.data === '0x' ? '0x' : toBeHex(info.data)), // The data to send, or '0x' if no data is specified.
-            toBuffer(toBeHex(info.value || '0x0')), // The value to send, or '0x0' if no value is specified.
-            1, // The last argument is always 1.
+            info.from,
+            info.to || '0x',
+            toBeHex(nonce),
+            toBeHex(info.value || '0x0'),
+            info.data === '0x' ? '0x' : toBeHex(info.data),
+            toBeHex(3 * 1e7), // gas_limit 30_000_000
+            toBeHex(1), // gas_price
+            toBeHex(1), // max_fee_per_gas
+            toBeHex(1), // max_priority_per_gas
+            '1', //  if the tx type is 1 , only gas price is effect
         ],
-    }; // Set a default `error_gas` value to `1e6` (1,000,000). This value is used if the gas estimation fails.
-    const error_gas = 1e6;
-    let res;
-    try {
-        const sender = GET_SENDER_ACCOUNT(0);
-        const txnRequest = await client.generateTransaction(sender.address(), payload);
-        res = await client.simulateTransaction(sender, txnRequest, {
-            estimatePrioritizedGasUnitPrice: true,
-        });
-        if (res[0].success) {
-            res[0].show_gas = res[0].gas_used; // Set `show_gas` to the gas used by the transaction.
-            if (res[0].gas_used < 21000) {
-                // If the gas used is less than 21,000 (the minimum gas required for a transaction in Ethereum)...
-                res[0].show_gas = 21000; // Set `show_gas` to 21,000.
-            }
-        } else {
-            res[0].show_gas = error_gas;
-            res[0].gas_used = error_gas;
-            res[0].error = res[0].vm_status;
-            if (res[0].error.includes('0x2713')) {
-                res[0].error = 'insufficient funds';
-            }
-        }
-    } catch (error) {
-        res = [
-            {
-                success: false,
-                gas_used: error_gas,
-                show_gas: error_gas,
-                error: error.message || 'estimate gas error',
-            },
-        ];
-    }
+    };
+    const result = await client.view(payload);
+    const isSuccess = result[0] === '200';
     const ret = {
-        success: res[0].success,
-        gas_used: res[0].gas_used,
-        show_gas: res[0].show_gas,
-        error: res[0].error,
+        success: isSuccess,
+        gas_used: isSuccess ? result[1] : 1e7,
+        show_gas: isSuccess ? result[1] : 1e7,
+        error: vmErrors[result[0]] || result[2],
     };
     return ret;
 }
 export async function getGasPrice() {
-    const info = await client.estimateGasPrice();
-    // for the move is 8 and eth is 18
-    // enlarge this gas price to fit eth decimals
-    return toHex(BigNumber(info.prioritized_gas_estimate).times(1e10));
+    return toHex(5 * 1e9);
 }
 
 async function getTransactionIndex(block, hash) {
@@ -543,31 +467,36 @@ export async function getTransactionByHash(evm_hash) {
     const move_hash = await getMoveHash(evm_hash);
     const info = await client.getTransactionByHash(move_hash);
     const block = await client.getBlockByVersion(info.version);
-    const { to, from, data, nonce, value, v, r, s, hash, type } = parseMoveTxPayload(info);
+    const txInfo = parseMoveTxPayload(info);
     const transactionIndex = toHex(await getTransactionIndex(block.block_height, evm_hash));
+    const txResult = info.events.find(it => it.type === '0x1::evm::ExecResultEvent');
+    const gasInfo = {};
+    if (txInfo.gasPrice) {
+        gasInfo.gasPrice = toHex(txInfo.gasPrice);
+    } else {
+        gasInfo.maxFeePerGas = toHex(txInfo.maxFeePerGas);
+        gasInfo.maxPriorityFeePerGas = toHex(txInfo.maxPriorityFeePerGas);
+    }
     const ret = {
         blockHash: block.block_hash,
         blockNumber: toHex(block.block_height),
-        from: from,
-        gas: toHex(info.gas_used),
+        from: txInfo.from,
+        gas: toHex(txResult.data.gas_usage),
         gasPrice: toHex(+info.gas_unit_price * 1e10),
-        hash: hash,
-        input: data,
-        type,
-        nonce: toHex(nonce),
-        to: to,
-        accessList: [],
+        hash: txInfo.hash,
+        input: txInfo.data,
+        type: txInfo.type,
+        nonce: toHex(txInfo.nonce),
+        to: txInfo.to,
+        accessList: txInfo.accessList,
         transactionIndex,
-        value: toHex(value),
-        v: toHex(v),
-        r: r,
-        s: s,
+        value: toHex(txInfo.value),
+        v: toHex(txInfo.v),
+        r: txInfo.r,
+        s: txInfo.s,
         chainId: toHex(CHAIN_ID),
+        ...gasInfo,
     };
-    if (type === '0x2') {
-        ret['maxFeePerGas'] = toHex(+info.gas_unit_price + 1);
-        ret['maxPriorityFeePerGas'] = toHex(1);
-    }
     return ret;
 }
 
@@ -579,18 +508,20 @@ export async function getTransactionReceipt(evm_hash) {
     let contractAddress = await getDeployedContract(info);
     const transactionIndex = toHex(await getTransactionIndex(block.block_height, evm_hash));
     const logs = parseLogs(info, block.block_height, block.block_hash, evm_hash, transactionIndex);
+    const txResult = info.events.find(it => it.type === '0x1::evm::ExecResultEvent');
+    const status = isSuccessTx(info) ? '0x1' : '0x0';
     let recept = {
         blockHash: block.block_hash,
         blockNumber: toHex(block.block_height),
         contractAddress,
-        cumulativeGasUsed: toHex(info.gas_used),
-        effectiveGasPrice: toHex(info.gas_unit_price * 1e10),
+        cumulativeGasUsed: toHex(txResult.data.gas_usage),
+        effectiveGasPrice: toHex(txResult.data.gas_usage),
         from: from,
-        gasUsed: toHex(info.gas_used),
+        gasUsed: toHex(txResult.data.gas_usage),
         logs: logs,
         to: Boolean(contractAddress) ? null : to,
         logsBloom: LOG_BLOOM,
-        status: info.success ? '0x1' : '0x0',
+        status: status,
         transactionHash: evm_hash,
         transactionIndex: transactionIndex,
         type,
@@ -641,13 +572,9 @@ async function getAccountInfo(acc, block) {
         } else {
             block = undefined;
         }
-        const resource = await client.getAccountResource(
-            moveAddress,
-            `${EVM_CONTRACT}::evm_storage::AccountStorage`,
-            {
-                ledgerVersion: block,
-            },
-        );
+        const resource = await client.getAccountResource(moveAddress, `0x1::evm_storage::AccountStorage`, {
+            ledgerVersion: block,
+        });
         ret.moveAddress = moveAddress;
         ret.balance = resource.data.balance;
         ret.nonce = +resource.data.nonce;
@@ -659,7 +586,7 @@ async function getAccountInfo(acc, block) {
     return ret;
 }
 
-async function sendTx(sender, payload, wait = false, option = {}) {
+async function sendTx(sender, payload, option = {}) {
     try {
         const account = await client.getAccount(sender.address());
         const txnRequest = await client.generateTransaction(sender.address(), payload, {
@@ -671,10 +598,12 @@ async function sendTx(sender, payload, wait = false, option = {}) {
         const signedTxn = await client.signTransaction(sender, txnRequest);
         const transactionRes = await client.submitTransaction(signedTxn);
         console.log('sendTx', transactionRes.hash);
-        if (wait) await client.waitForTransaction(transactionRes.hash);
+        // no need care the result
+        await client.waitForTransaction(transactionRes.hash);
         return transactionRes.hash;
     } catch (error) {
-        throw new Error(error.message || 'sendTx error ');
+        // this is system error ,we also throw the real reason to the client
+        throw new Error(error.message || 'system error ');
     }
 }
 /**
@@ -685,7 +614,7 @@ async function sendTx(sender, payload, wait = false, option = {}) {
 async function getDeployedContract(info) {
     if (!info.success) return null;
     const { nonce, to, from } = parseMoveTxPayload(info);
-    if (to === ZeroAddress) {
+    if (to === ZeroAddress || !to) {
         return ethers.getCreateAddress({ from: from, nonce }).toLowerCase();
     }
     return null;
@@ -694,7 +623,7 @@ async function getDeployedContract(info) {
 async function callContractImpl(from, contract, calldata, value, version) {
     const nonce = await getNonce(from);
     let payload = {
-        function: EVM_CONTRACT + `::evm::query`,
+        function: `0x1::evm::query`,
         type_arguments: [],
         arguments: [
             from,
@@ -702,30 +631,28 @@ async function callContractImpl(from, contract, calldata, value, version) {
             toBeHex(nonce),
             toBeHex(value),
             calldata,
-            toBeHex(1e6),
-            toBeHex(5 * 1e9),
-            toBeHex(5 * 1e9),
+            toBeHex(3e7),
             toBeHex(1),
-            "1",
+            toBeHex(1),
+            toBeHex(1),
+            '1',
         ],
     };
     try {
         let result = await client.view(payload, version);
+        const code = result[0];
+        if (code !== '200') {
+            let msg = '';
+            if (vmErrors[result[0]]) {
+                msg = vmErrors[result[0]];
+            } else {
+                msg = result[2];
+            }
+            throw new Error(msg);
+        }
         return result[2];
     } catch (error) {
         let message = error.message;
-        try {
-            const errorMessage = JSON.parse(error.message).message;
-            if (errorMessage.includes('EVM_CONTRACT_ERROR')) {
-                const regex = /message: Some\("([a-f0-9]+)"\)/;
-                const match = errorMessage.match(regex);
-                if (match) {
-                    message = 'reverted:' + match[1];
-                } else {
-                    message = 'reverted:';
-                }
-            }
-        } catch (error) {}
         throw new Error(message);
     }
 }
@@ -759,27 +686,23 @@ function parseLogs(info, blockNumber, blockHash, evm_hash, transactionIndex) {
     // this could from indexer get, but we could get them from the tx hash
     let logs = [];
     let events = info.events || [];
-    let evmLogs = [0, 1, 2, 3, 4].map(it => `${EVM_CONTRACT}::evm::Log${it}Event`);
-    events = events.filter(it => evmLogs.includes(it.type));
-    for (let i = 0; i < events.length; i++) {
-        const event = events[i];
-        let topics = [];
-        if (event.data.topic0) topics.push(event.data.topic0);
-        if (event.data.topic1) topics.push(event.data.topic1);
-        if (event.data.topic2) topics.push(event.data.topic2);
-        if (event.data.topic3) topics.push(event.data.topic3);
-        if (event.data.topic4) topics.push(event.data.topic4);
-        logs.push({
-            address: move2ethAddress(event.data.contract),
-            topics,
-            data: event.data.data,
-            blockNumber: toHex(blockNumber),
-            transactionHash: evm_hash,
-            transactionIndex,
-            blockHash: blockHash,
-            logIndex: toHex(i),
-            removed: false,
-        });
+    events = events.filter(it => it.type === '0x1::evm::EventEvent');
+    if (events.length > 0) {
+        const tx_logs = events[0].data.logs;
+        for (let i = 0; i < tx_logs.length; i++) {
+            const log = tx_logs[i];
+            logs.push({
+                address: move2ethAddress(log.contract),
+                topics: log.topics,
+                data: log.data,
+                blockNumber: toHex(blockNumber),
+                transactionHash: evm_hash,
+                transactionIndex,
+                blockHash: blockHash,
+                logIndex: toHex(i),
+                removed: false,
+            });
+        }
     }
     return logs;
 }
