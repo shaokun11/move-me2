@@ -132,7 +132,7 @@ module aptos_framework::evm {
 
     fun handle_tx_failed(run_state: &RunState, exception: u64): (u64, u256, vector<u8>) acquires ExecResource {
         emit_event(run_state, 0, exception, x"", x"", vector[]);
-        emit_trace(run_state);
+        // emit_trace(run_state);
         (exception, 0, x"")
     }
 
@@ -288,7 +288,7 @@ module aptos_framework::evm {
         save(&mut trie);
 
         emit_event(run_state, gas_usage, exception, message, created_address, logs);
-        emit_trace(run_state);
+        // emit_trace(run_state);
 
         (exception, gas_usage, return_value)
     }
@@ -1238,8 +1238,8 @@ module aptos_framework::evm {
                 return (CALL_RESULT_UNEXPECT_ERROR, x"")
             };
         };
-        let gas_left = get_gas_left(run_state);
-        add_trace(run_state, sender, to, gas_limit, gas_limit - gas_left, data, ret_value, depth, value, if(is_create) 2 else 1);
+        // let gas_left = get_gas_left(run_state);
+        // add_trace(run_state, sender, to, gas_limit, gas_limit - gas_left, data, ret_value, depth, value, if(is_create) 2 else 1);
         handle_commit(trie, run_state);
 
         (CALL_RESULT_SUCCESS, ret_value)
