@@ -2,6 +2,7 @@ import { DataSource } from "typeorm";
 import { ProcessingResult, TransactionsProcessor } from "./processor";
 import { aptos } from "@aptos-labs/aptos-protos";
 import { EvmHash, EvmLogs } from "./models/evm";
+import { ethers } from "ethers";
 
 function move2ethAddress(addr) {
   addr = addr.toLowerCase();
@@ -19,45 +20,15 @@ async function parseLogs(
   version: bigint,
 ) {
   let logs: any = [];
-  let evmLogs = [0, 1, 2, 3, 4].map((it) => `0x1::evm::Log${it}Event`);
-  events = events.filter((it) => evmLogs.includes(it.typeStr));
   for (let i = 0; i < events.length; i++) {
-    const data = JSON.parse(events[i].data);
-    const event = events[i];
-    let topics: any = [];
-    if (data.topic0) {
-      topics.push(data.topic0);
-    } else {
-      topics.push("0x0");
-    }
-    if (data.topic1) {
-      topics.push(data.topic1);
-    } else {
-      topics.push("0x1");
-    }
-    if (data.topic2) {
-      topics.push(data.topic2);
-    } else {
-      topics.push("0x2");
-    }
-    if (data.topic3) {
-      topics.push(data.topic3);
-    } else {
-      topics.push("0x3");
-    }
-    if (data.topic4) {
-      topics.push(data.topic4);
-    } else {
-      topics.push("0x4");
-    }
+    const data = events[i];
     logs.push({
       address: move2ethAddress(data.contract),
-      topics,
+      topics: data.topics,
       data: data.data,
       blockNumber: blockNumber,
       transactionHash: evm_hash,
       version,
-      transactionIndex: toHex(0),
       blockHash: block_hash,
       logIndex: toHex(i),
       removed: false,
@@ -71,7 +42,6 @@ async function parseLogs(
       data,
       blockNumber,
       transactionHash,
-      transactionIndex,
       blockHash,
       logIndex,
     } = log;
@@ -81,15 +51,13 @@ async function parseLogs(
     evt.blockHash = blockHash;
     evt.version = version;
     evt.transactionHash = transactionHash;
-    evt.transactionIndex = transactionIndex;
     evt.address = address;
-    // evt.topics = JSON.stringify(topics)
     evt.data = data || "0x";
-    evt.topic0 = topics[0];
-    evt.topic1 = topics[1];
-    evt.topic2 = topics[2];
-    evt.topic3 = topics[3];
-    evt.topic4 = topics[4];
+    evt.topic0 = topics[0] || "0x0";
+    evt.topic1 = topics[1] || "0x1";
+    evt.topic2 = topics[2] || "0x2";
+    evt.topic3 = topics[3] || "0x3";
+    evt.topic4 = topics[4] || "0x4";
     return evt;
   });
 }
@@ -103,7 +71,7 @@ async function getBlockHashByNumber(dataSource: DataSource, number: bigint) {
   while (true) {
     try {
       const info = await dataSource.query(
-        `select id from block_metadata_transactions where block_height = ${parseInt(number.toString())} limit 1`
+        `select id from block_metadata_transactions where block_height = ${parseInt(number.toString())} limit 1`,
       );
       // console.log("get block info", info)
       if (info && info.length > 0) {
@@ -146,30 +114,42 @@ export class EvmProcessor extends TransactionsProcessor {
       const transactionBlockHeight = transaction.blockHeight!;
       const userTransaction = transaction.user!;
       if (transaction.info?.success === false) {
-        // evm transaction failed,no need to parse logs
+        // move transaction failed,nothing no change, do nothing
         continue;
       }
-      // console.log("Processing EVM transaction", transaction)
-      const events: any = userTransaction?.events?.filter((it) => {
-        return it.typeStr === "0x1::evm::TXHashEvent";
-      });
-      if (!events || events.length === 0) {
+      console.log("Processing EVM transaction", transaction);
+      const is_evm_tx =
+        userTransaction?.request?.payload?.entryFunctionPayload
+          ?.entryFunctionIdStr === "0x1::evm::send_tx";
+      if (!is_evm_tx) {
         continue;
       }
+      //@ts-ignore
+      const tx = userTransaction.request.payload.entryFunctionPayload.arguments[0];
+      const evm_hash = ethers.Transaction.from(tx).hash;
       const move_tx_hash =
         "0x" + Buffer.from(transaction.info!.hash!).toString("hex");
       // this is evm hash, pase logs
-      const data = JSON.parse(events[0].data);
       let item = new EvmHash();
-      item.evm_hash = data.evm_tx_hash;
+      item.evm_hash = evm_hash!!;
       item.move_hash = move_tx_hash;
       item.version = transaction.version!.toString();
       item.blockNumber = transactionBlockHeight.toString();
       hashArr.push(item);
-      const blockHash = await getBlockHashByNumber(dataSource, transactionBlockHeight)
+      const events: any = userTransaction?.events?.filter((it) => {
+        return it.typeStr === "0x1::evm::ExecResultEvent";
+      });
+      if (!events || events.length === 0) {
+        continue;
+      }
+      const blockHash = await getBlockHashByNumber(
+        dataSource,
+        transactionBlockHeight,
+      );
+
       const logs = await parseLogs(
         blockHash,
-        userTransaction.events,
+        events[0].data.logs,
         item.evm_hash,
         transactionBlockHeight,
         transaction.version!,

@@ -49,8 +49,7 @@
 -  [Function `is_access_slot`](#0x1_evm_trie_is_access_slot)
 
 
-<pre><code><b>use</b> <a href="../../aptos-stdlib/doc/debug.md#0x1_debug">0x1::debug</a>;
-<b>use</b> <a href="precompile.md#0x1_evm_precompile">0x1::evm_precompile</a>;
+<pre><code><b>use</b> <a href="precompile.md#0x1_evm_precompile">0x1::evm_precompile</a>;
 <b>use</b> <a href="storage.md#0x1_evm_storage">0x1::evm_storage</a>;
 <b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/option.md#0x1_option">0x1::option</a>;
 <b>use</b> <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map">0x1::simple_map</a>;
@@ -242,10 +241,20 @@
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="trie.md#0x1_evm_trie_init_new_trie">init_new_trie</a>(): <a href="trie.md#0x1_evm_trie_Trie">Trie</a> {
-    <a href="trie.md#0x1_evm_trie_Trie">Trie</a> {
+    <b>let</b> trie = <a href="trie.md#0x1_evm_trie_Trie">Trie</a> {
         context: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_empty">vector::empty</a>(),
         access_list: <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_new">simple_map::new</a>()
-    }
+    };
+
+    <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(&<b>mut</b> trie.context, <a href="trie.md#0x1_evm_trie_Checkpoint">Checkpoint</a> {
+        state: <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_new">simple_map::new</a>(),
+        self_destruct: <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_new">simple_map::new</a>(),
+        transient: <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_new">simple_map::new</a>(),
+        origin: <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_new">simple_map::new</a>(),
+        logs: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_empty">vector::empty</a>()
+    });
+
+    trie
 }
 </code></pre>
 
@@ -1058,8 +1067,6 @@
         save_account_state(<b>address</b>, keys, values);
         i = i + 1;
     };
-
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(trie);
 }
 </code></pre>
 

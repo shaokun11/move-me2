@@ -17,6 +17,7 @@
 -  [Function `handle_tx_failed`](#0x1_evm_handle_tx_failed)
 -  [Function `execute`](#0x1_evm_execute)
 -  [Function `deposit`](#0x1_evm_deposit)
+-  [Function `batch_deposit`](#0x1_evm_batch_deposit)
 -  [Function `query`](#0x1_evm_query)
 -  [Function `get_code`](#0x1_evm_get_code)
 -  [Function `get_move_address`](#0x1_evm_get_move_address)
@@ -35,7 +36,9 @@
 
 
 <pre><code><b>use</b> <a href="account.md#0x1_account">0x1::account</a>;
+<b>use</b> <a href="aptos_coin.md#0x1_aptos_coin">0x1::aptos_coin</a>;
 <b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/hash.md#0x1_aptos_hash">0x1::aptos_hash</a>;
+<b>use</b> <a href="coin.md#0x1_coin">0x1::coin</a>;
 <b>use</b> <a href="../../aptos-stdlib/doc/debug.md#0x1_debug">0x1::debug</a>;
 <b>use</b> <a href="event.md#0x1_event">0x1::event</a>;
 <b>use</b> <a href="arithmetic.md#0x1_evm_arithmetic">0x1::evm_arithmetic</a>;
@@ -149,6 +152,12 @@
 <dd>
 
 </dd>
+<dt>
+<code>created_address: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
 </dl>
 
 
@@ -226,7 +235,7 @@
 
 
 
-<pre><code><b>const</b> <a href="evm.md#0x1_evm_CHAIN_ID">CHAIN_ID</a>: u64 = 336;
+<pre><code><b>const</b> <a href="evm.md#0x1_evm_CHAIN_ID">CHAIN_ID</a>: u64 = 30732;
 </code></pre>
 
 
@@ -334,7 +343,7 @@
 
 
 
-<pre><code><b>const</b> <a href="evm.md#0x1_evm_EXCEPTION_EXECUTE_REVERT">EXCEPTION_EXECUTE_REVERT</a>: u64 = 208;
+<pre><code><b>const</b> <a href="evm.md#0x1_evm_EXCEPTION_EXECUTE_REVERT">EXCEPTION_EXECUTE_REVERT</a>: u64 = 209;
 </code></pre>
 
 
@@ -447,6 +456,15 @@
 
 
 
+<a id="0x1_evm_VM_ERROR_PARAMS_LENGTH"></a>
+
+
+
+<pre><code><b>const</b> <a href="evm.md#0x1_evm_VM_ERROR_PARAMS_LENGTH">VM_ERROR_PARAMS_LENGTH</a>: u64 = 10002;
+</code></pre>
+
+
+
 <a id="0x1_evm_WITHDRAW_ADDR"></a>
 
 
@@ -524,6 +542,7 @@
         call_event: new_event_handle&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;CallEvent&gt;&gt;(aptos_framework),
         exec_event: new_event_handle&lt;<a href="evm.md#0x1_evm_ExecResultEvent">ExecResultEvent</a>&gt;(aptos_framework)
     });
+    register&lt;AptosCoin&gt;(aptos_framework);
 }
 </code></pre>
 
@@ -590,7 +609,7 @@
 
 
 
-<pre><code><b>fun</b> <a href="evm.md#0x1_evm_emit_event">emit_event</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>, gas_usage: u256, exception: u64, message: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, logs: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="trie.md#0x1_evm_trie_Log">evm_trie::Log</a>&gt;)
+<pre><code><b>fun</b> <a href="evm.md#0x1_evm_emit_event">emit_event</a>(run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>, gas_usage: u256, exception: u64, message: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, created_address: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, logs: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="trie.md#0x1_evm_trie_Log">evm_trie::Log</a>&gt;)
 </code></pre>
 
 
@@ -599,7 +618,7 @@
 <summary>Implementation</summary>
 
 
-<pre><code><b>fun</b> <a href="evm.md#0x1_evm_emit_event">emit_event</a>(run_state: &RunState, gas_usage: u256, exception: u64, message: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, logs: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;Log&gt;) <b>acquires</b> <a href="evm.md#0x1_evm_ExecResource">ExecResource</a> {
+<pre><code><b>fun</b> <a href="evm.md#0x1_evm_emit_event">emit_event</a>(run_state: &RunState, gas_usage: u256, exception: u64, message: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, created_address: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, logs: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;Log&gt;) <b>acquires</b> <a href="evm.md#0x1_evm_ExecResource">ExecResource</a> {
     <b>let</b> exec_resource = <b>borrow_global_mut</b>&lt;<a href="evm.md#0x1_evm_ExecResource">ExecResource</a>&gt;(@aptos_framework);
     <a href="event.md#0x1_event_emit_event">event::emit_event</a>(&<b>mut</b> exec_resource.exec_event, <a href="evm.md#0x1_evm_ExecResultEvent">ExecResultEvent</a> {
         gas_usage,
@@ -610,6 +629,7 @@
         logs,
         from: get_sender(run_state),
         <b>to</b>: get_to(run_state),
+        created_address
     });
 }
 </code></pre>
@@ -634,7 +654,7 @@
 
 
 <pre><code><b>fun</b> <a href="evm.md#0x1_evm_handle_tx_failed">handle_tx_failed</a>(run_state: &RunState, exception: u64): (u64, u256, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;) <b>acquires</b> <a href="evm.md#0x1_evm_ExecResource">ExecResource</a> {
-    <a href="evm.md#0x1_evm_emit_event">emit_event</a>(run_state, 0, exception, x"", <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>[]);
+    <a href="evm.md#0x1_evm_emit_event">emit_event</a>(run_state, 0, exception, x"", x"", <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>[]);
     <a href="evm.md#0x1_evm_emit_trace">emit_trace</a>(run_state);
     (exception, 0, x"")
 }
@@ -753,6 +773,7 @@
     <b>let</b> exception = <a href="evm.md#0x1_evm_EXCEPTION_NONE">EXCEPTION_NONE</a>;
     <b>let</b> message = x"";
     <b>let</b> success;
+    <b>let</b> created_address = x"";
 
     <b>if</b>(<b>to</b> == <a href="evm.md#0x1_evm_EMPTY_ADDR">EMPTY_ADDR</a>) {
         <b>let</b> evm_contract = get_contract_address(from, (get_nonce(from, &trie) <b>as</b> u64));
@@ -761,9 +782,12 @@
         } <b>else</b> {
             <b>let</b> gas_left = get_gas_left(run_state);
             add_call_state(run_state, gas_left, <b>false</b>);
-            <b>let</b> (success, return_value) = <a href="evm.md#0x1_evm_run">run</a>(from, evm_contract, data, x"", value, gas_left, &<b>mut</b> trie, run_state, <b>true</b>, <b>true</b>, 0);
+            (success, return_value) = <a href="evm.md#0x1_evm_run">run</a>(from, evm_contract, data, x"", value, gas_left, &<b>mut</b> trie, run_state, <b>true</b>, <b>true</b>, 0);
             <b>if</b>(success == <a href="evm.md#0x1_evm_CALL_RESULT_SUCCESS">CALL_RESULT_SUCCESS</a>) {
+                created_address = evm_contract;
                 set_code(&<b>mut</b> trie, evm_contract, return_value);
+            } <b>else</b> <b>if</b>(success == <a href="evm.md#0x1_evm_CALL_RESULT_OUT_OF_GAS">CALL_RESULT_OUT_OF_GAS</a>) {
+                exception = <a href="evm.md#0x1_evm_EXCEPTION_OUT_OF_GAS">EXCEPTION_OUT_OF_GAS</a>;
             } <b>else</b> {
                 exception = <a href="evm.md#0x1_evm_EXCEPTION_EXECUTE_REVERT">EXCEPTION_EXECUTE_REVERT</a>;
                 message = return_value
@@ -781,7 +805,11 @@
             (success, return_value) = <a href="evm.md#0x1_evm_run">run</a>(from, <b>to</b>, <a href="evm.md#0x1_evm_get_code">get_code</a>(<b>to</b>), data, value, gas_limit - base_cost, &<b>mut</b> trie, run_state, <b>true</b>, <b>false</b>, 0);
         };
         <b>if</b>(success != <a href="evm.md#0x1_evm_CALL_RESULT_SUCCESS">CALL_RESULT_SUCCESS</a>) {
-            exception = <a href="evm.md#0x1_evm_EXCEPTION_EXECUTE_REVERT">EXCEPTION_EXECUTE_REVERT</a>;
+            <b>if</b>(success == <a href="evm.md#0x1_evm_CALL_RESULT_OUT_OF_GAS">CALL_RESULT_OUT_OF_GAS</a>) {
+                exception = <a href="evm.md#0x1_evm_EXCEPTION_OUT_OF_GAS">EXCEPTION_OUT_OF_GAS</a>;
+            } <b>else</b> {
+                exception = <a href="evm.md#0x1_evm_EXCEPTION_EXECUTE_REVERT">EXCEPTION_EXECUTE_REVERT</a>;
+            }
         };
     };
 
@@ -799,9 +827,10 @@
         add_balance(get_coinbase(run_state), miner_value, &<b>mut</b> trie);
     };
     add_balance(from, (gas_left + gas_refund) * gas_price, &<b>mut</b> trie);
-    save(&<b>mut</b> trie);
     <b>let</b> logs = get_logs(&trie);
-    <a href="evm.md#0x1_evm_emit_event">emit_event</a>(run_state, gas_usage, exception, message, logs);
+    save(&<b>mut</b> trie);
+
+    <a href="evm.md#0x1_evm_emit_event">emit_event</a>(run_state, gas_usage, exception, message, created_address, logs);
     <a href="evm.md#0x1_evm_emit_trace">emit_trace</a>(run_state);
 
     (exception, gas_usage, return_value)
@@ -831,6 +860,39 @@
     <b>let</b> amount = to_u256(amount_bytes);
     <b>assert</b>!(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&evm_addr) == 20, <a href="evm.md#0x1_evm_VM_ERROR_ADDR_LENGTH">VM_ERROR_ADDR_LENGTH</a>);
     deposit_to(sender, to_32bit(evm_addr), amount);
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_batch_deposit"></a>
+
+## Function `batch_deposit`
+
+
+
+<pre><code><b>public</b> entry <b>fun</b> <a href="evm.md#0x1_evm_batch_deposit">batch_deposit</a>(sender: &<a href="../../aptos-stdlib/../move-stdlib/doc/signer.md#0x1_signer">signer</a>, evm_addr_list: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;, amount_bytes_list: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> entry <b>fun</b> <a href="evm.md#0x1_evm_batch_deposit">batch_deposit</a>(sender: &<a href="../../aptos-stdlib/../move-stdlib/doc/signer.md#0x1_signer">signer</a>, evm_addr_list: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;, amount_bytes_list: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;)  {
+    <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&evm_addr_list);
+    <b>assert</b>!(len == <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&amount_bytes_list), <a href="evm.md#0x1_evm_VM_ERROR_PARAMS_LENGTH">VM_ERROR_PARAMS_LENGTH</a>);
+    <b>let</b> i = 0;
+    <b>while</b> (i &lt; len) {
+        <b>let</b> amount = to_u256(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&amount_bytes_list, i));
+        <b>let</b> evm_addr = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&evm_addr_list, i);
+        <b>assert</b>!(<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&evm_addr) == 20, <a href="evm.md#0x1_evm_VM_ERROR_ADDR_LENGTH">VM_ERROR_ADDR_LENGTH</a>);
+        deposit_to(sender, to_32bit(evm_addr), amount);
+        i = i + 1;
+    }
 }
 </code></pre>
 
@@ -1027,8 +1089,6 @@
 
 
 <pre><code><b>fun</b> <a href="evm.md#0x1_evm_handle_unexpect_revert">handle_unexpect_revert</a>(trie: &<b>mut</b> Trie, run_state: &<b>mut</b> RunState, error_code: &u64) {
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"unexcept revert"));
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(error_code);
     revert_checkpoint(trie);
     revert_call_state(run_state);
 }
@@ -1278,7 +1338,7 @@
             <b>return</b> (<b>if</b>(out_of_gas) <a href="evm.md#0x1_evm_CALL_RESULT_OUT_OF_GAS">CALL_RESULT_OUT_OF_GAS</a> <b>else</b> <a href="evm.md#0x1_evm_CALL_RESULT_UNEXPECT_ERROR">CALL_RESULT_UNEXPECT_ERROR</a>, ret_value)
         };
         // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&i);
-        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&get_gas_left(run_state));
+        // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&get_gas_left(run_state));
 
         // Handle each opcode according <b>to</b> the EVM specification.
         // The following is a simplified <a href="version.md#0x1_version">version</a> of the EVM execution engine,
@@ -1982,7 +2042,7 @@
         <b>else</b> {
             <b>assert</b>!(<b>false</b>, (opcode <b>as</b> u64));
         };
-        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(stack);
+        // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(stack);
         // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack));
 
         <b>if</b>(*error_code &gt; 0 || <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack) &gt; <a href="evm.md#0x1_evm_MAX_STACK_SIZE">MAX_STACK_SIZE</a>) {
