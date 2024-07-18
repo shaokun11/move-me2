@@ -42,12 +42,12 @@ app.use('/', async function (req, res) {
         token: req.headers['token'] || null, // for faucet google recaptcha token
     };
     // console.log('>>> %s %s', context.ip, req.body.method);
-    let str_req = `<<< ${JSON.stringify(req.body)}`;
+    // let str_req = `<<< ${JSON.stringify(req.body)}`;
     server.receive(req.body, context).then(jsonRPCResponse => {
         if (jsonRPCResponse.error) {
-            console.error(str_req, jsonRPCResponse);
+            // console.error(str_req, jsonRPCResponse);
         } else {
-            console.log(str_req, jsonRPCResponse);
+            // console.log(str_req, jsonRPCResponse);
         }
         if (Array.isArray(req.body) && req.body.length === 1) {
             res.json([jsonRPCResponse]);

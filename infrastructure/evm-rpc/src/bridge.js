@@ -514,6 +514,7 @@ export async function getTransactionReceipt(evm_hash) {
     const { to, from, type } = parseMoveTxPayload(info);
     let contractAddress = await getDeployedContract(info);
     const transactionIndex = toHex(await getTransactionIndex(block.block_height, evm_hash));
+    // we could get it from indexer , but is also to parse it directly to reduce the request
     const logs = parseLogs(info, block.block_height, block.block_hash, evm_hash, transactionIndex);
     const txResult = info.events.find(it => it.type === '0x1::evm::ExecResultEvent');
     const status = isSuccessTx(info) ? '0x1' : '0x0';
@@ -687,7 +688,7 @@ function parseLogs(info, blockNumber, blockHash, evm_hash, transactionIndex) {
     // this could from indexer get, but we could get them from the tx hash
     let logs = [];
     let events = info.events || [];
-    events = events.filter(it => it.type === '0x1::evm::EventEvent');
+    events = events.filter(it => it.type === '0x1::evm::ExecResultEvent');
     if (events.length > 0) {
         const tx_logs = events[0].data.logs;
         for (let i = 0; i < tx_logs.length; i++) {
