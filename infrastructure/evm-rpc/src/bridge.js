@@ -65,6 +65,8 @@ export async function get_move_hash(evm_hash) {
 }
 
 export async function traceTransaction(hash) {
+    // now it is not support
+    return {}
     const move_hash = await getMoveHash(hash);
     const info = await client.getTransactionByHash(move_hash);
     const callType = ['CALL', 'STATIC_CALL', 'DELEGATE_CALL'];
@@ -80,7 +82,8 @@ export async function traceTransaction(hash) {
         type: callType[data.type],
     });
     const traces = info.events.find(it => it.type === 'vector<0x1::evm_global_state::CallEvent>');
-    // console.log('traceTransaction', inspect(traces, false, null, true));
+    traces.data.sort((a, b) => parseInt(a.depth) - parseInt(b.depth));
+    console.log('traceTransaction', inspect(traces, false, null, true));
     const root_call = format_item(traces.data.shift());
 
     const find_caller = (item, trace) => {
@@ -99,7 +102,7 @@ export async function traceTransaction(hash) {
             }
         }
     };
-    traces.data.forEach(({ data }) => {
+    traces.data.forEach((data) => {
         find_caller(format_item(data), root_call);
     });
     return root_call;
@@ -147,7 +150,7 @@ export async function faucet(addr) {
     const signedTxn = await client.signTransaction(FAUCET_SENDER_ACCOUNT, txnRequest);
     const transactionRes = await client.submitTransaction(signedTxn);
     // this not do any check , but we make it slowly to keep this function
-    // await sleep(5);
+    await sleep(5);
     try {
         const res = await client.waitForTransactionWithResult(transactionRes.hash);
         console.log('faucet %s %s %s', addr, transactionRes.hash, res.vm_status);
