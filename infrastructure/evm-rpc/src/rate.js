@@ -1,6 +1,7 @@
 import { JSONFilePreset } from 'lowdb/node';
+import { FAUCET_LIMIT_DURATION } from './const.js';
 const db = await JSONFilePreset(`faucet.limiter.json`, []);
-const limit = 24 * 60 * 60 * 1000;
+const limit = FAUCET_LIMIT_DURATION * 1000;
 
 export async function canRequest(key) {
     const user = await db.data.find(it => it.key === key);
@@ -22,13 +23,4 @@ export async function setRequest(key) {
             users.push({ key, time: Date.now() });
         }
     });
-}
-
-async function test() {
-    await console.log(canRequest('0x1234567890abcdef'));
-    await setRequest('0x1234567890abcdef');
-    await console.log(canRequest('0x1234567890abcdef'));
-    await console.log(canRequest('0x1234567890aef'));
-    await setRequest('0x1234567890aef');
-    await console.log(canRequest('0x1234567890aef'));
 }

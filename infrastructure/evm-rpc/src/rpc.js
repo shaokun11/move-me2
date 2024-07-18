@@ -17,14 +17,28 @@ import {
     faucet,
     getLogs,
     eth_feeHistory,
+    get_move_hash,
+    traceTransaction,
+    getMoveAddress,
     batch_faucet,
     getBlockReceipts,
-    getMoveAddress,
 } from './bridge.js';
 import JsonRpc from 'json-rpc-2.0';
-import { getMoveHash } from './db.js';
 const { JSONRPCErrorException } = JsonRpc;
 export const rpc = {
+    debug_traceTransaction: async function (args) {
+        const caller = args[1]?.tracer || 'callTracer';
+        if (caller !== 'callTracer') {
+            throw 'Only callTracer is supported';
+        }
+        return traceTransaction(args[0]);
+    },
+    debug_getMoveHash: async function (args) {
+        return get_move_hash(args[0]);
+    },
+    debug_getMoveAddress: async function (args) {
+        return getMoveAddress(args[0]);
+    },
     eth_feeHistory: async function (args) {
         return eth_feeHistory();
     },
@@ -90,12 +104,13 @@ export const rpc = {
      * @throws Will throw an error if the contract method invocation fails.
      */
     eth_call: async function (args) {
-        let { to, data: data_, from } = args[0];
+        let { to, data, from, value } = args[0];
         try {
             // for cast cast 0.2.0 (23700c9 2024-05-22T00:16:24.627116943Z)
             // the data is in the input field
-            if (!data_) data_ = args[0].input;
-            return await callContract(from, to, data_, args[1]);
+            if (!data) data = args[0].input;
+            if (!value || value === '0x') value = '0x0';
+            return await callContract(from, to, data, value, args[1]);
         } catch (error) {
             throw new JSONRPCErrorException(error.message || 'execution reverted', -32000);
         }
@@ -186,25 +201,16 @@ export const rpc = {
     eth_getStorageAt: async function (args) {
         return getStorageAt(args[0], args[1]);
     },
-
-    eth_faucet: async function (args, ctx) {
-        return faucet(args[0], ctx.ip, ctx.token);
-    },
-
-    eth_batch_faucet: async function (args, ctx) {
-        return batch_faucet(args[0], ctx.ip, ctx.token);
-    },
-
     eth_getBlockReceipts: async function (args) {
         return getBlockReceipts(args[0]);
     },
-    eth_accounts: async function () {
+    eth_faucet: async function (args, ctx) {
+        return faucet(args[0], ctx.ip);
+    },
+    eth_batch_faucet: async function (args, ctx) {
+        return batch_faucet(args[0],  ctx.token,ctx.ip);
+    },
+    eth_accounts: async function (args) {
         return [];
-    },
-    debug_getMoveHash: async function (args) {
-        return getMoveHash(args[0]);
-    },
-    debug_getMoveAddress: async function (args) {
-        return getMoveAddress(args[0]);
     },
 };

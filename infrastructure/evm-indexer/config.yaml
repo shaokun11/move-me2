@@ -1,0 +1,5 @@
+chain_id: 4
+grpc_data_stream_endpoint: localhost:50051
+grpc_data_stream_api_key: ""
+starting_version: 1
+db_connection_uri: "postgres://postgres@127.0.0.1:5433/local_testnet"
