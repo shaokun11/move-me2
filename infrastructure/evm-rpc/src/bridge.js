@@ -38,22 +38,23 @@ function isSuccessTx(info) {
 
 export async function getMoveAddress(acc) {
     acc = acc.toLowerCase();
-    let moveAddress = CACHE_ETH_ADDRESS_TO_MOVE[acc];
-    try {
-        if (!moveAddress) {
-            let payload = {
-                function: `0x1::evm::get_move_address`,
-                type_arguments: [],
-                arguments: [acc],
-            };
-            let result = await client.view(payload);
-            moveAddress = result[0];
-            CACHE_ETH_ADDRESS_TO_MOVE[acc] = moveAddress;
-        }
-    } catch (error) {
-        // maybe error so the account not found in move
-    }
-    return moveAddress || '0x0';
+    return acc;
+    // let moveAddress = CACHE_ETH_ADDRESS_TO_MOVE[acc];
+    // try {
+    //     if (!moveAddress) {
+    //         let payload = {
+    //             function: `0x1::evm::get_move_address`,
+    //             type_arguments: [],
+    //             arguments: [acc],
+    //         };
+    //         let result = await client.view(payload);
+    //         moveAddress = result[0];
+    //         CACHE_ETH_ADDRESS_TO_MOVE[acc] = moveAddress;
+    //     }
+    // } catch (error) {
+    //     // maybe error so the account not found in move
+    // }
+    // return moveAddress || '0x0';
 }
 
 export async function get_move_hash(evm_hash) {
@@ -74,7 +75,7 @@ export async function traceTransaction(hash) {
         gasUsed: toHex(data.gas_used),
         to: toEtherAddress(data.to),
         input: data.input,
-        output: data.output || '0x', // TODO
+        output: data.output || '0x',
         value: toHex(data.value),
         type: callType[data.type],
     });

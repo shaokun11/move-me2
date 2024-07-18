@@ -34,12 +34,17 @@ function checkCall(res) {
         let data = res.message;
         if (res.code === '209') {
             if (res.message.startsWith('0x08c379a0')) {
+                // evm revert with reason
                 try {
                     const coder = new AbiCoder();
                     const decodeMsg = coder.decode(['string'], '0x' + res.message.slice(10));
                     data = res.message;
                     msg = decodeMsg[0];
                 } catch (e) {}
+            } else {
+                // The solidity error type, we keep it as the original message
+                msg = 'execution reverted';
+                data = res.message;
             }
         } else {
             if (vmErrors[parseInt(res.code)]) {
@@ -58,18 +63,36 @@ export const rpc = {
         }
         return traceTransaction(args[0]);
     },
+
+    /**
+     * Use the evm tx hash to get the move hash ,It useful to find the raw tx on the move explorer
+     * @returns
+     */
     debug_getMoveHash: async function (args) {
         return get_move_hash(args[0]);
     },
+
+    /**
+     * @deprecated
+     *  Now it is same as the evm address , we keep it for compatibility
+     * @returns
+     */
     debug_getMoveAddress: async function (args) {
         return getMoveAddress(args[0]);
     },
+
+    /**
+     * Fixed value to compatible with the evm
+     */
     eth_feeHistory: async function (args) {
         return eth_feeHistory();
     },
     eth_getLogs: async function (args) {
         return getLogs(args[0]);
     },
+    /**
+     * Fixed value to compatible with the evm
+     */
     web3_clientVersion: async function () {
         return 'Geth/v1.11.6-omnibus-f83e1598/linux-.mdx64/go1.20.3';
     },
@@ -225,12 +248,22 @@ export const rpc = {
     eth_getBlockReceipts: async function (args) {
         return getBlockReceipts(args[0]);
     },
+    /**
+     * For development purpose, to get some test token
+     */
     eth_faucet: async function (args, ctx) {
         return faucet(args[0], ctx.ip);
     },
+    /**
+     * Use google recaptcha to implement the faucet
+     */
     eth_batch_faucet: async function (args, ctx) {
         return batch_faucet(args[0], ctx.token, ctx.ip);
     },
+    /**
+     * Maybe should remove it, some client may use it
+     * @returns
+     */
     eth_accounts: async function (args) {
         return [];
     },
