@@ -6,10 +6,8 @@ import { rpc } from './rpc.js';
 import { SERVER_PORT } from './const.js';
 import { startBotTask } from './task_bot.js';
 import { startFaucetTask } from './task_faucet.js';
-import { isHexString } from 'ethers';
-import { AbiCoder } from 'ethers';
 
-const { JSONRPCServer, createJSONRPCErrorResponse } = JsonRpc;
+const { JSONRPCServer, createJSONRPCErrorResponse, JSONRPCErrorException } = JsonRpc;
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
@@ -24,22 +22,17 @@ server.applyMiddleware(async function (next, request, serverParams) {
         return await next(request, serverParams);
     } catch (error) {
         // console.error('error', error);
-        let message = typeof error === 'string' ? error : error?.message || 'Internal error';
-        let data = null;
-        if (message.startsWith('0x08c379a0')) {
-            try {
-                const coder = new AbiCoder();
-                const decodeMsg = coder.decode(['string'], '0x' + message.slice(10));
-                data = message;
-                message = decodeMsg[0];
-            } catch (e) {}
+        if (error instanceof JSONRPCErrorException) {
+            return createJSONRPCErrorResponse(request.id, error?.code || -32000, error.message, error.data);
         }
+        let message = typeof error === 'string' ? error : error?.message || 'Internal error';
+        let data = serverParams.params;
         const err = createJSONRPCErrorResponse(request.id, error?.code || -32000, message, data);
         return err;
     }
 });
 
-app.use('/', async function (req, res, next) {
+app.use('/', async function (req, res) {
     const context = {
         ip:
             req.headers['cf-connecting-ip'] ||
@@ -54,7 +47,7 @@ app.use('/', async function (req, res, next) {
         if (jsonRPCResponse.error) {
             console.error(str_req, jsonRPCResponse);
         } else {
-            // console.log(str_req, jsonRPCResponse);
+            console.log(str_req, jsonRPCResponse);
         }
         if (Array.isArray(req.body) && req.body.length === 1) {
             res.json([jsonRPCResponse]);

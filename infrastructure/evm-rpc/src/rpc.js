@@ -25,6 +25,31 @@ import {
 } from './bridge.js';
 import JsonRpc from 'json-rpc-2.0';
 const { JSONRPCErrorException } = JsonRpc;
+import { AbiCoder } from 'ethers';
+import { vmErrors } from './vm_error.js';
+
+function checkCall(res) {
+    if (!res.success) {
+        let msg = 'execution reverted';
+        let data = res.message;
+        if (res.code === '209') {
+            if (res.message.startsWith('0x08c379a0')) {
+                try {
+                    const coder = new AbiCoder();
+                    const decodeMsg = coder.decode(['string'], '0x' + res.message.slice(10));
+                    data = res.message;
+                    msg = decodeMsg[0];
+                } catch (e) {}
+            }
+        } else {
+            if (vmErrors[parseInt(res.code)]) {
+                msg = vmErrors[parseInt(res.code)];
+            }
+        }
+        throw new JSONRPCErrorException(msg, -32000, data);
+    }
+}
+
 export const rpc = {
     debug_traceTransaction: async function (args) {
         const caller = args[1]?.tracer || 'callTracer';
@@ -91,9 +116,9 @@ export const rpc = {
             return await sendRawTx(args[0]);
         } catch (error) {
             if (typeof error === 'string') {
-                throw new JSONRPCErrorException(error, -32000);
+                throw new Error(error);
             }
-            throw new JSONRPCErrorException(error.message || 'execution reverted', -32000);
+            throw new Error(error.message || 'execution reverted');
         }
     },
 
@@ -105,16 +130,13 @@ export const rpc = {
      */
     eth_call: async function (args) {
         let { to, data, from, value } = args[0];
-        try {
-            // for cast cast 0.2.0 (23700c9 2024-05-22T00:16:24.627116943Z)
-            // the data is in the input field
-            if (!data) data = args[0].input;
-            if (!value || value === '0x') value = '0x0';
-            let res = await callContract(from, to, data, value, args[1]);
-            return res;
-        } catch (error) {
-            throw new JSONRPCErrorException(error.message || 'execution reverted', -32000);
-        }
+        // for cast cast 0.2.0 (23700c9 2024-05-22T00:16:24.627116943Z)
+        // the data is in the input field
+        if (!data) data = args[0].input;
+        if (!value || value === '0x') value = '0x0';
+        let res = await callContract(from, to, data, value, args[1]);
+        checkCall(res);
+        return res.message;
     },
 
     /**
@@ -151,10 +173,8 @@ export const rpc = {
      */
     eth_estimateGas: async function (args) {
         let res = await estimateGas(args[0]);
-        if (!res.success) {
-            throw new JSONRPCErrorException(res.error, -32000);
-        }
-        return toHex(res.show_gas);
+        checkCall(res);
+        return toHex(res.gas_used);
     },
 
     /**

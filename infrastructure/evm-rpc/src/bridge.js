@@ -403,6 +403,13 @@ export async function estimateGas(info) {
     }
     const nonce = await getNonce(info.from);
     if (!info.data) info.data = '0x';
+    let type = info.type === '0x1' ? '1' : '2';
+    let gasPrice = toBeHex(await getGasPrice());
+    let maxFeePerGas = toBeHex(1);
+    if (type === '2' && info.maxFeePerGas) {
+        gasPrice = toBeHex(1);
+        maxFeePerGas = toBeHex(info.maxFeePerGas);
+    }
     const payload = {
         function: `0x1::evm::query`,
         type_arguments: [],
@@ -413,10 +420,10 @@ export async function estimateGas(info) {
             toBeHex(info.value || '0x0'),
             info.data === '0x' ? '0x' : toBeHex(info.data),
             toBeHex(3 * 1e7), // gas_limit 30_000_000
-            toBeHex(1), // gas_price
-            toBeHex(1), // max_fee_per_gas
+            gasPrice, // gas_price
+            maxFeePerGas, // max_fee_per_gas
             toBeHex(1), // max_priority_per_gas
-            '1', //  if the tx type is 1 , only gas price is effect
+            type, //  if the tx type is 1 , only gas price is effect
         ],
     };
     const result = await client.view(payload);
@@ -424,8 +431,8 @@ export async function estimateGas(info) {
     const ret = {
         success: isSuccess,
         gas_used: isSuccess ? result[1] : 3e7,
-        show_gas: isSuccess ? result[1] : 3e7,
-        error: vmErrors[result[0]] || result[2],
+        code: result[0],
+        message: result[2],
     };
     return ret;
 }
@@ -640,23 +647,15 @@ async function callContractImpl(from, contract, calldata, value, version) {
             '1',
         ],
     };
-    try {
-        let result = await client.view(payload, version);
-        const code = result[0];
-        if (code !== '200') {
-            let msg = '';
-            if (vmErrors[result[0]]) {
-                msg = vmErrors[result[0]];
-            } else {
-                msg = result[2];
-            }
-            throw new Error(msg);
-        }
-        return result[2];
-    } catch (error) {
-        let message = error.message;
-        throw new Error(message);
-    }
+    const result = await client.view(payload);
+    const isSuccess = result[0] === '200';
+    const ret = {
+        success: isSuccess,
+        gas_used: isSuccess ? result[1] : 3e7,
+        code: result[0],
+        message: result[2],
+    };
+    return ret;
 }
 
 export async function getLogs(obj) {
