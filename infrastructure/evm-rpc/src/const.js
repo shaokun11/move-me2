@@ -1,4 +1,4 @@
-import "dotenv/config.js";
+import 'dotenv/config.js';
 import { AptosClient, AptosAccount } from 'aptos';
 import { Client, fetchExchange } from '@urql/core';
 export const SERVER_PORT = process.env.SERVER_PORT || 8998;
@@ -14,15 +14,8 @@ export const NODE_URL = process.env.NODE_URL;
 const EVM_SENDER = process.env.EVM_SENDER.split(',');
 const FAUCET_SENDER = process.env.FAUCET_SENDER;
 const ROBOT_SENDER = process.env.ROBOT_SENDER;
-export const FAUCET_CONTRACT = process.env.FAUCET_CONTRACT || '0x1';
 
 export const FAUCET_AMOUNT = process.env.FAUCET_AMOUNT || 1;
-export const FAUCET_LIMIT_DURATION = process.env.FAUCET_LIMIT_DURATION || 1;
-
-/**
- * EVM_CONTRACT is the contract address
- */
-export const EVM_CONTRACT = '0x1';
 
 /**
  * CHAIN_ID is the ID of the chain
@@ -44,8 +37,9 @@ const senderAccounts = EVM_SENDER.map(privateKeyHex =>
         privateKeyHex,
     }),
 );
-
-console.log(senderAccounts[0].address().hexString)
+senderAccounts.forEach((account, i) => {
+    console.log(`Sender ${i}: ${account.address().hexString}`);
+});
 export const GET_SENDER_ACCOUNT = (i = 0) => senderAccounts[i];
 export const SENDER_ACCOUNT_COUNT = senderAccounts.length;
 export const FAUCET_SENDER_ACCOUNT = AptosAccount.fromAptosAccountObject({

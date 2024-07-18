@@ -117,7 +117,7 @@ export class EvmProcessor extends TransactionsProcessor {
         // move transaction failed,nothing no change, do nothing
         continue;
       }
-      console.log("Processing EVM transaction", transaction);
+      // console.log("Processing EVM transaction", transaction);
       const is_evm_tx =
         userTransaction?.request?.payload?.entryFunctionPayload
           ?.entryFunctionIdStr === "0x1::evm::send_tx";
@@ -125,7 +125,7 @@ export class EvmProcessor extends TransactionsProcessor {
         continue;
       }
       //@ts-ignore
-      const tx = userTransaction.request.payload.entryFunctionPayload.arguments[0];
+      const tx = userTransaction.request.payload.entryFunctionPayload.arguments[0].replaceAll("\"","");
       const evm_hash = ethers.Transaction.from(tx).hash;
       const move_tx_hash =
         "0x" + Buffer.from(transaction.info!.hash!).toString("hex");
@@ -149,7 +149,7 @@ export class EvmProcessor extends TransactionsProcessor {
 
       const logs = await parseLogs(
         blockHash,
-        events[0].data.logs,
+        JSON.parse(events[0].data).logs,
         item.evm_hash,
         transactionBlockHeight,
         transaction.version!,

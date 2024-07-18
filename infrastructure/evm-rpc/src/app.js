@@ -24,11 +24,6 @@ server.applyMiddleware(async function (next, request, serverParams) {
         // console.error('error', error);
         let message = typeof error === 'string' ? error : error?.message || 'Internal error';
         let data = request.params;
-        if (message.startsWith('reverted:')) {
-            // for handle eth_call reverted message
-            data = message.slice(9);
-            message = 'execution reverted';
-        }
         const err = createJSONRPCErrorResponse(request.id, error?.code || -32000, message, data);
         return err;
     }
@@ -47,9 +42,9 @@ app.use('/', async function (req, res, next) {
     let str_req = `<<< ${JSON.stringify(req.body)}`;
     server.receive(req.body, context).then(jsonRPCResponse => {
         if (jsonRPCResponse.error) {
-            console.error(str_req, jsonRPCResponse);
+            // console.error(str_req, jsonRPCResponse);
         } else {
-            console.log(str_req, jsonRPCResponse);
+            // console.log(str_req, jsonRPCResponse);
         }
         if (Array.isArray(req.body) && req.body.length === 1) {
             res.json([jsonRPCResponse]);

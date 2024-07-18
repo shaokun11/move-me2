@@ -1,5 +1,5 @@
 import { appendFile } from 'node:fs';
-import { FAUCET_AMOUNT, FAUCET_CONTRACT, FAUCET_SENDER_ACCOUNT, client } from './const.js';
+import { FAUCET_AMOUNT, FAUCET_SENDER_ACCOUNT, client } from './const.js';
 import { sleep, toBuffer, toHexStrict } from './helper.js';
 
 const FAUCET_QUEUE = [];
@@ -18,7 +18,6 @@ export async function startFaucetTask() {
  * Add a task to the faucet
  * @param {Object} task - The task object
  * @param {string} task.addr - The address to send the tokens to
- * @param {string} task.ip - The IP address of the user
  */
 export function addToFaucetTask(task) {
     return new Promise((resolve, reject) => {
@@ -30,7 +29,7 @@ async function run(faucet_amount, batch = 100) {
     const send_accounts = FAUCET_QUEUE.slice(0, batch);
     if (send_accounts.length > 0) {
         const payload = {
-            function: `${FAUCET_CONTRACT}::batch_transfer::batch_transfer_evm`,
+            function: `0x1::batch_transfer::batch_transfer_evm`,
             type_arguments: [],
             arguments: [send_accounts.map(it => toBuffer(it.addr)), send_accounts.map(() => faucet_amount)],
         };
