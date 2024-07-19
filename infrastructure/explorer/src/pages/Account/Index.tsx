@@ -1,6 +1,6 @@
 import {useParams} from "react-router-dom";
 import {Grid} from "@mui/material";
-import React from "react";
+import React, { useState } from "react";
 import AccountTabs, {TabValue} from "./Tabs";
 import AccountTitle from "./Title";
 import BalanceCard from "./BalanceCard";
@@ -12,6 +12,7 @@ import Error from "./Error";
 import {AptosNamesBanner} from "./Components/AptosNamesBanner";
 import {useGlobalState} from "../../global-config/GlobalConfig";
 import {Network} from "aptos";
+import { getMoveHA } from "../../api/query-utils";
 
 const TAB_VALUES_FULL: TabValue[] = [
   "transactions",
@@ -26,9 +27,19 @@ const TAB_VALUES: TabValue[] = ["transactions", "resources", "modules", "info"];
 
 export default function AccountPage() {
   const isGraphqlClientSupported = useGetIsGraphqlClientSupported();
-  const address = useParams().address ?? "";
-  const {data, error, isLoading} = useGetAccount(address);
+  let address1 = useParams().address ?? "";
+  
+  
   const [state] = useGlobalState();
+
+  if(address1.length === 42) {
+    getMoveHA('debug_getMoveAddress',address1).then((res:any)=>{
+      setAddress(res.data);
+    });
+  }
+  const [address, setAddress] = useState<string>(address1.length === 42 ? "" : address1);
+
+  const {data, error, isLoading} = useGetAccount(address);
 
   // TODO: [BE] instead of passing down address as props, use context
   // make sure that addresses will always start with "0X"

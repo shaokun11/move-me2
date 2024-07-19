@@ -8,10 +8,12 @@ import useGetSearchResults, {
 import ResultLink from "./ResultLink";
 import {useNavigate} from "../../../routing";
 
+import {getMoveHA} from "../../../api/query-utils";
+
 export default function HeaderSearch() {
   const navigate = useNavigate();
   const [inputValue, setInputValue] = useState<string>("");
-  const [searchValue, setSearchValue] = useState<string>("");
+  const [searchValue, setSearchValue] = useState<any>({old:"",newstr:""});
   const [open, setOpen] = useState(false);
   const [selectedOption, setSelectedOption] =
     useState<SearchResult>(NotFoundResult);
@@ -24,7 +26,8 @@ export default function HeaderSearch() {
   // this is to wait for users to stop typing then execute searching
   useEffect(() => {
     const timer = setTimeout(() => {
-      setSearchValue(inputValue);
+      getMoveha(inputValue);
+      // setSearchValue(inputValue);
     }, 500);
 
     return () => clearTimeout(timer);
@@ -62,6 +65,28 @@ export default function HeaderSearch() {
     if (selectedOption.to !== null) {
       navigate(selectedOption.to);
     }
+  };
+
+  const getMoveha= (address:string)=>{
+    const str = address.trim();
+    if(str.length === 0){
+      return;
+    }
+
+    if(str.length === 42){   //check if address is valid
+      getMoveHA('debug_getMoveAddress',str).then((res:any)=>{
+        setSearchValue({old:str,newstr:res.data});
+      });
+    }else if(str.length === 66){   //check if hash is valid
+      getMoveHA('debug_getMoveHash',str).then((res:any)=>{
+        setSearchValue({old:str,newstr:res.data});
+      });
+    }else{
+      setSearchValue({old:str,newstr:str});
+    }
+
+    
+
   };
 
   return (
@@ -105,9 +130,10 @@ export default function HeaderSearch() {
       renderOption={(props, option) => {
         return (
           <li {...props} key={props.id}>
-            <ResultLink to={option.to} text={option.label} />
+            <ResultLink to={option.to} text={option.label} text0={option.label0} />
           </li>
         );
+        
       }}
       onHighlightChange={(event, option) => {
         if (option !== null) {
