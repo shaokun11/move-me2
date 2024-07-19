@@ -108,3 +108,16 @@ export async function getEvmLogs(obj) {
         };
     });
 }
+
+export async function getEvmTransaction(startVersion, count = 20) {
+    const query = gql`
+        {
+            evm_move_hash(limit: ${count}, order_by: {version: asc}, where: {version: {_gt: "${startVersion}"}}) {
+                move_hash
+                version
+            }
+        }
+    `;
+    const res = await indexer_client.query(query).toPromise();
+    return res.data.evm_move_hash;
+}

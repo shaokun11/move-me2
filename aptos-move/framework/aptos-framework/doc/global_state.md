@@ -197,6 +197,12 @@
 
 </dd>
 <dt>
+<code>output: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
 <code>value: u256</code>
 </dt>
 <dd>
@@ -384,7 +390,7 @@
                 max_priority_fee_per_gas: u256,
                 tx_type: u64): <a href="global_state.md#0x1_evm_global_state_Env">Env</a> {
     <b>let</b> base_fee = 0x00;
-    <b>let</b> coinbase = to_32bit(x"2adc25665018aa1fe0e6bc666dac8fc2697ff9ba");
+    <b>let</b> coinbase = to_32bit(x"892a2b7cF919760e148A0d33C1eb0f44D3b383f8");
     <b>let</b> difficulty = 0x00;
     <b>let</b> excess_blob_gas = 0x0e0000;
     <b>let</b> block_gas_limit = 30000000;
@@ -465,7 +471,7 @@
 
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_add_trace">add_trace</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>, from: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas: u256, gas_used: u256, input: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, depth: u64, value: u256, type: u8)
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_add_trace">add_trace</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>, from: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas: u256, gas_used: u256, input: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, output: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, depth: u64, value: u256, type: u8)
 </code></pre>
 
 
@@ -474,13 +480,14 @@
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_add_trace">add_trace</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>, from: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas: u256, gas_used: u256, input: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, depth: u64, value: u256, type: u8) {
+<pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_add_trace">add_trace</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>, from: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas: u256, gas_used: u256, input: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, output: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, depth: u64, value: u256, type: u8) {
     <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(&<b>mut</b> run_state.traces, <a href="global_state.md#0x1_evm_global_state_CallEvent">CallEvent</a> {
         from,
         <b>to</b>,
         gas,
         gas_used,
         input,
+        output,
         value,
         depth,
         type,

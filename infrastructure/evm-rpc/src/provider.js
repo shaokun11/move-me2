@@ -1,4 +1,5 @@
-import { NODE_URL } from './const.js';
+import { NODE_URL, RECAPTCHA_SECRET } from './const.js';
+import { keccak256 } from 'ethers';
 import fetch from 'node-fetch';
 export function request(method, ...params) {
     const rpcData = {
@@ -20,10 +21,15 @@ export function getRequest(query) {
         method: 'get',
     }).then(response => response.json());
 }
-
+const FAUCET_TOKEN_SET = new Set();
 export async function googleRecaptcha(token) {
-    if (!process.env.RECAPTCHA_SECRET) return true;
+    if (!RECAPTCHA_SECRET) return true;
     if (!token) return false;
+    const t = keccak256(Buffer.from(token, 'utf8'));
+    if (FAUCET_TOKEN_SET.has(t)) {
+        throw 'recaptcha token has been used';
+    }
+    FAUCET_TOKEN_SET.add(t);
     const keys = process.env.RECAPTCHA_SECRET.split(',');
     for (const key of keys) {
         const pass = await fetch('https://www.google.com/recaptcha/api/siteverify', {

@@ -2,11 +2,12 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { createHash } from "node:crypto"
-import { SERVER_PORT, FAUCET_AMOUNT, FAUCET_NODE_URL } from './const.js';
+import { SERVER_PORT, FAUCET_AMOUNT, FAUCET_NODE_URL, ENV_IS_PRO, RECAPTCHA_SECRET } from './const.js';
 const app = express();
 import axios from 'axios';
 import { canRequest, setRequest } from './rate.js';
 import { addToFaucetTask, startFaucetTask } from './task_faucet.js';
+import { googleRecaptcha } from './provider.js';
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
@@ -19,6 +20,9 @@ const get_ip = (req) => {
 
 // for petra wallet faucet
 app.post('/fund', async function (req, res) {
+    if(ENV_IS_PRO) {
+        throw "Please use web page to request faucet"
+    }
     const ip = get_ip(req);
     const [pass, time] = await canRequest(ip)
     if (!pass) {
@@ -48,6 +52,9 @@ app.post('/fund', async function (req, res) {
 
 // for aptos cli faucet
 app.post('/mint', async function (req, res) {
+    if(ENV_IS_PRO) {
+        throw "Please use web page to request faucet"
+    }
     const response = await axios({
         method: req.method,
         url: FAUCET_NODE_URL + req.path,
@@ -63,7 +70,7 @@ app.post('/mint', async function (req, res) {
 
 
 
-const GOOGLE_TOKEN_SET = new Set();
+
 app.get('/batch_mint', async function (req, res) {
     res.status(200);
     const ip = req.headers['cf-connecting-ip'] || req.headers['x-real-ip'] || req.ip;
@@ -81,14 +88,6 @@ app.get('/batch_mint', async function (req, res) {
         });
         return;
     }
-    const t1 = createHash("sha256").update(token).digest("hex")
-    if (GOOGLE_TOKEN_SET.has(t1)) {
-        res.json({
-            error_message: `repeat recaptcha`,
-        });
-        return;
-    }
-    GOOGLE_TOKEN_SET.add(t1);
     let ret = await addToFaucetTask({ addr: address, ip });
     if (ret.error) {
         GOOGLE_TOKEN_SET.delete(t1);
@@ -97,7 +96,7 @@ app.get('/batch_mint', async function (req, res) {
         });
         return;
     }
-    res.json([ret.data]);
+    res.json(ret);
 });
 
 app.set('trust proxy', 1);

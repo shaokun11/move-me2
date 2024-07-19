@@ -7,6 +7,7 @@ import {
     CHAIN_ID,
     FAUCET_AMOUNT,
     SENDER_ACCOUNT_COUNT,
+    ENV_IS_PRO,
 } from './const.js';
 import { parseRawTx, sleep, toHex, toNumber, toHexStrict } from './helper.js';
 import { getMoveHash, getBlockHeightByHash, getEvmLogs } from './db.js';
@@ -66,7 +67,7 @@ export async function get_move_hash(evm_hash) {
 
 export async function traceTransaction(hash) {
     // now it is not support
-    return {}
+    return {};
     const move_hash = await getMoveHash(hash);
     const info = await client.getTransactionByHash(move_hash);
     const callType = ['CALL', 'STATIC_CALL', 'DELEGATE_CALL'];
@@ -102,13 +103,12 @@ export async function traceTransaction(hash) {
             }
         }
     };
-    traces.data.forEach((data) => {
+    traces.data.forEach(data => {
         find_caller(format_item(data), root_call);
     });
     return root_call;
 }
 
-const FAUCET_TOKEN_SET = new Set();
 export async function batch_faucet(addr, token, ip) {
     if ((await googleRecaptcha(token)) === false) {
         throw 'recaptcha error';
@@ -116,11 +116,6 @@ export async function batch_faucet(addr, token, ip) {
     if (!ethers.isAddress(addr)) {
         throw 'Address format error';
     }
-    const t = keccak256(Buffer.from(token, 'utf8'));
-    if (FAUCET_TOKEN_SET.has(t)) {
-        throw 'recaptcha token has been used';
-    }
-    FAUCET_TOKEN_SET.add(t);
     const res = await addToFaucetTask({ addr });
     if (res.error) {
         FAUCET_TOKEN_SET.delete(t);
@@ -133,6 +128,9 @@ export async function batch_faucet(addr, token, ip) {
 let IS_FAUCET_RUNNING = false;
 
 export async function faucet(addr) {
+    if (ENV_IS_PRO) {
+        throw 'please get the test token from web page';
+    }
     if (!ethers.isAddress(addr)) {
         throw 'Eth address format error';
     }
@@ -269,12 +267,12 @@ export async function getBlockByNumber(block, withTx) {
         difficulty: '0x0',
         extraData: genHash(1),
         gasLimit: toHex(30_000_000),
-        gasUsed: '0x0000000000000000',
+        gasUsed: toHex(20_000_000),
         hash: info.block_hash,
         logsBloom: LOG_BLOOM,
         miner: ZeroAddress,
         mixHash: genHash(2),
-        nonce: '0x0000000000000000',
+        nonce: toHex(BigNumber('0x1000000000000000').plus(info.first_version)), //  8 bytes
         number: toHex(block),
         parentHash: parentHash,
         receiptsRoot: genHash(3),
@@ -282,7 +280,7 @@ export async function getBlockByNumber(block, withTx) {
         size: toHex(30_000_000),
         stateRoot: genHash(5),
         timestamp: toHex(Math.trunc(info.block_timestamp / 1e6)),
-        totalDifficulty: '0x0000000000000000',
+        totalDifficulty: toHex(BigNumber('0x100000000000000000').plus(info.last_version)), //  10 bytes
         transactions: evm_tx,
         transactionsRoot: genHash(6),
         uncles: [],
