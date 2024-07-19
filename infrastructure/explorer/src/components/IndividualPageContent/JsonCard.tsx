@@ -7,10 +7,8 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import StyledTooltip from "../StyledTooltip";
 import {codeBlockColor} from "../../themes/colors/aptosColorPalette";
 
-// const TEXT_COLOR_LIGHT = "#49D6CE";
-// const TEXT_COLOR_DARK = "#83CCED";
-const TEXT_COLOR_LIGHT = "#FFD016";
-const TEXT_COLOR_DARK = "#FFD016";
+const TEXT_COLOR_LIGHT = "#0EA5E9";
+const TEXT_COLOR_DARK = "#83CCED";
 const CARD_HEIGHT = 60;
 const EXPANDED_CARD_HEIGHT = 500;
 const TOOLTIP_TIME = 2000; // 2s
@@ -47,7 +45,7 @@ export default function JsonCard({
     }
   };
 
-  const copyCard = async (event: React.MouseEvent<HTMLButtonElement>) => {
+  const copyCard = async () => {
     await navigator.clipboard.writeText(jsonData);
 
     setTooltipOpen(true);
@@ -72,7 +70,7 @@ export default function JsonCard({
       paddingBottom={expandable ? 0 : 1.5}
       marginBottom="5px"
       marginRight="5px"
-      borderRadius={0}
+      borderRadius={1}
     >
       <Stack direction="row" justifyContent="space-between">
         <Box

@@ -1,8 +1,8 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import { createHash } from "node:crypto"
-import { SERVER_PORT, FAUCET_AMOUNT, FAUCET_NODE_URL, ENV_IS_PRO, RECAPTCHA_SECRET } from './const.js';
+
+import { SERVER_PORT, FAUCET_AMOUNT, FAUCET_NODE_URL, ENV_IS_PRO } from './const.js';
 const app = express();
 import axios from 'axios';
 import { canRequest, setRequest } from './rate.js';

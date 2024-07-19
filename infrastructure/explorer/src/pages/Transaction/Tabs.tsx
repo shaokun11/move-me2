@@ -34,7 +34,7 @@ function getTabValues(transaction: Types.Transaction): TabValue[] {
         "changes",
       ];
     case "block_metadata_transaction":
-      return ["blockMetadataOverview", "changes"];
+      return ["blockMetadataOverview", "events", "changes"];
     case "state_checkpoint_transaction":
       return ["stateCheckpointOverview"];
     case "pending_transaction":
@@ -132,7 +132,7 @@ export default function TransactionTabs({
     tab === undefined ? getTabValues(transaction)[0] : (tab as TabValue);
 
   const handleChange = (event: React.SyntheticEvent, newValue: TabValue) => {
-    navigate(`/txn/${txnHashOrVersion}/${newValue}`);
+    navigate(`/txn/${txnHashOrVersion}/${newValue}`, {replace: true});
   };
 
   return (

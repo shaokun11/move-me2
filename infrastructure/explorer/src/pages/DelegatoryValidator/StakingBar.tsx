@@ -7,7 +7,7 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import React, {useContext, useEffect, useState} from "react";
+import {useContext, useEffect, useState} from "react";
 import ContentBoxSpaceBetween from "../../components/IndividualPageContent/ContentBoxSpaceBetween";
 import {APTCurrencyValue} from "../../components/IndividualPageContent/ContentValue/CurrencyValue";
 import ArrowCircleUpIcon from "@mui/icons-material/ArrowCircleUp";
@@ -27,8 +27,11 @@ import {OCTA} from "../../constants";
 import {AptosClient, Types} from "aptos";
 import {getAddStakeFee} from "../../api";
 import {useGetDelegatorStakeInfo} from "../../api/hooks/useGetDelegatorStakeInfo";
-import {Statsig} from "statsig-react";
 import {useGlobalState} from "../../global-config/GlobalConfig";
+import {ValidatorData} from "../../api/hooks/useGetValidators";
+import {useLogEventWithBasic} from "../Account/hooks/useLogEventWithBasic";
+import {useGetValidatorSet} from "../../api/hooks/useGetValidatorSet";
+import {calculateNetworkPercentage} from "./utils";
 
 type ValidatorStakingBarProps = {
   setIsStakingBarSkeletonLoading: (arg: boolean) => void;
@@ -45,20 +48,42 @@ export default function StakingBar({
     return null;
   }
 
+  return (
+    <StakingBarContent
+      setIsStakingBarSkeletonLoading={setIsStakingBarSkeletonLoading}
+      isSkeletonLoading={isSkeletonLoading}
+      validator={validator}
+    />
+  );
+}
+
+function StakingBarContent({
+  setIsStakingBarSkeletonLoading,
+  isSkeletonLoading,
+  validator,
+}: ValidatorStakingBarProps & {
+  validator: ValidatorData;
+}) {
   const theme = useTheme();
+  const logEvent = useLogEventWithBasic();
   const isOnMobile = !useMediaQuery(theme.breakpoints.up("md"));
   const {connected, wallet, account} = useWallet();
-  const {delegatedStakeAmount, networkPercentage, commission, isQueryLoading} =
-    useGetDelegationNodeInfo({
-      validatorAddress: validator.owner_address,
-    });
+  const {commission, isQueryLoading} = useGetDelegationNodeInfo({
+    validatorAddress: validator.owner_address,
+  });
+  const {totalVotingPower} = useGetValidatorSet();
+  const validatorVotingPower = validator.voting_power;
+  const networkPercentage = calculateNetworkPercentage(
+    validatorVotingPower,
+    totalVotingPower,
+  );
 
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
 
   const handleClickOpen = () => {
-    Statsig.logEvent("stake_button_clicked", validator.owner_address, {
+    logEvent("stake_button_clicked", validator.owner_address, {
       commission: commission?.toString() ?? "",
-      delegated_stake_amount: delegatedStakeAmount ?? "",
+      delegated_stake_amount: validatorVotingPower ?? "",
       network_percentage: networkPercentage ?? "",
       wallet_address: account?.address ?? "",
       wallet_name: wallet?.name ?? "",
@@ -73,13 +98,13 @@ export default function StakingBar({
     if (!isQueryLoading) {
       setIsStakingBarSkeletonLoading(false);
     }
-  }, [isQueryLoading]);
+  }, [isQueryLoading, setIsStakingBarSkeletonLoading]);
 
   const stakeAmount = (
     <Stack direction="column" spacing={0.5}>
       <Typography sx={{fontWeight: 600}}>
         <APTCurrencyValue
-          amount={delegatedStakeAmount ?? ""}
+          amount={validatorVotingPower ?? ""}
           fixedDecimalPlaces={0}
         />
       </Typography>
@@ -119,8 +144,7 @@ export default function StakingBar({
   );
 
   const balance = useGetAccountAPTBalance(account?.address!);
-  const [state, _] = useGlobalState();
-  const client = new AptosClient(state.network_value);
+  const [state] = useGlobalState();
   const {stakes} = useGetDelegatorStakeInfo(
     account?.address!,
     validator.owner_address,
@@ -136,6 +160,7 @@ export default function StakingBar({
         : Number(addStakeFee));
 
   useEffect(() => {
+    const client = new AptosClient(state.network_value);
     async function fetchData() {
       const fee = await getAddStakeFee(
         client,
@@ -145,7 +170,7 @@ export default function StakingBar({
       setAddStakeFee(fee[0]);
     }
     fetchData();
-  }, [state.network_value, balance]);
+  }, [state.network_value, balance, validator]);
 
   const stakeButton = (
     <StyledTooltip

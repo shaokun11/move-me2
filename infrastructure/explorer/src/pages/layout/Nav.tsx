@@ -55,18 +55,18 @@ export default function Nav() {
         title="View All Transactions"
         label="Transactions"
       />
-      {/* {inMainnet && (
+      {inMainnet && (
         <NavButton
           to="/analytics"
           title="View Network Analytics"
           label="Analytics"
         />
-      )} */}
-      {/* <NavButton
+      )}
+      <NavButton
         to="/validators"
         title="View All Validators"
         label="Validators"
-      /> */}
+      />
       <NavButton to="/blocks" title="View Latest Blocks" label="Blocks" />
     </Box>
   );

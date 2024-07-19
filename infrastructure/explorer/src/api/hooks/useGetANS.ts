@@ -5,7 +5,6 @@ import {
   fetchJsonResponse,
   getLocalStorageWithExpiry,
   setLocalStorageWithExpiry,
-  truncateAptSuffix,
 } from "../../utils";
 import {ResponseError} from "../client";
 
@@ -25,9 +24,12 @@ function getFetchNameUrl(
     : `https://www.aptosnames.com/api/${network}/v1/name/${address}`;
 }
 
-export function useGetNameFromAddress(address: string, shouldCache = false) {
-  const [state, _] = useGlobalState();
-
+export function useGetNameFromAddress(
+  address: string,
+  shouldCache = false,
+  isValidator = false,
+) {
+  const [state] = useGlobalState();
   const queryResult = useQuery<string | null, ResponseError>({
     queryKey: ["ANSName", address, shouldCache, state.network_name],
     queryFn: () => {
@@ -35,7 +37,7 @@ export function useGetNameFromAddress(address: string, shouldCache = false) {
       if (cachedName) {
         return cachedName;
       }
-      return genANSName(address, shouldCache, state.network_name);
+      return genANSName(address, shouldCache, state.network_name, isValidator);
     },
   });
 
@@ -48,6 +50,7 @@ async function genANSName(
   address: string,
   shouldCache: boolean,
   networkName: NetworkName,
+  isValidator: boolean,
 ): Promise<string | null> {
   const primaryNameUrl = getFetchNameUrl(networkName, address, true);
 
@@ -63,6 +66,8 @@ async function genANSName(
         setLocalStorageWithExpiry(address, primaryName, TTL);
       }
       return primaryName;
+    } else if (isValidator) {
+      return null;
     } else {
       const nameUrl = getFetchNameUrl(networkName, address, false);
 
@@ -85,37 +90,4 @@ async function genANSName(
   }
 
   return null;
-}
-
-function getFetchAddressUrl(network: NetworkName, name: string) {
-  if (network !== "testnet" && network !== "mainnet") {
-    return undefined;
-  }
-
-  return `https://www.aptosnames.com/api/${network}/v1/address/${name}`;
-}
-
-export async function getAddressFromName(
-  name: string,
-  network: NetworkName,
-): Promise<{address: string | undefined; primaryName: string | undefined}> {
-  const searchableName = truncateAptSuffix(name);
-  const addressUrl = getFetchAddressUrl(network, searchableName);
-
-  const notFoundResult = {address: undefined, primaryName: undefined};
-  if (addressUrl === undefined) {
-    return notFoundResult;
-  }
-
-  try {
-    const {address} = await fetchJsonResponse(addressUrl);
-
-    const primaryNameUrl = getFetchNameUrl(network, address, true);
-    const primaryNameResponse = await fetch(primaryNameUrl ?? "");
-    const {name: primaryName} = await primaryNameResponse.json();
-
-    return {address: address, primaryName: primaryName};
-  } catch {
-    return notFoundResult;
-  }
 }

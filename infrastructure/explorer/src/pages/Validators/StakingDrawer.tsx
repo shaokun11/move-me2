@@ -23,7 +23,7 @@ const faqStakingData = [
       <React.Fragment>
         As an MVMT holder, you can 'delegate' your MVMT to a delegation pool. The
         total delegation pool is an aggregation of staked MVMT from various token
-        owners, and collectively staked. Aptos is a proof-of-stake network,
+        owners, and collectively staked. Movement is a proof-of-stake network,
         which means that tokens are staked to{" "}
         <Link to={"#validators-section"}>validators</Link> in order to keep the
         network healthy.
@@ -144,7 +144,8 @@ const faqRewardsData = [
   },
   {
     question: "Can the operator change their commission rate?",
-    answer: "No, the commission rate cannot be changed.",
+    answer:
+      "Commission rates are now subject to change by the operator. The new rate takes effect at the end of the lockup cycle. This period allows stakers to assess the new commission rate. If stakers are not in favor of the upcoming change, they have the full 7.5-day window to unstake their assets before the new rate takes effect.",
   },
   {
     question: "How much can I expect to earn?",
@@ -170,7 +171,7 @@ const faqValidatorData = [
       <React.Fragment>
         Validator nodes confirm transactions by proposing and executing blocks
         on the network. The stake that they hold helps to prove that they are
-        trusted to vote on transactions. You can read more about how the Aptos
+        trusted to vote on transactions. You can read more about how the Movement
         blockchain works{" "}
         <Link
           to={"https://aptos.dev/guides/basics-life-of-txn#consensus"}
@@ -194,7 +195,7 @@ const faqValidatorData = [
         1M MVMT. Only active validators will earn rewards.
         <br />
         <br />
-        However, please do your own research, Aptos labs is not responsible for
+        However, please do your own research, Movement labs is not responsible for
         the veracity of the information displayed, nor responsible for the
         security of your funds, past or future performance of the validator
         node.
@@ -230,8 +231,8 @@ export function StakingDrawer({open, handleClick}: StakingDrawerProps) {
                 index === 0
                   ? "staking-section"
                   : index === 1
-                  ? "rewards-section"
-                  : "validators-section"
+                    ? "rewards-section"
+                    : "validators-section"
               }
               sx={{
                 flexDirection: "column",

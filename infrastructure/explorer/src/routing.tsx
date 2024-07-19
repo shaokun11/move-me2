@@ -13,6 +13,7 @@ const GLOBAL_PERSISTENT_SEARCH_PARAMS = ["network", "feature"];
 export const Link = ({
   to,
   children,
+  onClick,
   ...props
 }: Omit<React.ComponentProps<typeof MuiLink>, "component"> & {
   to: string;
@@ -26,6 +27,7 @@ export const Link = ({
       to={augmentToWithGlobalSearchParams(to)}
       onClick={(e) => {
         e.stopPropagation();
+        if (onClick) onClick(e);
       }}
     >
       {children}
@@ -45,6 +47,7 @@ export function useNavigate() {
     if (typeof to === "number") {
       return navigateRaw(to);
     }
+    // console.log('useNavigate',normalizeTo(to), options);
 
     navigateRaw(normalizeTo(to), options);
   }
@@ -65,6 +68,7 @@ export function useAugmentToWithGlobalSearchParams() {
         toUrl.searchParams.set(param, currentSearchParams.get(param)!);
       }
     }
+    // console.log('useAugmentToWithGlobalSearchParams',toUrl.pathname , toUrl.search , toUrl.hash);
     return toUrl.pathname + toUrl.search + toUrl.hash;
   };
 }

@@ -118,7 +118,6 @@ export async function batch_faucet(addr, token, ip) {
     }
     const res = await addToFaucetTask({ addr });
     if (res.error) {
-        FAUCET_TOKEN_SET.delete(t);
         throw res.error;
     }
     console.log('faucet %s %s success', addr, ip);
