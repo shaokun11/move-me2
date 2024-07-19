@@ -109,7 +109,6 @@ export async function traceTransaction(hash) {
     return root_call;
 }
 
-const FAUCET_TOKEN_SET = new Set();
 export async function batch_faucet(addr, token, ip) {
     if ((await googleRecaptcha(token)) === false) {
         throw 'recaptcha error';
@@ -117,11 +116,6 @@ export async function batch_faucet(addr, token, ip) {
     if (!ethers.isAddress(addr)) {
         throw 'Address format error';
     }
-    const t = keccak256(Buffer.from(token, 'utf8'));
-    if (FAUCET_TOKEN_SET.has(t)) {
-        throw 'recaptcha token has been used';
-    }
-    FAUCET_TOKEN_SET.add(t);
     const res = await addToFaucetTask({ addr });
     if (res.error) {
         FAUCET_TOKEN_SET.delete(t);

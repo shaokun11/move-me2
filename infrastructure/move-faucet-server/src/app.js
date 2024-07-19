@@ -70,7 +70,7 @@ app.post('/mint', async function (req, res) {
 
 
 
-const GOOGLE_TOKEN_SET = new Set();
+
 app.get('/batch_mint', async function (req, res) {
     res.status(200);
     const ip = req.headers['cf-connecting-ip'] || req.headers['x-real-ip'] || req.ip;
@@ -87,16 +87,6 @@ app.get('/batch_mint', async function (req, res) {
             error_message: `invalid recaptcha`,
         });
         return;
-    }
-    if(RECAPTCHA_SECRET) {
-        const t1 = createHash("sha256").update(token).digest("hex")
-        if (GOOGLE_TOKEN_SET.has(t1)) {
-            res.json({
-                error_message: `repeat recaptcha`,
-            });
-            return;
-        }
-        GOOGLE_TOKEN_SET.add(t1);
     }
     let ret = await addToFaucetTask({ addr: address, ip });
     if (ret.error) {
