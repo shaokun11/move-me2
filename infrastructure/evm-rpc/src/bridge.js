@@ -272,12 +272,12 @@ export async function getBlockByNumber(block, withTx) {
         difficulty: '0x0',
         extraData: genHash(1),
         gasLimit: toHex(30_000_000),
-        gasUsed: '0x0000000000000000',
+        gasUsed: toHex(20_000_000),
         hash: info.block_hash,
         logsBloom: LOG_BLOOM,
         miner: ZeroAddress,
         mixHash: genHash(2),
-        nonce: '0x0000000000000000',
+        nonce: toHex(BigNumber('0x1000000000000000').plus(info.first_version)), //  8 bytes
         number: toHex(block),
         parentHash: parentHash,
         receiptsRoot: genHash(3),
@@ -285,7 +285,7 @@ export async function getBlockByNumber(block, withTx) {
         size: toHex(1000000),
         stateRoot: genHash(5),
         timestamp: toHex(Math.trunc(info.block_timestamp / 1e6)),
-        totalDifficulty: '0x0000000000000000',
+        totalDifficulty: toHex(BigNumber('0x100000000000000000').plus(info.last_version)), //  10 bytes
         transactions: evm_tx,
         transactionsRoot: genHash(6),
         uncles: [],
