@@ -655,7 +655,7 @@
 
 <pre><code><b>fun</b> <a href="evm.md#0x1_evm_handle_tx_failed">handle_tx_failed</a>(run_state: &RunState, exception: u64): (u64, u256, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;) <b>acquires</b> <a href="evm.md#0x1_evm_ExecResource">ExecResource</a> {
     <a href="evm.md#0x1_evm_emit_event">emit_event</a>(run_state, 0, exception, x"", x"", <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>[]);
-    <a href="evm.md#0x1_evm_emit_trace">emit_trace</a>(run_state);
+    // <a href="evm.md#0x1_evm_emit_trace">emit_trace</a>(run_state);
     (exception, 0, x"")
 }
 </code></pre>
@@ -831,7 +831,7 @@
     save(&<b>mut</b> trie);
 
     <a href="evm.md#0x1_evm_emit_event">emit_event</a>(run_state, gas_usage, exception, message, created_address, logs);
-    <a href="evm.md#0x1_evm_emit_trace">emit_trace</a>(run_state);
+    // <a href="evm.md#0x1_evm_emit_trace">emit_trace</a>(run_state);
 
     (exception, gas_usage, return_value)
 }
@@ -1302,7 +1302,7 @@
     is_create: bool,
     depth: u64
 ): (u8, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;) <b>acquires</b> <a href="evm.md#0x1_evm_ExecResource">ExecResource</a> {
-    add_trace(run_state, sender, <b>to</b>, gas_limit, 0, data, depth, value, <b>if</b>(is_create) 2 <b>else</b> 1);
+
     add_warm_address(<b>to</b>, trie);
 
     <b>if</b>(is_create) {
@@ -2059,6 +2059,8 @@
             <b>return</b> (<a href="evm.md#0x1_evm_CALL_RESULT_UNEXPECT_ERROR">CALL_RESULT_UNEXPECT_ERROR</a>, x"")
         };
     };
+    // <b>let</b> gas_left = get_gas_left(run_state);
+    // add_trace(run_state, sender, <b>to</b>, gas_limit, gas_limit - gas_left, data, ret_value, depth, value, <b>if</b>(is_create) 2 <b>else</b> 1);
     <a href="evm.md#0x1_evm_handle_commit">handle_commit</a>(trie, run_state);
 
     (<a href="evm.md#0x1_evm_CALL_RESULT_SUCCESS">CALL_RESULT_SUCCESS</a>, ret_value)
