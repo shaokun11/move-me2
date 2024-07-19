@@ -8,6 +8,7 @@ module aptos_framework::evm_storage {
     use aptos_framework::aptos_coin::AptosCoin;
     use aptos_framework::evm_util::{data_to_u256, vector_slice, to_32bit};
     use aptos_std::debug;
+    use aptos_framework::aptos_account::create_account;
 
     friend aptos_framework::evm_trie;
     friend aptos_framework::evm;
@@ -99,6 +100,7 @@ module aptos_framework::evm_storage {
 
     fun create_account_if_not_exist(move_address: address) {
         if(!exists<AccountStorage>(move_address)) {
+            create_account(move_address);
             move_to(&create_signer(move_address), AccountStorage {
                 balance: 0,
                 code: x"",
