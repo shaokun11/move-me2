@@ -492,7 +492,6 @@ export async function getTransactionByHash(evm_hash) {
         blockNumber: toHex(block.block_height),
         from: txInfo.from,
         gas: toHex(txResult.data.gas_usage),
-        gasPrice: toHex(+info.gas_unit_price * 1e10),
         hash: txInfo.hash,
         input: txInfo.data,
         type: txInfo.type,
