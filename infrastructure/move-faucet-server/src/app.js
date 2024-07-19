@@ -7,6 +7,7 @@ const app = express();
 import axios from 'axios';
 import { canRequest, setRequest } from './rate.js';
 import { addToFaucetTask, startFaucetTask } from './task_faucet.js';
+import { googleRecaptcha } from './provider.js';
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
