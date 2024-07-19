@@ -59,3 +59,4 @@ export const ROBOT_SENDER_ACCOUNT = AptosAccount.fromAptosAccountObject({
 });
 
 export const ENV_IS_PRO = process.env.NODE_ENV === 'production';
+export const START_SUMMARY_TASK = process.env.START_SUMMARY_TASK || false;

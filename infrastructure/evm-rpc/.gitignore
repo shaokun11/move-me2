@@ -4,4 +4,7 @@ dist
 app.cjs
 move/build
 .vscode
-db
+db/*
+!db/
+!db/.gitkeep
+tx-summary.json

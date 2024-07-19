@@ -5,7 +5,7 @@ import { sleep, toBuffer, toHexStrict } from './helper.js';
 const FAUCET_QUEUE = [];
 
 /**
- * Start the faucet task
+ * Start the batch faucet eth token task
  */
 export async function startFaucetTask() {
     const faucet_amount = toBuffer(toHexStrict((FAUCET_AMOUNT * 1e18).toString()));
