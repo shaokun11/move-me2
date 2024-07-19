@@ -34,7 +34,7 @@ fn native_revert(
 fn encode_access_list(access_lists: &AccessList) -> Vec<u8> {
     let mut buf = Vec::new();
     let access_list_size = access_lists.0.len();
-    if(access_list_size > 0) {
+    if access_list_size > 0 {
         buf.write_all(&access_list_size.to_be_bytes()).expect("Failed to write list size");
         for item in access_lists.0.iter() {
             buf.write_all(&item.address.as_bytes()).expect("Failed to write item address");
