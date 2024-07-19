@@ -96,7 +96,7 @@ app.get('/batch_mint', async function (req, res) {
         });
         return;
     }
-    res.json([ret.data]);
+    res.json(ret);
 });
 
 app.set('trust proxy', 1);
