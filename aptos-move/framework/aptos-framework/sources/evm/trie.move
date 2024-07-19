@@ -4,7 +4,7 @@ module aptos_framework::evm_trie {
     use aptos_std::simple_map;
     use aptos_framework::evm_precompile::is_precompile_address;
     use aptos_framework::evm_storage::{exist_account_storage, load_account_storage, get_state_storage, save_account_storage, save_account_state};
-    use aptos_std::debug;
+    use aptos_framework::evm_util::{to_u256, vector_slice};
 
     friend aptos_framework::evm;
     friend aptos_framework::evm_gas;
@@ -35,11 +35,36 @@ module aptos_framework::evm_trie {
         logs: vector<Log>
     }
 
-    public fun init_new_trie(): Trie {
+    public fun init_new_trie(access_list_bytes: vector<u8>): (Trie, u256, u256) {
         let trie = Trie {
             context: vector::empty(),
             access_list: simple_map::new()
         };
+
+        let iter = 0;
+        let access_address_count = to_u256(vector_slice(access_list_bytes, iter, 8));
+        let i = 0;
+        iter = iter + 8;
+        let access_slot_count = 0;
+        while (i < access_address_count) {
+            let address = vector_slice(access_list_bytes, iter, 20);
+            iter = iter + 20;
+            let key_size = to_u256(vector_slice(access_list_bytes, iter, 8));
+            iter = iter + 8;
+
+            let key_map = simple_map::new<u256, bool>();
+            let j = 0;
+            while(j < key_size) {
+                let key = to_u256(vector_slice(access_list_bytes, iter, 32));
+                iter = iter + 32;
+                simple_map::upsert(&mut key_map, key, true);
+                j = j + 1;
+                access_slot_count = access_slot_count + 1;
+            };
+            simple_map::upsert(&mut trie.access_list, address, key_map);
+            i = i + 1;
+        };
+
 
         vector::push_back(&mut trie.context, Checkpoint {
             state: simple_map::new(),
@@ -49,7 +74,7 @@ module aptos_framework::evm_trie {
             logs: vector::empty()
         });
 
-        trie
+        (trie, access_address_count, access_slot_count)
     }
 
     public fun add_checkpoint(trie: &mut Trie) {

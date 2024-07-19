@@ -504,7 +504,7 @@
 
 
 
-<pre><code><b>fun</b> <a href="evm.md#0x1_evm_decode_raw_tx">decode_raw_tx</a>(raw_tx: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): (u64, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, u256, u256, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, u256, u256, u256, u256, u64)
+<pre><code><b>fun</b> <a href="evm.md#0x1_evm_decode_raw_tx">decode_raw_tx</a>(raw_tx: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): (u64, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, u256, u256, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, u256, u256, u256, u256, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, u64)
 </code></pre>
 
 
@@ -515,7 +515,7 @@
 
 <pre><code><b>native</b> <b>fun</b> <a href="evm.md#0x1_evm_decode_raw_tx">decode_raw_tx</a>(
     raw_tx: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;
-): (u64, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, u256, u256, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, u256, u256, u256, u256, u64);
+): (u64, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, u256, u256, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, u256, u256, u256, u256, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, u64);
 </code></pre>
 
 
@@ -568,9 +568,9 @@
 <pre><code><b>public</b> entry <b>fun</b> <a href="evm.md#0x1_evm_send_tx">send_tx</a>(
     tx: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;
 ) <b>acquires</b> <a href="evm.md#0x1_evm_ExecResource">ExecResource</a> {
-    <b>let</b> (<a href="chain_id.md#0x1_chain_id">chain_id</a>, from, <b>to</b>, nonce, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_per_gas, tx_type) = <a href="evm.md#0x1_evm_decode_raw_tx">decode_raw_tx</a>(tx);
+    <b>let</b> (<a href="chain_id.md#0x1_chain_id">chain_id</a>, from, <b>to</b>, nonce, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_per_gas, access_list_bytes, tx_type) = <a href="evm.md#0x1_evm_decode_raw_tx">decode_raw_tx</a>(tx);
     <b>assert</b>!(<a href="chain_id.md#0x1_chain_id">chain_id</a> == <a href="evm.md#0x1_evm_CHAIN_ID">CHAIN_ID</a> || <a href="chain_id.md#0x1_chain_id">chain_id</a> == 0, <a href="evm.md#0x1_evm_ERROR_INVALID_CHAINID">ERROR_INVALID_CHAINID</a>);
-    <a href="evm.md#0x1_evm_execute">execute</a>(from, <b>to</b>, nonce, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_per_gas, tx_type, <b>false</b>, <b>false</b>, <b>false</b>);
+    <a href="evm.md#0x1_evm_execute">execute</a>(from, <b>to</b>, nonce, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_per_gas, access_list_bytes, tx_type, <b>false</b>, <b>false</b>, <b>false</b>);
 }
 </code></pre>
 
@@ -670,7 +670,7 @@
 
 
 
-<pre><code><b>fun</b> <a href="evm.md#0x1_evm_execute">execute</a>(from: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, nonce: u256, value: u256, data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_limit: u256, gas_price: u256, max_fee_per_gas: u256, max_priority_per_gas: u256, tx_type: u64, skip_nonce: bool, skip_balance: bool, skip_block_gas_limit_validation: bool): (u64, u256, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)
+<pre><code><b>fun</b> <a href="evm.md#0x1_evm_execute">execute</a>(from: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, nonce: u256, value: u256, data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_limit: u256, gas_price: u256, max_fee_per_gas: u256, max_priority_per_gas: u256, access_list_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, tx_type: u64, skip_nonce: bool, skip_balance: bool, skip_block_gas_limit_validation: bool): (u64, u256, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)
 </code></pre>
 
 
@@ -689,12 +689,13 @@
             gas_price: u256,
             max_fee_per_gas: u256,
             max_priority_per_gas: u256,
+            access_list_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
             tx_type: u64,
             skip_nonce: bool,
             skip_balance: bool,
             skip_block_gas_limit_validation: bool
             ): (u64, u256, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;) <b>acquires</b> <a href="evm.md#0x1_evm_ExecResource">ExecResource</a> {
-    <b>let</b> trie = init_new_trie();
+    <b>let</b> (trie, access_address_count, access_slot_count) = init_new_trie(access_list_bytes);
     <b>let</b> run_state = &<b>mut</b> new_run_state(from, <b>to</b>, gas_limit, gas_price, max_fee_per_gas, max_priority_per_gas, tx_type);
     <b>let</b> gas_price = get_gas_price(run_state);
 
@@ -703,7 +704,7 @@
     add_warm_address(get_coinbase(run_state), &<b>mut</b> trie);
 
     <b>let</b> data_size = (<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&data) <b>as</b> u256);
-    <b>let</b> base_cost = calc_base_gas(&data, 0, 0) + 21000;
+    <b>let</b> base_cost = calc_base_gas(&data, access_address_count, access_slot_count) + 21000;
     <b>let</b> up_cost;
     <b>let</b> overflow;
 
@@ -907,7 +908,7 @@
 
 
 <pre><code>#[view]
-<b>public</b> <b>fun</b> <a href="evm.md#0x1_evm_query">query</a>(sender: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, contract_addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, nonce_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, value_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_limit_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_price_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, max_fee_per_gas_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, max_priority_per_gas_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, tx_type: u64): (u64, u256, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)
+<b>public</b> <b>fun</b> <a href="evm.md#0x1_evm_query">query</a>(sender: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, contract_addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, nonce_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, value_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_limit_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_price_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, max_fee_per_gas_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, max_priority_per_gas_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, access_list_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, tx_type: u64): (u64, u256, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)
 </code></pre>
 
 
@@ -925,6 +926,7 @@
                  gas_price_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
                  max_fee_per_gas_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
                  max_priority_per_gas_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
+                 access_list_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
                  tx_type: u64): (u64, u256, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;) <b>acquires</b> <a href="evm.md#0x1_evm_ExecResource">ExecResource</a> {
     <b>let</b> nonce = to_u256(nonce_bytes);
     <b>let</b> value = to_u256(value_bytes);
@@ -933,7 +935,7 @@
     <b>let</b> max_fee_per_gas = to_u256(max_fee_per_gas_bytes);
     <b>let</b> max_priority_per_gas = to_u256(max_priority_per_gas_bytes);
     <b>let</b> tx_type = tx_type;
-    <a href="evm.md#0x1_evm_execute">execute</a>(sender, contract_addr, nonce, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_per_gas, tx_type, <b>true</b>, <b>true</b>, <b>true</b>)
+    <a href="evm.md#0x1_evm_execute">execute</a>(sender, contract_addr, nonce, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_per_gas, access_list_bytes, tx_type, <b>true</b>, <b>true</b>, <b>true</b>)
 }
 </code></pre>
 
@@ -1079,7 +1081,7 @@
 
 
 
-<pre><code><b>fun</b> <a href="evm.md#0x1_evm_handle_unexpect_revert">handle_unexpect_revert</a>(trie: &<b>mut</b> <a href="trie.md#0x1_evm_trie_Trie">evm_trie::Trie</a>, run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>, error_code: &u64)
+<pre><code><b>fun</b> <a href="evm.md#0x1_evm_handle_unexpect_revert">handle_unexpect_revert</a>(trie: &<b>mut</b> <a href="trie.md#0x1_evm_trie_Trie">evm_trie::Trie</a>, run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">evm_global_state::RunState</a>)
 </code></pre>
 
 
@@ -1088,7 +1090,7 @@
 <summary>Implementation</summary>
 
 
-<pre><code><b>fun</b> <a href="evm.md#0x1_evm_handle_unexpect_revert">handle_unexpect_revert</a>(trie: &<b>mut</b> Trie, run_state: &<b>mut</b> RunState, error_code: &u64) {
+<pre><code><b>fun</b> <a href="evm.md#0x1_evm_handle_unexpect_revert">handle_unexpect_revert</a>(trie: &<b>mut</b> Trie, run_state: &<b>mut</b> RunState) {
     revert_checkpoint(trie);
     revert_call_state(run_state);
 }
@@ -1334,7 +1336,7 @@
         <b>let</b> gas = calc_exec_gas(opcode, <b>to</b>, stack, run_state, trie, gas_limit, error_code);
         <b>let</b> out_of_gas = add_gas_usage(run_state, gas);
         <b>if</b>(*error_code &gt; 0 || out_of_gas) {
-            <a href="evm.md#0x1_evm_handle_unexpect_revert">handle_unexpect_revert</a>(trie, run_state, error_code);
+            <a href="evm.md#0x1_evm_handle_unexpect_revert">handle_unexpect_revert</a>(trie, run_state);
             <b>return</b> (<b>if</b>(out_of_gas) <a href="evm.md#0x1_evm_CALL_RESULT_OUT_OF_GAS">CALL_RESULT_OUT_OF_GAS</a> <b>else</b> <a href="evm.md#0x1_evm_CALL_RESULT_UNEXPECT_ERROR">CALL_RESULT_UNEXPECT_ERROR</a>, ret_value)
         };
         // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&i);
@@ -2046,7 +2048,7 @@
         // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack));
 
         <b>if</b>(*error_code &gt; 0 || <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack) &gt; <a href="evm.md#0x1_evm_MAX_STACK_SIZE">MAX_STACK_SIZE</a>) {
-            <a href="evm.md#0x1_evm_handle_unexpect_revert">handle_unexpect_revert</a>(trie, run_state, error_code);
+            <a href="evm.md#0x1_evm_handle_unexpect_revert">handle_unexpect_revert</a>(trie, run_state);
             <b>return</b> (<a href="evm.md#0x1_evm_CALL_RESULT_UNEXPECT_ERROR">CALL_RESULT_UNEXPECT_ERROR</a>, ret_value)
         }
     };
@@ -2055,7 +2057,7 @@
         <b>let</b> code_size = (<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&ret_value) <b>as</b> u256);
         <b>let</b> out_of_gas = add_gas_usage(run_state, 200 * code_size);
         <b>if</b>(code_size &gt; <a href="evm.md#0x1_evm_MAX_CODE_SIZE">MAX_CODE_SIZE</a> || (code_size &gt; 0 && (*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&ret_value, 0)) == 0xef) || out_of_gas) {
-            <a href="evm.md#0x1_evm_handle_unexpect_revert">handle_unexpect_revert</a>(trie, run_state, error_code);
+            <a href="evm.md#0x1_evm_handle_unexpect_revert">handle_unexpect_revert</a>(trie, run_state);
             <b>return</b> (<a href="evm.md#0x1_evm_CALL_RESULT_UNEXPECT_ERROR">CALL_RESULT_UNEXPECT_ERROR</a>, x"")
         };
     };

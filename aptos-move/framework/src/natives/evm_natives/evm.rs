@@ -14,10 +14,11 @@ use move_vm_runtime::native_functions::NativeFunction;
 use std::collections::VecDeque;
 use smallvec::{smallvec, SmallVec};
 use ethers::types::{Transaction};
+use ethers::types::transaction::eip2930::AccessList;
 use ethers::utils::rlp::{Rlp, Decodable};
 use ethers::types::{U256};
 use hex;
-
+use std::io::{Write};
 
 fn native_revert(
     _context: &mut SafeNativeContext,
@@ -28,6 +29,24 @@ fn native_revert(
 
 	let message_bytes = safely_pop_arg!(args, Vec<u8>);
 	return Err(SafeNativeError::InvariantViolation(PartialVMError::new(StatusCode::EVM_CONTRACT_ERROR).with_message(hex::encode(message_bytes))));
+}
+
+fn encode_access_list(access_lists: &AccessList) -> Vec<u8> {
+    let mut buf = Vec::new();
+    let access_list_size = access_lists.0.len();
+    if(access_list_size > 0) {
+        buf.write_all(&access_list_size.to_be_bytes()).expect("Failed to write list size");
+        for item in access_lists.0.iter() {
+            buf.write_all(&item.address.as_bytes()).expect("Failed to write item address");
+            let item_size = item.storage_keys.len();
+            buf.write_all(&item_size.to_be_bytes()).expect("Failed to write keys size");
+            for key in item.storage_keys.iter() {
+                buf.write_all(&key.as_bytes()).expect("Failed to write item key");
+            }
+        }
+    }
+    
+    buf
 }
 
 fn native_decode_raw_tx(
@@ -75,6 +94,11 @@ fn native_decode_raw_tx(
             None => 0,
         };
 
+        let access_lists = match data.access_list { 
+            Some(a) => encode_access_list(&a),
+            None => vec![]
+        };
+
         Ok(smallvec![
             Value::u64(chain_id),
             Value::vector_u8(from),
@@ -86,6 +110,7 @@ fn native_decode_raw_tx(
             Value::u256(evm_u256_to_move_u256(&gas_price)),
             Value::u256(evm_u256_to_move_u256(&max_fee_per_gas)),
             Value::u256(evm_u256_to_move_u256(&max_priority_fee_per_gas)),
+            Value::vector_u8(access_lists),
             Value::u64(tx_type)
         ])
     }

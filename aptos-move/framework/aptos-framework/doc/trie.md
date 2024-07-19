@@ -51,6 +51,7 @@
 
 <pre><code><b>use</b> <a href="precompile.md#0x1_evm_precompile">0x1::evm_precompile</a>;
 <b>use</b> <a href="storage.md#0x1_evm_storage">0x1::evm_storage</a>;
+<b>use</b> <a href="util.md#0x1_evm_util">0x1::evm_util</a>;
 <b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/option.md#0x1_option">0x1::option</a>;
 <b>use</b> <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map">0x1::simple_map</a>;
 </code></pre>
@@ -231,7 +232,7 @@
 
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="trie.md#0x1_evm_trie_init_new_trie">init_new_trie</a>(): <a href="trie.md#0x1_evm_trie_Trie">evm_trie::Trie</a>
+<pre><code><b>public</b> <b>fun</b> <a href="trie.md#0x1_evm_trie_init_new_trie">init_new_trie</a>(access_list_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): (<a href="trie.md#0x1_evm_trie_Trie">evm_trie::Trie</a>, u256, u256)
 </code></pre>
 
 
@@ -240,11 +241,36 @@
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="trie.md#0x1_evm_trie_init_new_trie">init_new_trie</a>(): <a href="trie.md#0x1_evm_trie_Trie">Trie</a> {
+<pre><code><b>public</b> <b>fun</b> <a href="trie.md#0x1_evm_trie_init_new_trie">init_new_trie</a>(access_list_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): (<a href="trie.md#0x1_evm_trie_Trie">Trie</a>, u256, u256) {
     <b>let</b> trie = <a href="trie.md#0x1_evm_trie_Trie">Trie</a> {
         context: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_empty">vector::empty</a>(),
         access_list: <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_new">simple_map::new</a>()
     };
+
+    <b>let</b> iter = 0;
+    <b>let</b> access_address_count = to_u256(vector_slice(access_list_bytes, iter, 8));
+    <b>let</b> i = 0;
+    iter = iter + 8;
+    <b>let</b> access_slot_count = 0;
+    <b>while</b> (i &lt; access_address_count) {
+        <b>let</b> <b>address</b> = vector_slice(access_list_bytes, iter, 20);
+        iter = iter + 20;
+        <b>let</b> key_size = to_u256(vector_slice(access_list_bytes, iter, 8));
+        iter = iter + 8;
+
+        <b>let</b> key_map = <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_new">simple_map::new</a>&lt;u256, bool&gt;();
+        <b>let</b> j = 0;
+        <b>while</b>(j &lt; key_size) {
+            <b>let</b> key = to_u256(vector_slice(access_list_bytes, iter, 32));
+            iter = iter + 32;
+            <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_upsert">simple_map::upsert</a>(&<b>mut</b> key_map, key, <b>true</b>);
+            j = j + 1;
+            access_slot_count = access_slot_count + 1;
+        };
+        <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_upsert">simple_map::upsert</a>(&<b>mut</b> trie.access_list, <b>address</b>, key_map);
+        i = i + 1;
+    };
+
 
     <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(&<b>mut</b> trie.context, <a href="trie.md#0x1_evm_trie_Checkpoint">Checkpoint</a> {
         state: <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_new">simple_map::new</a>(),
@@ -254,7 +280,7 @@
         logs: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_empty">vector::empty</a>()
     });
 
-    trie
+    (trie, access_address_count, access_slot_count)
 }
 </code></pre>
 
