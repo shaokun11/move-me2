@@ -26,13 +26,18 @@ export enum HashType {
 interface TitleHashButtonProps {
   hash: string;
   type: HashType;
+  isValidator?: boolean;
 }
 
-export default function TitleHashButton({hash, type}: TitleHashButtonProps) {
+export default function TitleHashButton({
+  hash,
+  type,
+  isValidator = false,
+}: TitleHashButtonProps) {
   if (type !== HashType.NAME) {
     return <HashButton hash={hash} />;
   } else {
-    return <Name address={hash} />;
+    return <Name address={hash} isValidator={isValidator} />;
   }
 }
 
@@ -43,7 +48,7 @@ function HashButton({hash}: {hash: string}) {
 
   const [tooltipOpen, setTooltipOpen] = useState<boolean>(false);
 
-  const copyAddress = async (event: React.MouseEvent<HTMLButtonElement>) => {
+  const copyAddress = async () => {
     await navigator.clipboard.writeText(hash);
 
     setTooltipOpen(true);
@@ -62,7 +67,7 @@ function HashButton({hash}: {hash: string}) {
           theme.palette.mode === "dark" ? grey[600] : grey[200]
         }`,
         display: "flex",
-        borderRadius: 0,
+        borderRadius: 1,
         color: "inherit",
         padding: "0.15rem 0.5rem 0.15rem 1rem",
         "&:hover": {
@@ -85,8 +90,8 @@ function HashButton({hash}: {hash: string}) {
         {isOnMobile
           ? truncateAddress(hash)
           : isOnSmallerScreen
-          ? truncateAddressMiddle(hash)
-          : hash}
+            ? truncateAddressMiddle(hash)
+            : hash}
       </Typography>
     </Button>
   );
@@ -107,9 +112,9 @@ function HashButton({hash}: {hash: string}) {
   );
 }
 
-function Name({address}: {address: string}) {
+function Name({address, isValidator}: {address: string; isValidator: boolean}) {
   const theme = useTheme();
-  const name = useGetNameFromAddress(address, true);
+  const name = useGetNameFromAddress(address, true, isValidator);
 
   if (!name) {
     return null;

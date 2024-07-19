@@ -2,13 +2,17 @@ import React, {useRef} from "react";
 import Toolbar from "@mui/material/Toolbar";
 import MuiAppBar from "@mui/material/AppBar";
 import Container from "@mui/material/Container";
-import NetworkSelect from "./NetworkSelect";
+// import NetworkSelect from "./NetworkSelect";
 import {useColorMode} from "../../context";
 import {useMediaQuery, useTheme} from "@mui/material";
-import {ReactComponent as LogoIconW} from "../../assets/svg/logo_txt_w.svg";
-import {ReactComponent as LogoIconB} from "../../assets/svg/logo_txt_b.svg";
-import {ReactComponent as IconLight} from "../../assets/svg/icon_light.svg";
-import {ReactComponent as IconDark} from "../../assets/svg/icon_dark.svg";
+// import LogoIcon from "../../assets/svg/aptos_logo_icon.svg?react";
+// import IconLight from "../../assets/svg/icon_light.svg?react";
+// import IconDark from "../../assets/svg/icon_dark.svg?react";
+
+import LogoIconW from "../../assets/svg/logo_txt_w.svg?react";
+import LogoIconB from "../../assets/svg/logo_txt_b.svg?react";
+import IconLight from "../../assets/svg/icon_light.svg?react";
+import IconDark from "../../assets/svg/icon_dark.svg?react";
 import Button from "@mui/material/Button";
 import Box from "@mui/material/Box";
 import Nav from "./Nav";
@@ -20,8 +24,8 @@ import {WalletConnector} from "@aptos-labs/wallet-adapter-mui-design";
 import {useGlobalState} from "../../global-config/GlobalConfig";
 import {useWallet} from "@aptos-labs/wallet-adapter-react";
 import {sendToGTM} from "../../api/hooks/useGoogleTagManager";
-import {Statsig} from "statsig-react";
 import {Link, useNavigate} from "../../routing";
+import {useLogEventWithBasic} from "../Account/hooks/useLogEventWithBasic";
 
 export default function Header() {
   const scrollTop = () => {
@@ -40,6 +44,7 @@ export default function Header() {
 
   const {toggleColorMode} = useColorMode();
   const theme = useTheme();
+  const logEvent = useLogEventWithBasic();
   const isDark = theme.palette.mode === "dark";
 
   const {ref, inView} = useInView({
@@ -51,10 +56,10 @@ export default function Header() {
   const [state] = useGlobalState();
   const {account, wallet, network} = useWallet();
   const navigate = useNavigate();
-  let walletAddressRef = useRef("");
+  const walletAddressRef = useRef("");
 
   if (account && walletAddressRef.current !== account.address) {
-    Statsig.logEvent("wallet_connected", account.address, {
+    logEvent("wallet_connected", account.address, {
       wallet_name: wallet!.name,
       network_type: state.network_name,
     });
@@ -115,34 +120,18 @@ export default function Header() {
               color="inherit"
               underline="none"
               sx={{
-                // width: {xs: "30px", sm: "30px", md: "40px"},
+                width: {xs: "30px", sm: "30px", md: "40px"},
                 height: {xs: "30px", sm: "30px", md: "40px"},
                 marginRight: "auto",
-                display:'inline-flex',
-                alignItems:'center'
               }}
             >
               {
-                isDark?
-                <LogoIconW style={{
-                      width: 'auto',
-                      height: '26',
-                      // border: '1px solid white',
-                      // borderRadius: '50%',
-                      // width: '221px',
-                      // height: '35px',
-                }} />
-                :
-                <LogoIconB style={{
+                isDark ? <LogoIconW style={{
                   width: 'auto',
-                  height: '26',
-                      // border: '1px solid white',
-                      // borderRadius: '50%',
-                      // width: '221px',
-                      // height: '35px',
-                }} />
+                  height: '26',}} /> : <LogoIconB  style={{
+                    width: 'auto',
+                    height: '26',}} />
               }
-              {/* <Box component={'span'} sx={{ml:'8px',fontWeight:'bold'}}>Movement</Box> */}
             </Link>
 
             <Nav />
@@ -150,7 +139,6 @@ export default function Header() {
             <Button
               onClick={toggleColorMode}
               sx={{
-                
                 width: "30px",
                 height: "30px",
                 display: "flex",
@@ -167,15 +155,7 @@ export default function Header() {
             </Button>
             <NavMobile />
             {!isOnMobile && (
-              <Box sx={{
-                marginLeft: "1rem",
-                '& button':{
-                  borderRadius:'0 !important',
-                  color:'white !important',
-                  backgroundColor:'#1737FF',
-                  '&:hover':{backgroundColor:'rgb(16, 38, 178)'}
-                }
-                }}>
+              <Box sx={{marginLeft: "1rem"}}>
                 <WalletConnector
                   networkSupport={state.network_name}
                   handleNavigate={() =>

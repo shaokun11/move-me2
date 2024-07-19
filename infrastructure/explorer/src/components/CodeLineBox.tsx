@@ -5,11 +5,8 @@ import {
   codeBlockColorClickableOnHover,
 } from "../themes/colors/aptosColorPalette";
 
-// const TEXT_COLOR_LIGHT = "#49D6CE";
-// const TEXT_COLOR_DARK = "#83CCED";
-
-const TEXT_COLOR_LIGHT = "#FFD016";
-const TEXT_COLOR_DARK = "#FFD016";
+const TEXT_COLOR_LIGHT = "#0EA5E9";
+const TEXT_COLOR_DARK = "#83CCED";
 
 export function CodeLineBox({
   children,
@@ -49,7 +46,7 @@ export function CodeLineBox({
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
       borderColor={codeBlockColor}
-      borderRadius={0}
+      borderRadius={50}
     >
       {children}
     </Box>

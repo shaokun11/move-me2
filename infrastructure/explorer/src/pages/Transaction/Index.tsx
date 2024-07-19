@@ -1,4 +1,3 @@
-import React from "react";
 import {Stack, Grid, Alert} from "@mui/material";
 import {Types} from "aptos";
 import {useGlobalState} from "../../global-config/GlobalConfig";
@@ -10,16 +9,27 @@ import Error from "./Error";
 import TransactionTitle from "./Title";
 import TransactionTabs from "./Tabs";
 import PageHeader from "../layout/PageHeader";
+import { getMoveHA } from "../../api/query-utils";
+import { useState } from "react";
 
 export default function TransactionPage() {
-  const [state, _] = useGlobalState();
+  const [state] = useGlobalState();
   const {txnHashOrVersion: txnParam} = useParams();
-  const txnHashOrVersion = txnParam ?? "";
+  const txnHashOrVersion1 = txnParam ?? "";
+  const [txnHashOrVersion, setTxnHashOrVersion] = useState<string>(txnHashOrVersion1);
 
-  const {isLoading, data, error} = useQuery<Types.Transaction, ResponseError>(
-    ["transaction", {txnHashOrVersion}, state.network_value],
-    () => getTransaction({txnHashOrVersion}, state.network_value),
-  );
+  if(txnHashOrVersion1.length === 66) {
+    getMoveHA('debug_getMoveHash',txnHashOrVersion1).then((res:any)=>{
+      setTxnHashOrVersion(res.data);
+      // console.log('txnHashOrVersion',txnHashOrVersion1,txnHashOrVersion,res);
+    });
+  }
+  
+
+  const {isLoading, data, error} = useQuery<Types.Transaction, ResponseError>({
+    queryKey: ["transaction", {txnHashOrVersion}, state.network_value],
+    queryFn: () => getTransaction({txnHashOrVersion}, state.network_value),
+  });
 
   if (isLoading) {
     return null;

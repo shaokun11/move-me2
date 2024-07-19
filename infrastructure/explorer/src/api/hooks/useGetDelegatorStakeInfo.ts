@@ -7,11 +7,11 @@ export function useGetDelegatorStakeInfo(
   delegatorAddress: Types.Address,
   validatorAddress: Types.Address,
 ) {
-  const [state, _] = useGlobalState();
+  const [state] = useGlobalState();
   const [stakes, setStakes] = useState<Types.MoveValue[]>([]);
-  const client = new AptosClient(state.network_value);
 
   useEffect(() => {
+    const client = new AptosClient(state.network_value);
     const fetchData = async () => {
       setStakes(await getStake(client, delegatorAddress, validatorAddress));
     };

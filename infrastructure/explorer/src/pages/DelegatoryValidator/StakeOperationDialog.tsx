@@ -7,9 +7,9 @@ import {
   Typography,
   Box,
 } from "@mui/material";
-import React, {useContext, useEffect, useState} from "react";
+import {useContext, useEffect, useState} from "react";
 import TimestampValue from "../../components/IndividualPageContent/ContentValue/TimestampValue";
-import {grey} from "../../themes/colors/aptosColorPalette";
+import {grey, negativeColor} from "../../themes/colors/aptosColorPalette";
 import {getStakeOperationAPTRequirement} from "./utils";
 import StyledDialog from "../../components/StyledDialog";
 import StyledTooltip, {
@@ -33,10 +33,12 @@ import {useGetDelegationState} from "../../api/hooks/useGetDelegationState";
 import {DelegationStateContext} from "./context/DelegationContext";
 import {AptosClient, Types} from "aptos";
 import {getAddStakeFee} from "../../api";
-import {Statsig} from "statsig-react";
 import {useWallet} from "@aptos-labs/wallet-adapter-react";
 import {useGlobalState} from "../../global-config/GlobalConfig";
 import {MINIMUM_APT_IN_POOL} from "./constants";
+import {ValidatorData} from "../../api/hooks/useGetValidators";
+import {useLogEventWithBasic} from "../Account/hooks/useLogEventWithBasic";
+import TooltipTypography from "../../components/TooltipTypography";
 
 type StakeOperationDialogProps = {
   handleDialogClose: () => void;
@@ -61,6 +63,33 @@ export default function StakeOperationDialog({
     return null;
   }
 
+  return (
+    <StakeOperationDialogContent
+      handleDialogClose={handleDialogClose}
+      isDialogOpen={isDialogOpen}
+      stakeOperation={stakeOperation}
+      canWithdrawPendingInactive={canWithdrawPendingInactive}
+      stakes={stakes}
+      commission={commission}
+      accountResource={accountResource}
+      validator={validator}
+    />
+  );
+}
+
+function StakeOperationDialogContent({
+  handleDialogClose,
+  isDialogOpen,
+  stakeOperation,
+  canWithdrawPendingInactive,
+  stakes,
+  commission,
+  accountResource,
+  validator,
+}: StakeOperationDialogProps & {
+  accountResource: Types.MoveResource;
+  validator: ValidatorData;
+}) {
   const {balance, lockedUntilSecs, rewardsRateYearly} = useGetDelegationState(
     accountResource,
     validator,
@@ -74,13 +103,8 @@ export default function StakeOperationDialog({
     transactionResponse,
     clearTransactionResponse,
   } = useSubmitStakeOperation();
-  const {
-    amount,
-    setAmount,
-    clearAmount,
-    renderAmountTextField,
-    validateAmountInput,
-  } = useAmountInput(stakeOperation);
+  const {amount, setAmount, renderAmountTextField, validateAmountInput} =
+    useAmountInput(stakeOperation);
 
   const [transactionHash, setTransactionHash] = useState<string>("");
   const [enteredAmount, setEnteredAmount] = useState<string>("");
@@ -95,9 +119,32 @@ export default function StakeOperationDialog({
     Number(balance),
   );
   const {suggestedMax, min, max} = minMax;
+  const handleClose = () => {
+    handleDialogClose();
+    setAmount("");
+  };
+
+  const [state] = useGlobalState();
+  const [addStakeFee, setAddStakeFee] = useState<Types.MoveValue>(0);
+  const logEvent = useLogEventWithBasic();
+
+  useEffect(() => {
+    const client = new AptosClient(state.network_value);
+    async function fetchData() {
+      if (stakeOperation === StakeOperation.STAKE) {
+        const fee = await getAddStakeFee(
+          client,
+          validator!.owner_address,
+          Number(amount).toFixed(8),
+        );
+        setAddStakeFee(fee[0]);
+      }
+    }
+    fetchData();
+  }, [state.network_value, amount, stakeOperation, validator]);
 
   const onSubmitClick = async () => {
-    Statsig.logEvent("submit_transaction_button_clicked", stakeOperation, {
+    logEvent("submit_transaction_button_clicked", stakeOperation, {
       validator_address: validator.owner_address,
       wallet_address: account?.address ?? "",
       wallet_name: wallet?.name ?? "",
@@ -123,11 +170,15 @@ export default function StakeOperationDialog({
     if (transactionResponse?.transactionSubmitted) {
       setTransactionHash(transactionResponse?.transactionHash);
       setEnteredAmount(amount);
-      clearAmount();
       handleDialogClose();
       setIsTransactionSucceededDialogOpen(true);
     }
-  }, [transactionResponse]);
+  }, [
+    transactionResponse,
+    amount,
+    handleDialogClose,
+    setIsTransactionSucceededDialogOpen,
+  ]);
 
   const getAmount = () => {
     const stakedAmount = Number(stakes[0]) / OCTA;
@@ -202,29 +253,6 @@ export default function StakeOperationDialog({
     />
   );
 
-  const handleClose = () => {
-    handleDialogClose();
-    setAmount("");
-  };
-
-  const [state, _] = useGlobalState();
-  const client = new AptosClient(state.network_value);
-  const [addStakeFee, setAddStakeFee] = useState<Types.MoveValue>(0);
-
-  useEffect(() => {
-    async function fetchData() {
-      if (stakeOperation === StakeOperation.STAKE) {
-        const fee = await getAddStakeFee(
-          client,
-          validator!.owner_address,
-          Number(amount).toFixed(8),
-        );
-        setAddStakeFee(fee[0]);
-      }
-    }
-    fetchData();
-  }, [state.network_value, amount]);
-
   const isAmountValid = validateAmountInput(min, max);
   const stakeDialog = (
     <StyledDialog handleDialogClose={handleClose} open={isDialogOpen}>
@@ -282,12 +310,27 @@ export default function StakeOperationDialog({
               <ContentRowSpaceBetween
                 title={"Next Unlock In"}
                 value={
-                  <TimestampValue timestamp={lockedUntilSecs?.toString()!} />
+                  <TimestampValue
+                    timestamp={lockedUntilSecs?.toString()!}
+                    ensureMilliSeconds
+                  />
                 }
               />
             )}
           </ContentBoxSpaceBetween>
         </Stack>
+      </DialogContent>
+      <DialogContent sx={{textAlign: "center"}}>
+        {commission === 100 ? (
+          <TooltipTypography
+            textAlign="center"
+            variant="body2"
+            color={negativeColor}
+          >
+            The commission rate for this pool is 100%, you will not receive
+            rewards.
+          </TooltipTypography>
+        ) : null}
       </DialogContent>
       <DialogActions>
         <StyledTooltip
@@ -313,7 +356,7 @@ export default function StakeOperationDialog({
       <DialogContent sx={{textAlign: "center"}}>
         <Typography variant="caption" color={grey[450]}>
           <div>
-            Please do your own research. Aptos Labs is not responsible for the
+            Please do your own research. Movement Labs is not responsible for the
             performance of the validator nodes displayed here, or the security
             of your funds
           </div>
@@ -374,7 +417,7 @@ export default function StakeOperationDialog({
       <DialogContent sx={{textAlign: "center"}}>
         <Typography variant="caption" color={grey[450]}>
           <div>
-            Please do your own research. Aptos Labs is not responsible for the
+            Please do your own research. Movement Labs is not responsible for the
             security of your funds
           </div>
         </Typography>
@@ -426,7 +469,7 @@ export default function StakeOperationDialog({
       <DialogContent sx={{textAlign: "center"}}>
         <Typography variant="caption" color={grey[450]}>
           <div>
-            Please do your own research. Aptos Labs is not responsible for the
+            Please do your own research. Movement Labs is not responsible for the
             security of your funds
           </div>
         </Typography>

@@ -1,6 +1,6 @@
 import * as React from "react";
 import {Tab, TabProps, useTheme} from "@mui/material";
-import {grey} from "../themes/colors/aptosColorPalette";
+import {grey,primary} from "../themes/colors/aptosColorPalette";
 
 interface StyledTabProps extends TabProps {
   isFirst: boolean;
@@ -22,6 +22,7 @@ export default function StyledTab({
   } else {
     backgroundColor = theme.palette.mode === "dark" ? grey[700] : grey[200];
   }
+  // console.log("label",props );
 
   return (
     <Tab
@@ -29,11 +30,11 @@ export default function StyledTab({
         minHeight: 60,
         textTransform: "none",
         fontSize: {xs: "small", md: "medium"},
-        paddingX: 3,
+        paddingX: 2,
         color: grey[450],
         minWidth: {xs: 0, md: "200px"},
         "&.Mui-selected": {
-          color: "inherit",
+          color: primary[601],
           backgroundColor: backgroundColor,
         },
         borderTopLeftRadius: isFirst ? "15px 15px" : "",

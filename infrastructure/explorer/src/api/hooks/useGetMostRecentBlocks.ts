@@ -5,13 +5,14 @@ import {getLedgerInfo, getRecentBlocks} from "..";
 import {Types} from "aptos";
 
 export function useGetMostRecentBlocks(count: number) {
-  const [state, _] = useGlobalState();
+  const [state] = useGlobalState();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [recentBlocks, setRecentBlocks] = useState<Types.Block[]>([]);
 
-  const {data: ledgerData} = useQuery(["ledgerInfo", state.network_value], () =>
-    getLedgerInfo(state.network_value),
-  );
+  const {data: ledgerData} = useQuery({
+    queryKey: ["ledgerInfo", state.network_value],
+    queryFn: () => getLedgerInfo(state.network_value),
+  });
   const currentBlockHeight = ledgerData?.block_height;
 
   useEffect(() => {
@@ -27,7 +28,7 @@ export function useGetMostRecentBlocks(count: number) {
       };
       fetchData();
     }
-  }, [currentBlockHeight, state]);
+  }, [currentBlockHeight, state, count]);
 
   return {recentBlocks, isLoading};
 }

@@ -6,15 +6,15 @@ import {useGetTPSByBlockHeight} from "./useGetTPSByBlockHeight";
 import {AnalyticsData, ANALYTICS_DATA_URL} from "./useGetAnalyticsData";
 
 export function useGetTPS() {
-  const [state, _] = useGlobalState();
+  const [state] = useGlobalState();
   const [blockHeight, setBlockHeight] = useState<number | undefined>();
   const {tps} = useGetTPSByBlockHeight(blockHeight);
 
-  const {data: ledgerData} = useQuery(
-    ["ledgerInfo", state.network_value],
-    () => getLedgerInfo(state.network_value),
-    {refetchInterval: 10000},
-  );
+  const {data: ledgerData} = useQuery({
+    queryKey: ["ledgerInfo", state.network_value],
+    queryFn: () => getLedgerInfo(state.network_value),
+    refetchInterval: 10000,
+  });
   const currentBlockHeight = ledgerData?.block_height;
 
   useEffect(() => {
@@ -27,7 +27,7 @@ export function useGetTPS() {
 }
 
 export function useGetPeakTPS() {
-  const [state, _] = useGlobalState();
+  const [state] = useGlobalState();
   const [peakTps, setPeakTps] = useState<number>();
 
   useEffect(() => {

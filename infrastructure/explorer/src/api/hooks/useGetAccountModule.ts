@@ -8,11 +8,11 @@ export function useGetAccountModule(
   address: string,
   moduleName: string,
 ): UseQueryResult<Types.MoveModuleBytecode, ResponseError> {
-  const [state, _setState] = useGlobalState();
+  const [state] = useGlobalState();
 
-  return useQuery<Types.MoveModuleBytecode, ResponseError>(
-    ["accountModule", {address, moduleName}, state.network_value],
-    () => getAccountModule({address, moduleName}, state.network_value),
-    {refetchOnWindowFocus: false},
-  );
+  return useQuery<Types.MoveModuleBytecode, ResponseError>({
+    queryKey: ["accountModule", {address, moduleName}, state.network_value],
+    queryFn: () => getAccountModule({address, moduleName}, state.network_value),
+    refetchOnWindowFocus: false,
+  });
 }

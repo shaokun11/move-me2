@@ -3,36 +3,35 @@ import {Box, Container, Stack, Typography, useTheme} from "@mui/material";
 
 import Grid from "@mui/material/Unstable_Grid2";
 
-import {ReactComponent as GithubLogo} from "../../assets/github.svg";
-import {ReactComponent as DiscordLogo} from "../../assets/discord.svg";
-import {ReactComponent as TwitterLogo} from "../../assets/twitter.svg";
-import {ReactComponent as MediumLogo} from "../../assets/medium.svg";
-import {ReactComponent as LinkedInLogo} from "../../assets/linkedin.svg";
+// import GithubLogo from "../../assets/github.svg?react";
+// import DiscordLogo from "../../assets/discord.svg?react";
+// import TwitterLogo from "../../assets/twitter.svg?react";
+// import MediumLogo from "../../assets/medium.svg?react";
+// import LinkedInLogo from "../../assets/linkedin.svg?react";
 import {grey} from "../../themes/colors/aptosColorPalette";
-import SvgIcon from "@mui/material/SvgIcon";
+// import SvgIcon from "@mui/material/SvgIcon";
 
-// import {ReactComponent as LogoFullB} from "../../assets/svg/logob.svg";
-// import {ReactComponent as LogoFullW} from "../../assets/svg/logow.svg";
+// import LogoFull from "../../assets/svg/aptos_logo_labs.svg?react";
+import {Link} from "../../routing";
 
 import logob from "../../assets/svg/logob.svg";
 import logow from "../../assets/svg/logow.svg";
-import {Link} from "../../routing";
 
-const socialLinks = [
-  {title: "Git", url: "https://github.com/aptos-labs", icon: GithubLogo},
-  {
-    title: "Discord",
-    url: "https://discord.com/invite/aptoslabs",
-    icon: DiscordLogo,
-  },
-  {title: "Twitter", url: "https://twitter.com/aptoslabs/", icon: TwitterLogo},
-  {title: "Medium", url: "https://aptoslabs.medium.com/", icon: MediumLogo},
-  {
-    title: "LinkedIn",
-    url: "https://www.linkedin.com/company/aptoslabs/",
-    icon: LinkedInLogo,
-  },
-];
+// const socialLinks = [
+//   {title: "Git", url: "https://github.com/aptos-labs", icon: GithubLogo},
+//   {
+//     title: "Discord",
+//     url: "https://discord.com/invite/aptoslabs",
+//     icon: DiscordLogo,
+//   },
+//   {title: "Twitter", url: "https://twitter.com/aptoslabs/", icon: TwitterLogo},
+//   {title: "Medium", url: "https://aptoslabs.medium.com/", icon: MediumLogo},
+//   {
+//     title: "LinkedIn",
+//     url: "https://www.linkedin.com/company/aptoslabs/",
+//     icon: LinkedInLogo,
+//   },
+// ];
 
 export default function Footer() {
   const theme = useTheme();
@@ -49,16 +48,22 @@ export default function Footer() {
       <Container maxWidth="xl" sx={{paddingTop: "2rem", paddingBottom: "2rem"}}>
         <Grid
           container
-          spacing={{xs: 4, md: 1}}
+          gap={4}
           alignContent="center"
           alignItems="center"
           direction={{xs: "column", md: "row"}}
         >
-          <Grid xs="auto" container justifyContent="start">
+          <Grid
+            xs="auto"
+            gap={1}
+            container
+            alignItems={{xs: "center", md: "center"}}
+          >
             <Link
-              // color="inherit"
-              to=""
+              color="inherit"
+              to="https://aptoslabs.com/"
               target="_blank"
+              title="Movement Labs"
               sx={{width: "3rem", mb: {xs: 2, md: 0}, mr: {md: 2}}}
             >
               {
@@ -68,76 +73,74 @@ export default function Footer() {
                 <img src={logow} style={{width:'100%',height:'100%'}} />
 
               }
-              
             </Link>
-          </Grid>
-          <Grid
-            xs="auto"
+            <Grid  xs="auto"
             container
             direction={{xs: "column"}}
-            justifyContent="start"
-          >
-            <Typography
-              sx={{
-                textAlign: {
-                  xs: "center",
-                  md: "left",
-                  fontFamily: "apparat, Geneva, Tahoma, Verdana, sans-serif",
-                },
-              }}
-              fontSize="0.8rem"
-            >
-              © {new Date().getFullYear()}{" "}
-              <Box component="span" sx={{whiteSpace: "nowrap"}}>
-                Movement Labs
-              </Box>
-            </Typography>
-            <Stack
-              direction="row"
-              spacing={1}
-              justifyContent={{xs: "center", md: "start"}}
-            >
-              {/* <Link
-                color="inherit"
-                to="https://aptoslabs.com/privacy"
-                target="_blank"
+            justifyContent="start">
+              <Typography
                 sx={{
-                  fontSize: "0.8rem",
-                  fontFamily: "apparat, Geneva, Tahoma, Verdana, sans-serif",
+                  textAlign: {
+                    xs: "center",
+                    md: "left",
+                    fontFamily: "apparat, Geneva, Tahoma, Verdana, sans-serif",
+                  },
                 }}
+                fontSize="0.8rem"
               >
-                Privacy
-              </Link>
-              <Link
-                color="inherit"
-                to="https://aptoslabs.com/terms"
-                target="_blank"
-                sx={{
-                  fontSize: "0.8rem",
-                  fontFamily: "apparat, Geneva, Tahoma, Verdana, sans-serif",
-                }}
+                © {new Date().getFullYear()}{" "}
+                <Box component="span" sx={{whiteSpace: "nowrap"}}>
+                  Movement Labs
+                </Box>
+              </Typography>
+              {/* <Stack
+                direction="row"
+                spacing={1}
+                justifyContent={{xs: "center", md: "start"}}
               >
-                Terms
-              </Link> */}
-            </Stack>
+                <Link
+                  color="inherit"
+                  to="https://aptoslabs.com/privacy"
+                  target="_blank"
+                  sx={{
+                    fontSize: "0.8rem",
+                    fontFamily: "apparat, Geneva, Tahoma, Verdana, sans-serif",
+                  }}
+                >
+                  Privacy
+                </Link>
+                <Link
+                  color="inherit"
+                  to="https://aptoslabs.com/terms"
+                  target="_blank"
+                  sx={{
+                    fontSize: "0.8rem",
+                    fontFamily: "apparat, Geneva, Tahoma, Verdana, sans-serif",
+                  }}
+                >
+                  Terms
+                </Link>
+              </Stack> */}
+            </Grid>
           </Grid>
+
           <Grid
             xs="auto"
             sx={{marginLeft: {xs: "0", md: "auto"}}}
             container
             justifyContent="end"
           >
-            <Grid
+            {/* <Grid
               container
               justifyContent={{xs: "center", md: "end"}}
               spacing={3}
               direction="row"
             >
-              {/* {socialLinks.map((link) => (
+              {socialLinks.map((link) => (
                 <Grid key={link.title}>
                   <Link
                     color="inherit"
-                    to={"link.url"}
+                    to={link.url}
                     target="_blank"
                     rel="noopener noreferrer"
                     title={link.title}
@@ -147,8 +150,8 @@ export default function Footer() {
                     <SvgIcon component={link.icon} inheritViewBox />
                   </Link>
                 </Grid>
-              ))} */}
-            </Grid>
+              ))}
+            </Grid> */}
           </Grid>
         </Grid>
       </Container>

@@ -28,6 +28,7 @@ import {Link} from "../routing";
 export enum HashType {
   ACCOUNT = "account",
   TRANSACTION = "transaction",
+  OBJECT = "object",
   OTHERS = "others",
 }
 
@@ -37,6 +38,8 @@ function getHashLinkStr(hash: string, type: HashType): string {
       return `/account/${hash}`;
     case HashType.TRANSACTION:
       return `/txn/${hash}`;
+    case HashType.OBJECT:
+      return `/object/${hash}`;
     case HashType.OTHERS:
       return "";
     default:
@@ -48,6 +51,7 @@ function HashLink(hash: string, type: HashType): JSX.Element {
   switch (type) {
     case HashType.ACCOUNT:
     case HashType.TRANSACTION:
+    case HashType.OBJECT:
       return (
         <Link to={getHashLinkStr(hash, type)} color="inherit">
           {hash}
@@ -64,17 +68,25 @@ interface HashButtonProps extends BoxProps {
   hash: string;
   type: HashType;
   size?: "small" | "large";
+  isValidator?: boolean;
 }
 
 export default function HashButton({
   hash,
   type,
   size = "small",
+  isValidator = false,
   ...props
 }: HashButtonProps) {
-  if (type === HashType.ACCOUNT) {
+  if (type === HashType.ACCOUNT || type === HashType.OBJECT) {
     return (
-      <AccountHashButtonInner hash={hash} type={type} size={size} {...props} />
+      <AccountHashButtonInner
+        hash={hash}
+        type={type}
+        size={size}
+        isValidator={isValidator}
+        {...props}
+      />
     );
   } else {
     return <HashButtonInner hash={hash} type={type} size={size} {...props} />;
@@ -85,14 +97,16 @@ interface AccountHashButtonInnerProps extends BoxProps {
   hash: string;
   type: HashType;
   size?: "small" | "large";
+  isValidator: boolean;
 }
 
 function AccountHashButtonInner({
   hash,
   type,
   size = "small",
+  isValidator,
 }: AccountHashButtonInnerProps) {
-  const name = useGetNameFromAddress(hash);
+  const name = useGetNameFromAddress(hash, false, isValidator);
   const truncateHash =
     size === "large" ? truncateAddressMiddle(hash) : truncateAddress(hash);
   const [copyTooltipOpen, setCopyTooltipOpen] = useState(false);
@@ -109,23 +123,19 @@ function AccountHashButtonInner({
   return (
     <Stack direction="row" alignItems={"center"} spacing={1}>
       <IdenticonImg address={hash} />
-      {/* <link 
-      // to={getHashLinkStr(hash, type)}
-      */}
-      <Box component={'span'}
-        
+      <Link
+        to={getHashLinkStr(hash, type)}
         sx={{
           backgroundColor: codeBlockColor,
           "&:hover": {
             backgroundColor: codeBlockColorClickableOnHover,
           },
-          color: "#FFD016",
-          // color: theme.palette.mode === "dark" ? "#83CCED" : "#49D6CE",
+          color: theme.palette.mode === "dark" ? "#83CCED" : "#0EA5E9",
           padding: "0.15rem 0.35rem 0.15rem 1rem",
           overflow: "hidden",
           whiteSpace: "nowrap",
           textOverflow: "ellipsis",
-          borderRadius: 0,
+          borderRadius: 50,
           textDecoration: "none",
         }}
       >
@@ -141,7 +151,7 @@ function AccountHashButtonInner({
                   theme.palette.mode === "dark" ? primary[700] : primary[100]
                 }`,
                 color: `${
-                  theme.palette.mode === "dark" ? primary[100] : primary[600]
+                  theme.palette.mode === "dark" ? primary[100] : primary[601]
                 }`,
               },
               padding: "0.25rem 0.5rem 0.25rem 0.5rem",
@@ -156,7 +166,7 @@ function AccountHashButtonInner({
             size="small"
           />
         </Tooltip>
-      </Box>
+      </Link>
     </Stack>
   );
 }
@@ -203,7 +213,7 @@ function HashButtonInner({
             theme.palette.mode === "dark" ? grey[600] : grey[200]
           }`,
           display: "flex",
-          borderRadius: 0,
+          borderRadius: 1,
           color: "inherit",
           padding: "0.15rem 0.5rem 0.15rem 1rem",
           "&:hover": {

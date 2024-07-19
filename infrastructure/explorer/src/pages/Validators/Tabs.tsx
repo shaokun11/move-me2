@@ -9,9 +9,9 @@ import {DelegationValidatorsTable} from "./DelegationValidatorsTable";
 import {Network, NetworkName} from "../../constants";
 import {ValidatorsTable as OldValidatorsTable} from "./Table";
 import {useGlobalState} from "../../global-config/GlobalConfig";
-import {Statsig} from "statsig-react";
 import {useWallet} from "@aptos-labs/wallet-adapter-react";
 import {useNavigate} from "../../routing";
+import {useLogEventWithBasic} from "../Account/hooks/useLogEventWithBasic";
 
 enum VALIDATORS_TAB_VALUE {
   ALL_NODES = "all",
@@ -57,10 +57,11 @@ function TabPanel({value, networkName}: TabPanelProps): JSX.Element {
 }
 
 export default function ValidatorsPageTabs(): JSX.Element {
-  const [state, _] = useGlobalState();
+  const [state] = useGlobalState();
   const {tab} = useParams();
   const navigate = useNavigate();
   const {account, wallet} = useWallet();
+  const logEvent = useLogEventWithBasic();
   const value =
     tab === undefined
       ? VALIDATORS_TAB_VALUE.ALL_NODES
@@ -71,7 +72,7 @@ export default function ValidatorsPageTabs(): JSX.Element {
     newValue: VALIDATORS_TAB_VALUE,
   ) => {
     navigate(`/validators/${newValue}`);
-    Statsig.logEvent("validators_tab_clicked", newValue, {
+    logEvent("validators_tab_clicked", newValue, {
       wallet_address: account?.address ?? "",
       wallet_name: wallet?.name ?? "",
     });

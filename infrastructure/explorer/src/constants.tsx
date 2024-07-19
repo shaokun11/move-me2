@@ -2,15 +2,15 @@
  * Network
  */
 export const devnetUrl =
-  process.env.APTOS_DEVNET_URL || "https://fullnode.devnet.aptoslabs.com/";
+import.meta.env.APTOS_DEVNET_URL || "https://api.devnet.aptoslabs.com/v1";
 
 export const networks = {
-  mainnet: "https://fullnode.mainnet.aptoslabs.com/",
-  testnet: "https://fullnode.testnet.aptoslabs.com",
+  mainnet: "https://api.mainnet.aptoslabs.com/v1",
+  testnet: import.meta.env.REACT_APP_MOVE_ENDPOINT||"https://api.testnet.aptoslabs.com/v1",
   devnet: devnetUrl,
-  // local: "https://devnet.internal.m1.movementlabs.xyz",
-  local: process.env.REACT_APP_MOVE_ENDPOINT||"https://devnet.m1.movementlabs.xyz",
-  previewnet: "https://fullnode-0.previewnet.gcp.aptosdev.com/v1",
+  movement: import.meta.env.REACT_APP_MOVE_ENDPOINT||"https://rpc.internal.devnet.m1.movementlabs.xyz/v1",
+  previewnet: "https://fullnode.previewnet.aptoslabs.com/v1",
+  randomnet: "https://fullnode.random.aptoslabs.com/v1",
 };
 
 export type NetworkName = keyof typeof networks;
@@ -23,8 +23,9 @@ export enum Network {
   MAINNET = "mainnet",
   TESTNET = "testnet",
   DEVNET = "devnet",
-  LOCAL = "local",
+  LOCAL = "movement",
   PREVIEWNET = "previewnet",
+  RANDOMNET = "randomnet",
 }
 
 // Remove trailing slashes
@@ -35,7 +36,7 @@ for (const key of Object.keys(networks)) {
   }
 }
 
-export const defaultNetworkName: NetworkName = "local" as const;
+export const defaultNetworkName: NetworkName = "testnet" as const;
 
 if (!(defaultNetworkName in networks)) {
   throw `defaultNetworkName '${defaultNetworkName}' not in Networks!`;
@@ -77,7 +78,14 @@ export const defaultFeature = features[defaultFeatureName];
  * Delegation Service
  */
 export const OCTA = 100000000;
-export const WHILTELISTED_TESTNET_DELEGATION_NODES = process.env
+export const WHILTELISTED_TESTNET_DELEGATION_NODES = import.meta.env
   .REACT_APP_WHILTELISTED_TESTNET_DELEGATION_NODES
-  ? process.env.REACT_APP_WHILTELISTED_TESTNET_DELEGATION_NODES.split(",")
+  ? import.meta.env.REACT_APP_WHILTELISTED_TESTNET_DELEGATION_NODES.split(",")
   : null;
+
+/**
+ * Core Address
+ */
+export const objectCoreAddress = "0x1::object::ObjectCore";
+export const tokenV2Address = "0x4::token::Token";
+export const collectionV2Address = "0x4::collection::Collection";
