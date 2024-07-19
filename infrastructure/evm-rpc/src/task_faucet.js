@@ -29,7 +29,7 @@ async function run(faucet_amount, batch = 100) {
     const send_accounts = FAUCET_QUEUE.slice(0, batch);
     if (send_accounts.length > 0) {
         const payload = {
-            function: `0x1::batch_transfer::batch_transfer_evm`,
+            function: `0x1::evm::batch_transfer_evm`,
             type_arguments: [],
             arguments: [send_accounts.map(it => toBuffer(it.addr)), send_accounts.map(() => faucet_amount)],
         };
