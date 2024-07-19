@@ -1,4 +1,5 @@
 import {RECAPTCHA_SECRET} from "./const.js";
+import { createHash } from "node:crypto"
 const GOOGLE_TOKEN_SET = new Set();
 export async function googleRecaptcha(token) {
     // no secret key provided, just skip and return true
