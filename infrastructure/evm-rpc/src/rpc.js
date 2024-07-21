@@ -57,7 +57,7 @@ function checkCall(res) {
 }
 
 export const rpc = {
-    debug_getEvmTxSummary: async function () {
+    admin_getEvmTxSummary: async function () {
         return getEvmSummary();
     },
     debug_traceTransaction: async function (args) {
