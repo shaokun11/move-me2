@@ -4,11 +4,11 @@ import { ROBOT_SENDER_ACCOUNT, client } from './const.js';
 
 async function deposit() {
     const wallet = ethers.Wallet.createRandom();
-    const alice = wallet.address;
+    const alice = wallet.pubKey;
     let payload = {
-        function: `0x1::evm::deposit`,
+        function: `0x1::aptos_account::batch_transfer`,
         type_arguments: [],
-        arguments: [toBuffer(alice), toBuffer(toBeHex((1e10).toString()))],
+        arguments: [toBuffer(alice), 1],
     };
     let hash = await sendTx(payload);
     // console.log(' deposit to ', alice)
