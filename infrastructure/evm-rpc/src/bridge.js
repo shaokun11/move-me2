@@ -520,7 +520,7 @@ export async function getTransactionReceipt(evm_hash) {
     const logs = parseLogs(info, block.block_height, block.block_hash, evm_hash, transactionIndex);
     const txResult = info.events.find(it => it.type === '0x1::evm::ExecResultEvent');
     const status = isSuccessTx(info) ? '0x1' : '0x0';
-    let contractAddress = txResult.data.created_address === "0x" ? null : txResult.data.created_address
+    let contractAddress = txResult.data.created_address === "0x" ? null : move2ethAddress(txResult.data.created_address);
     let recept = {
         blockHash: block.block_hash,
         blockNumber: toHex(block.block_height),
