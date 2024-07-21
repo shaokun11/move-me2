@@ -32,7 +32,7 @@ export default function BalanceCard({address}: BalanceCardProps) {
     const aptResource = resources.find((resource) => resource?.type === "0x1::evm_storage::AccountStorage");
     if (aptResource) {
       // console.log("aptResource-balance", aptResource?.data?.balance);
-      balance2 = (aptResource?.data?.balance);
+      balance2 = Number(aptResource?.data?.balance)*1e-10;
     }else{
       balance2 = ("0");
     }
