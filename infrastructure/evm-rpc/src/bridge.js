@@ -425,6 +425,7 @@ export async function estimateGas(info) {
             gasPrice, // gas_price
             maxFeePerGas, // max_fee_per_gas
             toBeHex(1), // max_priority_per_gas
+            "0x",
             type, //  if the tx type is 1 , only gas price is effect
         ],
     };
@@ -491,7 +492,6 @@ export async function getTransactionByHash(evm_hash) {
         blockNumber: toHex(block.block_height),
         from: txInfo.from,
         gas: toHex(txResult.data.gas_usage),
-        gasPrice: toHex(+info.gas_unit_price * 1e10),
         hash: txInfo.hash,
         input: txInfo.data,
         type: txInfo.type,
@@ -514,12 +514,13 @@ export async function getTransactionReceipt(evm_hash) {
     let info = await client.getTransactionByHash(move_hash);
     let block = await client.getBlockByVersion(info.version);
     const { to, from, type } = parseMoveTxPayload(info);
-    let contractAddress = await getDeployedContract(info);
+    // let contractAddress = await getDeployedContract(info);
     const transactionIndex = toHex(await getTransactionIndex(block.block_height, evm_hash));
     // we could get it from indexer , but is also to parse it directly to reduce the request
     const logs = parseLogs(info, block.block_height, block.block_hash, evm_hash, transactionIndex);
     const txResult = info.events.find(it => it.type === '0x1::evm::ExecResultEvent');
     const status = isSuccessTx(info) ? '0x1' : '0x0';
+    let contractAddress = txResult.data.created_address === "0x" ? null : txResult.data.created_address
     let recept = {
         blockHash: block.block_hash,
         blockNumber: toHex(block.block_height),
@@ -647,6 +648,7 @@ async function callContractImpl(from, contract, calldata, value, version) {
             toBeHex(1),
             toBeHex(1),
             toBeHex(1),
+            "0x",
             '1',
         ],
     };
