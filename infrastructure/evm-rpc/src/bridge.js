@@ -44,7 +44,7 @@ export async function getEvmSummary() {
         addressCount: 0,
     };
     try {
-        const res = JSON.parse(readFile('tx-summary.json', 'utf8'));
+        const res = JSON.parse(await readFile('tx-summary.json', 'utf8'));
         ret.addressCount = res.addrCount;
         ret.txCount = res.txCount;
     } catch (error) {}
