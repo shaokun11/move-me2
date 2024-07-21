@@ -20,6 +20,7 @@ import { parseMoveTxPayload } from './helper.js';
 import { googleRecaptcha } from './provider.js';
 import { addToFaucetTask } from './task_faucet.js';
 import { inspect } from 'node:util';
+import { readFile } from 'node:fs/promises';
 const locker = new Lock({
     maxExecutionTime: 15 * 1000,
     maxPending: SENDER_ACCOUNT_COUNT * 30,
@@ -35,6 +36,19 @@ const ETH_ADDRESS_ONE = '0x0000000000000000000000000000000000000001';
 function isSuccessTx(info) {
     const txResult = info.events.find(it => it.type === '0x1::evm::ExecResultEvent');
     return txResult.data.exception === '200';
+}
+
+export async function getEvmSummary() {
+    const ret = {
+        txCount: 0,
+        addressCount: 0,
+    };
+    try {
+        const res = JSON.parse(await readFile('tx-summary.json', 'utf8'));
+        ret.addressCount = res.addrCount;
+        ret.txCount = res.txCount;
+    } catch (error) {}
+    return ret;
 }
 
 export async function getMoveAddress(acc) {
@@ -425,7 +439,7 @@ export async function estimateGas(info) {
             gasPrice, // gas_price
             maxFeePerGas, // max_fee_per_gas
             toBeHex(1), // max_priority_per_gas
-            "0x",
+            '0x',
             type, //  if the tx type is 1 , only gas price is effect
         ],
     };
@@ -520,7 +534,8 @@ export async function getTransactionReceipt(evm_hash) {
     const logs = parseLogs(info, block.block_height, block.block_hash, evm_hash, transactionIndex);
     const txResult = info.events.find(it => it.type === '0x1::evm::ExecResultEvent');
     const status = isSuccessTx(info) ? '0x1' : '0x0';
-    let contractAddress = txResult.data.created_address === "0x" ? null : move2ethAddress(txResult.data.created_address);
+    let contractAddress =
+        txResult.data.created_address === '0x' ? null : move2ethAddress(txResult.data.created_address);
     let recept = {
         blockHash: block.block_hash,
         blockNumber: toHex(block.block_height),
@@ -648,7 +663,7 @@ async function callContractImpl(from, contract, calldata, value, version) {
             toBeHex(1),
             toBeHex(1),
             toBeHex(1),
-            "0x",
+            '0x',
             '1',
         ],
     };
