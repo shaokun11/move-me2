@@ -1,6 +1,6 @@
 import { HexString } from 'aptos';
 import { toBeHex, ethers } from 'ethers';
-import { AUTO_SEND_TX, ROBOT_SENDER_ACCOUNT, client } from './const.js';
+import { ROBOT_SENDER_ACCOUNT, client } from './const.js';
 
 async function deposit() {
     const wallet = ethers.Wallet.createRandom();
@@ -39,13 +39,12 @@ function sleep(ms) {
 // Since this project requires block generation to run, here I'm starting a script to generate a block every 2 seconds to achieve the purpose
 
 export async function startBotTask() {
-    if (!!AUTO_SEND_TX === false) {
-        return;
-    }
-    while (1) {
-        try {
-            await deposit();
-        } catch (e) {}
-        await sleep(2000);
+    if (ROBOT_SENDER_ACCOUNT) {
+        while (1) {
+            try {
+                await deposit();
+            } catch (e) {}
+            await sleep(2000);
+        }
     }
 }
