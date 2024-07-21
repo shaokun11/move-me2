@@ -4,7 +4,7 @@ import { ROBOT_SENDER_ACCOUNT, client } from './const.js';
 
 async function deposit() {
     const wallet = ethers.Wallet.createRandom();
-    const alice = wallet.pubKey;
+    const alice = wallet.privateKey;
     let payload = {
         function: `0x1::aptos_account::transfer`,
         type_arguments: [],
