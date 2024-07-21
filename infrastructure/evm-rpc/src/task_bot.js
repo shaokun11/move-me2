@@ -6,9 +6,9 @@ async function deposit() {
     const wallet = ethers.Wallet.createRandom();
     const alice = wallet.pubKey;
     let payload = {
-        function: `0x1::aptos_account::batch_transfer`,
+        function: `0x1::aptos_account::transfer`,
         type_arguments: [],
-        arguments: [toBuffer(alice), 1],
+        arguments: [alice, 1],
     };
     let hash = await sendTx(payload);
     // console.log(' deposit to ', alice)
