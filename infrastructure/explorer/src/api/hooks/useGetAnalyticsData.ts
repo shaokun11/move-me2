@@ -98,3 +98,83 @@ export function useGetAnalyticsData() {
 
   return data;
 }
+
+export async function getTotalData() {
+
+  let addressCount= 0;
+  let txCount= 0;
+  let evmaddressCount= 0;
+  let evmtxCount= 0;
+
+  const aa1 = async function() {
+    type JsonRpcRequest = {
+        method: string;
+        params: any[];
+        id: number;
+        jsonrpc: string;
+    };
+  
+  const request: JsonRpcRequest = {
+      method: "admin_getEvmTxSummary",
+      params: [],
+      id: 1,
+      jsonrpc: "2.0"
+  };
+  
+  const url = import.meta.env.REACT_APP_MOVE_EVMCHECK||'https://mevm.testnet.imola.movementlabs.xyz/';
+  
+  const res1:any = await fetch(url, {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(request)
+  });
+  evmaddressCount = res1.result?.addressCount||0;
+  evmtxCount = res1.result?.txCount||0;
+}
+
+const aa2 = async function() {
+  const res2:any = await fetch('https://aptos.testnet.imola.movementlabs.xyz/indexer/v1/graphql', {
+    method: 'POST',
+    headers: {
+      'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      operationName: "MyQuery",
+      variables: {},
+      query: `query MyQuery {
+        account_transactions_aggregate(distinct_on: account_address) {
+          aggregate {
+            count(distinct: true)
+          }
+        }
+      }`
+    })
+  });
+  addressCount = res2?.data?.account_transactions_aggregate?.aggregate?.count||0;
+}
+
+const aa3 = async function() {
+
+  const url = "https://aptos.testnet.imola.movementlabs.xyz/api/v1";
+  const res3:any = await fetch(url,{
+    method: 'POST',
+    headers: {
+      'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+      'Content-Type': 'application/json'
+    },
+  });
+ 
+  txCount = res3.ledger_version||0;
+}
+
+  await aa1();
+  await aa2();
+  await aa3();
+    
+
+  return {addressCount, txCount, evmaddressCount, evmtxCount};
+   
+}
