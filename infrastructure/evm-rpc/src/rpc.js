@@ -56,6 +56,9 @@ function checkCall(res) {
 }
 
 export const rpc = {
+    debug_getEvmSummary: async function () {
+        return getEvmSummary();
+    },
     debug_traceTransaction: async function (args) {
         const caller = args[1]?.tracer || 'callTracer';
         if (caller !== 'callTracer') {
