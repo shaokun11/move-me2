@@ -6,13 +6,42 @@ import {grey} from "../../themes/colors/aptosColorPalette";
 import StyledTooltip from "../../components/StyledTooltip";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import {useGetAccountAPTBalance} from "../../api/hooks/useGetAccountAPTBalance";
+import { useGetAccountResources } from "../../api/hooks/useGetAccountResources";
 
 type BalanceCardProps = {
   address: string;
 };
 
 export default function BalanceCard({address}: BalanceCardProps) {
-  const balance = useGetAccountAPTBalance(address);
+  const balance1 = useGetAccountAPTBalance(address);
+
+  // const [balance2, setBalance2] = React.useState<string | null>(null);
+  // const [balance, setBalance] = React.useState<string | null>(null);
+  let balance2 = null;
+  let balance = null;
+
+  const {isLoading, data, error} = useGetAccountResources(address);
+
+  // console.log("balance", balance1,isLoading, data, error);
+  
+  if(balance1&&!isLoading && !error && data) {
+
+    // console.log("check data", data);
+
+    const resources = data as any[] ;
+    const aptResource = resources.find((resource) => resource?.type === "0x1::evm_storage::AccountStorage");
+    if (aptResource) {
+      // console.log("aptResource-balance", aptResource?.data?.balance);
+      balance2 = (aptResource?.data?.balance);
+    }else{
+      balance2 = ("0");
+    }
+  }
+  if(balance1&&balance2){
+    balance = (Math.max(Number(balance1),Number(balance2)).toString());
+  }
+
+  // console.log("balance", balance);
 
   return balance ? (
     <Card height="auto">

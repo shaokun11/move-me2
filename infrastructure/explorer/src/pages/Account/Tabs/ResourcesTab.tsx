@@ -14,6 +14,7 @@ function ResourcesContent({
   data: Types.MoveResource[] | undefined;
 }): JSX.Element {
   const resources: Types.MoveResource[] = data ?? [];
+  // console.log("resources", resources);
 
   const {expandedList, toggleExpandedAt, expandAll, collapseAll} =
     useExpandedList(resources.length);
