@@ -14,6 +14,7 @@ sudo apt install git
 ```
 
 1. Install Docker and Docker Compose following the [Docker installation guide](https://docs.docker.com/engine/install/ubuntu/).
+> please make sure add the user ubuntu to the docker with `sudo usermod -aG docker ubuntu`
 
 2. Get the source code:
 ```bash
@@ -35,13 +36,13 @@ cd ~/movement-v2
 cargo run --bin aptos node run-local-testnet --with-indexer-api 
 
 ```
-6. Get the test token
+5. Get the test token
 ```bash
 cargo run --bin aptos account fund-with-faucet --faucet-url http://127.0.0.1:8081 --url http://127.0.0.1:8080 --account 0x51db4a29acaa390e45422f031e1f10acb88c2422ac79bac2102c285ed959ebbf --amount 10000000000
 ```
-7. [Running evm indexer ](./infrastructure/evm-indexer/)
-8. [Running evm rpc](./infrastructure/evm-rpc/)
-9. [Running explorer](./infrastructure/explorer/)
+6. [Running evm indexer ](./infrastructure/evm-indexer/)
+7. [Running evm rpc](./infrastructure/evm-rpc/)
+8. [Running explorer](./infrastructure/explorer/)
 
 
 ### Deployment info
