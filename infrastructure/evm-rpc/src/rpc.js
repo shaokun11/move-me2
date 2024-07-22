@@ -23,6 +23,7 @@ import {
     batch_faucet,
     getBlockReceipts,
     getEvmSummary,
+    getMaxPriorityFeePerGas
 } from './bridge.js';
 import JsonRpc from 'json-rpc-2.0';
 const { JSONRPCErrorException } = JsonRpc;
@@ -93,6 +94,9 @@ export const rpc = {
     },
     eth_getLogs: async function (args) {
         return getLogs(args[0]);
+    },
+    eth_maxPriorityFeePerGas : async function () {
+        return getMaxPriorityFeePerGas ();
     },
     /**
      * Fixed value to compatible with the evm

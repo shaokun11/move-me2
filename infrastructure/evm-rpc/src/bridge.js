@@ -175,6 +175,9 @@ export async function faucet(addr) {
         IS_FAUCET_RUNNING = false;
     }
 }
+export async function getMaxPriorityFeePerGas() {
+    return toHex(5 * 1e9);
+}
 
 export async function eth_feeHistory() {
     const block = await getBlock();
@@ -492,7 +495,7 @@ export async function getTransactionByHash(evm_hash) {
     const block = await client.getBlockByVersion(info.version);
     const txInfo = parseMoveTxPayload(info);
     const transactionIndex = toHex(await getTransactionIndex(block.block_height, evm_hash));
-    const txResult = info.events.find(it => it.type === '0x1::evm::ExecResultEvent');
+    // const txResult = info.events.find(it => it.type === '0x1::evm::ExecResultEvent');
     const gasInfo = {};
     if (txInfo.gasPrice) {
         gasInfo.gasPrice = toHex(txInfo.gasPrice);
@@ -504,7 +507,7 @@ export async function getTransactionByHash(evm_hash) {
         blockHash: block.block_hash,
         blockNumber: toHex(block.block_height),
         from: txInfo.from,
-        gas: toHex(txResult.data.gas_usage),
+        gas: txInfo.limit,
         hash: txInfo.hash,
         input: txInfo.data,
         type: txInfo.type,
@@ -729,5 +732,4 @@ function parseLogs(info, blockNumber, blockHash, evm_hash, transactionIndex) {
 function parseMoveTxPayload(info) {
     const args = info.payload.arguments;
     return parseRawTx(args[0]);
-   
 }
