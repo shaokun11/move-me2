@@ -59,7 +59,7 @@ module aptos_framework::evm_global_state {
                     max_fee_per_gas: u256,
                     max_priority_fee_per_gas: u256,
                     tx_type: u64): Env {
-        let base_fee = 0x00;
+        let base_fee = 5000000000;
         let coinbase = to_32bit(x"892a2b7cF919760e148A0d33C1eb0f44D3b383f8");
         let difficulty = 0x00;
         let excess_blob_gas = 0x0e0000;

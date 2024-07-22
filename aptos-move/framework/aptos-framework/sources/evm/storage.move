@@ -6,10 +6,9 @@ module aptos_framework::evm_storage {
     use std::vector;
     use aptos_framework::coin;
     use aptos_framework::aptos_coin::AptosCoin;
-    use aptos_framework::evm_util::{data_to_u256, vector_slice, to_32bit};
-    use aptos_std::debug;
-    use aptos_framework::aptos_account::{create_account, assert_account_exists};
-    use aptos_framework::account::{Account, exists_at};
+    use aptos_framework::evm_util::{to_32bit};
+    use aptos_framework::aptos_account::{create_account};
+    use aptos_framework::account::{exists_at};
 
     friend aptos_framework::evm_trie;
     friend aptos_framework::evm;
@@ -124,16 +123,15 @@ module aptos_framework::evm_storage {
         }
     }
 
-    public(friend) fun withdraw_from(from: vector<u8>, data: vector<u8>) acquires AccountStorage {
-        let amount = data_to_u256(data, 36, 32);
-        let to = to_address(vector_slice(data, 100, 32));
+    public(friend) fun withdraw_from(from: vector<u8>, amount: u256, to: address) {
+
         if(amount > 0) {
             let move_address = get_move_address(from);
             assert!(exists<AccountStorage>(move_address), ERROR_ACCOUNT_NOT_CREATED);
 
-            let account_store_from = borrow_global_mut<AccountStorage>(move_address);
-            assert!(account_store_from.balance >= amount, ERROR_INSUFFIENT_BALANCE);
-            account_store_from.balance = account_store_from.balance - amount;
+            // let account_store_from = borrow_global_mut<AccountStorage>(move_address);
+            // assert!(account_store_from.balance >= amount, ERROR_INSUFFIENT_BALANCE);
+            // account_store_from.balance = account_store_from.balance - amount;
 
             let signer = create_signer(@aptos_framework);
             coin::transfer<AptosCoin>(&signer, to, ((amount / CONVERT_BASE)  as u64));
