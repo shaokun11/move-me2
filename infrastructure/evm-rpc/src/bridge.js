@@ -667,7 +667,7 @@ async function callContractImpl(from, contract, calldata, value, version) {
             toBeHex(value),
             calldata,
             toBeHex(3e7),
-            toBeHex(1),
+            toBeHex(await getGasPrice()),
             toBeHex(1),
             toBeHex(1),
             '0x',
