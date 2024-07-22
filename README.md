@@ -31,6 +31,7 @@ cd ~/movement-v2
 > This will start the Move chain on port 8080 and the gas faucet functionality on port 8081.
 ```bash
 cd ~/movement-v2
+# if you want reset chain data , add --force-restart option
 cargo run --bin aptos node run-local-testnet --with-indexer-api 
 
 ```
