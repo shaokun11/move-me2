@@ -7,11 +7,15 @@ This project demonstrates how to:
 - Deploy Solidity contracts using Remix.
 - Perform contract read and write operations.
 
+### Requirement
+
+>Running [evm indexer](../evm-indexer/) firstly
+
 ### Implemented RPC Methods
 
 The following RPC methods have been implemented to ensure interaction with Solidity contracts using MetaMask and Remix:
 
-- `eth_chainId`: Get the chain ID, currently fixed at 336.
+- `eth_chainId`: Get the chain ID.
 - `net_version`: Returns fixed value for meet ETH network rpc requirement.
 - `eth_gasPrice`: Get the current gas price.
 - `eth_blockNumber`: Get the latest block number. Updated every 2 seconds.
@@ -20,7 +24,7 @@ The following RPC methods have been implemented to ensure interaction with Solid
 - `eth_getTransactionCount`: Get the transaction count for a specific address.
 - `eth_getTransactionByHash`: Get transaction information based on the transaction hash.
 - `eth_getTransactionReceipt`: Get the transaction receipt based on the transaction hash.
-- `eth_estimateGas`: Estimate the gas consumption for a transaction. For successful transactions, if the gas is less than 21,000, it will return 21,000, but the actual consumed gas will be used when sending the transaction.
+- `eth_estimateGas`: Estimate the gas consumption for a transaction.
 - `eth_getBlockByNumber`: Get block information based on the block number.
 - `eth_getBlockByHash`: Get block information based on the block hash.
 - `eth_getBalance`: Get the balance of a specific address
@@ -29,11 +33,11 @@ The following RPC methods have been implemented to ensure interaction with Solid
 - `eth_getLogs`: Returns an array of all logs matching a given filter object.
 - `web3_clientVersion`: Returns the current client version.
 - `eth_feeHistory`: Returns fixed value for meet eip1159 requirement.
-- `debug_traceTransaction`: Returns all traces of a given transaction .
+
 
 ### New Rpc for Move Evm
 
-- `eth_faucet`: For get test token
+- `eth_faucet`: For get test token, only NODE_ENV not production is validate
 
 ```bash
 curl --location 'http://127.0.0.1:8998' \
@@ -51,7 +55,7 @@ curl --location 'http://127.0.0.1:8998' \
 - `debug_getMoveHash`:Return the move evm hash by evm hash, this could use for query details at move explorer
 
 ```bash
-curl --location 'http://127.0.0.1:8999' \
+curl --location 'http://127.0.0.1:8998' \
 --header 'Content-Type: application/json' \
 --data '{
     "id": "1",
@@ -63,25 +67,10 @@ curl --location 'http://127.0.0.1:8999' \
 }'
 ```
 
-- `debug_getMoveAddress`:Return the move evm address map to move chain address, this could use for query details at move explorer
-
-```bash
-curl --location 'http://127.0.0.1:8999' \
---header 'Content-Type: application/json' \
---data '{
-    "id": "1",
-    "jsonrpc": "2.0",
-    "method": "debug_getMoveAddress",
-    "params": [
-        "0xB8f7166496996A7da21cF1f1b04d9B3E26a3d077"
-    ]
-}'
-```
-
 - `eth_batch_faucet`: use google recaptcha to protect to faucet token,to use this function, you should deploy [the contract](../../aptos_contract/example/) firstly.
 
 ```bash
-curl --location 'http://127.0.0.1:8999' \
+curl --location 'http://127.0.0.1:8998' \
 --header 'Content-Type: application/json' \
 --data '{
     "id": "1",
@@ -95,28 +84,17 @@ curl --location 'http://127.0.0.1:8999' \
 
 ### Start Your EVM RPC
 
-> If you don't want to start the EVM RPC yourself, you can found the link at `https://github.com/movemntdev/movement-v2`
-
 - Set environment variables
 
 ```bash
-mv .env.example .env
+cp .env.example .env
 ```
 
-- `NODE_URL`: The subnet restful endpoint provided by the movement subnet`
-
-- `EVM_SENDER`: The private key of a account to send EVM transactions to the Move. Please ensure that the account has enough MOVE native token to pay for the gas fee.(At least 10)
-
-- `FAUCET_SENDER`: The private key of a account to send bridge move native token to evm native token. Please ensure that the account has enough MOVE native token to pay for the gas fee and bridge token.(At least 10)
-- `INDEXER_URL`: The aptos indexer graphql url
-- `SERVER_PORT`: The application running port
-
-Then, run the following command to start the server:
-
 ```bash
-npn run start
+npm 
+npm run start
 
-# This will start a server on port 8999
+# This will start a server on port 8998
 ```
 
 ### Add RPC to MetaMask

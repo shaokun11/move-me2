@@ -1,10 +1,4 @@
-
-
-# Warning
-
-This branch is primarily used for testing [ethtest](https://github.com/ethereum/tests) and is currently in the early stages of development.
-
----
+# Build from source
 
 ## System Requirements
 - System: AWS Ubuntu 22.04
@@ -24,7 +18,7 @@ sudo apt install git
 2. Get the source code:
 ```bash
 git clone https://github.com/movementlabsxyz/movement-v2
-git checkout mevm-retesteth
+git checkout mevm2.0
 ```
 
 3. Set up the build environment:
@@ -37,13 +31,27 @@ cd ~/movement-v2
 > This will start the Move chain on port 8080 and the gas faucet functionality on port 8081.
 ```bash
 cd ~/movement-v2
-cargo run --bin aptos node run-local-testnet --with-indexer-api --force-restart
-```
+cargo run --bin aptos node run-local-testnet --with-indexer-api 
 
-5. Get the gas token 
+```
+6. Get the test token
 ```bash
-cargo run --bin aptos account fund-with-faucet --faucet-url http://127.0.0.1:8081 --url http://127.0.0.1:8080 --account 0x51db4a29acaa390e45422f031e1f10acb88c2422ac79bac2102c285ed959ebbf --amount 10000000000000
-
+cargo run --bin aptos account fund-with-faucet --faucet-url http://127.0.0.1:8081 --url http://127.0.0.1:8080 --account 0x51db4a29acaa390e45422f031e1f10acb88c2422ac79bac2102c285ed959ebbf --amount 10000000000
 ```
-6. Running test from 
-[movement-mevm-retesteth](https://github.com/movementlabsxyz/movement-mevm-retesteth)
+7. [Running evm indexer ](./infrastructure/evm-indexer/)
+8. [Running evm rpc](./infrastructure/evm-rpc/)
+9. [Running explorer](./infrastructure/explorer/)
+
+
+### Deployment info
+
+| Service                | URL                                              |
+|------------------------|--------------------------------------------------|
+| MEVM RPC               | https://mevm.testnet.imola.movementlabs.xyz |
+| CHAIN ID               | 30732                                            |
+| APTOS URL              | https://aptos.testnet.imola.movementlabs.xyz |
+| APTOS INDEXER URL      | https://aptos.testnet.imola.movementlabs.xyz/indexer |
+| FAUCET WEB             | https://faucet.testnet.imola.movementlabs.xyz |
+| EXPLORER               | https://explorer.testnet.imola.movementlabs.xyz |
+| Server Info            | eu-west-1 m1.testnet.node  
+

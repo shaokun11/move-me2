@@ -20,7 +20,8 @@
 -  [Function `withdraw_from`](#0x1_evm_storage_withdraw_from)
 
 
-<pre><code><b>use</b> <a href="aptos_account.md#0x1_aptos_account">0x1::aptos_account</a>;
+<pre><code><b>use</b> <a href="account.md#0x1_account">0x1::account</a>;
+<b>use</b> <a href="aptos_account.md#0x1_aptos_account">0x1::aptos_account</a>;
 <b>use</b> <a href="aptos_coin.md#0x1_aptos_coin">0x1::aptos_coin</a>;
 <b>use</b> <a href="coin.md#0x1_coin">0x1::coin</a>;
 <b>use</b> <a href="create_signer.md#0x1_create_signer">0x1::create_signer</a>;
@@ -366,7 +367,9 @@
 
 <pre><code><b>fun</b> <a href="storage.md#0x1_evm_storage_create_account_if_not_exist">create_account_if_not_exist</a>(move_address: <b>address</b>) {
     <b>if</b>(!<b>exists</b>&lt;<a href="storage.md#0x1_evm_storage_AccountStorage">AccountStorage</a>&gt;(move_address)) {
-        create_account(move_address);
+        <b>if</b>(!exists_at(move_address)) {
+            create_account(move_address);
+        };
         <b>move_to</b>(&<a href="create_signer.md#0x1_create_signer">create_signer</a>(move_address), <a href="storage.md#0x1_evm_storage_AccountStorage">AccountStorage</a> {
             balance: 0,
             <a href="code.md#0x1_code">code</a>: x"",
