@@ -16,7 +16,6 @@ import BigNumber from 'bignumber.js';
 import Lock from 'async-lock';
 import { toBuffer } from './helper.js';
 import { move2ethAddress } from './helper.js';
-import { parseMoveTxPayload } from './helper.js';
 import { googleRecaptcha } from './provider.js';
 import { addToFaucetTask } from './task_faucet.js';
 import { inspect } from 'node:util';
