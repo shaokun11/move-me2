@@ -385,7 +385,7 @@ export async function sendRawTx(tx) {
     SEND_TX_ACCOUNT_INDEX++;
     // this guarantee the the sender address is order
     return locker.acquire('sendTx:' + SEND_TX_ACCOUNT_INDEX, async function (done) {
-        sendTx(SENDER_ACCOUNT, payload)
+        sendTx(SENDER_ACCOUNT, payload, info.hash)
             .then(hash => {
                 done(null, info.hash);
             })
@@ -618,7 +618,7 @@ async function getAccountInfo(acc, block) {
     return ret;
 }
 
-async function sendTx(sender, payload, option = {}) {
+async function sendTx(sender, payload, evm_hash, option = {}) {
     try {
         const account = await client.getAccount(sender.address());
         const txnRequest = await client.generateTransaction(sender.address(), payload, {
@@ -629,15 +629,19 @@ async function sendTx(sender, payload, option = {}) {
         });
         const signedTxn = await client.signTransaction(sender, txnRequest);
         const transactionRes = await client.submitTransaction(signedTxn);
-        console.log('sendTx', transactionRes.hash);
-        // no need care the result
-        await client.waitForTransactionWithResult(transactionRes.hash, {
-            timeoutSecs: 10,
+        const txResult = await client.waitForTransactionWithResult(transactionRes.hash, {
+            // check one more 1s than the execute tx time
+            timeoutSecs: 11,
         });
+        console.log('move:%s,evm:%s,result:%s', transactionRes.hash, evm_hash, txResult.vm_status);
+        if (!txResult.success) {
+            // From mevm2.0 this should be always success
+            throw new Error(txResult.vm_status);
+        }
         return transactionRes.hash;
     } catch (error) {
         // this is system error ,we also throw the real reason to the client
-        throw new Error(error.message || 'system error ');
+        throw new Error(error.message || 'system error');
     }
 }
 /**
