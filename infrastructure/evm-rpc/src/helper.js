@@ -7,11 +7,10 @@ import { HexString } from 'aptos';
 export function parseRawTx(tx) {
     const tx_ = Transaction.from(tx);
     const txJson = tx_.toJSON();
-    const tx2 = TransactionFactory.fromSerializedData(Buffer.from(tx.slice(2), 'hex'));
     const from = tx_.from.toLowerCase();
     let gasPrice = null;
-    if (txJson.type === 2) {
-        gasPrice = toHex(txJson.maxFeePerGas);
+    if (txJson.type !== 2) {
+        gasPrice = toHex(txJson.gasPrice);
     }
     return {
         hash: tx_.hash,
@@ -105,5 +104,12 @@ export function parseMoveTxPayload(info) {
     };
 }
 
-
-
+// console.log(
+//     parseMoveTxPayload(
+//     {
+//     payload: {
+//         arguments: [
+//             '0x02f8f382780c0a8502540be4008502540be40082562894000000000000000000000000000000000000000180b884c70126260000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000016345785d8a0000000000000000000000000000000000000000000000000000000000000000002084c0c08fa39d89989dc7a790ef97add425e82e203d4a2e1c19630d66b5d37d1ac080a0778eb6daf93e9a4708a74985b652b0d87056aa395c010200bfa55ef4ac0d65fda009b48b88098ba50e83d64deda6ac8e8735a525e2c7ee3903f680e908145ce2c0',
+//         ],
+//     },
+// }));
