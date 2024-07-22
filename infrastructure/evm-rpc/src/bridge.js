@@ -426,11 +426,10 @@ export async function estimateGas(info) {
     }
     const nonce = await getNonce(info.from);
     if (!info.data) info.data = '0x';
-    let type = Boolean(info.gasPrice) ? '1' : '2';
+    let type = Boolean(info.maxFeePerGas) ? '2' : '1';
     let gasPrice = toBeHex(await getGasPrice());
     let maxFeePerGas = toBeHex(1);
     if (type === '2' && info.maxFeePerGas) {
-        gasPrice = toBeHex(1);
         maxFeePerGas = toBeHex(info.maxFeePerGas);
     }
     const payload = {
