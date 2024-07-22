@@ -29,7 +29,7 @@ export function parseRawTx(tx) {
         data: txJson.data || '0x',
         v: txJson?.sig.v ?? 27,
         r: txJson?.sig.r ?? '0x',
-        s: txJson?.sig.v ?? '0x',
+        s: txJson?.sig.s ?? '0x',
         chainId: +txJson.chainId,
         accessList: txJson.accessList,
     };
@@ -94,7 +94,6 @@ export function parseMoveTxPayload(info) {
         type: tx.type,
         nonce: tx.nonce,
         data: tx.data,
-        fee: args[2],
         r: tx.r,
         s: tx.s,
         v: tx.v,
@@ -105,3 +104,6 @@ export function parseMoveTxPayload(info) {
         maxFeePerGas: tx.maxFeePerGas,
     };
 }
+
+
+
