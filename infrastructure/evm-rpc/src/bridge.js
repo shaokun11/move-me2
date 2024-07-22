@@ -181,7 +181,7 @@ export async function faucet(addr) {
 }
 
 export async function getMaxPriorityFeePerGas() {
-    return toHex(2);
+    return toHex(5*1e9);
 }
 
 export async function eth_feeHistory() {
