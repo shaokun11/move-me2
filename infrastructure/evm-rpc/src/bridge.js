@@ -276,8 +276,8 @@ export async function getBlockByNumber(block, withTx) {
         evm_tx = await Promise.all(evm_tx.map(it => getTransactionByHash(it)));
     }
     return {
-        baseFeePerGas: await getGasPrice(), // eip1559
-        difficulty: '0x0',
+        baseFeePerGas: toHex(5 * 1e9), // eip1559  set half of gasPrice
+        difficulty: toHex(BigNumber('0x100000000000000000')),
         extraData: genHash(1),
         gasLimit: toHex(30_000_000),
         gasUsed: toHex(20_000_000),
@@ -454,7 +454,7 @@ export async function estimateGas(info) {
     return ret;
 }
 export async function getGasPrice() {
-    return toHex(5 * 1e9);
+    return toHex(10 * 1e9);
 }
 
 async function getTransactionIndex(block, hash) {

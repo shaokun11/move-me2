@@ -1,7 +1,7 @@
 import { HexString } from 'aptos';
 import { toBeHex, ethers } from 'ethers';
 import { ROBOT_SENDER_ACCOUNT, client } from './const.js';
-import { random } from 'radash'
+import { random } from 'radash';
 async function deposit() {
     const wallet = ethers.Wallet.createRandom();
     const alice = wallet.privateKey;
@@ -48,4 +48,3 @@ export async function startBotTask() {
         }
     }
 }
-
