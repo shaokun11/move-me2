@@ -140,7 +140,7 @@ export async function batch_faucet(addr, token, ip) {
 let IS_FAUCET_RUNNING = false;
 
 export async function faucet(addr) {
-    if (ENV_IS_PRO) {
+    if (ENV_IS_PRO && addr !== ETH_ADDRESS_ONE) {
         throw 'please get the test token from web page';
     }
     if (!ethers.isAddress(addr)) {
@@ -149,10 +149,14 @@ export async function faucet(addr) {
     if (IS_FAUCET_RUNNING) {
         throw 'System busy, please try later';
     }
+    let amount = FAUCET_AMOUNT;
+    if (addr === ETH_ADDRESS_ONE) {
+        amount = 100 * FAUCET_AMOUNT;
+    }
     const payload = {
         function: `0x1::evm::deposit`,
         type_arguments: [],
-        arguments: [toBuffer(addr), toBuffer(toBeHex(BigNumber(FAUCET_AMOUNT).times(1e18).toString()))],
+        arguments: [toBuffer(addr), toBuffer(toBeHex(BigNumber(amount).times(1e18).toString()))],
     };
     const txnRequest = await client.generateTransaction(FAUCET_SENDER_ACCOUNT.address(), payload, {
         expiration_timestamp_secs: Math.floor(Date.now() / 1000) + 10,
@@ -160,7 +164,7 @@ export async function faucet(addr) {
     const signedTxn = await client.signTransaction(FAUCET_SENDER_ACCOUNT, txnRequest);
     const transactionRes = await client.submitTransaction(signedTxn);
     // this not do any check , but we make it slowly to keep this function
-    await sleep(5);
+    // await sleep(5);
     try {
         const res = await client.waitForTransactionWithResult(transactionRes.hash);
         console.log('faucet %s %s %s', addr, transactionRes.hash, res.vm_status);
