@@ -54,9 +54,14 @@ export const indexer_client = new Client({
 
 export const AUTO_SEND_TX = process.env.START_TASK_ROBOT || false;
 
-export const ROBOT_SENDER_ACCOUNT = AptosAccount.fromAptosAccountObject({
-    privateKeyHex: ROBOT_SENDER || EVM_SENDER[0],
-});
+export const ROBOT_SENDER_ACCOUNT = Boolean(ROBOT_SENDER)
+    ? AptosAccount.fromAptosAccountObject({
+          privateKeyHex: ROBOT_SENDER,
+      })
+    : null;
+if (ROBOT_SENDER_ACCOUNT) {
+    console.log(`Robot sender: ${ROBOT_SENDER_ACCOUNT.address().hexString}`);
+}
 
 export const ENV_IS_PRO = process.env.NODE_ENV === 'production';
 export const START_SUMMARY_TASK = process.env.START_SUMMARY_TASK || false;

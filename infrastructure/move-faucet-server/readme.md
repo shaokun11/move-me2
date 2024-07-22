@@ -1,4 +1,12 @@
-### Proxy movement faucet token
+### Proxy movement faucet service
+
+### Start
+
+```bash
+npm i 
+cp .env.example .env
+node src/app.js
+```
 
 ### Petra wallet
 >

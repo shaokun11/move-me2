@@ -22,6 +22,7 @@ import {
     getMoveAddress,
     batch_faucet,
     getBlockReceipts,
+    getEvmSummary,
 } from './bridge.js';
 import JsonRpc from 'json-rpc-2.0';
 const { JSONRPCErrorException } = JsonRpc;
@@ -56,6 +57,9 @@ function checkCall(res) {
 }
 
 export const rpc = {
+    admin_getEvmTxSummary: async function () {
+        return getEvmSummary();
+    },
     debug_traceTransaction: async function (args) {
         const caller = args[1]?.tracer || 'callTracer';
         if (caller !== 'callTracer') {

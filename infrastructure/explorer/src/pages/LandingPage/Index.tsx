@@ -10,7 +10,7 @@ export default function LandingPage() {
     <Box>
       {/* <GithubDiscussionsBanner /> */}
       <Typography variant="h3" component="h3" marginBottom={4}>
-        Movement Explorer
+        Movement Imola Explorer
       </Typography>
       <NetworkInfo isOnHomePage />
       <HeaderSearch />
