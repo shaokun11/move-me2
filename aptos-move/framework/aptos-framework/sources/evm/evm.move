@@ -24,6 +24,7 @@ module aptos_framework::evm {
     use std::string;
     use aptos_framework::coin::register;
     use aptos_framework::aptos_coin::AptosCoin;
+    use aptos_std::from_bcs::to_address;
 
     friend aptos_framework::genesis;
 
@@ -54,6 +55,7 @@ module aptos_framework::evm {
     const EXCEPTION_OUT_OF_GAS: u64 = 207;
     const EXCEPTION_INVALID_NONCE: u64 = 208;
     const EXCEPTION_EXECUTE_REVERT: u64 = 209;
+    const EXCEPTION_INSUFFCIENT_BALANCE_TO_WITHDRAW: u64 = 210;
 
     const MAX_STACK_SIZE: u64 = 1024;
     const MAX_DEPTH_SIZE: u64 = 1024;
@@ -252,7 +254,14 @@ module aptos_framework::evm {
                 };
             };
         } else if(to_32bit(to) == WITHDRAW_ADDR) {
-            withdraw_from(from, data);
+            let amount = data_to_u256(data, 36, 32);
+            let to = to_address(vector_slice(data, 100, 32));
+            let result = sub_balance(from, amount, &mut trie);
+            if(result) {
+                withdraw_from(from, amount, to);
+            } else {
+                exception = EXCEPTION_INSUFFCIENT_BALANCE_TO_WITHDRAW;
+            }
         } else {
             to = to_32bit(to);
             if(is_precompile_address(to)) {
