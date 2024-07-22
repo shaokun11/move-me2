@@ -9,16 +9,16 @@ export function parseRawTx(tx) {
     const txJson = tx_.toJSON();
     const tx2 = TransactionFactory.fromSerializedData(Buffer.from(tx.slice(2), 'hex'));
     const from = tx_.from.toLowerCase();
-    let gasPrice = toHex(1500 * 10 ** 9);
+    let gasPrice = null;
     if (txJson.type === 2) {
         gasPrice = toHex(txJson.maxFeePerGas);
-    } else if (txJson.type === 0) {
-        gasPrice = toHex(txJson.gasPrice);
     }
     return {
         hash: tx_.hash,
         nonce: txJson.nonce,
         from: from,
+        maxPriorityFeePerGas: txJson.maxPriorityFeePerGas,
+        maxFeePerGas: txJson.maxFeePerGas,
         type: toHex(txJson.type || 0),
         messageHash: tx_.unsignedHash,
         accessList: txJson.accessList,
@@ -27,10 +27,11 @@ export function parseRawTx(tx) {
         to: txJson.to?.toLowerCase() || ZeroAddress,
         value: toHex(txJson.value),
         data: txJson.data || '0x',
-        v: +tx2.v?.toString() ?? 27,
-        r: (tx2.r && toHex(tx2.r)) || '0x',
-        s: (tx2.s && toHex(tx2.s)) || '0x',
+        v: txJson?.sig.v ?? 27,
+        r: txJson?.sig.r ?? '0x',
+        s: txJson?.sig.v ?? '0x',
         chainId: +txJson.chainId,
+        accessList: txJson.accessList,
     };
 }
 
