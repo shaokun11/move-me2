@@ -727,3 +727,8 @@ function parseLogs(info, blockNumber, blockHash, evm_hash, transactionIndex) {
     }
     return logs;
 }
+function parseMoveTxPayload(info) {
+    const args = info.payload.arguments;
+    return parseRawTx(args[0]);
+   
+}
