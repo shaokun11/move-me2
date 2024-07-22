@@ -101,6 +101,7 @@ export function parseMoveTxPayload(info) {
         gasPrice: tx.gasPrice,
         maxPriorityFeePerGas: tx.maxPriorityFeePerGas,
         maxFeePerGas: tx.maxFeePerGas,
+        accessList: tx.accessList,
     };
 }
 
