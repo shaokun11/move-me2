@@ -48,7 +48,8 @@ use move_vm_runtime::logging::expect_no_verification_errors;
 use move_vm_types::gas::UnmeteredGasMeter;
 use std::sync::Arc;
 
-pub const MAXIMUM_APPROVED_TRANSACTION_SIZE: u64 = 1024 * 1024;
+// pub const MAXIMUM_APPROVED_TRANSACTION_SIZE: u64 = 1024 * 1024;
+pub const MAXIMUM_APPROVED_TRANSACTION_SIZE: u64 = 5 * 1024 * 1024;
 
 /// A wrapper to make VMRuntime standalone
 pub struct AptosVMImpl {
