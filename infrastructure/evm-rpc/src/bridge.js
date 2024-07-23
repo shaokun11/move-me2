@@ -16,7 +16,6 @@ import BigNumber from 'bignumber.js';
 import Lock from 'async-lock';
 import { toBuffer } from './helper.js';
 import { move2ethAddress } from './helper.js';
-import { parseMoveTxPayload } from './helper.js';
 import { googleRecaptcha } from './provider.js';
 import { addToFaucetTask } from './task_faucet.js';
 import { inspect } from 'node:util';
@@ -141,7 +140,7 @@ export async function batch_faucet(addr, token, ip) {
 let IS_FAUCET_RUNNING = false;
 
 export async function faucet(addr) {
-    if (ENV_IS_PRO) {
+    if (ENV_IS_PRO && addr !== ETH_ADDRESS_ONE) {
         throw 'please get the test token from web page';
     }
     if (!ethers.isAddress(addr)) {
@@ -150,10 +149,14 @@ export async function faucet(addr) {
     if (IS_FAUCET_RUNNING) {
         throw 'System busy, please try later';
     }
+    let amount = FAUCET_AMOUNT;
+    if (addr === ETH_ADDRESS_ONE) {
+        amount = 100 * FAUCET_AMOUNT;
+    }
     const payload = {
         function: `0x1::evm::deposit`,
         type_arguments: [],
-        arguments: [toBuffer(addr), toBuffer(toBeHex(BigNumber(FAUCET_AMOUNT).times(1e18).toString()))],
+        arguments: [toBuffer(addr), toBuffer(toBeHex(BigNumber(amount).times(1e18).toString()))],
     };
     const txnRequest = await client.generateTransaction(FAUCET_SENDER_ACCOUNT.address(), payload, {
         expiration_timestamp_secs: Math.floor(Date.now() / 1000) + 10,
@@ -161,7 +164,7 @@ export async function faucet(addr) {
     const signedTxn = await client.signTransaction(FAUCET_SENDER_ACCOUNT, txnRequest);
     const transactionRes = await client.submitTransaction(signedTxn);
     // this not do any check , but we make it slowly to keep this function
-    await sleep(5);
+    // await sleep(5);
     try {
         const res = await client.waitForTransactionWithResult(transactionRes.hash);
         console.log('faucet %s %s %s', addr, transactionRes.hash, res.vm_status);
@@ -175,6 +178,10 @@ export async function faucet(addr) {
     } finally {
         IS_FAUCET_RUNNING = false;
     }
+}
+
+export async function getMaxPriorityFeePerGas() {
+    return toHex(2);
 }
 
 export async function eth_feeHistory() {
@@ -246,7 +253,13 @@ export async function getBlockByNumber(block, withTx) {
         block = info.block_height;
     }
     block = BigNumber(block).toNumber();
-    let info = await client.getBlockByHeight(block, true);
+    let info;
+    try {
+        info = await client.getBlockByHeight(block, true);
+    } catch (error) {
+        // block not found
+        return null;
+    }
     let parentHash = ZERO_HASH;
     if (block > 2) {
         let info = await client.getBlockByHeight(block - 1, false);
@@ -277,7 +290,7 @@ export async function getBlockByNumber(block, withTx) {
     }
     return {
         baseFeePerGas: toHex(5 * 1e9), // eip1559  set half of gasPrice
-        difficulty: toHex(BigNumber('0x100000000000000000')),
+        difficulty: toHex(BigNumber('0x10000000000000')), //  7 bytes
         extraData: genHash(1),
         gasLimit: toHex(30_000_000),
         gasUsed: toHex(20_000_000),
@@ -293,7 +306,7 @@ export async function getBlockByNumber(block, withTx) {
         size: toHex(30_000_000),
         stateRoot: genHash(5),
         timestamp: toHex(Math.trunc(info.block_timestamp / 1e6)),
-        totalDifficulty: toHex(BigNumber('0x100000000000000000').plus(info.last_version)), //  10 bytes
+        totalDifficulty: toHex(BigNumber('0x10000000000000000000').plus(info.last_version)), //  10 bytes
         transactions: evm_tx,
         transactionsRoot: genHash(6),
         uncles: [],
@@ -333,7 +346,7 @@ export async function getStorageAt(addr, pos) {
         let result = await client.view(payload);
         res = result[0];
     } catch (error) {
-        console.log('getStorageAt error', error);
+        // console.log('getStorageAt error', error);
     }
     return res;
 }
@@ -353,7 +366,6 @@ async function checkAddressNonce(info) {
                 return true;
             }
         } catch (error) {
-            continue;
         }
         if (Date.now() - startTs > 30 * 1000) {
             throw 'Timeout to discard from memory pool. Please send tx follow address nonce order';
@@ -378,7 +390,7 @@ export async function sendRawTx(tx) {
     SEND_TX_ACCOUNT_INDEX++;
     // this guarantee the the sender address is order
     return locker.acquire('sendTx:' + SEND_TX_ACCOUNT_INDEX, async function (done) {
-        sendTx(SENDER_ACCOUNT, payload)
+        sendTx(SENDER_ACCOUNT, payload, info.hash)
             .then(hash => {
                 done(null, info.hash);
             })
@@ -419,11 +431,11 @@ export async function estimateGas(info) {
     }
     const nonce = await getNonce(info.from);
     if (!info.data) info.data = '0x';
-    let type = info.type === '0x1' ? '1' : '2';
+    // Use maxFeePerGas to determine the type of transaction for MaxFeePerGas and gasPrice maybe both null
+    let type = Boolean(info.maxFeePerGas) ? '2' : '1';
     let gasPrice = toBeHex(await getGasPrice());
     let maxFeePerGas = toBeHex(1);
     if (type === '2' && info.maxFeePerGas) {
-        gasPrice = toBeHex(1);
         maxFeePerGas = toBeHex(info.maxFeePerGas);
     }
     const payload = {
@@ -488,12 +500,18 @@ async function getTransactionIndex(block, hash) {
  *   - s: string - The s value of the transaction's signature
  */
 export async function getTransactionByHash(evm_hash) {
-    const move_hash = await getMoveHash(evm_hash);
+    let move_hash;
+    try {
+        move_hash = await getMoveHash(evm_hash);
+    } catch (error) {
+        // hash not found
+        return null;
+    }
     const info = await client.getTransactionByHash(move_hash);
     const block = await client.getBlockByVersion(info.version);
     const txInfo = parseMoveTxPayload(info);
     const transactionIndex = toHex(await getTransactionIndex(block.block_height, evm_hash));
-    const txResult = info.events.find(it => it.type === '0x1::evm::ExecResultEvent');
+    // const txResult = info.events.find(it => it.type === '0x1::evm::ExecResultEvent');
     const gasInfo = {};
     if (txInfo.gasPrice) {
         gasInfo.gasPrice = toHex(txInfo.gasPrice);
@@ -505,7 +523,7 @@ export async function getTransactionByHash(evm_hash) {
         blockHash: block.block_hash,
         blockNumber: toHex(block.block_height),
         from: txInfo.from,
-        gas: toHex(txResult.data.gas_usage),
+        gas: txInfo.limit,
         hash: txInfo.hash,
         input: txInfo.data,
         type: txInfo.type,
@@ -524,7 +542,13 @@ export async function getTransactionByHash(evm_hash) {
 }
 
 export async function getTransactionReceipt(evm_hash) {
-    let move_hash = await getMoveHash(evm_hash);
+    let move_hash;
+    try {
+        move_hash = await getMoveHash(evm_hash);
+    } catch (error) {
+        // hash not found
+        return null;
+    }
     let info = await client.getTransactionByHash(move_hash);
     let block = await client.getBlockByVersion(info.version);
     const { to, from, type } = parseMoveTxPayload(info);
@@ -612,7 +636,7 @@ async function getAccountInfo(acc, block) {
     return ret;
 }
 
-async function sendTx(sender, payload, option = {}) {
+async function sendTx(sender, payload, evm_hash, option = {}) {
     try {
         const account = await client.getAccount(sender.address());
         const txnRequest = await client.generateTransaction(sender.address(), payload, {
@@ -623,15 +647,19 @@ async function sendTx(sender, payload, option = {}) {
         });
         const signedTxn = await client.signTransaction(sender, txnRequest);
         const transactionRes = await client.submitTransaction(signedTxn);
-        console.log('sendTx', transactionRes.hash);
-        // no need care the result
-        await client.waitForTransactionWithResult(transactionRes.hash, {
-            timeoutSecs: 10,
+        const txResult = await client.waitForTransactionWithResult(transactionRes.hash, {
+            // check one more 1s than the execute tx time
+            timeoutSecs: 11,
         });
+        console.log('move:%s,evm:%s,result:%s', transactionRes.hash, evm_hash, txResult.vm_status);
+        if (!txResult.success) {
+            // From mevm2.0 this should be always success
+            throw new Error(txResult.vm_status);
+        }
         return transactionRes.hash;
     } catch (error) {
         // this is system error ,we also throw the real reason to the client
-        throw new Error(error.message || 'system error ');
+        throw new Error(error.message || 'system error');
     }
 }
 /**
@@ -660,14 +688,14 @@ async function callContractImpl(from, contract, calldata, value, version) {
             toBeHex(value),
             calldata,
             toBeHex(3e7),
-            toBeHex(1),
+            toBeHex(await getGasPrice()),
             toBeHex(1),
             toBeHex(1),
             '0x',
             '1',
         ],
     };
-    const result = await client.view(payload);
+    const result = await client.view(payload, version);
     const isSuccess = result[0] === '200';
     const ret = {
         success: isSuccess,
@@ -726,4 +754,8 @@ function parseLogs(info, blockNumber, blockHash, evm_hash, transactionIndex) {
         }
     }
     return logs;
+}
+function parseMoveTxPayload(info) {
+    const args = info.payload.arguments;
+    return parseRawTx(args[0]);
 }

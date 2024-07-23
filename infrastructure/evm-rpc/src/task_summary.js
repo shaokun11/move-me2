@@ -76,6 +76,7 @@ async function run(startVersion) {
     await store(address, txArr.length, endVersion);
 }
 
+// this could be do it at evm indexers
 export async function startSummaryTask() {
     if (!START_SUMMARY_TASK) {
         console.log('Summary task is not started');
