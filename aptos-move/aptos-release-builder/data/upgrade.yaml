@@ -6,7 +6,7 @@ proposals:
     metadata:
       title: "Increase max txn gas temporarily for framework upgrade"
       description: "Increase max txn gas temporarily for framework upgrade"
-    execution_mode: MultiStep
+    execution_mode: RootSigner
     update_sequence:
       - DefaultGasWithOverrideOld:
           overrides:
