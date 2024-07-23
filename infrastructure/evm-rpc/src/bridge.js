@@ -290,7 +290,7 @@ export async function getBlockByNumber(block, withTx) {
     }
     return {
         baseFeePerGas: toHex(5 * 1e9), // eip1559  set half of gasPrice
-        difficulty: toHex(BigNumber('0x100000000000000000')),
+        difficulty: toHex(BigNumber('0x10000000000000')), //  7 bytes
         extraData: genHash(1),
         gasLimit: toHex(30_000_000),
         gasUsed: toHex(20_000_000),
@@ -306,7 +306,7 @@ export async function getBlockByNumber(block, withTx) {
         size: toHex(30_000_000),
         stateRoot: genHash(5),
         timestamp: toHex(Math.trunc(info.block_timestamp / 1e6)),
-        totalDifficulty: toHex(BigNumber('0x100000000000000000').plus(info.last_version)), //  10 bytes
+        totalDifficulty: toHex(BigNumber('0x10000000000000000000').plus(info.last_version)), //  10 bytes
         transactions: evm_tx,
         transactionsRoot: genHash(6),
         uncles: [],
