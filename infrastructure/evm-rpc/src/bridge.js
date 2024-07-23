@@ -677,7 +677,7 @@ async function callContractImpl(from, contract, calldata, value, version) {
             '1',
         ],
     };
-    const result = await client.view(payload);
+    const result = await client.view(payload,version);
     const isSuccess = result[0] === '200';
     const ret = {
         success: isSuccess,
