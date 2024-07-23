@@ -253,7 +253,13 @@ export async function getBlockByNumber(block, withTx) {
         block = info.block_height;
     }
     block = BigNumber(block).toNumber();
-    let info = await client.getBlockByHeight(block, true);
+    let info;
+    try {
+        info = await client.getBlockByHeight(block, true);
+    } catch (error) {
+        // block not found
+        return null;
+    }
     let parentHash = ZERO_HASH;
     if (block > 2) {
         let info = await client.getBlockByHeight(block - 1, false);
@@ -494,7 +500,13 @@ async function getTransactionIndex(block, hash) {
  *   - s: string - The s value of the transaction's signature
  */
 export async function getTransactionByHash(evm_hash) {
-    const move_hash = await getMoveHash(evm_hash);
+    let move_hash;
+    try {
+        move_hash = await getMoveHash(evm_hash);
+    } catch (error) {
+        // hash not found
+        return null;
+    }
     const info = await client.getTransactionByHash(move_hash);
     const block = await client.getBlockByVersion(info.version);
     const txInfo = parseMoveTxPayload(info);
@@ -530,7 +542,13 @@ export async function getTransactionByHash(evm_hash) {
 }
 
 export async function getTransactionReceipt(evm_hash) {
-    let move_hash = await getMoveHash(evm_hash);
+    let move_hash;
+    try {
+        move_hash = await getMoveHash(evm_hash);
+    } catch (error) {
+        // hash not found
+        return null;
+    }
     let info = await client.getTransactionByHash(move_hash);
     let block = await client.getBlockByVersion(info.version);
     const { to, from, type } = parseMoveTxPayload(info);
@@ -677,7 +695,7 @@ async function callContractImpl(from, contract, calldata, value, version) {
             '1',
         ],
     };
-    const result = await client.view(payload,version);
+    const result = await client.view(payload, version);
     const isSuccess = result[0] === '200';
     const ret = {
         success: isSuccess,
