@@ -432,6 +432,7 @@ export async function estimateGas(info) {
     }
     const nonce = await getNonce(info.from);
     if (!info.data) info.data = '0x';
+    // Use maxFeePerGas to determine the type of transaction for MaxFeePerGas and gasPrice maybe both null
     let type = Boolean(info.maxFeePerGas) ? '2' : '1';
     let gasPrice = toBeHex(await getGasPrice());
     let maxFeePerGas = toBeHex(1);
