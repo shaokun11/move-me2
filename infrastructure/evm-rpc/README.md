@@ -67,7 +67,7 @@ curl --location 'http://127.0.0.1:8998' \
 }'
 ```
 
-- `eth_batch_faucet`: use google recaptcha to protect to faucet token,to use this function, you should deploy [the contract](../../aptos_contract/example/) firstly.
+- `eth_batch_faucet`: use google recaptcha to protect to faucet token,to use this function
 
 ```bash
 curl --location 'http://127.0.0.1:8998' \
