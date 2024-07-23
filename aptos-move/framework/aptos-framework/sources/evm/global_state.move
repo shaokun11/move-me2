@@ -2,7 +2,8 @@ module aptos_framework::evm_global_state {
     use std::vector;
     use aptos_framework::evm_util::{to_32bit};
     use aptos_std::debug;
-    use aptos_framework::block::{get_current_block_height, get_epoch_interval_secs};
+    use aptos_framework::block::{get_current_block_height};
+    use aptos_framework::timestamp::now_seconds;
 
     const TX_TYPE_NORMAL: u64 = 1;
     const TX_TYPE_1559: u64 = 2;
@@ -269,7 +270,7 @@ module aptos_framework::evm_global_state {
     }
 
     public fun get_timestamp(_run_state: &RunState): u256 {
-        ((get_epoch_interval_secs() / 1000000) as u256)
+        (now_seconds() as u256)
     }
 
     public fun get_block_number(_run_state: &RunState): u256 {
