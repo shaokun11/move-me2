@@ -20,8 +20,7 @@ use move_core_types::{
     vm_status::{StatusCode, VMStatus},
 };
 
-const MAXIMUM_APPROVED_TRANSACTION_SIZE: u64 = 5 * 1024 * 1024;
-// const MAXIMUM_APPROVED_TRANSACTION_SIZE: u64 = 1024 * 1024;
+const MAXIMUM_APPROVED_TRANSACTION_SIZE: u64 = 1024 * 1024;
 
 pub(crate) fn get_gas_config_from_storage(
     config_storage: &impl ConfigStorage,
