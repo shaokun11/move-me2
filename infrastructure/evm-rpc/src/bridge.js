@@ -346,7 +346,7 @@ export async function getStorageAt(addr, pos) {
         let result = await client.view(payload);
         res = result[0];
     } catch (error) {
-        console.log('getStorageAt error', error);
+        // console.log('getStorageAt error', error);
     }
     return res;
 }
