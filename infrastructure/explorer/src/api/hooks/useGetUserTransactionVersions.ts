@@ -41,8 +41,6 @@ export default function useGetUserTransactionVersions(
       return txn.version;
     },
   );
-  console.log("versions1111", versions);
-
   return versions;
 }
 

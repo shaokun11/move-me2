@@ -276,7 +276,7 @@ export default function HeaderSearch() {
     if(str.length === 66){   //check if hash is valid
       getMoveHA('debug_getMoveHash',str).then((res:any)=>{
 
-        console.log('res',res);
+        // console.log('res',res);
         fetchData({old:str,newstr:res.data});
       });
     }else{

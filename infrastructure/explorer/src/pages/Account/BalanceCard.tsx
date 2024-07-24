@@ -39,7 +39,7 @@ export default function BalanceCard({address}: BalanceCardProps) {
   }
   
   if(balance1&&balance2){
-    console.log("balance", balance1,balance2);
+    // console.log("balance", balance1,balance2);
     balance = Math.floor(Math.max(Number(balance1),Number(balance2))).toString();
   }
 
