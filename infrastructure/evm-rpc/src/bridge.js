@@ -20,10 +20,12 @@ import { googleRecaptcha } from './provider.js';
 import { addToFaucetTask } from './task_faucet.js';
 import { inspect } from 'node:util';
 import { readFile } from 'node:fs/promises';
+import LevelDBWrapper from './leveldb_warpper.js';
 const locker = new Lock({
     maxExecutionTime: 15 * 1000,
     maxPending: SENDER_ACCOUNT_COUNT * 30,
 });
+const db = new LevelDBWrapper('db/tx');
 
 let SEND_TX_ACCOUNT_INDEX = 0;
 
@@ -253,6 +255,14 @@ export async function getBlockByNumber(block, withTx) {
         block = info.block_height;
     }
     block = BigNumber(block).toNumber();
+    const key = 'block:' + block;
+    if (!is_pending) {
+        // only cache the block not pending
+        const cache = await db.get(key);
+        if (cache) {
+            return JSON.parse(cache);
+        }
+    }
     let info;
     try {
         info = await client.getBlockByHeight(block, true);
@@ -288,7 +298,7 @@ export async function getBlockByNumber(block, withTx) {
     if (withTx && evm_tx.length > 0) {
         evm_tx = await Promise.all(evm_tx.map(it => getTransactionByHash(it)));
     }
-    return {
+    const ret = {
         baseFeePerGas: toHex(5 * 1e9), // eip1559  set half of gasPrice
         difficulty: toHex(BigNumber('0x10000000000000')), //  7 bytes
         extraData: genHash(1),
@@ -311,6 +321,10 @@ export async function getBlockByNumber(block, withTx) {
         transactionsRoot: genHash(6),
         uncles: [],
     };
+    if (!is_pending) {
+        await db.put(key, JSON.stringify(ret));
+    }
+    return ret;
 }
 
 export async function getBlockByHash(hash, withTx) {
@@ -506,6 +520,11 @@ export async function getTransactionByHash(evm_hash) {
         // hash not found
         return null;
     }
+    const key = 'tx:' + evm_hash;
+    let cache = await db.get(key);
+    if (cache) {
+        return JSON.parse(cache);
+    }
     const info = await client.getTransactionByHash(move_hash);
     const block = await client.getBlockByVersion(info.version);
     const txInfo = parseMoveTxPayload(info);
@@ -537,6 +556,7 @@ export async function getTransactionByHash(evm_hash) {
         chainId: toHex(CHAIN_ID),
         ...gasInfo,
     };
+    await db.put(key, JSON.stringify(ret));
     return ret;
 }
 
@@ -547,6 +567,11 @@ export async function getTransactionReceipt(evm_hash) {
     } catch (error) {
         // hash not found
         return null;
+    }
+    const key = 'receipt:' + evm_hash;
+    let cache = await db.get(key);
+    if (cache) {
+        return JSON.parse(cache);
     }
     let info = await client.getTransactionByHash(move_hash);
     let block = await client.getBlockByVersion(info.version);
@@ -575,6 +600,7 @@ export async function getTransactionReceipt(evm_hash) {
         transactionIndex: transactionIndex,
         type,
     };
+    await db.put(key, JSON.stringify(recept));
     return recept;
 }
 /**
