@@ -13,7 +13,7 @@ async function deposit() {
     };
     const provider = new ethers.JsonRpcProvider('http://localhost:' + SERVER_PORT);
     const evmSender = new ethers.Wallet(
-        Buffer.from(ROBOT_SENDER_ACCOUNT.authKey().hex).toString('hex'),
+        Buffer.from(ROBOT_SENDER_ACCOUNT.authKey().HexString).toString('hex'),
         provider,
     );
     if (!evm_bot_sender) {
