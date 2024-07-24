@@ -24,7 +24,7 @@ class LevelDBWrapper {
                     resolve(null);
                 }
                 // now we only support string
-                resolve(value.toString());
+                resolve(value && value.toString() || null);
             });
         });
     }
@@ -58,7 +58,6 @@ class LevelDBWrapper {
 }
 
 export default LevelDBWrapper;
-
 
 // let db = new LevelDBWrapper('./db/tx');
 // await db.put('key', 'hello')
