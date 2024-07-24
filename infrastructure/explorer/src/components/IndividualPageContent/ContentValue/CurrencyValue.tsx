@@ -28,11 +28,13 @@ export function getFormattedBalanceStr(
   }
 
   // Otherwise, insert decimal point at len - decimals
-  const leftSide = BigInt(balance.slice(0, len - decimals)).toLocaleString(
+
+  const aa = Math.floor(Number(balance.slice(0, len - decimals)));
+  const leftSide = BigInt(aa).toLocaleString(
     "en-US",
   );
   let rightSide = balance.slice(len - decimals);
-  if (BigInt(rightSide) == BigInt(0)) {
+  if (BigInt(Math.floor(Number(rightSide))) == BigInt(0)) {
     return leftSide;
   }
 

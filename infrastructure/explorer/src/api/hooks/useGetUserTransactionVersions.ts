@@ -29,7 +29,7 @@ export default function useGetUserTransactionVersions(
   const topTxnsOnly = startVersion === undefined || offset === undefined;
   const {loading, error, data} = useGraphqlQuery(
     topTxnsOnly ? TOP_USER_TRANSACTIONS_QUERY : USER_TRANSACTIONS_QUERY,
-    {variables: {limit: limit, start_version: startVersion, offset: offset}},
+    {variables: {limit: limit, start_version: startVersion, offset: offset},pollInterval: 6000},
   );
 
   if (loading || error || !data) {
@@ -41,6 +41,9 @@ export default function useGetUserTransactionVersions(
       return txn.version;
     },
   );
+  console.log("versions1111", versions);
 
   return versions;
 }
+
+

@@ -1,12 +1,17 @@
 import React, {createContext, useEffect, useState} from "react";
 import Grid from "@mui/material/Grid";
 import TotalSupply from "./TotalSupply";
-import TotalStake from "./TotalStake";
-import TPS from "./TPS";
-import ActiveValidators from "./ActiveValidators";
-import TotalTransactions from "./TotalTransactions";
+// import TotalStake from "./TotalStake";
+// import TPS from "./TPS";
+// import ActiveValidators from "./ActiveValidators";
+// import TotalTransactions from "./TotalTransactions";
 import {useGetInMainnet} from "../../../api/hooks/useGetInMainnet";
 import {Link} from "../../../routing";
+import { useGlobalState } from "../../../global-config/GlobalConfig";
+import { getLedgerInfo } from "../../../api";
+import {Types} from "aptos";
+import { useQuery } from "@tanstack/react-query";
+
 
 type CardStyle = "default" | "outline";
 
@@ -44,13 +49,13 @@ export async function getTotalData() {
       body: JSON.stringify(request)
   });
   res1 = await res1.json();
-  console.log("res1", res1);
+  // console.log("res1", res1);
   evmaddressCount = res1.result?.addressCount||0;
   evmtxCount = res1.result?.txCount||0;
 }
 
 const aa2 = async function() {
-  let res2:any = await fetch('https://aptos.testnet.imola.movementlabs.xyz/indexer/v1/graphql', {
+  let res2:any = await fetch(import.meta.env.REACT_APP_MOVE_GQL, {
     method: 'POST',
     headers: {
       'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
@@ -74,7 +79,7 @@ const aa2 = async function() {
 
 const aa3 = async function() {
 
-  const url = "https://aptos.testnet.imola.movementlabs.xyz/api/v1";
+  const url = import.meta.env.REACT_APP_MOVE_ENDPOINT;
   let res3:any = await fetch(url,{
     method: 'GET',
     headers: {
@@ -121,12 +126,19 @@ type NetworkInfoProps = {
 export default function NetworkInfo({isOnHomePage}: NetworkInfoProps) {
   const onHomePage = isOnHomePage === true;
   const [data, setData] = useState<any | null>(null);
+  const [up,setUp] = useState<number>(1);
+
+  setTimeout(() => {
+    // console.log("up", up);
+    setUp(up+1);
+  },3000)
+  
 
   useEffect(() => {
     getTotalData().then((data) => {
       data&&setData(data);
     });
-  }, []);
+  }, [up]);
 
   if(data == null) {
     return null;
