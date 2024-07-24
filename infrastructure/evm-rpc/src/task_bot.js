@@ -23,7 +23,7 @@ async function deposit() {
     }
     const tx = {
         to: rand.address,
-        value: ethers.parseUnits(random(1, 100), 'gwei'),
+        value: toBeHex(ethers.parseUnits(random(1, 100), 'gwei')),
     };
     await Promise.allSettled([evmSender.sendTransaction(tx), sendTx(payload)]);
 }
