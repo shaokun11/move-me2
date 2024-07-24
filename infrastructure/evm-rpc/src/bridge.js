@@ -365,8 +365,7 @@ async function checkAddressNonce(info) {
             if (parseInt(accInfo.nonce) === parseInt(info.nonce)) {
                 return true;
             }
-        } catch (error) {
-        }
+        } catch (error) {}
         if (Date.now() - startTs > 30 * 1000) {
             throw 'Timeout to discard from memory pool. Please send tx follow address nonce order';
         }

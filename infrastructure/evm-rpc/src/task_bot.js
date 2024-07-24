@@ -12,10 +12,7 @@ async function deposit() {
         arguments: [alice, random(1, 100)],
     };
     const provider = new ethers.JsonRpcProvider('http://localhost:' + SERVER_PORT);
-    const evmSender = new ethers.Wallet(
-        ROBOT_SENDER_ACCOUNT.toPrivateKeyObject().privateKeyHex,
-        provider,
-    );
+    const evmSender = new ethers.Wallet(ROBOT_SENDER_ACCOUNT.toPrivateKeyObject().privateKeyHex, provider);
     if (!evm_bot_sender) {
         evm_bot_sender = evmSender.address;
         // for debugging
@@ -23,7 +20,7 @@ async function deposit() {
     }
     const tx = {
         to: rand.address,
-        value: toBeHex(ethers.parseUnits(random(1, 100), 'gwei')),
+        value: toBeHex(ethers.parseUnits('' + random(1, 100), 'gwei')),
     };
     await Promise.allSettled([evmSender.sendTransaction(tx), sendTx(payload)]);
 }
