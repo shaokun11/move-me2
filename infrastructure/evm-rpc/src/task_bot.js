@@ -1,18 +1,31 @@
 import { HexString } from 'aptos';
 import { toBeHex, ethers } from 'ethers';
-import { ROBOT_SENDER_ACCOUNT, client } from './const.js';
+import { ROBOT_SENDER_ACCOUNT, client, SERVER_PORT } from './const.js';
 import { random } from 'radash';
+let evm_bot_sender = null;
 async function deposit() {
-    const wallet = ethers.Wallet.createRandom();
-    const alice = wallet.privateKey;
-    let payload = {
+    const rand = ethers.Wallet.createRandom();
+    const alice = rand.privateKey;
+    const payload = {
         function: `0x1::aptos_account::transfer`,
         type_arguments: [],
         arguments: [alice, random(1, 100)],
     };
-    let hash = await sendTx(payload);
-    // console.log(' deposit to ', alice)
-    // await checkTxResult(hash);
+    const provider = new ethers.JsonRpcProvider('http://localhost:' + SERVER_PORT);
+    const evmSender = new ethers.Wallet(
+        Buffer.from(ROBOT_SENDER_ACCOUNT.signingKey.secretKey).toString('hex'),
+        provider,
+    );
+    if (!evm_bot_sender) {
+        evm_bot_sender = evmSender.address;
+        // for debugging
+        console.log('Bot evm sender address', evm_bot_sender);
+    }
+    const tx = {
+        to: rand.address,
+        value: ethers.parseUnits(random(1, 100), 'gwei'),
+    };
+    await Promise.allSettled([evmSender.sendTransaction(tx), sendTx(payload)]);
 }
 
 function toBuffer(hex) {
@@ -43,7 +56,9 @@ export async function startBotTask() {
         while (1) {
             try {
                 await deposit();
-            } catch (e) {}
+            } catch (e) {
+                console.log('Bot task error', e.message);
+            }
             await sleep(2000);
         }
     }

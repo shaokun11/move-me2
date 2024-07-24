@@ -87,7 +87,7 @@ export async function startSummaryTask() {
             const ver = await db.data.syncVersion;
             await run(ver);
         } catch (e) {
-            console.log('Summary task error', e);
+            console.log('Summary task error', e.message);
         }
         await sleep(2);
     }
