@@ -7,7 +7,6 @@ class LevelDBWrapper {
     }
 
     async put(key, value) {
-        return null
         return new Promise((resolve, reject) => {
             this.db.put(key, value, err => {
                 // just for cache, no need to reject
@@ -18,7 +17,6 @@ class LevelDBWrapper {
     }
 
     async get(key) {
-        return null
         return new Promise((resolve, reject) => {
             this.db.get(key, (err, value) => {
                 if (err) {

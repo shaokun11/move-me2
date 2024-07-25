@@ -255,7 +255,7 @@ export async function getBlockByNumber(block, withTx) {
         block = info.block_height;
     }
     block = BigNumber(block).toNumber();
-    const key = 'block:' + block;
+    const key = `block:${withTx}:` + block;
     if (!is_pending) {
         // only cache the block not pending
         const cache = await db.get(key);
