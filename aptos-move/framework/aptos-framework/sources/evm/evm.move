@@ -1103,8 +1103,8 @@ module aptos_framework::evm {
                 if(gas_stipend > 0) {
                     add_gas_left(run_state, gas_stipend);
                 };
-                let m_pos = pop_stack_u64(stack, error_code);
-                let m_len = pop_stack_u64(stack, error_code);
+                let m_pos = pop_stack(stack, error_code);
+                let m_len = pop_stack(stack, error_code);
                 let ret_pos = pop_stack(stack, error_code);
                 let ret_len = pop_stack(stack, error_code);
                 let params = read_memory(memory, m_pos, m_len);
