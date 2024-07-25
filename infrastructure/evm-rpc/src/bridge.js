@@ -13,7 +13,6 @@ import { parseRawTx, sleep, toHex, toNumber, toHexStrict } from './helper.js';
 import { getMoveHash, getBlockHeightByHash, getEvmLogs } from './db.js';
 import { ZeroAddress, ethers, isHexString, toBeHex, keccak256 } from 'ethers';
 import BigNumber from 'bignumber.js';
-import Lock from 'async-lock';
 import { toBuffer } from './helper.js';
 import { move2ethAddress } from './helper.js';
 import { googleRecaptcha } from './provider.js';
@@ -21,13 +20,8 @@ import { addToFaucetTask } from './task_faucet.js';
 import { inspect } from 'node:util';
 import { readFile } from 'node:fs/promises';
 import LevelDBWrapper from './leveldb_warpper.js';
-const locker = new Lock({
-    maxExecutionTime: 10 * 60 * 1000, // make it as special time , no meaning
-    maxPending: SENDER_ACCOUNT_COUNT * 30,
-});
-const db = new LevelDBWrapper('db/tx');
 
-let SEND_TX_ACCOUNT_INDEX = 0;
+const db = new LevelDBWrapper('db/tx');
 
 const CACHE_ETH_ADDRESS_TO_MOVE = {};
 const CACHE_MOVE_HASH_TO_BLOCK_HEIGHT = {};
@@ -393,16 +387,6 @@ if (SENDER_ACCOUNT_INDEX.length === 0) {
     throw "please provide the sender account, now it's empty";
 }
 
-async function getSenderAccount() {
-    while (1) {
-        if (SENDER_ACCOUNT_INDEX.length === 0) {
-            await sleep(0.05);
-        } else {
-            return SENDER_ACCOUNT_INDEX.shift();
-        }
-    }
-}
-
 export async function sendRawTx(tx) {
     const info = parseRawTx(tx);
     const payload = {
@@ -412,6 +396,15 @@ export async function sendRawTx(tx) {
     };
     // this guarantee the nonce order for same from address
     await checkAddressNonce(info);
+    const getSenderAccount = async () => {
+        while (1) {
+            if (SENDER_ACCOUNT_INDEX.length === 0) {
+                await sleep(0.05);
+            } else {
+                return SENDER_ACCOUNT_INDEX.shift();
+            }
+        }
+    };
     const senderIndex = await getSenderAccount();
     const sender = GET_SENDER_ACCOUNT(senderIndex);
     try {
@@ -419,7 +412,10 @@ export async function sendRawTx(tx) {
         SENDER_ACCOUNT_INDEX.push(senderIndex);
         return info.hash;
     } catch (e) {
+        // No matter what the error is, we need to return the sender account
+        // We also could use try finally to do this, but we need to make sure the sender account is pushed back
         SENDER_ACCOUNT_INDEX.push(senderIndex);
+        // the sendTx has parsed the error , so we just throw it
         throw e;
     }
 }
@@ -562,8 +558,8 @@ export async function getTransactionByHash(evm_hash) {
         transactionIndex,
         value: toHex(txInfo.value),
         v: toHex(txInfo.v),
-        r: toHex(txInfo.r, true), // need remove the leading zero, otherwise the go sdk will parse error
-        s: toHex(txInfo.s, true), // need remove the leading zero, otherwise the go sdk will parse error
+        r: toHex(txInfo.r, true), // need remove the leading zero, otherwise the eth go sdk will parse error
+        s: toHex(txInfo.s, true), // need remove the leading zero, otherwise the eth go sdk will parse error
         chainId: toHex(CHAIN_ID),
         ...gasInfo,
     };
