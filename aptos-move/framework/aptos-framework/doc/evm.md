@@ -1912,9 +1912,9 @@
         }
             //sha3
         <b>else</b> <b>if</b>(opcode == 0x20) {
-            <b>let</b> pos = <a href="evm.md#0x1_evm_pop_stack_u64">pop_stack_u64</a>(stack, error_code);
-            <b>let</b> len = <a href="evm.md#0x1_evm_pop_stack_u64">pop_stack_u64</a>(stack, error_code);
-            <b>let</b> bytes = vector_slice(*memory, pos, len);
+            <b>let</b> pos = <a href="evm.md#0x1_evm_pop_stack">pop_stack</a>(stack, error_code);
+            <b>let</b> len = <a href="evm.md#0x1_evm_pop_stack">pop_stack</a>(stack, error_code);
+            <b>let</b> bytes = vector_slice_u256(*memory, pos, len);
             // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&value);
             <b>let</b> value = data_to_u256(keccak256(bytes), 0, 32);
             <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, value);

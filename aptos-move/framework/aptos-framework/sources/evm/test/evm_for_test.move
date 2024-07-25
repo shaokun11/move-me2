@@ -3,7 +3,7 @@ module aptos_framework::evm_for_test {
     use std::vector;
     use aptos_std::aptos_hash::keccak256;
     use aptos_std::debug;
-    use aptos_framework::evm_util::{to_32bit, get_contract_address, data_to_u256, u256_to_data, mstore, copy_to_memory, to_u256, get_valid_jumps, expand_to_pos, vector_slice, vector_slice_u256, get_word_count, write_call_output, get_valid_ethereum_address};
+    use aptos_framework::evm_util::{to_32bit, get_contract_address, data_to_u256, u256_to_data, mstore, copy_to_memory, to_u256, get_valid_jumps, expand_to_pos, vector_slice, vector_slice_u256, get_word_count, write_call_output, get_valid_ethereum_address, read_memory};
     use std::string::utf8;
     use aptos_framework::event::EventHandle;
     use aptos_framework::evm_precompile::{is_precompile_address, run_precompile};
@@ -968,9 +968,9 @@ module aptos_framework::evm_for_test {
             }
                 //sha3
             else if(opcode == 0x20) {
-                let pos = pop_stack_u64(stack, error_code);
-                let len = pop_stack_u64(stack, error_code);
-                let bytes = vector_slice(*memory, pos, len);
+                let pos = pop_stack(stack, error_code);
+                let len = pop_stack(stack, error_code);
+                let bytes = vector_slice_u256(*memory, pos, len);
                 // debug::print(&value);
                 let value = data_to_u256(keccak256(bytes), 0, 32);
                 vector::push_back(stack, value);
@@ -988,11 +988,11 @@ module aptos_framework::evm_for_test {
                 if(gas_stipend > 0) {
                     add_gas_left(run_state, gas_stipend);
                 };
-                let m_pos = pop_stack_u64(stack, error_code);
-                let m_len = pop_stack_u64(stack, error_code);
+                let m_pos = pop_stack(stack, error_code);
+                let m_len = pop_stack(stack, error_code);
                 let ret_pos = pop_stack(stack, error_code);
                 let ret_len = pop_stack(stack, error_code);
-                let params = vector_slice(*memory, m_pos, m_len);
+                let params = read_memory(memory, m_pos, m_len);
                 let (call_from, call_to, code_address) = get_call_info(sender, to, evm_dest_addr, opcode);
                 let call_from_num = to_u256(call_from);
                 let call_to_num = to_u256(call_to);

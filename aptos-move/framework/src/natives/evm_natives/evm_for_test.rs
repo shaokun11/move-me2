@@ -57,9 +57,10 @@ fn calculate_storage_root(storage: Struct) -> H256 {
 
         let key_u256 = move_u256_to_evm_u256(&key);
         let value_u256 = move_u256_to_evm_u256(&value);
-        let value_rlp_bytes = value_u256.rlp_bytes().to_vec();
-
-        m.insert(keccak256(key_u256.encode()).to_vec(), value_rlp_bytes);
+        if value_u256 != U256::zero() {
+            let value_rlp_bytes = value_u256.rlp_bytes().to_vec();
+            m.insert(keccak256(key_u256.encode()).to_vec(), value_rlp_bytes);
+        }
     }
 
     H256::from_slice(&trie::build(&m).0)

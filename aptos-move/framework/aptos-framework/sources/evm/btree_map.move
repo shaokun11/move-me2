@@ -99,6 +99,56 @@ module aptos_framework::btree_map {
         }
     }
 
+    // public fun remove<Value: copy + drop>()
+
+    fun find_min<Value: copy + drop>(node_index: u64, tree: &mut BTreeMap<Value>): (u64, u256, Value) {
+        let current_index = node_index;
+        let current = vector::borrow(&tree.data, current_index);
+        while(option::is_some(&current.left)) {
+            current_index = *option::borrow(&current.left);
+            current = vector::borrow(&tree.data, current_index);
+        };
+        (current_index, current.key, current.value)
+    }
+
+    fun remove_recursive<Value: copy + drop>(node_option: Option<u64>, key: u256, tree: &mut BTreeMap<Value>): option::Option<u64> {
+        if(option::is_some(&node_option)) {
+            let node_index = *option::borrow(&node_option);
+            let node = &mut *vector::borrow_mut(&mut tree.data, node_index);
+            if(key < node.key) {
+                let left = remove_recursive(node.left, key, tree);
+                node.left = left;
+                option::some(node_index)
+            } else if(key > node.key) {
+                let right = remove_recursive(node.right, key, tree);
+                node.right = right;
+                option::some(node_index)
+            } else {
+                if(option::is_none(&node.left)) {
+                    node.right
+                } else if(option::is_none(&node.right)) {
+                    node.left
+                } else {
+                    let right_index = *option::borrow(&node.right);
+                    let (_, min_key, min_value) = find_min(right_index, tree);
+                    node.key = min_key;
+                    node.value = min_value;
+                    let right = remove_recursive(node.right, min_key, tree);
+                    node.right = right;
+                    option::some(node_index)
+                }
+            }
+        } else {
+            option::none<u64>()
+        }
+
+    }
+
+    public fun remove<Value: copy + drop>(tree: &mut BTreeMap<Value>, key: u256) {
+        let root = remove_recursive(tree.root, key, tree);
+        tree.root = root;
+    }
+
     public fun upsert<Value: copy + drop>(map: &mut BTreeMap<Value>, key: u256, value: Value) {
         if(option::is_some(&map.root)) {
             let root_index = *option::borrow(&map.root);

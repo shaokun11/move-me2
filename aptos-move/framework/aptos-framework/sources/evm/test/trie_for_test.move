@@ -140,13 +140,13 @@ module aptos_framework::evm_trie_for_test {
 
     public fun set_state(contract: u256, key: u256, value: u256, trie: &mut Trie) {
         let account = load_account_checkpoint_mut(trie, contract);
-        if(value == 0) {
-            // if(btree_map::contains_key(&mut account.storage, key)) {
-            //     simple_map::remove(&mut account.storage, &key);
-            // }
-        } else {
+        // if(value == 0) {
+        //     if(btree_map::contains_key(&mut account.storage, key)) {
+        //         btree_map::remove(&mut account.storage, key);
+        //     }
+        // } else {
             btree_map::upsert(&mut account.storage, key, value);
-        };
+        // };
     }
 
     public fun new_account(contract: u256, code: vector<u8>, balance: u256, nonce: u256, trie: &mut Trie) {
@@ -367,7 +367,7 @@ module aptos_framework::evm_trie_for_test {
             i = i + 1;
         };
 
-        debug::print(trie)
+        // debug::print(trie)
     }
 
     public fun commit_latest_checkpoint(trie: &mut Trie) {

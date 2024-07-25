@@ -3,7 +3,7 @@ module aptos_framework::evm {
     use std::vector;
     use aptos_std::aptos_hash::keccak256;
     use aptos_std::debug;
-    use aptos_framework::evm_util::{to_32bit, get_contract_address, data_to_u256, u256_to_data, mstore, to_u256, copy_to_memory, get_word_count, vector_slice_u256, vector_slice, get_valid_jumps, get_valid_ethereum_address, expand_to_pos, write_call_output};
+    use aptos_framework::evm_util::{to_32bit, get_contract_address, data_to_u256, u256_to_data, mstore, to_u256, copy_to_memory, get_word_count, vector_slice_u256, vector_slice, get_valid_jumps, get_valid_ethereum_address, expand_to_pos, write_call_output, read_memory};
     use aptos_framework::event::EventHandle;
     use aptos_framework::event;
     use aptos_std::simple_map;
@@ -1083,9 +1083,9 @@ module aptos_framework::evm {
             }
                 //sha3
             else if(opcode == 0x20) {
-                let pos = pop_stack_u64(stack, error_code);
-                let len = pop_stack_u64(stack, error_code);
-                let bytes = vector_slice(*memory, pos, len);
+                let pos = pop_stack(stack, error_code);
+                let len = pop_stack(stack, error_code);
+                let bytes = vector_slice_u256(*memory, pos, len);
                 // debug::print(&value);
                 let value = data_to_u256(keccak256(bytes), 0, 32);
                 vector::push_back(stack, value);
@@ -1107,7 +1107,7 @@ module aptos_framework::evm {
                 let m_len = pop_stack_u64(stack, error_code);
                 let ret_pos = pop_stack(stack, error_code);
                 let ret_len = pop_stack(stack, error_code);
-                let params = vector_slice(*memory, m_pos, m_len);
+                let params = read_memory(memory, m_pos, m_len);
                 let (call_from, call_to, code_address) = get_call_info(sender, to, evm_dest_addr, opcode);
                 let is_precompile = is_precompile_address(to_u256(evm_dest_addr));
                 let transfer_eth = if((opcode == 0xf1 || opcode == 0xf2) && msg_value > 0) true else false;
