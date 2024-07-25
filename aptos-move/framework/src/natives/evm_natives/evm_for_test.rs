@@ -1,5 +1,5 @@
 use crate::natives::evm_natives::{
-    helpers::{move_u256_to_evm_u256}
+    helpers::{move_u256_to_evm_u256, get_move_u256_bytes}
 };
 
 
@@ -44,7 +44,7 @@ impl Account {
 }
 
 fn calculate_storage_root(storage: Struct) -> H256 {
-    let datas: Vec<Value> = unpack_simple_map(storage);
+    let datas: Vec<Value> = unpack_map(storage);
     let mut m = HashMap::new();
     for data in datas {
         let mut content = data.value_as::<Struct>().unwrap().unpack().unwrap().collect::<Vec<_>>();
@@ -65,7 +65,7 @@ fn calculate_storage_root(storage: Struct) -> H256 {
     H256::from_slice(&trie::build(&m).0)
 }
 
-fn unpack_simple_map(simple_map: Struct) -> Vec<Value> {
+fn unpack_map(simple_map: Struct) -> Vec<Value> {
     let mut datas: Vec<Value> = simple_map.unpack().unwrap().collect();
     datas.pop().map(|v| {
             v.value_as::<Vec<Value>>().unwrap()
@@ -103,26 +103,19 @@ fn native_calculate_root(
     mut args: VecDeque<Value>,
 ) -> SafeNativeResult<SmallVec<[Value; 1]>> {
     debug_assert!(_ty_args.is_empty());
-    let state = safely_pop_arg!(args, Struct);
-
-    let datas = unpack_simple_map(state);
+    let values = safely_pop_arg!(args, Vec<Value>);
+    let keys = safely_pop_arg!(args, Vec<move_u256>);
 
     let mut root_map = HashMap::new();
 
-    for data in datas {
-        let mut content = data.value_as::<Struct>().unwrap().unpack().unwrap().collect::<Vec<_>>();
-        let account_data = content.pop().map(|v| {
-            v.value_as::<Struct>().unwrap()
-        }).unwrap();
-        let address = content.pop().map(|v| {
-            v.value_as::<Vec<u8>>().unwrap()
-        }).unwrap();
+    for (key, value) in keys.into_iter().zip(values.into_iter()) {
+        let content = value.value_as::<Struct>().unwrap();
+        let bytes = get_move_u256_bytes(&key);
 
-        let hashed_addr = keccak256(&address[12..]);
-
-        let account = unpack_account(account_data);
-        // println!("hashed_addr: {:?}", hex::encode(hashed_addr));
-        // println!("account: {:?}", account);
+        let hashed_addr = keccak256(&bytes[12..]);
+        let account = unpack_account(content);
+        println!("hashed_addr: {:?}", hex::encode(hashed_addr));
+        println!("account: {:?}", account);
         root_map.insert(hashed_addr.to_vec(), account.rlp_encode());
     };
 

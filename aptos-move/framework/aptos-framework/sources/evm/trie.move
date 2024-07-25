@@ -328,7 +328,7 @@ module aptos_framework::evm_trie {
     }
 
     public(friend) fun is_cold_address(address: vector<u8>, trie: &mut Trie): bool {
-        if(is_precompile_address(address) || is_access_address(address, trie)) {
+        if(is_precompile_address(to_u256(address)) || is_access_address(address, trie)) {
             return false
         };
         let checkpoint = get_lastest_checkpoint_mut(trie);

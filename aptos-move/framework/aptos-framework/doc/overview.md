@@ -20,6 +20,7 @@ This is the reference documentation of the Aptos framework.
 -  [`0x1::aptos_coin`](aptos_coin.md#0x1_aptos_coin)
 -  [`0x1::aptos_governance`](aptos_governance.md#0x1_aptos_governance)
 -  [`0x1::block`](block.md#0x1_block)
+-  [`0x1::btree_map`](btree_map.md#0x1_btree_map)
 -  [`0x1::chain_id`](chain_id.md#0x1_chain_id)
 -  [`0x1::chain_status`](chain_status.md#0x1_chain_status)
 -  [`0x1::code`](code.md#0x1_code)
