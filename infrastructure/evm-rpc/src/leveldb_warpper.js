@@ -18,8 +18,8 @@ class LevelDBWrapper {
     }
 
     async get(key) {
+        return null
         return new Promise((resolve, reject) => {
-            return null
             this.db.get(key, (err, value) => {
                 if (err) {
                     // just for cache, no need to reject
