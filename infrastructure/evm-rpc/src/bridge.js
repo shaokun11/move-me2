@@ -387,9 +387,22 @@ async function checkAddressNonce(info) {
     }
 }
 
-// Because only successful transactions in Move EVM will update the nonce,
-// we don't need to check the nonce here.
-// We can directly read it from the blockchain instead of relying on user input.
+const SENDER_ACCOUNT_INDEX = Array.from({ length: SENDER_ACCOUNT_COUNT }, (_, i) => i);
+
+if (SENDER_ACCOUNT_INDEX.length === 0) {
+    throw "please provide the sender account, now it's empty";
+}
+
+async function getSenderAccount() {
+    while (1) {
+        if (SENDER_ACCOUNT_INDEX.length === 0) {
+            await sleep(0.05);
+        } else {
+            return SENDER_ACCOUNT_INDEX.shift();
+        }
+    }
+}
+
 export async function sendRawTx(tx) {
     const info = parseRawTx(tx);
     const payload = {
@@ -399,18 +412,11 @@ export async function sendRawTx(tx) {
     };
     // this guarantee the nonce order for same from address
     await checkAddressNonce(info);
-    const SENDER_ACCOUNT = GET_SENDER_ACCOUNT(SEND_TX_ACCOUNT_INDEX % SENDER_ACCOUNT_COUNT);
-    SEND_TX_ACCOUNT_INDEX++;
-    // this guarantee the the sender address is order
-    return locker.acquire('sendTx:' + SEND_TX_ACCOUNT_INDEX, async function (done) {
-        sendTx(SENDER_ACCOUNT, payload, info.hash)
-            .then(hash => {
-                done(null, info.hash);
-            })
-            .catch(err => {
-                done(err.message || 'sendTx error');
-            });
-    });
+    const senderIndex = await getSenderAccount();
+    const sender = GET_SENDER_ACCOUNT(senderIndex);
+    await sendTx(sender, payload, info.hash);
+    SENDER_ACCOUNT_COUNT.push(senderIndex);
+    return info.hash;
 }
 
 export async function callContract(from, contract, calldata, value, block) {
