@@ -51,8 +51,8 @@ cargo run --bin aptos account fund-with-faucet --faucet-url http://127.0.0.1:808
 |------------------------|--------------------------------------------------|
 | MEVM RPC               | https://mevm.testnet.imola.movementlabs.xyz |
 | CHAIN ID               | 30732                                            |
-| APTOS URL              | https://aptos.testnet.imola.movementlabs.xyz |
-| APTOS INDEXER URL      | https://aptos.testnet.imola.movementlabs.xyz/indexer |
+| APTOS URL              | https://aptos.testnet.imola.movementlabs.xyz/api/v1 |
+| APTOS INDEXER URL      | https://aptos.testnet.imola.movementlabs.xyz/indexer/v1/graphql |
 | FAUCET WEB             | https://faucet.testnet.imola.movementlabs.xyz |
 | EXPLORER               | https://explorer.testnet.imola.movementlabs.xyz |
 | Server Info            | eu-west-1 m1.testnet.node  
