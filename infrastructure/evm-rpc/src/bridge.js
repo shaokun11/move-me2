@@ -562,8 +562,8 @@ export async function getTransactionByHash(evm_hash) {
         transactionIndex,
         value: toHex(txInfo.value),
         v: toHex(txInfo.v),
-        r: toHex(txInfo.r, true),
-        s: toHex(txInfo.s, true),
+        r: toHex(txInfo.r, true), // need remove the leading zero, otherwise the go sdk will parse error
+        s: toHex(txInfo.s, true), // need remove the leading zero, otherwise the go sdk will parse error
         chainId: toHex(CHAIN_ID),
         ...gasInfo,
     };
