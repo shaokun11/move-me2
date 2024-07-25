@@ -562,8 +562,8 @@ export async function getTransactionByHash(evm_hash) {
         transactionIndex,
         value: toHex(txInfo.value),
         v: toHex(txInfo.v),
-        r: toHex(txInfo.r),
-        s: toHex(txInfo.s),
+        r: toHex(txInfo.r, true),
+        s: toHex(txInfo.s, true),
         chainId: toHex(CHAIN_ID),
         ...gasInfo,
     };

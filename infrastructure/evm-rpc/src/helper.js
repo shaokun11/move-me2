@@ -41,10 +41,12 @@ export function parseRawTx(tx) {
     };
 }
 
-export function toHex(number) {
+export function toHex(number,remove_zero = false) {
     let ret = BigNumber(number).toString(16);
-    while (ret.startsWith('0')) {
-        ret = ret.slice(1);
+    if(remove_zero) {
+        while (ret.startsWith('0')) {
+            ret = ret.slice(1);
+        }
     }
     return '0x' + ret;
 }
