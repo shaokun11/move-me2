@@ -365,15 +365,23 @@ export async function getStorageAt(addr, pos) {
 async function checkAddressNonce(info) {
     const startTs = Date.now();
     while (1) {
+        let chainNonce = -1;
         try {
             const accInfo = await Promise.race([
                 getAccountInfo(info.from),
                 new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10 * 1000)),
             ]);
+            chainNonce = parseInt(accInfo.nonce);
             if (parseInt(accInfo.nonce) === parseInt(info.nonce)) {
                 return true;
             }
         } catch (error) {}
+        // make sure found the onchain account nonce
+        if (chainNonce !== -1) {
+            if (chainNonce > parseInt(info.nonce)) {
+                throw 'nonce too low';
+            }
+        }
         if (Date.now() - startTs > 30 * 1000) {
             throw 'Timeout to discard from memory pool. Please send tx follow address nonce order';
         }
@@ -395,6 +403,7 @@ export async function sendRawTx(tx) {
         arguments: [toBuffer(tx)],
     };
     // this guarantee the nonce order for same from address
+    // Maybe we also need find the same nonce tx but the gasPrice is higher for same address
     await checkAddressNonce(info);
     const getSenderAccount = async () => {
         while (1) {
@@ -406,6 +415,7 @@ export async function sendRawTx(tx) {
         }
     };
     const senderIndex = await getSenderAccount();
+  
     const sender = GET_SENDER_ACCOUNT(senderIndex);
     try {
         await sendTx(sender, payload, info.hash);
