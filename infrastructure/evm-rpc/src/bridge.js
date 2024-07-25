@@ -414,9 +414,14 @@ export async function sendRawTx(tx) {
     await checkAddressNonce(info);
     const senderIndex = await getSenderAccount();
     const sender = GET_SENDER_ACCOUNT(senderIndex);
-    await sendTx(sender, payload, info.hash);
-    SENDER_ACCOUNT_COUNT.push(senderIndex);
-    return info.hash;
+    try {
+        await sendTx(sender, payload, info.hash);
+        SENDER_ACCOUNT_INDEX.push(senderIndex);
+        return info.hash;
+    } catch (e) {
+        SENDER_ACCOUNT_INDEX.push(senderIndex);
+        throw e;
+    }
 }
 
 export async function callContract(from, contract, calldata, value, block) {
