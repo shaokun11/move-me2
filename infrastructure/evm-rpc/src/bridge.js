@@ -293,7 +293,7 @@ export async function getBlockByNumber(block, withTx) {
             c--;
             hash = keccak256(hash);
         }
-        return toHex(hash);
+        return hash;
     };
     if (withTx && evm_tx.length > 0) {
         evm_tx = await Promise.all(evm_tx.map(it => getTransactionByHash(it)));
@@ -549,15 +549,15 @@ export async function getTransactionByHash(evm_hash) {
         gasInfo.maxPriorityFeePerGas = toHex(txInfo.maxPriorityFeePerGas);
     }
     const ret = {
-        blockHash: toHex(block.block_hash),
+        blockHash: block.block_hash,
         blockNumber: toHex(block.block_height),
-        from: toHex(txInfo.from),
+        from: txInfo.from,
         gas: toHex(txInfo.limit),
-        hash: toHex(txInfo.hash),
-        input: toHex(txInfo.data),
+        hash: txInfo.hash,
+        input: txInfo.data,
         type: toHex(txInfo.type),
         nonce: toHex(txInfo.nonce),
-        to: txInfo.to ? toHex(txInfo.to) : null,
+        to: txInfo.to,
         accessList: txInfo.accessList,
         transactionIndex,
         value: toHex(txInfo.value),

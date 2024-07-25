@@ -41,9 +41,9 @@ export function parseRawTx(tx) {
     };
 }
 
-export function toHex(number,remove_zero = false) {
+export function toHex(number, remove_zero = false) {
     let ret = BigNumber(number).toString(16);
-    if(remove_zero) {
+    if (remove_zero) {
         while (ret.startsWith('0')) {
             ret = ret.slice(1);
         }
