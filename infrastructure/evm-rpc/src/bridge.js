@@ -293,7 +293,7 @@ export async function getBlockByNumber(block, withTx) {
             c--;
             hash = keccak256(hash);
         }
-        return hash;
+        return toHex(hash);
     };
     if (withTx && evm_tx.length > 0) {
         evm_tx = await Promise.all(evm_tx.map(it => getTransactionByHash(it)));
@@ -549,21 +549,21 @@ export async function getTransactionByHash(evm_hash) {
         gasInfo.maxPriorityFeePerGas = toHex(txInfo.maxPriorityFeePerGas);
     }
     const ret = {
-        blockHash: block.block_hash,
+        blockHash: toHex(block.block_hash),
         blockNumber: toHex(block.block_height),
-        from: txInfo.from,
-        gas: txInfo.limit,
-        hash: txInfo.hash,
-        input: txInfo.data,
-        type: txInfo.type,
+        from: toHex(txInfo.from),
+        gas: toHex(txInfo.limit),
+        hash: toHex(txInfo.hash),
+        input: toHex(txInfo.data),
+        type: toHex(txInfo.type),
         nonce: toHex(txInfo.nonce),
-        to: txInfo.to,
+        to: txInfo.to ? toHex(txInfo.to) : null,
         accessList: txInfo.accessList,
         transactionIndex,
         value: toHex(txInfo.value),
         v: toHex(txInfo.v),
-        r: txInfo.r,
-        s: txInfo.s,
+        r: toHex(txInfo.r),
+        s: toHex(txInfo.s),
         chainId: toHex(CHAIN_ID),
         ...gasInfo,
     };
@@ -596,7 +596,7 @@ export async function getTransactionReceipt(evm_hash) {
     let contractAddress =
         txResult.data.created_address === '0x' ? null : move2ethAddress(txResult.data.created_address);
     let recept = {
-        blockHash: block.block_hash,
+        blockHash: toHex(block.block_hash),
         blockNumber: toHex(block.block_height),
         contractAddress,
         cumulativeGasUsed: toHex(txResult.data.gas_usage),

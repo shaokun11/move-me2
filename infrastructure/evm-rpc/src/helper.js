@@ -43,6 +43,9 @@ export function parseRawTx(tx) {
 
 export function toHex(number) {
     let ret = BigNumber(number).toString(16);
+    while (ret.startsWith('0')) {
+        ret = ret.slice(1);
+    }
     return '0x' + ret;
 }
 
