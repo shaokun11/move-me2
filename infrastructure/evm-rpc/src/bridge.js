@@ -596,7 +596,7 @@ export async function getTransactionReceipt(evm_hash) {
     let contractAddress =
         txResult.data.created_address === '0x' ? null : move2ethAddress(txResult.data.created_address);
     let recept = {
-        blockHash: toHex(block.block_hash),
+        blockHash: block.block_hash,
         blockNumber: toHex(block.block_height),
         contractAddress,
         cumulativeGasUsed: toHex(txResult.data.gas_usage),
