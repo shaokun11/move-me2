@@ -7,26 +7,28 @@ class LevelDBWrapper {
     }
 
     async put(key, value) {
-        return new Promise((resolve, reject) => {
-            this.db.put(key, value, err => {
-                // just for cache, no need to reject
-                // if (err) return reject(err);
-                resolve();
-            });
-        });
+        return null
+        // return new Promise((resolve, reject) => {
+        //     this.db.put(key, value, err => {
+        //         // just for cache, no need to reject
+        //         // if (err) return reject(err);
+        //         resolve();
+        //     });
+        // });
     }
 
     async get(key) {
-        return new Promise((resolve, reject) => {
-            this.db.get(key, (err, value) => {
-                if (err) {
-                    // just for cache, no need to reject
-                    resolve(null);
-                }
-                // now we only support string
-                resolve(value && value.toString() || null);
-            });
-        });
+        return null
+        // return new Promise((resolve, reject) => {
+        //     this.db.get(key, (err, value) => {
+        //         if (err) {
+        //             // just for cache, no need to reject
+        //             resolve(null);
+        //         }
+        //         // now we only support string
+        //         resolve((value && value.toString()) || null);
+        //     });
+        // });
     }
 
     async del(key) {

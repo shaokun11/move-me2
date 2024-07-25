@@ -22,7 +22,7 @@ import { inspect } from 'node:util';
 import { readFile } from 'node:fs/promises';
 import LevelDBWrapper from './leveldb_warpper.js';
 const locker = new Lock({
-    maxExecutionTime: 15 * 1000,
+    maxExecutionTime: 10 * 60 * 1000, // make it as special time , no meaning
     maxPending: SENDER_ACCOUNT_COUNT * 30,
 });
 const db = new LevelDBWrapper('db/tx');
@@ -663,18 +663,19 @@ async function getAccountInfo(acc, block) {
 
 async function sendTx(sender, payload, evm_hash, option = {}) {
     try {
+        const expire_time_sec = 60;
         const account = await client.getAccount(sender.address());
         const txnRequest = await client.generateTransaction(sender.address(), payload, {
             ...option,
             max_gas_amount: 1 * 1e6,
             sequence_number: account.sequence_number,
-            expiration_timestamp_secs: Math.trunc(Date.now() / 1000) + 10,
+            expiration_timestamp_secs: Math.trunc(Date.now() / 1000) + expire_time_sec,
         });
         const signedTxn = await client.signTransaction(sender, txnRequest);
         const transactionRes = await client.submitTransaction(signedTxn);
         const txResult = await client.waitForTransactionWithResult(transactionRes.hash, {
-            // check one more 1s than the execute tx time
-            timeoutSecs: 11,
+            // check more than the execute tx time
+            timeoutSecs: expire_time_sec + 5,
         });
         console.log('move:%s,evm:%s,result:%s', transactionRes.hash, evm_hash, txResult.vm_status);
         if (!txResult.success) {
