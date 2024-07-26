@@ -49,7 +49,13 @@ export async function getEvmLogs(obj) {
     if (obj.topics) {
         for (let i = 0; i < 5; i++) {
             if (obj.topics[i]) {
-                topicWhere += `topic${i}: {_eq: "${obj.topics[i]}"}\n`;
+                let topicArr = [];
+                if (Array.isArray(obj.topics[i])) {
+                    topicArr = obj.topics[i];
+                } else {
+                    topicArr.push(obj.topics[i]);
+                }
+                topicWhere += `topic${i}: {_in: "${topicArr.map(x => `"${x}"`)}"}\n`;
             }
         }
     }

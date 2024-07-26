@@ -415,7 +415,7 @@ export async function sendRawTx(tx) {
         }
     };
     const senderIndex = await getSenderAccount();
-  
+
     const sender = GET_SENDER_ACCOUNT(senderIndex);
     try {
         await sendTx(sender, payload, info.hash);
