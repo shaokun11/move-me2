@@ -19,7 +19,7 @@ import { googleRecaptcha } from './provider.js';
 import { addToFaucetTask } from './task_faucet.js';
 import { inspect } from 'node:util';
 import { readFile } from 'node:fs/promises';
-import LevelDBWrapper from './leveldb_warpper.js';
+import LevelDBWrapper from './leveldb_wrapper.js';
 
 const db = new LevelDBWrapper('db/tx');
 
