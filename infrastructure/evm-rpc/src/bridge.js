@@ -689,12 +689,19 @@ async function sendTx(sender, payload, evm_hash, option = {}) {
             expiration_timestamp_secs: Math.trunc(Date.now() / 1000) + expire_time_sec,
         });
         const signedTxn = await client.signTransaction(sender, txnRequest);
+        const startTs = Date.now();
         const transactionRes = await client.submitTransaction(signedTxn);
         const txResult = await client.waitForTransactionWithResult(transactionRes.hash, {
             // check more than the execute tx time
             timeoutSecs: expire_time_sec + 5,
         });
-        console.log('move:%s,evm:%s,result:%s', transactionRes.hash, evm_hash, txResult.vm_status);
+        console.log(
+            'ms:%s,move:%s,evm:%s,result:%s',
+            transactionRes.hash,
+            evm_hash,
+            Date.now() - startTs,
+            txResult.vm_status,
+        );
         if (!txResult.success) {
             // From mevm2.0 this should be always success
             throw new Error(txResult.vm_status);
