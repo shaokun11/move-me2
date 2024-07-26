@@ -697,9 +697,9 @@ async function sendTx(sender, payload, evm_hash, option = {}) {
         });
         console.log(
             'ms:%s,move:%s,evm:%s,result:%s',
+            Date.now() - startTs,
             transactionRes.hash,
             evm_hash,
-            Date.now() - startTs,
             txResult.vm_status,
         );
         if (!txResult.success) {
