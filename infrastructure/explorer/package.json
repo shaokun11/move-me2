@@ -1,6 +1,6 @@
 {
-  "name": "aptos-explorer",
-  "version": "3.7.9",
+  "name": "move-explorer",
+  "version": "3.7.10",
   "private": true,
   "packageManager": "pnpm@8.15.1",
   "type": "module",
