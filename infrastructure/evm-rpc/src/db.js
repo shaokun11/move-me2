@@ -55,6 +55,7 @@ export async function getEvmLogs(obj) {
                 } else {
                     topicArr.push(obj.topics[i]);
                 }
+                // Why there need [] but the address doesn't need ? Just for the gql syntax?
                 topicWhere += `topic${i}: {_in: [${topicArr.map(x => `"${x}"`)}]}\n`;
             }
         }
