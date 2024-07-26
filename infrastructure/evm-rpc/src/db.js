@@ -55,7 +55,7 @@ export async function getEvmLogs(obj) {
                 } else {
                     topicArr.push(obj.topics[i]);
                 }
-                topicWhere += `topic${i}: {_in: "${topicArr.map(x => `"${x}"`)}"}\n`;
+                topicWhere += `topic${i}: {_in: [${topicArr.map(x => `"${x}"`)}]}\n`;
             }
         }
     }
