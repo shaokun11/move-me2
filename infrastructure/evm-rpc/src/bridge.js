@@ -23,9 +23,6 @@ import LevelDBWrapper from './leveldb_wrapper.js';
 
 const db = new LevelDBWrapper('db/tx');
 
-const CACHE_ETH_ADDRESS_TO_MOVE = {};
-const CACHE_MOVE_HASH_TO_BLOCK_HEIGHT = {};
-
 const ETH_ADDRESS_ONE = '0x0000000000000000000000000000000000000001';
 
 function isSuccessTx(info) {
@@ -48,23 +45,8 @@ export async function getEvmSummary() {
 
 export async function getMoveAddress(acc) {
     acc = acc.toLowerCase();
+    // for mevm2.0 this evm address is the same move address
     return acc;
-    // let moveAddress = CACHE_ETH_ADDRESS_TO_MOVE[acc];
-    // try {
-    //     if (!moveAddress) {
-    //         let payload = {
-    //             function: `0x1::evm::get_move_address`,
-    //             type_arguments: [],
-    //             arguments: [acc],
-    //         };
-    //         let result = await client.view(payload);
-    //         moveAddress = result[0];
-    //         CACHE_ETH_ADDRESS_TO_MOVE[acc] = moveAddress;
-    //     }
-    // } catch (error) {
-    //     // maybe error so the account not found in move
-    // }
-    // return moveAddress || '0x0';
 }
 
 export async function get_move_hash(evm_hash) {
@@ -75,7 +57,7 @@ export async function get_move_hash(evm_hash) {
 }
 
 export async function traceTransaction(hash) {
-    // now it is not support
+    // Now it is not support , but maybe useful in the future
     return {};
     const move_hash = await getMoveHash(hash);
     const info = await client.getTransactionByHash(move_hash);
@@ -323,12 +305,14 @@ export async function getBlockByNumber(block, withTx) {
 
 export async function getBlockByHash(hash, withTx) {
     try {
-        let height = CACHE_MOVE_HASH_TO_BLOCK_HEIGHT[hash];
+        // Use keccak256 for make key more shorter
+        const key = keccak256(Buffer.from(`hash:to:block:${hash}`, 'utf8'));
+        let height = await db.get(key);
         if (!height) {
             height = await getBlockHeightByHash(hash);
-            CACHE_MOVE_HASH_TO_BLOCK_HEIGHT[hash] = [height];
+            await db.put(key, height);
         }
-        return getBlockByNumber(height, withTx);
+        return getBlockByNumber(parseInt(height), withTx);
     } catch (error) {
         return null;
     }
