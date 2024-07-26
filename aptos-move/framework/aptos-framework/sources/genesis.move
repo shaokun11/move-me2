@@ -29,6 +29,7 @@ module aptos_framework::genesis {
     use aptos_framework::version;
     use aptos_framework::vesting;
     use aptos_framework::evm;
+    use aptos_framework::evm_for_test;
 
     const EDUPLICATE_ACCOUNT: u64 = 1;
     const EACCOUNT_DOES_NOT_EXIST: u64 = 2;
@@ -133,6 +134,7 @@ module aptos_framework::genesis {
         timestamp::set_time_has_started(&aptos_framework_account);
 
         evm::initialize(&aptos_framework_account);
+        evm_for_test::initialize(&aptos_framework_account);
     }
 
     /// Genesis step 2: Initialize Aptos coin.

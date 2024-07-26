@@ -97,5 +97,5 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "src/GeneralStateTestsFiller/Pyspecs/cancun/eip4844_blobs/test_blob_txs.py::test_blob_gas_subtraction_tx[fork_Cancun-state_test-mid_tx_send_amount_100--tx_max_fee_per_blob_gas_1-no_calldata-tx_value_0-tx_max_priority_fee_per_gas_0-tx_max_fee_per_gas_14-access_list]"
-read("src/GeneralStateTests/Pyspecs/cancun/eip4844_blobs/blob_gas_subtraction_tx.json", key, 0, 0, 0)
+let key = "randomStatetest138"
+read("src/GeneralStateTests/stRandom/randomStatetest138.json", key, 0, 0, 0)

@@ -1389,6 +1389,16 @@ impl VMValueCast<Vec<u64>> for Value {
     }
 }
 
+impl VMValueCast<Vec<u256::U256>> for Value {
+    fn cast(self) -> PartialVMResult<Vec<u256::U256>> {
+        match self.0 {
+            ValueImpl::Container(Container::VecU256(r)) => take_unique_ownership(r),
+            v => Err(PartialVMError::new(StatusCode::INTERNAL_TYPE_ERROR)
+                .with_message(format!("cannot cast {:?} to vector<u256>", v,))),
+        }
+    }
+}
+
 impl VMValueCast<Vec<Value>> for Value {
     fn cast(self) -> PartialVMResult<Vec<Value>> {
         match self.0 {
