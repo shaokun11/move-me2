@@ -52,8 +52,6 @@ export const indexer_client = new Client({
     exchanges: [fetchExchange],
 });
 
-export const AUTO_SEND_TX = process.env.START_TASK_ROBOT || false;
-
 export const ROBOT_SENDER_ACCOUNT = Boolean(ROBOT_SENDER)
     ? AptosAccount.fromAptosAccountObject({
           privateKeyHex: ROBOT_SENDER,
