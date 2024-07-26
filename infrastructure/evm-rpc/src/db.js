@@ -22,6 +22,8 @@ export async function getMoveHash(evm_hash) {
         }
         return res.data.evm_move_hash[0].move_hash;
     };
+    // We need to wait for the indexer to sync the transaction info to the database.
+    // Currently, the duration is 3 seconds is enough before running the query.
     return await retry({ times: 3, delay: 1000 }, run);
 }
 
