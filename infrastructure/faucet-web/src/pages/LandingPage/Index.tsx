@@ -97,9 +97,9 @@ export default function LandingPage() {
       <div style={{ width: "300px" }}>
           <h1 style={{ textAlign: "left" }}>Faucets</h1>
       </div>
-      <Chain name="Aptos" btnText="Get MOVE" eventName="m1_apt_request" language={language} amount={1} isEvm={false} hasTestnet={false} network={currentNetwork} faucetRequest={m1FaucetRequest} /> 
-      <Chain name="MEVM" btnText="Get MOVE" eventName="m1_evm_request" language={language} amount={1} isEvm={true} hasTestnet={false} network={currentNetwork}faucetRequest={handleM1evmFaucetRequest} />
-      <Chain name="Sui" btnText="Get SUI" eventName="m2_sui_request" language={language} amount={1} isEvm={false} hasTestnet={false} network={currentNetwork} faucetRequest={m2FaucetRequest} />
+      <Chain name1="Aptos" name2="MOVE" name="IMOLA" btnText="Get MOVE" eventName="m1_apt_request" language={language} amount={1} isEvm={false} hasTestnet={false} network={currentNetwork} faucetRequest={m1FaucetRequest} /> 
+      <Chain name1="MEVM" name2="MEVM" name="IMOLA" btnText="Get MOVE" eventName="m1_evm_request" language={language} amount={1} isEvm={true} hasTestnet={false} network={currentNetwork}faucetRequest={handleM1evmFaucetRequest} />
+      <Chain name1="Sui" name2="MOVE" name="BAKU" btnText="Get MOVE" eventName="m2_sui_request" language={language} amount={1} isEvm={false} hasTestnet={false} network={currentNetwork} faucetRequest={m2FaucetRequest} />
             
       <ToggleButtonGroup
       color="primary"
@@ -110,13 +110,13 @@ export default function LandingPage() {
       >
         <ToggleButton  
           sx={style} value="aptos">
-          <div style={text}><h1>M1</h1>{"{APTOS}"}</div>
+          <div style={text}><h1>IMOLA</h1>{"{MOVE}"}</div>
         </ToggleButton>
         <ToggleButton sx={style} value="mevm">
-          <div style={text}><h1>M1</h1>{"{MEVM}"}</div>
+          <div style={text}><h1>IMOLA</h1>{"{MEVM}"}</div>
         </ToggleButton>
         <ToggleButton sx={style} value="sui">
-          <div style={text}><h1>M2</h1>{"{SUI}"}</div>
+          <div style={text}><h1>BAKU</h1>{"{MOVE}"}</div>
         </ToggleButton>
       </ToggleButtonGroup>
       </Box>
