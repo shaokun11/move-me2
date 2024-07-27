@@ -6,9 +6,10 @@ import { rpc } from './rpc.js';
 import { SERVER_PORT } from './const.js';
 import { startBotTask } from './task_bot.js';
 import { startFaucetTask } from './task_faucet.js';
-
+import timeout from 'connect-timeout'
 const { JSONRPCServer, createJSONRPCErrorResponse } = JsonRpc;
 const app = express();
+app.use(timeout('600s'))
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
