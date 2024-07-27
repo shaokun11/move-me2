@@ -363,7 +363,7 @@ export async function mevmRequestFaucet(
   const requestData = {
     jsonrpc: "2.0",
     id: 1,
-    method: "eth_faucet",
+    method: "eth_batch_faucet",
     params: [
       address
     ]

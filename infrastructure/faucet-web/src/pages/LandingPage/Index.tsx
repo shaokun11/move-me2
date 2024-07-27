@@ -12,13 +12,13 @@ const NETWORK_URLS = {
   testnet: {
     M1_URL: 'https://aptos.testnet.m1.movementlabs.xyz',
     M1_FAUCET_URL: 'https://aptos.testnet.m1.movementlabs.xyz',
-    MEVM_M1_URL: 'https://mevm.testnet.m1.movementlabs.xyz',
+    MEVM_M1_URL: 'https://mevm.internal.devnet.m1.movementlabs.xyz',
     M2_URL: 'https://sui.devnet.m2.movementlabs.xyz/faucet/web',
   },
   devnet: {
     M1_URL: 'https://aptos.devnet.m1.movementlabs.xyz',
     M1_FAUCET_URL: 'https://aptos.devnet.m1.movementlabs.xyz',
-    MEVM_M1_URL: 'https://mevm.devnet.m1.movementlabs.xyz',
+    MEVM_M1_URL: 'https://mevm.internal.devnet.m1.movementlabs.xyz',
     M2_URL: 'https://sui.devnet.m2.movementlabs.xyz/faucet/web',
   },
 };
