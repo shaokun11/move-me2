@@ -283,7 +283,7 @@ function StakeOperationDialogContent({
           <ContentBoxSpaceBetween>
             <ContentRowSpaceBetween
               title={"Staking Fee"}
-              value={Number(addStakeFee) / OCTA + " MVMT"}
+              value={Number(addStakeFee) / OCTA + " MOVE"}
               tooltip={
                 <StyledLearnMoreTooltip
                   text={
@@ -334,9 +334,9 @@ function StakeOperationDialogContent({
       </DialogContent>
       <DialogActions>
         <StyledTooltip
-          title={`Minimum stake amount is ${min} MVMT and maximum stake amount is ${
+          title={`Minimum stake amount is ${min} MOVE and maximum stake amount is ${
             Number(balance) / OCTA
-          } MVMT`}
+          } MOVE`}
           disableHoverListener={isAmountValid}
           placement="top"
         >
