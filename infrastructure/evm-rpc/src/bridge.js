@@ -21,7 +21,7 @@ import { parseMoveTxPayload } from './helper.js';
 import { googleRecaptcha } from './provider.js';
 import { addToFaucetTask } from './task_faucet.js';
 const locker = new Lock({
-    maxExecutionTime: 15 * 1000,
+    maxExecutionTime: 600 * 1000,
     maxPending: SENDER_ACCOUNT_COUNT * 30,
 });
 const lockerFaucet = new Lock({
@@ -372,6 +372,7 @@ export async function sendRawTx(tx) {
             const txnRequest = await client.generateTransaction(SENDER_ACCOUNT.address(), payload);
             let res = await client.simulateTransaction(SENDER_ACCOUNT, txnRequest, {
                 estimatePrioritizedGasUnitPrice: true,
+                expiration_timestamp_secs: Math.trunc(Date.now() / 1000) + 90,
             });
             gasInfo = {
                 success: res[0].success,
@@ -655,7 +656,7 @@ async function sendTx(sender, payload, wait = false, option = {}) {
             ...option,
             max_gas_amount: 1 * 1e6,
             sequence_number: account.sequence_number,
-            expiration_timestamp_secs: Math.trunc(Date.now() / 1000) + 10,
+            expiration_timestamp_secs: Math.trunc(Date.now() / 1000) + 100,
         });
         const signedTxn = await client.signTransaction(sender, txnRequest);
         const transactionRes = await client.submitTransaction(signedTxn);
