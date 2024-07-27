@@ -197,8 +197,9 @@ module aptos_framework::evm_precompile {
     }
 
     #[view]
-    public fun is_precompile_address(addr: u256): bool {
-        addr >= 0x01 && addr <= 0x0a
+    public fun is_precompile_address(addr: vector<u8>): bool {
+        let num = to_u256(addr);
+        num >= 0x01 && num <= 0x0a
     }
 
 }

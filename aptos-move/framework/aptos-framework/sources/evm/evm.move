@@ -264,7 +264,7 @@ module aptos_framework::evm {
             }
         } else {
             to = to_32bit(to);
-            if(is_precompile_address(to_u256(to))) {
+            if(is_precompile_address(to)) {
                 (_, return_value) = precompile(to, data, gas_limit, run_state);
                 success = CALL_RESULT_SUCCESS;
             } else {
@@ -1109,7 +1109,7 @@ module aptos_framework::evm {
                 let ret_len = pop_stack(stack, error_code);
                 let params = read_memory(memory, m_pos, m_len);
                 let (call_from, call_to, code_address) = get_call_info(sender, to, evm_dest_addr, opcode);
-                let is_precompile = is_precompile_address(to_u256(evm_dest_addr));
+                let is_precompile = is_precompile_address(evm_dest_addr);
                 let transfer_eth = if((opcode == 0xf1 || opcode == 0xf2) && msg_value > 0) true else false;
                 set_ret_bytes(run_state, x"");
                 if(get_is_static(run_state) && transfer_eth && call_from != call_to) {

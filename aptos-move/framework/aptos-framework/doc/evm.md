@@ -815,7 +815,7 @@
         }
     } <b>else</b> {
         <b>to</b> = to_32bit(<b>to</b>);
-        <b>if</b>(is_precompile_address(to_u256(<b>to</b>))) {
+        <b>if</b>(is_precompile_address(<b>to</b>)) {
             (_, return_value) = <a href="evm.md#0x1_evm_precompile">precompile</a>(<b>to</b>, data, gas_limit, run_state);
             success = <a href="evm.md#0x1_evm_CALL_RESULT_SUCCESS">CALL_RESULT_SUCCESS</a>;
         } <b>else</b> {
@@ -1932,13 +1932,13 @@
             <b>if</b>(gas_stipend &gt; 0) {
                 add_gas_left(run_state, gas_stipend);
             };
-            <b>let</b> m_pos = <a href="evm.md#0x1_evm_pop_stack_u64">pop_stack_u64</a>(stack, error_code);
-            <b>let</b> m_len = <a href="evm.md#0x1_evm_pop_stack_u64">pop_stack_u64</a>(stack, error_code);
+            <b>let</b> m_pos = <a href="evm.md#0x1_evm_pop_stack">pop_stack</a>(stack, error_code);
+            <b>let</b> m_len = <a href="evm.md#0x1_evm_pop_stack">pop_stack</a>(stack, error_code);
             <b>let</b> ret_pos = <a href="evm.md#0x1_evm_pop_stack">pop_stack</a>(stack, error_code);
             <b>let</b> ret_len = <a href="evm.md#0x1_evm_pop_stack">pop_stack</a>(stack, error_code);
-            <b>let</b> params = vector_slice(*memory, m_pos, m_len);
+            <b>let</b> params = read_memory(memory, m_pos, m_len);
             <b>let</b> (call_from, call_to, code_address) = <a href="evm.md#0x1_evm_get_call_info">get_call_info</a>(sender, <b>to</b>, evm_dest_addr, opcode);
-            <b>let</b> is_precompile = is_precompile_address(to_u256(evm_dest_addr));
+            <b>let</b> is_precompile = is_precompile_address(evm_dest_addr);
             <b>let</b> transfer_eth = <b>if</b>((opcode == 0xf1 || opcode == 0xf2) && msg_value &gt; 0) <b>true</b> <b>else</b> <b>false</b>;
             set_ret_bytes(run_state, x"");
             <b>if</b>(get_is_static(run_state) && transfer_eth && call_from != call_to) {

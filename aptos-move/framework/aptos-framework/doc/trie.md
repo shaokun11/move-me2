@@ -1193,7 +1193,7 @@
 
 
 <pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="trie.md#0x1_evm_trie_is_cold_address">is_cold_address</a>(<b>address</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, trie: &<b>mut</b> <a href="trie.md#0x1_evm_trie_Trie">Trie</a>): bool {
-    <b>if</b>(is_precompile_address(to_u256(<b>address</b>)) || <a href="trie.md#0x1_evm_trie_is_access_address">is_access_address</a>(<b>address</b>, trie)) {
+    <b>if</b>(is_precompile_address(<b>address</b>) || <a href="trie.md#0x1_evm_trie_is_access_address">is_access_address</a>(<b>address</b>, trie)) {
         <b>return</b> <b>false</b>
     };
     <b>let</b> checkpoint = <a href="trie.md#0x1_evm_trie_get_lastest_checkpoint_mut">get_lastest_checkpoint_mut</a>(trie);

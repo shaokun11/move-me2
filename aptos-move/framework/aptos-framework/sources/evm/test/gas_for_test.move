@@ -1,10 +1,10 @@
 module aptos_framework::evm_gas_for_test {
     use std::vector;
-    use aptos_framework::evm_util::{print_opcode, u256_bytes_length, get_word_count, get_valid_ethereum_address, to_u256};
+    use aptos_framework::evm_util::{print_opcode, u256_bytes_length, get_word_count, get_valid_ethereum_address, u256_to_data};
     use aptos_framework::evm_global_state_for_test::{get_memory_cost, set_memory_cost, add_gas_refund, sub_gas_refund, get_memory_word_size, set_memory_word_size, RunState, get_gas_left, get_ret_size};
     use aptos_std::debug;
     use std::vector::for_each;
-    use aptos_framework::evm_trie_for_test::{Trie, get_state, exist_account, is_cold_address, get_cache, get_balance};
+    use aptos_framework::evm_trie_for_test::{get_state, exist_account, is_cold_address, get_cache, get_balance};
     use aptos_framework::evm_arithmetic::add;
 
     const OUT_OF_GAS: u64 = 11;
@@ -32,8 +32,8 @@ module aptos_framework::evm_gas_for_test {
     const CallStipend: u256 = 2300;
     const InitCodeWordCost: u256 = 2;
 
-    fun access_address(address: u256, trie: &mut Trie): u256 {
-        if(is_cold_address(address, trie)) ColdAccountAccess else Warmstorageread
+    fun access_address(address: vector<u8>): u256 {
+        if(is_cold_address(address)) ColdAccountAccess else Warmstorageread
     }
 
     fun calc_memory_expand(stack: &vector<u256>, pos: u64, size: u64, run_state: &mut RunState, gas_limit: u256, error_code: &mut u64): u256 {
@@ -123,9 +123,8 @@ module aptos_framework::evm_gas_for_test {
         calc_memory_expand_internal(offset + 1, run_state, gas_limit, error_code)
     }
 
-    fun calc_sload_gas(address: u256,
+    fun calc_sload_gas(address: vector<u8>,
                        stack: &vector<u256>,
-                       trie: &mut Trie,
                        error_code: &mut u64): u256 {
         let len = vector::length(stack);
         if(len < 1) {
@@ -133,13 +132,12 @@ module aptos_framework::evm_gas_for_test {
             return 0
         };
         let key = *vector::borrow(stack,len - 1);
-        let (is_cold_slot, _) = get_cache(address, key, trie);
+        let (is_cold_slot, _) = get_cache(address, key);
         if(is_cold_slot) Coldsload else Warmstorageread
     }
 
-    fun calc_sstore_gas(address: u256,
+    fun calc_sstore_gas(address: vector<u8>,
                         stack: &vector<u256>,
-                        trie: &mut Trie,
                         run_state: &mut RunState,
                         error_code: &mut u64): u256 {
         if(get_gas_left(run_state) <= SstoreSentryGasEIP2200) {
@@ -154,8 +152,8 @@ module aptos_framework::evm_gas_for_test {
         };
 
         let key = *vector::borrow(stack,len - 1);
-        let (is_cold_slot, origin) = get_cache(address, key, trie);
-        let current = get_state(address, key, trie);
+        let (is_cold_slot, origin) = get_cache(address, key);
+        let current = get_state(address, key);
         let new = *vector::borrow(stack,len - 2);
         let cold_cost = if(is_cold_slot) Coldsload else 0;
         // debug::print(get)
@@ -213,8 +211,7 @@ module aptos_framework::evm_gas_for_test {
     }
 
     fun calc_call_gas(stack: &mut vector<u256>,
-                      opcode: u8,
-                      trie: &mut Trie, run_state: &mut RunState, gas_limit: u256, error_code: &mut u64): u256 {
+                      opcode: u8, run_state: &mut RunState, gas_limit: u256, error_code: &mut u64): u256 {
         let gas = 0;
         let len = vector::length(stack);
         let size = if(opcode == 0xf1 || opcode == 0xf2) 7 else 6;
@@ -222,11 +219,11 @@ module aptos_framework::evm_gas_for_test {
             *error_code = STACK_UNDERFLOW;
             return 0
         };
-        let address = to_u256(get_valid_ethereum_address(*vector::borrow(stack,len - 2)));
+        let address = get_valid_ethereum_address(*vector::borrow(stack,len - 2));
         if(opcode == 0xf1 || opcode == 0xf2) {
             let value = *vector::borrow(stack,len - 3);
 
-            if(opcode == 0xf1 && value > 0 && !exist_account(address, trie)) {
+            if(opcode == 0xf1 && value > 0 && !exist_account(address)) {
                 gas = gas + CallNewAccount;
             };
             if(value > 0) {
@@ -239,7 +236,7 @@ module aptos_framework::evm_gas_for_test {
             gas = gas +  calc_memory_expand(stack, 5, 6, run_state, gas_limit, error_code);
         };
 
-        gas = gas + access_address(address, trie);
+        gas = gas + access_address(address);
 
         gas
     }
@@ -285,20 +282,18 @@ module aptos_framework::evm_gas_for_test {
     }
 
     fun calc_address_access_gas(stack: &mut vector<u256>,
-                                trie: &mut Trie,
                                 error_code: &mut u64): u256 {
         let len = vector::length(stack);
         if(len == 0) {
             *error_code = STACK_UNDERFLOW;
             return 0
         };
-        let address = to_u256(get_valid_ethereum_address(*vector::borrow(stack,len - 1)));
-        access_address(address, trie)
+        let address = get_valid_ethereum_address(*vector::borrow(stack,len - 1));
+        access_address(address)
     }
 
     fun calc_ext_code_copy_gas(stack: &mut vector<u256>,
                                run_state: &mut RunState,
-                               trie: &mut Trie,
                                gas_limit: u256,
                                error_code: &mut u64): u256 {
         let len = vector::length(stack);
@@ -318,8 +313,8 @@ module aptos_framework::evm_gas_for_test {
             };
             gas = gas + calc_memory_expand(stack, 2, 4, run_state, gas_limit, error_code);
         };
-        let address = to_u256(get_valid_ethereum_address(*vector::borrow(stack,len - 1)));
-        gas = gas + access_address(address, trie);
+        let address = get_valid_ethereum_address(*vector::borrow(stack,len - 1));
+        gas = gas + access_address(address);
         gas
     }
 
@@ -361,9 +356,8 @@ module aptos_framework::evm_gas_for_test {
         gas
     }
 
-    fun calc_create_gas(address: u256,
+    fun calc_create_gas(address: vector<u8>,
                         stack: &vector<u256>,
-                        trie: &mut Trie,
                         run_state: &mut RunState,
                         gas_limit: u256,
                         error_code: &mut u64): u256 {
@@ -376,16 +370,17 @@ module aptos_framework::evm_gas_for_test {
         let gas = 0;
         let words = get_word_count(length);
         gas = gas + calc_memory_expand(stack, 2, 3, run_state, gas_limit, error_code);
+        debug::print(&gas);
         gas = gas + words * InitCodeWordCost;
+        debug::print(&gas);
 
-        access_address(address, trie);
+        access_address(address);
 
         gas
     }
 
-    fun calc_create2_gas(address: u256,
+    fun calc_create2_gas(address: vector<u8>,
                          stack: &vector<u256>,
-                         trie: &mut Trie,
                          run_state: &mut RunState,
                          gas_limit: u256,
                          error_code: &mut u64): u256 {
@@ -396,29 +391,28 @@ module aptos_framework::evm_gas_for_test {
         gas = gas + calc_memory_expand(stack, 2, 3, run_state, gas_limit, error_code);
         gas = gas + words * InitCodeWordCost;
         gas = gas + words * Keccak256Word;
-        access_address(address, trie);
+        access_address(address);
 
         gas
     }
 
-    fun calc_self_destruct_gas(address: u256,
+    fun calc_self_destruct_gas(address: vector<u8>,
                                stack: &mut vector<u256>,
-                               trie: &mut Trie,
                                error_code: &mut u64): u256 {
-        let balance = get_balance(address, trie);
+        let balance = get_balance(address);
         let len = vector::length(stack);
         if(len < 1) {
             *error_code = STACK_UNDERFLOW;
             return 0
         };
-        let to = *vector::borrow(stack,len - 1);
+        let to = u256_to_data(*vector::borrow(stack,len - 1));
         let gas = 0;
         if(balance > 0) {
-            if(balance > 0 && !exist_account(to, trie)) {
+            if(balance > 0 && !exist_account(to)) {
                 gas = gas + CallNewAccount;
             };
         };
-        gas = gas + access_address(to, trie);
+        gas = gas + access_address(to);
         gas + 5000
     }
 
@@ -441,10 +435,9 @@ module aptos_framework::evm_gas_for_test {
     }
 
     public fun calc_exec_gas(opcode :u8,
-                             address: u256,
+                             address: vector<u8>,
                              stack: &mut vector<u256>,
                              run_state: &mut RunState,
-                             trie: &mut Trie,
                              gas_limit: u256,
                              error_code: &mut u64
                             ): u256 {
@@ -631,16 +624,16 @@ module aptos_framework::evm_gas_for_test {
             calc_keccak256_gas(stack, run_state, gas_limit, error_code)
         } else if (opcode == 0x31) {
             // BALANCE
-            calc_address_access_gas(stack, trie, error_code)
+            calc_address_access_gas(stack, error_code)
         } else if (opcode == 0x3f || opcode == 0x3b) {
             // EXTCODEHASH
-            calc_address_access_gas(stack, trie, error_code)
+            calc_address_access_gas(stack, error_code)
         } else if (opcode == 0xf0) {
             // CREATE
-            calc_create_gas(address, stack, trie, run_state, gas_limit, error_code) + 32000
+            calc_create_gas(address, stack, run_state, gas_limit, error_code) + 32000
         } else if (opcode == 0xf5) {
             // CREATE2
-            calc_create2_gas(address, stack, trie, run_state, gas_limit, error_code) + 32000
+            calc_create2_gas(address, stack, run_state, gas_limit, error_code) + 32000
         } else if(opcode == 0x53){
             calc_mstore8_gas(stack, run_state, gas_limit, error_code) + 3
         } else if (opcode == 0x51 || opcode == 0x52) {
@@ -648,16 +641,16 @@ module aptos_framework::evm_gas_for_test {
             calc_mstore_gas(stack, run_state, gas_limit, error_code) + 3
         } else if (opcode == 0xf1 || opcode == 0xf2 || opcode == 0xf4 || opcode == 0xfa) {
             // CALL
-            calc_call_gas(stack, opcode, trie, run_state, gas_limit, error_code)
+            calc_call_gas(stack, opcode, run_state, gas_limit, error_code)
         } else if (opcode == 0xf3 || opcode == 0xfd) {
             // RETURN & REVERT
             calc_memory_expand(stack, 1, 2, run_state, gas_limit, error_code)
         } else if (opcode == 0x54) {
             // SLOAD
-            calc_sload_gas(address, stack, trie, error_code)
+            calc_sload_gas(address, stack, error_code)
         } else if (opcode == 0x55) {
             // SSTORE
-            calc_sstore_gas(address, stack, trie, run_state, error_code)
+            calc_sstore_gas(address, stack, run_state, error_code)
         } else if (opcode == 0x5e) {
             // MCOPY
             calc_mcopy_gas(stack, run_state, gas_limit, error_code)
@@ -669,13 +662,13 @@ module aptos_framework::evm_gas_for_test {
             calc_code_copy_gas(stack, run_state, gas_limit, error_code)
         } else if (opcode == 0x3c) {
             // EXTCODECOPY
-            calc_ext_code_copy_gas(stack, run_state, trie, gas_limit, error_code)
+            calc_ext_code_copy_gas(stack, run_state, gas_limit, error_code)
         } else if (opcode >= 0xa0 && opcode <= 0xa4) {
             // LOG
             calc_log_gas(opcode, stack, run_state, gas_limit, error_code)
         } else if (opcode == 0xff) {
             // SELF DESTRUCT
-            calc_self_destruct_gas(address, stack, trie, error_code)
+            calc_self_destruct_gas(address, stack, error_code)
         }
         else {
             *error_code = INVALID_OPCODE;
