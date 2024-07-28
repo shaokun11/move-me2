@@ -370,9 +370,7 @@ module aptos_framework::evm_gas_for_test {
         let gas = 0;
         let words = get_word_count(length);
         gas = gas + calc_memory_expand(stack, 2, 3, run_state, gas_limit, error_code);
-        debug::print(&gas);
         gas = gas + words * InitCodeWordCost;
-        debug::print(&gas);
 
         access_address(address);
 
