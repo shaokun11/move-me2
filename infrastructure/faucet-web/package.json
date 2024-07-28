@@ -1,6 +1,6 @@
 {
   "name": "movement-faucets",
-  "version": "1.7.5",
+  "version": "1.7.7",
   "private": true,
   "dependencies": {
     "@apollo/client": "^3.7.10",

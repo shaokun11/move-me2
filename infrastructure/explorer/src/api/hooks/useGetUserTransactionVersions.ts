@@ -29,18 +29,20 @@ export default function useGetUserTransactionVersions(
   const topTxnsOnly = startVersion === undefined || offset === undefined;
   const {loading, error, data} = useGraphqlQuery(
     topTxnsOnly ? TOP_USER_TRANSACTIONS_QUERY : USER_TRANSACTIONS_QUERY,
-    {variables: {limit: limit, start_version: startVersion, offset: offset}},
+    {variables: {limit: limit, start_version: startVersion, offset: offset},pollInterval: 12000},
   );
 
   if (loading || error || !data) {
-    return [];
+    return (window as any)["useGetUserTransactionVersions"+topTxnsOnly+limit+startVersion+offset]||[];
   }
 
   const versions: number[] = data.user_transactions.map(
     (txn: {version: number}) => {
+      (window as any)["useGetUserTransactionVersions"+topTxnsOnly+limit+startVersion+offset]=txn.version;
       return txn.version;
     },
   );
-
   return versions;
 }
+
+

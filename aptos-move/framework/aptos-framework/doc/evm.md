@@ -48,6 +48,7 @@
 <b>use</b> <a href="storage.md#0x1_evm_storage">0x1::evm_storage</a>;
 <b>use</b> <a href="trie.md#0x1_evm_trie">0x1::evm_trie</a>;
 <b>use</b> <a href="util.md#0x1_evm_util">0x1::evm_util</a>;
+<b>use</b> <a href="../../aptos-stdlib/doc/from_bcs.md#0x1_from_bcs">0x1::from_bcs</a>;
 <b>use</b> <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map">0x1::simple_map</a>;
 <b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/string.md#0x1_string">0x1::string</a>;
 <b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">0x1::vector</a>;
@@ -362,6 +363,15 @@
 
 
 <pre><code><b>const</b> <a href="evm.md#0x1_evm_EXCEPTION_INSUFFCIENT_BALANCE_TO_SEND_TX">EXCEPTION_INSUFFCIENT_BALANCE_TO_SEND_TX</a>: u64 = 205;
+</code></pre>
+
+
+
+<a id="0x1_evm_EXCEPTION_INSUFFCIENT_BALANCE_TO_WITHDRAW"></a>
+
+
+
+<pre><code><b>const</b> <a href="evm.md#0x1_evm_EXCEPTION_INSUFFCIENT_BALANCE_TO_WITHDRAW">EXCEPTION_INSUFFCIENT_BALANCE_TO_WITHDRAW</a>: u64 = 210;
 </code></pre>
 
 
@@ -795,7 +805,14 @@
             };
         };
     } <b>else</b> <b>if</b>(to_32bit(<b>to</b>) == <a href="evm.md#0x1_evm_WITHDRAW_ADDR">WITHDRAW_ADDR</a>) {
-        withdraw_from(from, data);
+        <b>let</b> amount = data_to_u256(data, 36, 32);
+        <b>let</b> <b>to</b> = to_address(vector_slice(data, 100, 32));
+        <b>let</b> result = sub_balance(from, amount, &<b>mut</b> trie);
+        <b>if</b>(result) {
+            withdraw_from(from, amount, <b>to</b>);
+        } <b>else</b> {
+            exception = <a href="evm.md#0x1_evm_EXCEPTION_INSUFFCIENT_BALANCE_TO_WITHDRAW">EXCEPTION_INSUFFCIENT_BALANCE_TO_WITHDRAW</a>;
+        }
     } <b>else</b> {
         <b>to</b> = to_32bit(<b>to</b>);
         <b>if</b>(is_precompile_address(<b>to</b>)) {
@@ -1895,9 +1912,9 @@
         }
             //sha3
         <b>else</b> <b>if</b>(opcode == 0x20) {
-            <b>let</b> pos = <a href="evm.md#0x1_evm_pop_stack_u64">pop_stack_u64</a>(stack, error_code);
-            <b>let</b> len = <a href="evm.md#0x1_evm_pop_stack_u64">pop_stack_u64</a>(stack, error_code);
-            <b>let</b> bytes = vector_slice(*memory, pos, len);
+            <b>let</b> pos = <a href="evm.md#0x1_evm_pop_stack">pop_stack</a>(stack, error_code);
+            <b>let</b> len = <a href="evm.md#0x1_evm_pop_stack">pop_stack</a>(stack, error_code);
+            <b>let</b> bytes = vector_slice_u256(*memory, pos, len);
             // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&value);
             <b>let</b> value = data_to_u256(keccak256(bytes), 0, 32);
             <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, value);
@@ -1915,11 +1932,11 @@
             <b>if</b>(gas_stipend &gt; 0) {
                 add_gas_left(run_state, gas_stipend);
             };
-            <b>let</b> m_pos = <a href="evm.md#0x1_evm_pop_stack_u64">pop_stack_u64</a>(stack, error_code);
-            <b>let</b> m_len = <a href="evm.md#0x1_evm_pop_stack_u64">pop_stack_u64</a>(stack, error_code);
+            <b>let</b> m_pos = <a href="evm.md#0x1_evm_pop_stack">pop_stack</a>(stack, error_code);
+            <b>let</b> m_len = <a href="evm.md#0x1_evm_pop_stack">pop_stack</a>(stack, error_code);
             <b>let</b> ret_pos = <a href="evm.md#0x1_evm_pop_stack">pop_stack</a>(stack, error_code);
             <b>let</b> ret_len = <a href="evm.md#0x1_evm_pop_stack">pop_stack</a>(stack, error_code);
-            <b>let</b> params = vector_slice(*memory, m_pos, m_len);
+            <b>let</b> params = read_memory(memory, m_pos, m_len);
             <b>let</b> (call_from, call_to, code_address) = <a href="evm.md#0x1_evm_get_call_info">get_call_info</a>(sender, <b>to</b>, evm_dest_addr, opcode);
             <b>let</b> is_precompile = is_precompile_address(evm_dest_addr);
             <b>let</b> transfer_eth = <b>if</b>((opcode == 0xf1 || opcode == 0xf2) && msg_value &gt; 0) <b>true</b> <b>else</b> <b>false</b>;

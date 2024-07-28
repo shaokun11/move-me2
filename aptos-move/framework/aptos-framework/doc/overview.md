@@ -32,6 +32,7 @@ This is the reference documentation of the Aptos framework.
 -  [`0x1::event`](event.md#0x1_event)
 -  [`0x1::evm`](evm.md#0x1_evm)
 -  [`0x1::evm_arithmetic`](arithmetic.md#0x1_evm_arithmetic)
+-  [`0x1::evm_context`](evm_context.md#0x1_evm_context)
 -  [`0x1::evm_for_test`](evm_for_test.md#0x1_evm_for_test)
 -  [`0x1::evm_gas`](gas.md#0x1_evm_gas)
 -  [`0x1::evm_gas_for_test`](gas_for_test.md#0x1_evm_gas_for_test)

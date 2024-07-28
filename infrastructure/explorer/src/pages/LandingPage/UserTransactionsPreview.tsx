@@ -6,14 +6,36 @@ import {UserTransactionsTable} from "../Transactions/TransactionsTable";
 import useGetUserTransactionVersions from "../../api/hooks/useGetUserTransactionVersions";
 import TransactionsPreview from "./TransactionsPreview";
 import {useAugmentToWithGlobalSearchParams} from "../../routing";
+import { useEffect, useState } from "react";
 
 const PREVIEW_TRANSACTIONS_COUNT = 10;
 
 export default function UserTransactionsPreview() {
+  // const [startVersion, setStartVersion] = useState<number | undefined>(1);
   const versions = useGetUserTransactionVersions(PREVIEW_TRANSACTIONS_COUNT);
   const augmentTo = useAugmentToWithGlobalSearchParams();
 
+  // const [up,setUp] = useState<number>(1);
+
+  // setTimeout(() => {
+  //   console.log("versions", versions,versions.length);
+  //   const aa = Math.max(versions?.length>0?versions[0]+1:0,(startVersion||0)+1);
+  //   setStartVersion(aa)
+  // },6000)
+  
+
+  // useEffect(() => {
+    
+  //   console.log("versions", versions,versions.length);
+  //   setTimeout(() => {
+  //     setStartVersion(versions?.length>0?versions[0]:0)
+  //   },6000)
+  //   // setStartVersion(versions?.length>0?versions[0]:0)
+  // }, [startVersion]);
+  
+
   // TODO: remove the fallback below when indexer is stable
+  
   if (versions.length === 0) {
     return <TransactionsPreview />;
   }

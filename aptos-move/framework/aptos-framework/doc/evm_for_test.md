@@ -15,7 +15,6 @@
 -  [Resource `ContractEvent`](#0x1_evm_for_test_ContractEvent)
 -  [Constants](#@Constants_0)
 -  [Function `revert`](#0x1_evm_for_test_revert)
--  [Function `calculate_root`](#0x1_evm_for_test_calculate_root)
 -  [Function `initialize`](#0x1_evm_for_test_initialize)
 -  [Function `emit_event`](#0x1_evm_for_test_emit_event)
 -  [Function `handle_tx_failed`](#0x1_evm_for_test_handle_tx_failed)
@@ -38,6 +37,7 @@
 <b>use</b> <a href="../../aptos-stdlib/doc/debug.md#0x1_debug">0x1::debug</a>;
 <b>use</b> <a href="event.md#0x1_event">0x1::event</a>;
 <b>use</b> <a href="arithmetic.md#0x1_evm_arithmetic">0x1::evm_arithmetic</a>;
+<b>use</b> <a href="evm_context.md#0x1_evm_context">0x1::evm_context</a>;
 <b>use</b> <a href="gas_for_test.md#0x1_evm_gas_for_test">0x1::evm_gas_for_test</a>;
 <b>use</b> <a href="global_state_for_test.md#0x1_evm_global_state_for_test">0x1::evm_global_state_for_test</a>;
 <b>use</b> <a href="precompile.md#0x1_evm_precompile">0x1::evm_precompile</a>;
@@ -628,30 +628,6 @@
 
 </details>
 
-<a id="0x1_evm_for_test_calculate_root"></a>
-
-## Function `calculate_root`
-
-
-
-<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_calculate_root">calculate_root</a>(trie: <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_SimpleMap">simple_map::SimpleMap</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="trie_for_test.md#0x1_evm_trie_for_test_TestAccount">evm_trie_for_test::TestAccount</a>&gt;): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;
-</code></pre>
-
-
-
-<details>
-<summary>Implementation</summary>
-
-
-<pre><code><b>native</b> <b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_calculate_root">calculate_root</a>(
-    trie: SimpleMap&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, TestAccount&gt;
-): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;;
-</code></pre>
-
-
-
-</details>
-
 <a id="0x1_evm_for_test_initialize"></a>
 
 ## Function `initialize`
@@ -716,7 +692,7 @@
 
 
 
-<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_handle_tx_failed">handle_tx_failed</a>(trie: &<a href="trie_for_test.md#0x1_evm_trie_for_test_Trie">evm_trie_for_test::Trie</a>)
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_handle_tx_failed">handle_tx_failed</a>()
 </code></pre>
 
 
@@ -725,8 +701,8 @@
 <summary>Implementation</summary>
 
 
-<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_handle_tx_failed">handle_tx_failed</a>(trie: &Trie) <b>acquires</b> <a href="evm_for_test.md#0x1_evm_for_test_ExecResource">ExecResource</a> {
-    <b>let</b> state_root = <a href="evm_for_test.md#0x1_evm_for_test_calculate_root">calculate_root</a>(get_storage_copy(trie));
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_handle_tx_failed">handle_tx_failed</a>() <b>acquires</b> <a href="evm_for_test.md#0x1_evm_for_test_ExecResource">ExecResource</a> {
+    <b>let</b> state_root = <a href="evm_context.md#0x1_evm_context_calculate_root">evm_context::calculate_root</a>();
     <a href="evm_for_test.md#0x1_evm_for_test_emit_event">emit_event</a>(state_root, 0, 0);
 }
 </code></pre>
@@ -767,21 +743,21 @@
                           env_data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;,
                           tx_type: u8) <b>acquires</b> <a href="evm_for_test.md#0x1_evm_for_test_ExecResource">ExecResource</a> {
     <b>let</b> value = to_u256(value_bytes);
-    <b>let</b> (trie, access_address_count, access_slot_count) = pre_init(addresses, codes, nonces, balances, storage_keys, storage_values, access_addresses, access_keys);
+    <b>let</b> (access_address_count, access_slot_count) = pre_init(addresses, codes, nonces, balances, storage_keys, storage_values, access_addresses, access_keys);
     <b>let</b> gas_limit = to_u256(gas_limit_bytes);
     from = to_32bit(from);
 
     <b>let</b> run_state = &<b>mut</b> new_run_state(from, gas_price_data, gas_limit, &env_data, tx_type);
     <b>let</b> gas_price = get_gas_price(run_state);
-    add_warm_address(from, &<b>mut</b> trie);
-    add_warm_address(get_coinbase(run_state), &<b>mut</b> trie);
+    add_warm_address(from);
+    add_warm_address(get_coinbase(run_state));
     <b>let</b> data_size = (<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&data) <b>as</b> u256);
     <b>let</b> base_cost = calc_base_gas(&data, access_address_count, access_slot_count) + 21000;
     <b>let</b> up_cost;
     <b>let</b> overflow;
     <b>if</b>(is_eip_1559(run_state)) {
         <b>if</b>(get_basefee(run_state) &gt; get_max_fee_per_gas(run_state) || get_max_priority_fee_per_gas(run_state) &gt; get_max_fee_per_gas(run_state)) {
-            <a href="evm_for_test.md#0x1_evm_for_test_handle_tx_failed">handle_tx_failed</a>(&trie);
+            <a href="evm_for_test.md#0x1_evm_for_test_handle_tx_failed">handle_tx_failed</a>();
             <b>return</b>
         };
         (up_cost, overflow) = mul(get_max_fee_per_gas(run_state), gas_limit);
@@ -795,41 +771,41 @@
         };
     };
     <b>if</b>(overflow || gas_limit &gt; get_block_gas_limit(run_state) || gas_price &lt; get_basefee(run_state)) {
-        <a href="evm_for_test.md#0x1_evm_for_test_handle_tx_failed">handle_tx_failed</a>(&trie);
+        <a href="evm_for_test.md#0x1_evm_for_test_handle_tx_failed">handle_tx_failed</a>();
         <b>return</b>
     };
 
     <b>if</b>(<b>to</b> == <a href="evm_for_test.md#0x1_evm_for_test_EMPTY_ADDR">EMPTY_ADDR</a>) {
         <b>if</b>(data_size &gt; <a href="evm_for_test.md#0x1_evm_for_test_MAX_INIT_CODE_SIZE">MAX_INIT_CODE_SIZE</a>) {
-            <a href="evm_for_test.md#0x1_evm_for_test_handle_tx_failed">handle_tx_failed</a>(&trie);
+            <a href="evm_for_test.md#0x1_evm_for_test_handle_tx_failed">handle_tx_failed</a>();
             <b>return</b>
         };
         base_cost = base_cost + 2 * get_word_count(data_size) + 32000;
     };
-    <b>if</b>(get_balance(from, &trie) &lt; up_cost || get_code_length(from, &trie) &gt; 0 || gas_limit &lt; base_cost) {
-        <a href="evm_for_test.md#0x1_evm_for_test_handle_tx_failed">handle_tx_failed</a>(&trie);
+    <b>if</b>(get_balance(from) &lt; up_cost || get_code_length(from) &gt; 0 || gas_limit &lt; base_cost) {
+        <a href="evm_for_test.md#0x1_evm_for_test_handle_tx_failed">handle_tx_failed</a>();
         <b>return</b>
-    } <b>else</b> <b>if</b>(get_nonce(from, &trie) &gt;= <a href="evm_for_test.md#0x1_evm_for_test_U64_MAX">U64_MAX</a>) {
-        <a href="evm_for_test.md#0x1_evm_for_test_handle_tx_failed">handle_tx_failed</a>(&trie);
+    } <b>else</b> <b>if</b>(get_nonce(from) &gt;= <a href="evm_for_test.md#0x1_evm_for_test_U64_MAX">U64_MAX</a>) {
+        <a href="evm_for_test.md#0x1_evm_for_test_handle_tx_failed">handle_tx_failed</a>();
         <b>return</b>
     } <b>else</b> {
-        sub_balance(from, gas_limit * gas_price, &<b>mut</b> trie);
+        sub_balance(from, gas_limit * gas_price);
         <b>let</b> out_of_gas = add_gas_usage(run_state, base_cost);
         <b>if</b>(out_of_gas) {
-            <a href="evm_for_test.md#0x1_evm_for_test_handle_tx_failed">handle_tx_failed</a>(&trie);
+            <a href="evm_for_test.md#0x1_evm_for_test_handle_tx_failed">handle_tx_failed</a>();
             <b>return</b>
         };
-        add_checkpoint(&<b>mut</b> trie);
+        add_checkpoint();
         <b>if</b>(<b>to</b> == <a href="evm_for_test.md#0x1_evm_for_test_EMPTY_ADDR">EMPTY_ADDR</a>) {
-            <b>let</b> evm_contract = get_contract_address(from, (get_nonce(from, &trie) <b>as</b> u64));
-            <b>if</b>(is_contract_or_created_account(evm_contract, &trie)) {
+            <b>let</b> evm_contract = get_contract_address(from, (get_nonce(from) <b>as</b> u64));
+            <b>if</b>(is_contract_or_created_account(evm_contract)) {
                 add_gas_usage(run_state, gas_limit);
             } <b>else</b> {
                 <b>let</b> gas_left = get_gas_left(run_state);
                 add_call_state(run_state, gas_left, <b>false</b>);
-                <b>let</b> (result, bytes) = <a href="evm_for_test.md#0x1_evm_for_test_run">run</a>(from, evm_contract, data, x"", value, gas_left, &<b>mut</b> trie, run_state, <b>true</b>, <b>true</b>, 0);
+                <b>let</b> (result, bytes) = <a href="evm_for_test.md#0x1_evm_for_test_run">run</a>(from, evm_contract, data, x"", value, gas_left, run_state, <b>true</b>, <b>true</b>, 0);
                 <b>if</b>(result == <a href="evm_for_test.md#0x1_evm_for_test_CALL_RESULT_SUCCESS">CALL_RESULT_SUCCESS</a>) {
-                    set_code(&<b>mut</b> trie, evm_contract, bytes);
+                    set_code(evm_contract, bytes);
                 }
             };
         } <b>else</b> {
@@ -838,7 +814,7 @@
                 <a href="evm_for_test.md#0x1_evm_for_test_precompile">precompile</a>(<b>to</b>, data, gas_limit, run_state);
             } <b>else</b> {
                 add_call_state(run_state, gas_limit - base_cost, <b>false</b>);
-                <a href="evm_for_test.md#0x1_evm_for_test_run">run</a>(from, <b>to</b>, get_code(<b>to</b>, &trie), data, value, gas_limit - base_cost, &<b>mut</b> trie, run_state, <b>true</b>, <b>false</b>, 0);
+                <a href="evm_for_test.md#0x1_evm_for_test_run">run</a>(from, <b>to</b>, get_code(<b>to</b>), data, value, gas_limit - base_cost, run_state, <b>true</b>, <b>false</b>, 0);
             };
         };
         <b>let</b> gas_refund = get_gas_refund(run_state);
@@ -848,15 +824,14 @@
             gas_refund = gas_usage / 5
         };
         gas_usage = gas_usage - gas_refund;
-        add_nonce(from, &<b>mut</b> trie);
+        add_nonce(from);
         <b>let</b> basefee = get_basefee(run_state);
         <b>if</b>(basefee &lt; gas_price) {
             <b>let</b> miner_value = (gas_price - basefee) * gas_usage;
-            add_balance(get_coinbase(run_state), miner_value, &<b>mut</b> trie);
+            add_balance(get_coinbase(run_state), miner_value);
         };
-        add_balance(from, (gas_left + gas_refund) * gas_price, &<b>mut</b> trie);
-        save(&<b>mut</b> trie);
-        <b>let</b> state_root = <a href="evm_for_test.md#0x1_evm_for_test_calculate_root">calculate_root</a>(get_storage_copy(&trie));
+        add_balance(from, (gas_left + gas_refund) * gas_price);
+        <b>let</b> state_root = <a href="evm_context.md#0x1_evm_context_calculate_root">evm_context::calculate_root</a>();
         <b>let</b> exec_cost = gas_usage - base_cost;
         <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&exec_cost);
         <a href="evm_for_test.md#0x1_evm_for_test_emit_event">emit_event</a>(state_root, gas_usage, gas_refund);
@@ -875,7 +850,7 @@
 
 
 
-<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_handle_normal_revert">handle_normal_revert</a>(trie: &<b>mut</b> <a href="trie_for_test.md#0x1_evm_trie_for_test_Trie">evm_trie_for_test::Trie</a>, run_state: &<b>mut</b> <a href="global_state_for_test.md#0x1_evm_global_state_for_test_RunState">evm_global_state_for_test::RunState</a>)
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_handle_normal_revert">handle_normal_revert</a>(run_state: &<b>mut</b> <a href="global_state_for_test.md#0x1_evm_global_state_for_test_RunState">evm_global_state_for_test::RunState</a>)
 </code></pre>
 
 
@@ -884,9 +859,9 @@
 <summary>Implementation</summary>
 
 
-<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_handle_normal_revert">handle_normal_revert</a>(trie: &<b>mut</b> Trie, run_state: &<b>mut</b> RunState) {
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_handle_normal_revert">handle_normal_revert</a>(run_state: &<b>mut</b> RunState) {
     <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"normal revert"));
-    revert_checkpoint(trie);
+    revert_checkpoint();
     clear_gas_refund(run_state);
     commit_call_state(run_state);
 }
@@ -902,7 +877,7 @@
 
 
 
-<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_handle_unexpect_revert">handle_unexpect_revert</a>(trie: &<b>mut</b> <a href="trie_for_test.md#0x1_evm_trie_for_test_Trie">evm_trie_for_test::Trie</a>, run_state: &<b>mut</b> <a href="global_state_for_test.md#0x1_evm_global_state_for_test_RunState">evm_global_state_for_test::RunState</a>, error_code: &u64)
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_handle_unexpect_revert">handle_unexpect_revert</a>(run_state: &<b>mut</b> <a href="global_state_for_test.md#0x1_evm_global_state_for_test_RunState">evm_global_state_for_test::RunState</a>, error_code: &u64)
 </code></pre>
 
 
@@ -911,10 +886,10 @@
 <summary>Implementation</summary>
 
 
-<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_handle_unexpect_revert">handle_unexpect_revert</a>(trie: &<b>mut</b> Trie, run_state: &<b>mut</b> RunState, error_code: &u64) {
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_handle_unexpect_revert">handle_unexpect_revert</a>(run_state: &<b>mut</b> RunState, error_code: &u64) {
     <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"unexcept revert"));
     <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(error_code);
-    revert_checkpoint(trie);
+    revert_checkpoint();
     revert_call_state(run_state);
 }
 </code></pre>
@@ -929,7 +904,7 @@
 
 
 
-<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_handle_commit">handle_commit</a>(trie: &<b>mut</b> <a href="trie_for_test.md#0x1_evm_trie_for_test_Trie">evm_trie_for_test::Trie</a>, run_state: &<b>mut</b> <a href="global_state_for_test.md#0x1_evm_global_state_for_test_RunState">evm_global_state_for_test::RunState</a>)
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_handle_commit">handle_commit</a>(run_state: &<b>mut</b> <a href="global_state_for_test.md#0x1_evm_global_state_for_test_RunState">evm_global_state_for_test::RunState</a>)
 </code></pre>
 
 
@@ -938,8 +913,8 @@
 <summary>Implementation</summary>
 
 
-<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_handle_commit">handle_commit</a>(trie: &<b>mut</b> Trie, run_state: &<b>mut</b> RunState) {
-    commit_latest_checkpoint(trie);
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_handle_commit">handle_commit</a>(run_state: &<b>mut</b> RunState) {
+    commit_latest_checkpoint();
     commit_call_state(run_state);
 }
 </code></pre>
@@ -954,7 +929,7 @@
 
 
 
-<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_create_internal">create_internal</a>(init_len: u256, current_address: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, created_address: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, depth: u64, codes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, msg_value: u256, run_state: &<b>mut</b> <a href="global_state_for_test.md#0x1_evm_global_state_for_test_RunState">evm_global_state_for_test::RunState</a>, trie: &<b>mut</b> <a href="trie_for_test.md#0x1_evm_trie_for_test_Trie">evm_trie_for_test::Trie</a>, error_code: &<b>mut</b> u64): u8
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_create_internal">create_internal</a>(init_len: u256, current_address: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, created_address: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, depth: u64, codes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, msg_value: u256, run_state: &<b>mut</b> <a href="global_state_for_test.md#0x1_evm_global_state_for_test_RunState">evm_global_state_for_test::RunState</a>, error_code: &<b>mut</b> u64): u8
 </code></pre>
 
 
@@ -970,7 +945,6 @@
                     codes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
                     msg_value: u256,
                     run_state: &<b>mut</b> RunState,
-                    trie: &<b>mut</b> Trie,
                     error_code: &<b>mut</b> u64): u8 {
     set_ret_bytes(run_state, x"");
     <b>if</b>(init_len &gt; <a href="evm_for_test.md#0x1_evm_for_test_MAX_INIT_CODE_SIZE">MAX_INIT_CODE_SIZE</a> ) {
@@ -983,21 +957,21 @@
         <b>let</b> gas_left = get_gas_left(run_state);
         <b>let</b> (call_gas_limit, _) = max_call_gas(gas_left, gas_left, msg_value, <b>false</b>);
         <b>if</b>(depth &gt;= <a href="evm_for_test.md#0x1_evm_for_test_MAX_DEPTH_SIZE">MAX_DEPTH_SIZE</a> ||
-            get_balance(current_address, trie) &lt; msg_value ||
-            get_nonce(current_address, trie) &gt;= <a href="evm_for_test.md#0x1_evm_for_test_U64_MAX">U64_MAX</a>) {
+            get_balance(current_address) &lt; msg_value ||
+            get_nonce(current_address) &gt;= <a href="evm_for_test.md#0x1_evm_for_test_U64_MAX">U64_MAX</a>) {
             <b>return</b> <a href="evm_for_test.md#0x1_evm_for_test_CALL_RESULT_UNEXPECT_ERROR">CALL_RESULT_UNEXPECT_ERROR</a>
         } <b>else</b> {
-            add_nonce(current_address, trie);
-            add_warm_address(created_address, trie);
-            <b>if</b>(is_contract_or_created_account(created_address, trie)) {
+            add_nonce(current_address);
+            add_warm_address(created_address);
+            <b>if</b>(is_contract_or_created_account(created_address)) {
                 add_gas_usage(run_state, call_gas_limit);
                 <b>return</b> <a href="evm_for_test.md#0x1_evm_for_test_CALL_RESULT_UNEXPECT_ERROR">CALL_RESULT_UNEXPECT_ERROR</a>
             } <b>else</b> {
                 add_call_state(run_state, call_gas_limit, <b>false</b>);
-                add_checkpoint(trie);
-                <b>let</b> (create_res, bytes) = <a href="evm_for_test.md#0x1_evm_for_test_run">run</a>(current_address, created_address, codes, x"", msg_value, call_gas_limit, trie, run_state, <b>true</b>, <b>true</b>, depth + 1);
+                add_checkpoint();
+                <b>let</b> (create_res, bytes) = <a href="evm_for_test.md#0x1_evm_for_test_run">run</a>(current_address, created_address, codes, x"", msg_value, call_gas_limit, run_state, <b>true</b>, <b>true</b>, depth + 1);
                 <b>if</b>(create_res == <a href="evm_for_test.md#0x1_evm_for_test_CALL_RESULT_SUCCESS">CALL_RESULT_SUCCESS</a>) {
-                    set_code(trie, created_address, bytes);
+                    set_code(created_address, bytes);
                 } <b>else</b> <b>if</b>(create_res == <a href="evm_for_test.md#0x1_evm_for_test_CALL_RESULT_REVERT">CALL_RESULT_REVERT</a>) {
                     set_ret_bytes(run_state, bytes);
                 };
@@ -1019,7 +993,7 @@
 
 
 
-<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_create">create</a>(memory: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, stack: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u256&gt;, depth: u64, current_address: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, run_state: &<b>mut</b> <a href="global_state_for_test.md#0x1_evm_global_state_for_test_RunState">evm_global_state_for_test::RunState</a>, trie: &<b>mut</b> <a href="trie_for_test.md#0x1_evm_trie_for_test_Trie">evm_trie_for_test::Trie</a>, error_code: &<b>mut</b> u64)
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_create">create</a>(memory: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, stack: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u256&gt;, depth: u64, current_address: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, run_state: &<b>mut</b> <a href="global_state_for_test.md#0x1_evm_global_state_for_test_RunState">evm_global_state_for_test::RunState</a>, error_code: &<b>mut</b> u64)
 </code></pre>
 
 
@@ -1033,14 +1007,13 @@
             depth: u64,
             current_address: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
             run_state: &<b>mut</b> RunState,
-            trie: &<b>mut</b> Trie,
             error_code: &<b>mut</b> u64) {
     <b>let</b> msg_value = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
     <b>let</b> pos = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
     <b>let</b> len = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
     <b>let</b> codes = vector_slice_u256(*memory, pos, len);
-    <b>let</b> new_evm_contract_addr = get_contract_address(current_address, (get_nonce(current_address, trie) <b>as</b> u64));
-    <b>let</b> result = <a href="evm_for_test.md#0x1_evm_for_test_create_internal">create_internal</a>(len, current_address, new_evm_contract_addr, depth, codes, msg_value, run_state, trie, error_code);
+    <b>let</b> new_evm_contract_addr = get_contract_address(current_address, (get_nonce(current_address) <b>as</b> u64));
+    <b>let</b> result = <a href="evm_for_test.md#0x1_evm_for_test_create_internal">create_internal</a>(len, current_address, new_evm_contract_addr, depth, codes, msg_value, run_state, error_code);
     <b>if</b>(result == <a href="evm_for_test.md#0x1_evm_for_test_CALL_RESULT_SUCCESS">CALL_RESULT_SUCCESS</a>) {
         <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, to_u256(new_evm_contract_addr));
     } <b>else</b> {
@@ -1059,7 +1032,7 @@
 
 
 
-<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_create2">create2</a>(memory: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, stack: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u256&gt;, depth: u64, current_address: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, run_state: &<b>mut</b> <a href="global_state_for_test.md#0x1_evm_global_state_for_test_RunState">evm_global_state_for_test::RunState</a>, trie: &<b>mut</b> <a href="trie_for_test.md#0x1_evm_trie_for_test_Trie">evm_trie_for_test::Trie</a>, error_code: &<b>mut</b> u64)
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_create2">create2</a>(memory: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, stack: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u256&gt;, depth: u64, current_address: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, run_state: &<b>mut</b> <a href="global_state_for_test.md#0x1_evm_global_state_for_test_RunState">evm_global_state_for_test::RunState</a>, error_code: &<b>mut</b> u64)
 </code></pre>
 
 
@@ -1073,7 +1046,6 @@
             depth: u64,
             current_address: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
             run_state: &<b>mut</b> RunState,
-            trie: &<b>mut</b> Trie,
             error_code: &<b>mut</b> u64) {
     <b>let</b> msg_value = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
     <b>let</b> pos = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
@@ -1086,7 +1058,7 @@
     <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> p, salt);
     <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_append">vector::append</a>(&<b>mut</b> p, keccak256(codes));
     <b>let</b> new_evm_contract_addr = to_32bit(vector_slice(keccak256(p), 12, 20));
-    <b>let</b> result = <a href="evm_for_test.md#0x1_evm_for_test_create_internal">create_internal</a>(len, current_address, new_evm_contract_addr, depth, codes, msg_value, run_state, trie, error_code);
+    <b>let</b> result = <a href="evm_for_test.md#0x1_evm_for_test_create_internal">create_internal</a>(len, current_address, new_evm_contract_addr, depth, codes, msg_value, run_state, error_code);
     <b>if</b>(result == <a href="evm_for_test.md#0x1_evm_for_test_CALL_RESULT_SUCCESS">CALL_RESULT_SUCCESS</a>) {
         <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, to_u256(new_evm_contract_addr));
     } <b>else</b> {
@@ -1105,7 +1077,7 @@
 
 
 
-<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_run">run</a>(sender: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="code.md#0x1_code">code</a>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, value: u256, gas_limit: u256, trie: &<b>mut</b> <a href="trie_for_test.md#0x1_evm_trie_for_test_Trie">evm_trie_for_test::Trie</a>, run_state: &<b>mut</b> <a href="global_state_for_test.md#0x1_evm_global_state_for_test_RunState">evm_global_state_for_test::RunState</a>, transfer_eth: bool, is_create: bool, depth: u64): (u8, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_run">run</a>(sender: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="code.md#0x1_code">code</a>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, value: u256, gas_limit: u256, run_state: &<b>mut</b> <a href="global_state_for_test.md#0x1_evm_global_state_for_test_RunState">evm_global_state_for_test::RunState</a>, transfer_eth: bool, is_create: bool, depth: u64): (u8, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)
 </code></pre>
 
 
@@ -1121,22 +1093,21 @@
         data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
         value: u256,
         gas_limit: u256,
-        trie: &<b>mut</b> Trie,
         run_state: &<b>mut</b> RunState,
         transfer_eth: bool,
         is_create: bool,
         depth: u64
     ): (u8, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;) {
 
-    add_warm_address(<b>to</b>, trie);
+    add_warm_address(<b>to</b>);
 
     <b>if</b>(is_create) {
-        new_account(<b>to</b>, x"", 0, 1, trie);
+        new_account(<b>to</b>, x"", 0, 1);
     };
 
     <b>if</b>(transfer_eth) {
-        <b>if</b>(!transfer(sender, <b>to</b>, value, trie)) {
-            <a href="evm_for_test.md#0x1_evm_for_test_handle_normal_revert">handle_normal_revert</a>(trie, run_state);
+        <b>if</b>(!transfer(sender, <b>to</b>, value)) {
+            <a href="evm_for_test.md#0x1_evm_for_test_handle_normal_revert">handle_normal_revert</a>(run_state);
             <b>return</b> (<a href="evm_for_test.md#0x1_evm_for_test_CALL_RESULT_UNEXPECT_ERROR">CALL_RESULT_UNEXPECT_ERROR</a>, x"")
         };
     };
@@ -1156,10 +1127,10 @@
     <b>while</b> (i &lt; len) {
         // Fetch the current opcode from the bytecode.
         <b>let</b> opcode: u8 = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&<a href="code.md#0x1_code">code</a>, (i <b>as</b> u64));
-        <b>let</b> gas = calc_exec_gas(opcode, <b>to</b>, stack, run_state, trie, gas_limit, error_code);
+        <b>let</b> gas = calc_exec_gas(opcode, <b>to</b>, stack, run_state, gas_limit, error_code);
         <b>let</b> out_of_gas = add_gas_usage(run_state, gas);
         <b>if</b>(*error_code &gt; 0 || out_of_gas) {
-            <a href="evm_for_test.md#0x1_evm_for_test_handle_unexpect_revert">handle_unexpect_revert</a>(trie, run_state, error_code);
+            <a href="evm_for_test.md#0x1_evm_for_test_handle_unexpect_revert">handle_unexpect_revert</a>(run_state, error_code);
             <b>return</b> (<b>if</b>(out_of_gas) <a href="evm_for_test.md#0x1_evm_for_test_CALL_RESULT_OUT_OF_GAS">CALL_RESULT_OUT_OF_GAS</a> <b>else</b> <a href="evm_for_test.md#0x1_evm_for_test_CALL_RESULT_UNEXPECT_ERROR">CALL_RESULT_UNEXPECT_ERROR</a>, ret_value)
         };
         // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&i);
@@ -1420,7 +1391,7 @@
             //balance
         <b>else</b> <b>if</b>(opcode == 0x31) {
             <b>let</b> target = get_valid_ethereum_address(<a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code));
-            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, get_balance(target, trie));
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, get_balance(target));
             i = i + 1;
         }
             //origin
@@ -1481,14 +1452,14 @@
             //extcodesize
         <b>else</b> <b>if</b>(opcode == 0x3b) {
             <b>let</b> target = get_valid_ethereum_address(<a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code));
-            <b>let</b> <a href="code.md#0x1_code">code</a> = get_code(target, trie);
+            <b>let</b> <a href="code.md#0x1_code">code</a> = get_code(target);
             <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, (<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&<a href="code.md#0x1_code">code</a>) <b>as</b> u256));
             i = i + 1;
         }
             //extcodecopy
         <b>else</b> <b>if</b>(opcode == 0x3c) {
             <b>let</b> target = get_valid_ethereum_address(<a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code));
-            <b>let</b> <a href="code.md#0x1_code">code</a> = get_code(target, trie);
+            <b>let</b> <a href="code.md#0x1_code">code</a> = get_code(target);
             <b>let</b> m_pos = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
             <b>let</b> d_pos = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
             <b>let</b> len = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
@@ -1514,8 +1485,8 @@
             //extcodehash
         <b>else</b> <b>if</b>(opcode == 0x3f) {
             <b>let</b> target = get_valid_ethereum_address(<a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code));
-            <b>if</b>(exist_account(target, trie)) {
-                <b>let</b> <a href="code.md#0x1_code">code</a> = get_code(target, trie);
+            <b>if</b>(exist_account(target)) {
+                <b>let</b> <a href="code.md#0x1_code">code</a> = get_code(target);
                 <b>let</b> <a href="../../aptos-stdlib/../move-stdlib/doc/hash.md#0x1_hash">hash</a> = keccak256(<a href="code.md#0x1_code">code</a>);
                 <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, to_u256(<a href="../../aptos-stdlib/../move-stdlib/doc/hash.md#0x1_hash">hash</a>));
             } <b>else</b> {
@@ -1561,7 +1532,7 @@
         }
             //self balance
         <b>else</b> <b>if</b>(opcode == 0x47) {
-            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, get_balance(<b>to</b>, trie));
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, get_balance(<b>to</b>));
             i = i + 1;
         }
             //self balance
@@ -1596,7 +1567,7 @@
             // sload
         <b>else</b> <b>if</b>(opcode == 0x54) {
             <b>let</b> key = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
-            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, get_state(<b>to</b>, key, trie));
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, get_state(<b>to</b>, key));
             i = i + 1;
         }
             // sstore
@@ -1606,7 +1577,7 @@
             <b>if</b>(get_is_static(run_state)) {
                 *error_code = <a href="evm_for_test.md#0x1_evm_for_test_ERROR_STATIC_STATE_CHANGE">ERROR_STATIC_STATE_CHANGE</a>;
             } <b>else</b> {
-                set_state(<b>to</b>, key, value, trie);
+                set_state(<b>to</b>, key, value);
             };
 
             i = i + 1;
@@ -1687,7 +1658,7 @@
             //TLOAD
         <b>else</b> <b>if</b>(opcode == 0x5c) {
             <b>let</b> key = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
-            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, get_transient_storage(trie, <b>to</b>, key));
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, get_transient_storage(<b>to</b>, key));
 
             i = i + 1
         }
@@ -1698,7 +1669,7 @@
             <b>if</b>(get_is_static(run_state)) {
                 *error_code = <a href="evm_for_test.md#0x1_evm_for_test_ERROR_STATIC_STATE_CHANGE">ERROR_STATIC_STATE_CHANGE</a>
             } <b>else</b> {
-                put_transient_storage(trie, <b>to</b>, key, value);
+                put_transient_storage(<b>to</b>, key, value);
             };
 
             i = i + 1
@@ -1718,9 +1689,9 @@
         }
             //sha3
         <b>else</b> <b>if</b>(opcode == 0x20) {
-            <b>let</b> pos = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack_u64">pop_stack_u64</a>(stack, error_code);
-            <b>let</b> len = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack_u64">pop_stack_u64</a>(stack, error_code);
-            <b>let</b> bytes = vector_slice(*memory, pos, len);
+            <b>let</b> pos = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
+            <b>let</b> len = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
+            <b>let</b> bytes = vector_slice_u256(*memory, pos, len);
             // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&value);
             <b>let</b> value = data_to_u256(keccak256(bytes), 0, 32);
             <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, value);
@@ -1738,11 +1709,11 @@
             <b>if</b>(gas_stipend &gt; 0) {
                 add_gas_left(run_state, gas_stipend);
             };
-            <b>let</b> m_pos = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack_u64">pop_stack_u64</a>(stack, error_code);
-            <b>let</b> m_len = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack_u64">pop_stack_u64</a>(stack, error_code);
+            <b>let</b> m_pos = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
+            <b>let</b> m_len = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
             <b>let</b> ret_pos = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
             <b>let</b> ret_len = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
-            <b>let</b> params = vector_slice(*memory, m_pos, m_len);
+            <b>let</b> params = read_memory(memory, m_pos, m_len);
             <b>let</b> (call_from, call_to, code_address) = <a href="evm_for_test.md#0x1_evm_for_test_get_call_info">get_call_info</a>(sender, <b>to</b>, evm_dest_addr, opcode);
             <b>let</b> is_precompile = is_precompile_address(evm_dest_addr);
             <b>let</b> transfer_eth = <b>if</b>((opcode == 0xf1 || opcode == 0xf2) && msg_value &gt; 0) <b>true</b> <b>else</b> <b>false</b>;
@@ -1756,17 +1727,17 @@
                     <b>let</b> (success, bytes) = <a href="evm_for_test.md#0x1_evm_for_test_precompile">precompile</a>(code_address, params, call_gas_limit, run_state);
                     <b>if</b>(success) {
                         <b>if</b>(transfer_eth) {
-                            transfer(call_from, call_to, msg_value, trie);
+                            transfer(call_from, call_to, msg_value);
                         };
                         set_ret_bytes(run_state, bytes);
                         write_call_output(memory, ret_pos, ret_len, bytes);
                     };
                     <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, <b>if</b>(success) 1 <b>else</b> 0);
-                } <b>else</b> <b>if</b> (exist_contract(code_address, trie)) {
-                    <b>let</b> dest_code = get_code(code_address, trie);
+                } <b>else</b> <b>if</b> (exist_contract(code_address)) {
+                    <b>let</b> dest_code = get_code(code_address);
                     add_call_state(run_state, call_gas_limit, is_static);
-                    add_checkpoint(trie);
-                    <b>let</b> (call_res, bytes) = <a href="evm_for_test.md#0x1_evm_for_test_run">run</a>(call_from, call_to, dest_code, params, msg_value, call_gas_limit, trie, run_state, transfer_eth, <b>false</b>, depth + 1);
+                    add_checkpoint();
+                    <b>let</b> (call_res, bytes) = <a href="evm_for_test.md#0x1_evm_for_test_run">run</a>(call_from, call_to, dest_code, params, msg_value, call_gas_limit, run_state, transfer_eth, <b>false</b>, depth + 1);
                     <b>if</b>(call_res == <a href="evm_for_test.md#0x1_evm_for_test_CALL_RESULT_SUCCESS">CALL_RESULT_SUCCESS</a> || call_res == <a href="evm_for_test.md#0x1_evm_for_test_CALL_RESULT_REVERT">CALL_RESULT_REVERT</a>) {
                         set_ret_bytes(run_state, bytes);
                         // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>()
@@ -1774,7 +1745,7 @@
                     };
                     <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack,  <b>if</b>(call_res == <a href="evm_for_test.md#0x1_evm_for_test_CALL_RESULT_SUCCESS">CALL_RESULT_SUCCESS</a>) 1 <b>else</b> 0);
                 } <b>else</b> {
-                    <b>if</b>(msg_value &gt; 0 && transfer_eth && !transfer(call_from, call_to, msg_value, trie)) {
+                    <b>if</b>(msg_value &gt; 0 && transfer_eth && !transfer(call_from, call_to, msg_value)) {
                         <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 0);
                     } <b>else</b> {
                         <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 1);
@@ -1786,19 +1757,19 @@
         }
             //create
         <b>else</b> <b>if</b>(opcode == 0xf0) {
-            <a href="evm_for_test.md#0x1_evm_for_test_create">create</a>(memory, stack, depth, <b>to</b>, run_state, trie, error_code);
+            <a href="evm_for_test.md#0x1_evm_for_test_create">create</a>(memory, stack, depth, <b>to</b>, run_state, error_code);
             i = i + 1
         }
             //create2
         <b>else</b> <b>if</b>(opcode == 0xf5) {
-            <a href="evm_for_test.md#0x1_evm_for_test_create2">create2</a>(memory, stack, depth, <b>to</b>, run_state, trie, error_code);
+            <a href="evm_for_test.md#0x1_evm_for_test_create2">create2</a>(memory, stack, depth, <b>to</b>, run_state, error_code);
             i = i + 1
         }
             //revert
         <b>else</b> <b>if</b>(opcode == 0xfd) {
             <b>let</b> pos = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
             <b>let</b> len = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
-            <a href="evm_for_test.md#0x1_evm_for_test_handle_normal_revert">handle_normal_revert</a>(trie, run_state);
+            <a href="evm_for_test.md#0x1_evm_for_test_handle_normal_revert">handle_normal_revert</a>(run_state);
             ret_value = vector_slice_u256(*memory, pos, len);
 
             <b>return</b> (<a href="evm_for_test.md#0x1_evm_for_test_CALL_RESULT_REVERT">CALL_RESULT_REVERT</a>, ret_value)
@@ -1808,7 +1779,7 @@
             <b>let</b> pos = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack_u64">pop_stack_u64</a>(stack, error_code);
             <b>let</b> len = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack_u64">pop_stack_u64</a>(stack, error_code);
             <b>let</b> data = vector_slice(*memory, pos, len);
-            add_log(trie, <b>to</b>, data, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>[]);
+            add_log(<b>to</b>, data, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>[]);
             i = i + 1
         }
             //log1
@@ -1817,7 +1788,7 @@
             <b>let</b> len = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack_u64">pop_stack_u64</a>(stack, error_code);
             <b>let</b> data = vector_slice(*memory, pos, len);
             <b>let</b> topic0 = u256_to_data(<a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code));
-            add_log(trie, <b>to</b>, data, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>[topic0]);
+            add_log(<b>to</b>, data, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>[topic0]);
             i = i + 1
         }
             //log2
@@ -1827,7 +1798,7 @@
             <b>let</b> data = vector_slice(*memory, pos, len);
             <b>let</b> topic0 = u256_to_data(<a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code));
             <b>let</b> topic1 = u256_to_data(<a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code));
-            add_log(trie, <b>to</b>, data, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>[topic0, topic1]);
+            add_log(<b>to</b>, data, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>[topic0, topic1]);
             i = i + 1
         }
             //log3
@@ -1838,7 +1809,7 @@
             <b>let</b> topic0 = u256_to_data(<a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code));
             <b>let</b> topic1 = u256_to_data(<a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code));
             <b>let</b> topic2 = u256_to_data(<a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code));
-            add_log(trie, <b>to</b>, data, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>[topic0, topic1, topic2]);
+            add_log(<b>to</b>, data, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>[topic0, topic1, topic2]);
             i = i + 1
         }
             //log4
@@ -1850,7 +1821,7 @@
             <b>let</b> topic1 = u256_to_data(<a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code));
             <b>let</b> topic2 = u256_to_data(<a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code));
             <b>let</b> topic3 = u256_to_data(<a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code));
-            add_log(trie, <b>to</b>, data, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>[topic0, topic1, topic2, topic3]);
+            add_log(<b>to</b>, data, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>[topic0, topic1, topic2, topic3]);
             i = i + 1
         }
             //invalid opcode
@@ -1871,7 +1842,7 @@
         // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack));
 
         <b>if</b>(*error_code &gt; 0 || <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack) &gt; <a href="evm_for_test.md#0x1_evm_for_test_MAX_STACK_SIZE">MAX_STACK_SIZE</a>) {
-            <a href="evm_for_test.md#0x1_evm_for_test_handle_unexpect_revert">handle_unexpect_revert</a>(trie, run_state, error_code);
+            <a href="evm_for_test.md#0x1_evm_for_test_handle_unexpect_revert">handle_unexpect_revert</a>(run_state, error_code);
             <b>return</b> (<a href="evm_for_test.md#0x1_evm_for_test_CALL_RESULT_UNEXPECT_ERROR">CALL_RESULT_UNEXPECT_ERROR</a>, ret_value)
         }
     };
@@ -1880,11 +1851,11 @@
         <b>let</b> code_size = (<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&ret_value) <b>as</b> u256);
         <b>let</b> out_of_gas = add_gas_usage(run_state, 200 * code_size);
         <b>if</b>(code_size &gt; <a href="evm_for_test.md#0x1_evm_for_test_MAX_CODE_SIZE">MAX_CODE_SIZE</a> || (code_size &gt; 0 && (*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&ret_value, 0)) == 0xef) || out_of_gas) {
-            <a href="evm_for_test.md#0x1_evm_for_test_handle_unexpect_revert">handle_unexpect_revert</a>(trie, run_state, error_code);
+            <a href="evm_for_test.md#0x1_evm_for_test_handle_unexpect_revert">handle_unexpect_revert</a>(run_state, error_code);
             <b>return</b> (<a href="evm_for_test.md#0x1_evm_for_test_CALL_RESULT_UNEXPECT_ERROR">CALL_RESULT_UNEXPECT_ERROR</a>, x"")
         };
     };
-    <a href="evm_for_test.md#0x1_evm_for_test_handle_commit">handle_commit</a>(trie, run_state);
+    <a href="evm_for_test.md#0x1_evm_for_test_handle_commit">handle_commit</a>(run_state);
 
     (<a href="evm_for_test.md#0x1_evm_for_test_CALL_RESULT_SUCCESS">CALL_RESULT_SUCCESS</a>, ret_value)
 }

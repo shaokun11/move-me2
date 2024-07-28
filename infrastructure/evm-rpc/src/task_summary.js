@@ -44,7 +44,7 @@ async function store(addressArr, txCount, syncVersion) {
 
 async function run(startVersion) {
     const txArr = await getEvmTransaction(startVersion, 5);
-    if (txArr.length === 0) {
+    if (!txArr ||txArr.length === 0) {
         // Nothing, we slowly the task
         await sleep(5);
         return;
@@ -76,6 +76,7 @@ async function run(startVersion) {
     await store(address, txArr.length, endVersion);
 }
 
+// this could be do it at evm indexers
 export async function startSummaryTask() {
     if (!START_SUMMARY_TASK) {
         console.log('Summary task is not started');
@@ -86,7 +87,7 @@ export async function startSummaryTask() {
             const ver = await db.data.syncVersion;
             await run(ver);
         } catch (e) {
-            console.log('Summary task error', e);
+            console.log('Summary task error', e.message);
         }
         await sleep(2);
     }
