@@ -668,7 +668,8 @@ async function sendTx(sender, payload, evm_hash, option = {}) {
         const account = await client.getAccount(sender.address());
         const txnRequest = await client.generateTransaction(sender.address(), payload, {
             ...option,
-            max_gas_amount: 1 * 1e6,
+            max_gas_amount: 2 * 1e6, // Now it is the max value
+            gas_unit_price:100, // the default value
             sequence_number: account.sequence_number,
             expiration_timestamp_secs: Math.trunc(Date.now() / 1000) + expire_time_sec,
         });
