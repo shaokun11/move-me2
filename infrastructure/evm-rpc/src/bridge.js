@@ -24,6 +24,7 @@ import LevelDBWrapper from './leveldb_wrapper.js';
 const db = new LevelDBWrapper('db/tx');
 
 const ETH_ADDRESS_ONE = '0x0000000000000000000000000000000000000001';
+const ETH_ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
 
 function isSuccessTx(info) {
     const txResult = info.events.find(it => it.type === '0x1::evm::ExecResultEvent');
@@ -415,7 +416,9 @@ export async function sendRawTx(tx) {
 }
 
 export async function callContract(from, contract, calldata, value, block) {
-    from = from || ETH_ADDRESS_ONE;
+    if(from === ETH_ADDRESS_ZERO || !from) {
+        from = ETH_ADDRESS_ONE;
+    }
     contract = contract || ZeroAddress;
     if (isHexString(block)) {
         let info = await client.getBlockByHeight(toNumber(block), false);
@@ -440,7 +443,7 @@ export async function estimateGas(info) {
         // the data is in the input field
         info.data = info.input;
     }
-    if (!info.from) {
+    if (!info.from || info.from === ETH_ADDRESS_ZERO)  {
         info.from = ETH_ADDRESS_ONE;
     }
     const nonce = await getNonce(info.from);
