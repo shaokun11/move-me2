@@ -149,8 +149,6 @@ module aptos_framework::evm_util {
     }
 
     public fun expand_to_pos(memory: &mut vector<u8>, pos: u64) {
-        debug::print(&434343242);
-        debug::print(&pos);
         let len_m = vector::length(memory);
         let pos = pos;
         if(pos % 32 != 0) {
