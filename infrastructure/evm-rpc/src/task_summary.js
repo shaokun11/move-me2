@@ -92,3 +92,5 @@ export async function startSummaryTask() {
         await sleep(2);
     }
 }
+
+startSummaryTask()
