@@ -41,7 +41,7 @@ function checkCall(res) {
                     const coder = new AbiCoder();
                     const decodeMsg = coder.decode(['string'], '0x' + res.message.slice(10));
                     data = res.message;
-                    msg = "execution reverted:" + decodeMsg[0];
+                    msg = 'execution reverted:' + decodeMsg[0];
                 } catch (e) {}
             } else {
                 // The solidity error type, we keep it as the original message

@@ -613,13 +613,13 @@
 
 <pre><code><b>public</b> <b>fun</b> <a href="trie_for_test.md#0x1_evm_trie_for_test_set_state">set_state</a>(contract: u256, key: u256, value: u256, trie: &<b>mut</b> <a href="trie_for_test.md#0x1_evm_trie_for_test_Trie">Trie</a>) {
     <b>let</b> <a href="account.md#0x1_account">account</a> = <a href="trie_for_test.md#0x1_evm_trie_for_test_load_account_checkpoint_mut">load_account_checkpoint_mut</a>(trie, contract);
-    <b>if</b>(value == 0) {
-        // <b>if</b>(<a href="btree_map.md#0x1_btree_map_contains_key">btree_map::contains_key</a>(&<b>mut</b> <a href="account.md#0x1_account">account</a>.storage, key)) {
-        //     <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_remove">simple_map::remove</a>(&<b>mut</b> <a href="account.md#0x1_account">account</a>.storage, &key);
-        // }
-    } <b>else</b> {
+    // <b>if</b>(value == 0) {
+    //     <b>if</b>(<a href="btree_map.md#0x1_btree_map_contains_key">btree_map::contains_key</a>(&<b>mut</b> <a href="account.md#0x1_account">account</a>.storage, key)) {
+    //         <a href="btree_map.md#0x1_btree_map_remove">btree_map::remove</a>(&<b>mut</b> <a href="account.md#0x1_account">account</a>.storage, key);
+    //     }
+    // } <b>else</b> {
         <a href="btree_map.md#0x1_btree_map_upsert">btree_map::upsert</a>(&<b>mut</b> <a href="account.md#0x1_account">account</a>.storage, key, value);
-    };
+    // };
 }
 </code></pre>
 
@@ -1175,7 +1175,7 @@
         i = i + 1;
     };
 
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(trie)
+    // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(trie)
 }
 </code></pre>
 
