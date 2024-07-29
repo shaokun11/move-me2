@@ -13,6 +13,9 @@
 -  [Function `find`](#0x1_btree_map_find)
 -  [Function `contains_key`](#0x1_btree_map_contains_key)
 -  [Function `add`](#0x1_btree_map_add)
+-  [Function `find_min`](#0x1_btree_map_find_min)
+-  [Function `remove_recursive`](#0x1_btree_map_remove_recursive)
+-  [Function `remove`](#0x1_btree_map_remove)
 -  [Function `upsert`](#0x1_btree_map_upsert)
 -  [Function `borrow`](#0x1_btree_map_borrow)
 -  [Function `borrow_mut`](#0x1_btree_map_borrow_mut)
@@ -307,6 +310,114 @@ Map key is not found
         <b>let</b> root_index = *<a href="../../aptos-stdlib/../move-stdlib/doc/option.md#0x1_option_borrow">option::borrow</a>(&tree.root);
         <a href="btree_map.md#0x1_btree_map_insert_recursive">insert_recursive</a>(root_index, new_node_index, tree);
     }
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_btree_map_find_min"></a>
+
+## Function `find_min`
+
+
+
+<pre><code><b>fun</b> <a href="btree_map.md#0x1_btree_map_find_min">find_min</a>&lt;Value: <b>copy</b>, drop&gt;(node_index: u64, tree: &<b>mut</b> <a href="btree_map.md#0x1_btree_map_BTreeMap">btree_map::BTreeMap</a>&lt;Value&gt;): (u64, u256, Value)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="btree_map.md#0x1_btree_map_find_min">find_min</a>&lt;Value: <b>copy</b> + drop&gt;(node_index: u64, tree: &<b>mut</b> <a href="btree_map.md#0x1_btree_map_BTreeMap">BTreeMap</a>&lt;Value&gt;): (u64, u256, Value) {
+    <b>let</b> current_index = node_index;
+    <b>let</b> current = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&tree.data, current_index);
+    <b>while</b>(<a href="../../aptos-stdlib/../move-stdlib/doc/option.md#0x1_option_is_some">option::is_some</a>(&current.left)) {
+        current_index = *<a href="../../aptos-stdlib/../move-stdlib/doc/option.md#0x1_option_borrow">option::borrow</a>(&current.left);
+        current = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&tree.data, current_index);
+    };
+    (current_index, current.key, current.value)
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_btree_map_remove_recursive"></a>
+
+## Function `remove_recursive`
+
+
+
+<pre><code><b>fun</b> <a href="btree_map.md#0x1_btree_map_remove_recursive">remove_recursive</a>&lt;Value: <b>copy</b>, drop&gt;(node_option: <a href="../../aptos-stdlib/../move-stdlib/doc/option.md#0x1_option_Option">option::Option</a>&lt;u64&gt;, key: u256, tree: &<b>mut</b> <a href="btree_map.md#0x1_btree_map_BTreeMap">btree_map::BTreeMap</a>&lt;Value&gt;): <a href="../../aptos-stdlib/../move-stdlib/doc/option.md#0x1_option_Option">option::Option</a>&lt;u64&gt;
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="btree_map.md#0x1_btree_map_remove_recursive">remove_recursive</a>&lt;Value: <b>copy</b> + drop&gt;(node_option: Option&lt;u64&gt;, key: u256, tree: &<b>mut</b> <a href="btree_map.md#0x1_btree_map_BTreeMap">BTreeMap</a>&lt;Value&gt;): <a href="../../aptos-stdlib/../move-stdlib/doc/option.md#0x1_option_Option">option::Option</a>&lt;u64&gt; {
+    <b>if</b>(<a href="../../aptos-stdlib/../move-stdlib/doc/option.md#0x1_option_is_some">option::is_some</a>(&node_option)) {
+        <b>let</b> node_index = *<a href="../../aptos-stdlib/../move-stdlib/doc/option.md#0x1_option_borrow">option::borrow</a>(&node_option);
+        <b>let</b> node = &<b>mut</b> *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow_mut">vector::borrow_mut</a>(&<b>mut</b> tree.data, node_index);
+        <b>if</b>(key &lt; node.key) {
+            <b>let</b> left = <a href="btree_map.md#0x1_btree_map_remove_recursive">remove_recursive</a>(node.left, key, tree);
+            node.left = left;
+            <a href="../../aptos-stdlib/../move-stdlib/doc/option.md#0x1_option_some">option::some</a>(node_index)
+        } <b>else</b> <b>if</b>(key &gt; node.key) {
+            <b>let</b> right = <a href="btree_map.md#0x1_btree_map_remove_recursive">remove_recursive</a>(node.right, key, tree);
+            node.right = right;
+            <a href="../../aptos-stdlib/../move-stdlib/doc/option.md#0x1_option_some">option::some</a>(node_index)
+        } <b>else</b> {
+            <b>if</b>(<a href="../../aptos-stdlib/../move-stdlib/doc/option.md#0x1_option_is_none">option::is_none</a>(&node.left)) {
+                node.right
+            } <b>else</b> <b>if</b>(<a href="../../aptos-stdlib/../move-stdlib/doc/option.md#0x1_option_is_none">option::is_none</a>(&node.right)) {
+                node.left
+            } <b>else</b> {
+                <b>let</b> right_index = *<a href="../../aptos-stdlib/../move-stdlib/doc/option.md#0x1_option_borrow">option::borrow</a>(&node.right);
+                <b>let</b> (_, min_key, min_value) = <a href="btree_map.md#0x1_btree_map_find_min">find_min</a>(right_index, tree);
+                node.key = min_key;
+                node.value = min_value;
+                <b>let</b> right = <a href="btree_map.md#0x1_btree_map_remove_recursive">remove_recursive</a>(node.right, min_key, tree);
+                node.right = right;
+                <a href="../../aptos-stdlib/../move-stdlib/doc/option.md#0x1_option_some">option::some</a>(node_index)
+            }
+        }
+    } <b>else</b> {
+        <a href="../../aptos-stdlib/../move-stdlib/doc/option.md#0x1_option_none">option::none</a>&lt;u64&gt;()
+    }
+
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_btree_map_remove"></a>
+
+## Function `remove`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="btree_map.md#0x1_btree_map_remove">remove</a>&lt;Value: <b>copy</b>, drop&gt;(tree: &<b>mut</b> <a href="btree_map.md#0x1_btree_map_BTreeMap">btree_map::BTreeMap</a>&lt;Value&gt;, key: u256)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="btree_map.md#0x1_btree_map_remove">remove</a>&lt;Value: <b>copy</b> + drop&gt;(tree: &<b>mut</b> <a href="btree_map.md#0x1_btree_map_BTreeMap">BTreeMap</a>&lt;Value&gt;, key: u256) {
+    <b>let</b> root = <a href="btree_map.md#0x1_btree_map_remove_recursive">remove_recursive</a>(tree.root, key, tree);
+    tree.root = root;
 }
 </code></pre>
 

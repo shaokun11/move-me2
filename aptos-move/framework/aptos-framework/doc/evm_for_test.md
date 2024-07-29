@@ -1749,11 +1749,11 @@
             <b>if</b>(gas_stipend &gt; 0) {
                 add_gas_left(run_state, gas_stipend);
             };
-            <b>let</b> m_pos = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack_u64">pop_stack_u64</a>(stack, error_code);
-            <b>let</b> m_len = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack_u64">pop_stack_u64</a>(stack, error_code);
+            <b>let</b> m_pos = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
+            <b>let</b> m_len = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
             <b>let</b> ret_pos = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
             <b>let</b> ret_len = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
-            <b>let</b> params = vector_slice(*memory, m_pos, m_len);
+            <b>let</b> params = read_memory(memory, m_pos, m_len);
             <b>let</b> (call_from, call_to, code_address) = <a href="evm_for_test.md#0x1_evm_for_test_get_call_info">get_call_info</a>(sender, <b>to</b>, evm_dest_addr, opcode);
             <b>let</b> call_from_num = to_u256(call_from);
             <b>let</b> call_to_num = to_u256(call_to);

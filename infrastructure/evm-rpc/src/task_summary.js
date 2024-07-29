@@ -44,7 +44,7 @@ async function store(addressArr, txCount, syncVersion) {
 
 async function run(startVersion) {
     const txArr = await getEvmTransaction(startVersion, 5);
-    if (!txArr ||txArr.length === 0) {
+    if (!txArr || txArr.length === 0) {
         // Nothing, we slowly the task
         await sleep(5);
         return;
