@@ -479,7 +479,7 @@ export async function estimateGas(info) {
     const ret = {
         success: isSuccess,
         // add 1.2 for the gas limit
-        gas_used: isSuccess ? toHex(BigNumber(result[1]).times(1.2)) : 3e7,
+        gas_used: isSuccess ? toHex(BigNumber(result[1]).times(12).div(10).toFixed(0)) : 3e7,
         code: result[0],
         message: result[2],
     };
