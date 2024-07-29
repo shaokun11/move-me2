@@ -18,7 +18,7 @@ export default function TimeDurationIntervalBar({
 
   // the beginning of the unlock cycle
   const startTime =
-    state.network_name === Network.TESTNET
+    state.network_name === Network.DEVNET
       ? parseTimestamp(timestamp.toString()).subtract(2, "hours")
       : parseTimestamp(timestamp.toString()).subtract(30, "days");
 

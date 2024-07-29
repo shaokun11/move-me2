@@ -16,7 +16,7 @@ function getFetchNameUrl(
   address: string,
   isPrimary: boolean,
 ) {
-  if (network !== "testnet" && network !== "mainnet") {
+  if (network !== "devnet" && network !== "mainnet") {
     return undefined;
   }
 
@@ -88,7 +88,7 @@ async function genANSName(
 }
 
 function getFetchAddressUrl(network: NetworkName, name: string) {
-  if (network !== "testnet" && network !== "mainnet") {
+  if (network !== "devnet" && network !== "mainnet") {
     return undefined;
   }
 
