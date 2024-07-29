@@ -6,7 +6,7 @@ import {UserTransactionsTable} from "../Transactions/TransactionsTable";
 import useGetUserTransactionVersions from "../../api/hooks/useGetUserTransactionVersions";
 import TransactionsPreview from "./TransactionsPreview";
 import {useAugmentToWithGlobalSearchParams} from "../../routing";
-import { useEffect, useState } from "react";
+// import { useEffect, useState } from "react";
 
 const PREVIEW_TRANSACTIONS_COUNT = 10;
 
@@ -37,6 +37,7 @@ export default function UserTransactionsPreview() {
   // TODO: remove the fallback below when indexer is stable
   
   if (versions.length === 0) {
+    // console.log("versions", versions);
     return <TransactionsPreview />;
   }
 

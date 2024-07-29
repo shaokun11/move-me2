@@ -7,10 +7,10 @@ import TotalSupply from "./TotalSupply";
 // import TotalTransactions from "./TotalTransactions";
 import {useGetInMainnet} from "../../../api/hooks/useGetInMainnet";
 import {Link} from "../../../routing";
-import { useGlobalState } from "../../../global-config/GlobalConfig";
-import { getLedgerInfo } from "../../../api";
-import {Types} from "aptos";
-import { useQuery } from "@tanstack/react-query";
+// import { useGlobalState } from "../../../global-config/GlobalConfig";
+// import { getLedgerInfo } from "../../../api";
+// import {Types} from "aptos";
+// import { useQuery } from "@tanstack/react-query";
 
 
 type CardStyle = "default" | "outline";

@@ -6,7 +6,7 @@ export const devnetUrl =
 
 export const networks = {
   mainnet: "https://fullnode.mainnet.aptoslabs.com/",
-  testnet: "https://seed-node1.movementlabs.xyz",
+  // testnet: "https://seed-node1.movementlabs.xyz",
   devnet: devnetUrl,
   local: "https://seed-node1.movementlabs.xyz",
   // local: "https://submove-fuji.bbd.sh/v1",
@@ -21,7 +21,7 @@ export function isValidNetworkName(value: string): value is NetworkName {
 
 export enum Network {
   MAINNET = "mainnet",
-  TESTNET = "testnet",
+  TESTNET = "devnet",
   DEVNET = "devnet",
   LOCAL = "local",
   PREVIEWNET = "previewnet",
@@ -35,7 +35,7 @@ for (const key of Object.keys(networks)) {
   }
 }
 
-export const defaultNetworkName: NetworkName = "testnet" as const;
+export const defaultNetworkName: NetworkName = "devnet" as const;
 
 if (!(defaultNetworkName in networks)) {
   throw `defaultNetworkName '${defaultNetworkName}' not in Networks!`;
