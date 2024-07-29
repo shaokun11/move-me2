@@ -93,4 +93,4 @@ export async function startSummaryTask() {
     }
 }
 
-startSummaryTask()
+startSummaryTask();

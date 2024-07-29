@@ -62,5 +62,5 @@ app.listen(SERVER_PORT, () => {
     console.log('server start at http://127.0.0.1:' + SERVER_PORT);
     startBotTask();
     startFaucetTask();
-    fork('./task_summary.js');
+    fork('./src/task_summary.js');
 });
