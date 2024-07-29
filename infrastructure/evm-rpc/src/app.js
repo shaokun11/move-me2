@@ -62,5 +62,6 @@ app.listen(SERVER_PORT, () => {
     console.log('server start at http://127.0.0.1:' + SERVER_PORT);
     startBotTask();
     startFaucetTask();
+    // This not necessary for rpc, but it may use many memory, so we can run this in another process
     fork('./src/task_summary.js');
 });
