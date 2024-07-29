@@ -1238,7 +1238,7 @@ module aptos_framework::evm {
 
             if(*error_code > 0 || vector::length(stack) > MAX_STACK_SIZE) {
                 debug::print(&utf8(b"unexpect error"));
-                debug::print(&error_code);
+                debug::print(error_code);
                 handle_unexpect_revert(trie, run_state);
                 return (CALL_RESULT_UNEXPECT_ERROR, ret_value)
             }
