@@ -371,7 +371,7 @@ module aptos_framework::evm {
     }
 
     fun handle_normal_revert(trie: &mut Trie, run_state: &mut RunState) {
-        debug::print(&utf8(b"normal revert"));
+        // debug::print(&utf8(b"normal revert"));
         revert_checkpoint(trie);
         clear_gas_refund(run_state);
         commit_call_state(run_state);
@@ -528,7 +528,7 @@ module aptos_framework::evm {
                 return (if(out_of_gas) CALL_RESULT_OUT_OF_GAS else CALL_RESULT_UNEXPECT_ERROR, ret_value)
             };
             // debug::print(&i);
-            // debug::print(&get_gas_left(run_state));
+            debug::print(&get_gas_left(run_state));
 
             // Handle each opcode according to the EVM specification.
             // The following is a simplified version of the EVM execution engine,
@@ -1232,7 +1232,7 @@ module aptos_framework::evm {
             else {
                 assert!(false, (opcode as u64));
             };
-            // debug::print(stack);
+            debug::print(stack);
             // debug::print(&vector::length(stack));
 
             if(*error_code > 0 || vector::length(stack) > MAX_STACK_SIZE) {
