@@ -1,18 +1,29 @@
 import { HexString } from 'aptos';
 import { toBeHex, ethers } from 'ethers';
-import { ROBOT_SENDER_ACCOUNT, client } from './const.js';
+import { ROBOT_SENDER_ACCOUNT, client, SERVER_PORT } from './const.js';
 import { random } from 'radash';
+let evm_bot_sender = null;
 async function deposit() {
-    const wallet = ethers.Wallet.createRandom();
-    const alice = wallet.privateKey;
-    let payload = {
+    const rand = ethers.Wallet.createRandom();
+    const alice = rand.privateKey;
+    const payload = {
         function: `0x1::aptos_account::transfer`,
         type_arguments: [],
         arguments: [alice, random(1, 100)],
     };
-    let hash = await sendTx(payload);
-    // console.log(' deposit to ', alice)
-    // await checkTxResult(hash);
+    await sendTx(payload);
+    // const provider = new ethers.JsonRpcProvider('http://localhost:' + SERVER_PORT);
+    // const evmSender = new ethers.Wallet(ROBOT_SENDER_ACCOUNT.toPrivateKeyObject().privateKeyHex, provider);
+    // if (!evm_bot_sender) {
+    //     evm_bot_sender = evmSender.address;
+    //     // for debugging
+    //     console.log('Bot evm sender address', evm_bot_sender);
+    // }
+    // const tx = {
+    //     to: rand.address,
+    //     value: toBeHex(ethers.parseUnits('' + random(1, 100), 'gwei')),
+    // };
+    // await Promise.allSettled([evmSender.sendTransaction(tx), sendTx(payload)]);
 }
 
 function toBuffer(hex) {
@@ -25,10 +36,15 @@ async function checkTxResult(tx) {
 }
 
 async function sendTx(payload) {
-    const txnRequest = await client.generateTransaction(ROBOT_SENDER_ACCOUNT.address(), payload);
+    const expire_time_sec = 60;
+    const txnRequest = await client.generateTransaction(ROBOT_SENDER_ACCOUNT.address(), payload ,{
+        expiration_timestamp_secs: Math.trunc(Date.now() / 1000) + expire_time_sec,
+    });
     const signedTxn = await client.signTransaction(ROBOT_SENDER_ACCOUNT, txnRequest);
     const transactionRes = await client.submitTransaction(signedTxn);
-    await client.waitForTransaction(transactionRes.hash);
+    await client.waitForTransaction(transactionRes.hash,{
+        timeoutSecs: expire_time_sec + 5,
+    });
     return transactionRes.hash;
 }
 
@@ -43,7 +59,9 @@ export async function startBotTask() {
         while (1) {
             try {
                 await deposit();
-            } catch (e) {}
+            } catch (e) {
+                console.log('Bot task error', e.message);
+            }
             await sleep(2000);
         }
     }

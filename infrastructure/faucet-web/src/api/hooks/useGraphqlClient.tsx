@@ -19,8 +19,8 @@ function getGraphqlURI(networkName: NetworkName): string | undefined {
   switch (networkName) {
     case "mainnet":
       return "https://indexer.mainnet.aptoslabs.com/v1/graphql";
-    case "testnet":
-      return "https://indexer-testnet.staging.gcp.aptosdev.com/v1/graphql";
+    // case "testnet":
+    //   return "https://indexer-testnet.staging.gcp.aptosdev.com/v1/graphql";
     case "devnet":
       return "https://indexer-devnet.staging.gcp.aptosdev.com/v1/graphql";
     case "local":

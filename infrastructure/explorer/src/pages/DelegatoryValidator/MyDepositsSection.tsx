@@ -198,7 +198,7 @@ function ActionsCell({
   return (
     <GeneralTableCell sx={{textAlign: "right", paddingRight: 3}}>
       <StyledTooltip
-        title={`You can't ${getButtonTextFromStatus().toLocaleLowerCase()} because minimum MVMT requirement is not met`}
+        title={`You can't ${getButtonTextFromStatus().toLocaleLowerCase()} because minimum MOVE requirement is not met`}
         disableHoverListener={!buttonDisabled}
       >
         <span>

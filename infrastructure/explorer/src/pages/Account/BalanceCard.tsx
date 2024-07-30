@@ -37,23 +37,25 @@ export default function BalanceCard({address}: BalanceCardProps) {
       balance2 = ("0");
     }
   }
+  
   if(balance1&&balance2){
-    balance = (Math.max(Number(balance1),Number(balance2)).toString());
+    // console.log("balance", balance1,balance2);
+    balance = Math.floor(Math.max(Number(balance1),Number(balance2))).toString();
   }
 
-  // console.log("balance", balance);
+  
 
   return balance ? (
     <Card height="auto">
       <Stack spacing={1.5} marginY={1}>
         <Typography fontSize={17} fontWeight={700}>
-          {`${getFormattedBalanceStr(balance)} MVMT`}
+          {`${getFormattedBalanceStr(balance)} MOVE`}
         </Typography>
         <Stack direction="row" spacing={1} alignItems="center">
           <Typography fontSize={12} color={grey[450]}>
             Balance
           </Typography>
-          <StyledTooltip title="This balance reflects the amount of MVMT tokens held in your wallet.">
+          <StyledTooltip title="This balance reflects the amount of MOVE tokens held in your wallet.">
             <InfoOutlinedIcon sx={{fontSize: 15, color: grey[450]}} />
           </StyledTooltip>
         </Stack>

@@ -37,6 +37,8 @@ function getTypeIcon(type: string, color?: Color) {
       return <StartRoundedIcon fontSize="small" color={color} />;
     case "user_transaction":
       return <MultipleStopRoundedIcon fontSize="small" color={color} />;
+    case "block_epilogue_transaction":
+      return <MultipleStopRoundedIcon fontSize="small" color={color} />;
     case "pending_transaction":
       return <UpdateRoundedIcon fontSize="small" color={color} />;
     case "state_checkpoint_transaction":

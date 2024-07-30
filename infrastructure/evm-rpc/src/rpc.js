@@ -23,6 +23,7 @@ import {
     batch_faucet,
     getBlockReceipts,
     getEvmSummary,
+    getMaxPriorityFeePerGas,
 } from './bridge.js';
 import JsonRpc from 'json-rpc-2.0';
 const { JSONRPCErrorException } = JsonRpc;
@@ -40,7 +41,7 @@ function checkCall(res) {
                     const coder = new AbiCoder();
                     const decodeMsg = coder.decode(['string'], '0x' + res.message.slice(10));
                     data = res.message;
-                    msg = decodeMsg[0];
+                    msg = 'execution reverted:' + decodeMsg[0];
                 } catch (e) {}
             } else {
                 // The solidity error type, we keep it as the original message
@@ -52,7 +53,7 @@ function checkCall(res) {
                 msg = vmErrors[parseInt(res.code)];
             }
         }
-        throw new JSONRPCErrorException(msg, -32000, data);
+        throw new JSONRPCErrorException(msg, 3, data);
     }
 }
 
@@ -93,6 +94,9 @@ export const rpc = {
     },
     eth_getLogs: async function (args) {
         return getLogs(args[0]);
+    },
+    eth_maxPriorityFeePerGas: async function () {
+        return getMaxPriorityFeePerGas();
     },
     /**
      * Fixed value to compatible with the evm
