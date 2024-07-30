@@ -13,25 +13,20 @@ import { parseRawTx, sleep, toHex, toNumber, toHexStrict } from './helper.js';
 import { getMoveHash, getBlockHeightByHash, getEvmLogs } from './db.js';
 import { ZeroAddress, ethers, isHexString, toBeHex, keccak256 } from 'ethers';
 import BigNumber from 'bignumber.js';
-import Lock from 'async-lock';
 import { toBuffer } from './helper.js';
 import { move2ethAddress } from './helper.js';
-import { parseMoveTxPayload } from './helper.js';
 import { googleRecaptcha } from './provider.js';
 import { addToFaucetTask } from './task_faucet.js';
 import { inspect } from 'node:util';
 import { readFile } from 'node:fs/promises';
-const locker = new Lock({
-    maxExecutionTime: 15 * 1000,
-    maxPending: SENDER_ACCOUNT_COUNT * 30,
-});
+import LevelDBWrapper from './leveldb_wrapper.js';
 
-let SEND_TX_ACCOUNT_INDEX = 0;
+const db = new LevelDBWrapper('db/tx');
 
-const CACHE_ETH_ADDRESS_TO_MOVE = {};
-const CACHE_MOVE_HASH_TO_BLOCK_HEIGHT = {};
-
+/// When eth_call or estimateGas,from may be 0x0,
+// Now the evm's 0x0 address cannot exist in the move, so we need to convert it to 0x1
 const ETH_ADDRESS_ONE = '0x0000000000000000000000000000000000000001';
+const ETH_ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
 
 function isSuccessTx(info) {
     const txResult = info.events.find(it => it.type === '0x1::evm::ExecResultEvent');
@@ -53,23 +48,8 @@ export async function getEvmSummary() {
 
 export async function getMoveAddress(acc) {
     acc = acc.toLowerCase();
+    // for mevm2.0 this evm address is the same move address
     return acc;
-    // let moveAddress = CACHE_ETH_ADDRESS_TO_MOVE[acc];
-    // try {
-    //     if (!moveAddress) {
-    //         let payload = {
-    //             function: `0x1::evm::get_move_address`,
-    //             type_arguments: [],
-    //             arguments: [acc],
-    //         };
-    //         let result = await client.view(payload);
-    //         moveAddress = result[0];
-    //         CACHE_ETH_ADDRESS_TO_MOVE[acc] = moveAddress;
-    //     }
-    // } catch (error) {
-    //     // maybe error so the account not found in move
-    // }
-    // return moveAddress || '0x0';
 }
 
 export async function get_move_hash(evm_hash) {
@@ -80,7 +60,7 @@ export async function get_move_hash(evm_hash) {
 }
 
 export async function traceTransaction(hash) {
-    // now it is not support
+    // Now it is not support , but maybe useful in the future
     return {};
     const move_hash = await getMoveHash(hash);
     const info = await client.getTransactionByHash(move_hash);
@@ -141,7 +121,7 @@ export async function batch_faucet(addr, token, ip) {
 let IS_FAUCET_RUNNING = false;
 
 export async function faucet(addr) {
-    if (ENV_IS_PRO) {
+    if (ENV_IS_PRO && addr !== ETH_ADDRESS_ONE) {
         throw 'please get the test token from web page';
     }
     if (!ethers.isAddress(addr)) {
@@ -150,10 +130,14 @@ export async function faucet(addr) {
     if (IS_FAUCET_RUNNING) {
         throw 'System busy, please try later';
     }
+    let amount = FAUCET_AMOUNT;
+    if (addr === ETH_ADDRESS_ONE) {
+        amount = 100 * FAUCET_AMOUNT;
+    }
     const payload = {
         function: `0x1::evm::deposit`,
         type_arguments: [],
-        arguments: [toBuffer(addr), toBuffer(toBeHex(BigNumber(FAUCET_AMOUNT).times(1e18).toString()))],
+        arguments: [toBuffer(addr), toBuffer(toBeHex(BigNumber(amount).times(1e18).toString()))],
     };
     const txnRequest = await client.generateTransaction(FAUCET_SENDER_ACCOUNT.address(), payload, {
         expiration_timestamp_secs: Math.floor(Date.now() / 1000) + 10,
@@ -161,7 +145,7 @@ export async function faucet(addr) {
     const signedTxn = await client.signTransaction(FAUCET_SENDER_ACCOUNT, txnRequest);
     const transactionRes = await client.submitTransaction(signedTxn);
     // this not do any check , but we make it slowly to keep this function
-    await sleep(5);
+    // await sleep(5);
     try {
         const res = await client.waitForTransactionWithResult(transactionRes.hash);
         console.log('faucet %s %s %s', addr, transactionRes.hash, res.vm_status);
@@ -175,6 +159,10 @@ export async function faucet(addr) {
     } finally {
         IS_FAUCET_RUNNING = false;
     }
+}
+
+export async function getMaxPriorityFeePerGas() {
+    return toHex(2);
 }
 
 export async function eth_feeHistory() {
@@ -246,7 +234,21 @@ export async function getBlockByNumber(block, withTx) {
         block = info.block_height;
     }
     block = BigNumber(block).toNumber();
-    let info = await client.getBlockByHeight(block, true);
+    const key = `block:${withTx}:` + block;
+    if (!is_pending) {
+        // only cache the block not pending
+        const cache = await db.get(key);
+        if (cache) {
+            return JSON.parse(cache);
+        }
+    }
+    let info;
+    try {
+        info = await client.getBlockByHeight(block, true);
+    } catch (error) {
+        // block not found
+        return null;
+    }
     let parentHash = ZERO_HASH;
     if (block > 2) {
         let info = await client.getBlockByHeight(block - 1, false);
@@ -275,9 +277,9 @@ export async function getBlockByNumber(block, withTx) {
     if (withTx && evm_tx.length > 0) {
         evm_tx = await Promise.all(evm_tx.map(it => getTransactionByHash(it)));
     }
-    return {
+    const ret = {
         baseFeePerGas: toHex(5 * 1e9), // eip1559  set half of gasPrice
-        difficulty: toHex(BigNumber('0x100000000000000000')),
+        difficulty: toHex(BigNumber('0x10000000000000')), //  7 bytes
         extraData: genHash(1),
         gasLimit: toHex(30_000_000),
         gasUsed: toHex(20_000_000),
@@ -293,21 +295,27 @@ export async function getBlockByNumber(block, withTx) {
         size: toHex(30_000_000),
         stateRoot: genHash(5),
         timestamp: toHex(Math.trunc(info.block_timestamp / 1e6)),
-        totalDifficulty: toHex(BigNumber('0x100000000000000000').plus(info.last_version)), //  10 bytes
+        totalDifficulty: toHex(BigNumber('0x10000000000000000000').plus(info.last_version)), //  10 bytes
         transactions: evm_tx,
         transactionsRoot: genHash(6),
         uncles: [],
     };
+    if (!is_pending) {
+        await db.put(key, JSON.stringify(ret));
+    }
+    return ret;
 }
 
 export async function getBlockByHash(hash, withTx) {
     try {
-        let height = CACHE_MOVE_HASH_TO_BLOCK_HEIGHT[hash];
+        // Use keccak256 for make key more shorter
+        const key = keccak256(Buffer.from(`hash:to:block:${hash}`, 'utf8'));
+        let height = await db.get(key);
         if (!height) {
             height = await getBlockHeightByHash(hash);
-            CACHE_MOVE_HASH_TO_BLOCK_HEIGHT[hash] = [height];
+            await db.put(key, height);
         }
-        return getBlockByNumber(height, withTx);
+        return getBlockByNumber(parseInt(height), withTx);
     } catch (error) {
         return null;
     }
@@ -333,7 +341,7 @@ export async function getStorageAt(addr, pos) {
         let result = await client.view(payload);
         res = result[0];
     } catch (error) {
-        console.log('getStorageAt error', error);
+        // console.log('getStorageAt error', error);
     }
     return res;
 }
@@ -344,16 +352,22 @@ export async function getStorageAt(addr, pos) {
 async function checkAddressNonce(info) {
     const startTs = Date.now();
     while (1) {
+        let chainNonce = -1;
         try {
             const accInfo = await Promise.race([
                 getAccountInfo(info.from),
                 new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10 * 1000)),
             ]);
+            chainNonce = parseInt(accInfo.nonce);
             if (parseInt(accInfo.nonce) === parseInt(info.nonce)) {
                 return true;
             }
-        } catch (error) {
-            continue;
+        } catch (error) {}
+        // make sure found the onchain account nonce
+        if (chainNonce !== -1) {
+            if (chainNonce > parseInt(info.nonce)) {
+                throw 'nonce too low';
+            }
         }
         if (Date.now() - startTs > 30 * 1000) {
             throw 'Timeout to discard from memory pool. Please send tx follow address nonce order';
@@ -362,9 +376,12 @@ async function checkAddressNonce(info) {
     }
 }
 
-// Because only successful transactions in Move EVM will update the nonce,
-// we don't need to check the nonce here.
-// We can directly read it from the blockchain instead of relying on user input.
+const SENDER_ACCOUNT_INDEX = Array.from({ length: SENDER_ACCOUNT_COUNT }, (_, i) => i);
+
+if (SENDER_ACCOUNT_INDEX.length === 0) {
+    throw "please provide the sender account, now it's empty";
+}
+
 export async function sendRawTx(tx) {
     const info = parseRawTx(tx);
     const payload = {
@@ -373,23 +390,37 @@ export async function sendRawTx(tx) {
         arguments: [toBuffer(tx)],
     };
     // this guarantee the nonce order for same from address
+    // Maybe we also need find the same nonce tx but the gasPrice is higher for same address
     await checkAddressNonce(info);
-    const SENDER_ACCOUNT = GET_SENDER_ACCOUNT(SEND_TX_ACCOUNT_INDEX % SENDER_ACCOUNT_COUNT);
-    SEND_TX_ACCOUNT_INDEX++;
-    // this guarantee the the sender address is order
-    return locker.acquire('sendTx:' + SEND_TX_ACCOUNT_INDEX, async function (done) {
-        sendTx(SENDER_ACCOUNT, payload)
-            .then(hash => {
-                done(null, info.hash);
-            })
-            .catch(err => {
-                done(err.message || 'sendTx error');
-            });
-    });
+    const getSenderAccount = async () => {
+        while (1) {
+            if (SENDER_ACCOUNT_INDEX.length === 0) {
+                await sleep(0.05);
+            } else {
+                return SENDER_ACCOUNT_INDEX.shift();
+            }
+        }
+    };
+    const senderIndex = await getSenderAccount();
+
+    const sender = GET_SENDER_ACCOUNT(senderIndex);
+    try {
+        await sendTx(sender, payload, info.hash);
+        SENDER_ACCOUNT_INDEX.push(senderIndex);
+        return info.hash;
+    } catch (e) {
+        // No matter what the error is, we need to return the sender account
+        // We also could use try finally to do this, but we need to make sure the sender account is pushed back
+        SENDER_ACCOUNT_INDEX.push(senderIndex);
+        // the sendTx has parsed the error , so we just throw it
+        throw e;
+    }
 }
 
 export async function callContract(from, contract, calldata, value, block) {
-    from = from || ETH_ADDRESS_ONE;
+    if (from === ETH_ADDRESS_ZERO || !from) {
+        from = ETH_ADDRESS_ONE;
+    }
     contract = contract || ZeroAddress;
     if (isHexString(block)) {
         let info = await client.getBlockByHeight(toNumber(block), false);
@@ -414,16 +445,16 @@ export async function estimateGas(info) {
         // the data is in the input field
         info.data = info.input;
     }
-    if (!info.from) {
+    if (!info.from || info.from === ETH_ADDRESS_ZERO) {
         info.from = ETH_ADDRESS_ONE;
     }
     const nonce = await getNonce(info.from);
     if (!info.data) info.data = '0x';
-    let type = info.type === '0x1' ? '1' : '2';
+    // Use maxFeePerGas to determine the type of transaction for MaxFeePerGas and gasPrice maybe both null
+    let type = Boolean(info.maxFeePerGas) ? '2' : '1';
     let gasPrice = toBeHex(await getGasPrice());
     let maxFeePerGas = toBeHex(1);
     if (type === '2' && info.maxFeePerGas) {
-        gasPrice = toBeHex(1);
         maxFeePerGas = toBeHex(info.maxFeePerGas);
     }
     const payload = {
@@ -445,9 +476,16 @@ export async function estimateGas(info) {
     };
     const result = await client.view(payload);
     const isSuccess = result[0] === '200';
+    // We need do more check, but now we just simply enlarge it 140%
+    // https://github.com/ethereum/go-ethereum/blob/b0f66e34ca2a4ea7ae23475224451c8c9a569826/eth/gasestimator/gasestimator.go#L52
+    let gas = isSuccess ? BigNumber(result[1]).times(14).div(10).toFixed(0) : 3e7
+    if(isSuccess && result[1] === "21000") {
+        // If it just transfer eth ,we no need to change it
+        gas = 21000
+    }    
     const ret = {
         success: isSuccess,
-        gas_used: isSuccess ? result[1] : 3e7,
+        gas_used: gas,
         code: result[0],
         message: result[2],
     };
@@ -488,12 +526,23 @@ async function getTransactionIndex(block, hash) {
  *   - s: string - The s value of the transaction's signature
  */
 export async function getTransactionByHash(evm_hash) {
-    const move_hash = await getMoveHash(evm_hash);
+    let move_hash;
+    try {
+        move_hash = await getMoveHash(evm_hash);
+    } catch (error) {
+        // hash not found
+        return null;
+    }
+    const key = 'tx:' + evm_hash;
+    let cache = await db.get(key);
+    if (cache) {
+        return JSON.parse(cache);
+    }
     const info = await client.getTransactionByHash(move_hash);
     const block = await client.getBlockByVersion(info.version);
     const txInfo = parseMoveTxPayload(info);
     const transactionIndex = toHex(await getTransactionIndex(block.block_height, evm_hash));
-    const txResult = info.events.find(it => it.type === '0x1::evm::ExecResultEvent');
+    // const txResult = info.events.find(it => it.type === '0x1::evm::ExecResultEvent');
     const gasInfo = {};
     if (txInfo.gasPrice) {
         gasInfo.gasPrice = toHex(txInfo.gasPrice);
@@ -505,26 +554,38 @@ export async function getTransactionByHash(evm_hash) {
         blockHash: block.block_hash,
         blockNumber: toHex(block.block_height),
         from: txInfo.from,
-        gas: toHex(txResult.data.gas_usage),
+        gas: toHex(txInfo.limit),
         hash: txInfo.hash,
         input: txInfo.data,
-        type: txInfo.type,
+        type: toHex(txInfo.type),
         nonce: toHex(txInfo.nonce),
         to: txInfo.to,
         accessList: txInfo.accessList,
         transactionIndex,
         value: toHex(txInfo.value),
         v: toHex(txInfo.v),
-        r: txInfo.r,
-        s: txInfo.s,
+        r: toHex(txInfo.r, true), // need remove the leading zero, otherwise the eth go sdk will parse error
+        s: toHex(txInfo.s, true), // need remove the leading zero, otherwise the eth go sdk will parse error
         chainId: toHex(CHAIN_ID),
         ...gasInfo,
     };
+    await db.put(key, JSON.stringify(ret));
     return ret;
 }
 
 export async function getTransactionReceipt(evm_hash) {
-    let move_hash = await getMoveHash(evm_hash);
+    let move_hash;
+    try {
+        move_hash = await getMoveHash(evm_hash);
+    } catch (error) {
+        // hash not found
+        return null;
+    }
+    const key = 'receipt:' + evm_hash;
+    let cache = await db.get(key);
+    if (cache) {
+        return JSON.parse(cache);
+    }
     let info = await client.getTransactionByHash(move_hash);
     let block = await client.getBlockByVersion(info.version);
     const { to, from, type } = parseMoveTxPayload(info);
@@ -552,6 +613,7 @@ export async function getTransactionReceipt(evm_hash) {
         transactionIndex: transactionIndex,
         type,
     };
+    await db.put(key, JSON.stringify(recept));
     return recept;
 }
 /**
@@ -612,26 +674,39 @@ async function getAccountInfo(acc, block) {
     return ret;
 }
 
-async function sendTx(sender, payload, option = {}) {
+async function sendTx(sender, payload, evm_hash, option = {}) {
     try {
+        const expire_time_sec = 60;
         const account = await client.getAccount(sender.address());
         const txnRequest = await client.generateTransaction(sender.address(), payload, {
             ...option,
-            max_gas_amount: 1 * 1e6,
+            max_gas_amount: 2 * 1e6, // Now it is the max value
+            gas_unit_price: 100, // the default value
             sequence_number: account.sequence_number,
-            expiration_timestamp_secs: Math.trunc(Date.now() / 1000) + 10,
+            expiration_timestamp_secs: Math.trunc(Date.now() / 1000) + expire_time_sec,
         });
         const signedTxn = await client.signTransaction(sender, txnRequest);
+        const startTs = Date.now();
         const transactionRes = await client.submitTransaction(signedTxn);
-        console.log('sendTx', transactionRes.hash);
-        // no need care the result
-        await client.waitForTransactionWithResult(transactionRes.hash, {
-            timeoutSecs: 10,
+        const txResult = await client.waitForTransactionWithResult(transactionRes.hash, {
+            // check more than the execute tx time
+            timeoutSecs: expire_time_sec + 5,
         });
+        console.log(
+            'ms:%s,move:%s,evm:%s,result:%s',
+            Date.now() - startTs,
+            transactionRes.hash,
+            evm_hash,
+            txResult.vm_status,
+        );
+        if (!txResult.success) {
+            // From mevm2.0 this should be always success
+            throw new Error(txResult.vm_status);
+        }
         return transactionRes.hash;
     } catch (error) {
         // this is system error ,we also throw the real reason to the client
-        throw new Error(error.message || 'system error ');
+        throw new Error(error.message || 'system error');
     }
 }
 /**
@@ -660,14 +735,14 @@ async function callContractImpl(from, contract, calldata, value, version) {
             toBeHex(value),
             calldata,
             toBeHex(3e7),
-            toBeHex(1),
+            toBeHex(await getGasPrice()),
             toBeHex(1),
             toBeHex(1),
             '0x',
             '1',
         ],
     };
-    const result = await client.view(payload);
+    const result = await client.view(payload, version);
     const isSuccess = result[0] === '200';
     const ret = {
         success: isSuccess,
@@ -726,4 +801,8 @@ function parseLogs(info, blockNumber, blockHash, evm_hash, transactionIndex) {
         }
     }
     return logs;
+}
+function parseMoveTxPayload(info) {
+    const args = info.payload.arguments;
+    return parseRawTx(args[0]);
 }

@@ -14,7 +14,7 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import { Network } from "../utils";
 import ReCAPTCHA from "react-google-recaptcha";
 
-export default function Chains({ name,eventName,btnText, language, amount, isEvm, hasTestnet, network, faucetRequest }: any) {
+export default function Chains({ name,name1,name2,eventName,btnText, language, amount, isEvm, hasTestnet, network, faucetRequest }: any) {
 
     const [success, setSuccess] = useState(false);
     const [address, setAddress] = useState("");
@@ -96,7 +96,7 @@ export default function Chains({ name,eventName,btnText, language, amount, isEvm
     const _amount = amount;
 
     return (
-        name?.toLowerCase() == language?.toLowerCase() && <Container sx={{ position: 'relative' }}>
+        name1?.toLowerCase() == language?.toLowerCase() && <Container sx={{ position: 'relative' }}>
             <Box
                 sx={{
                     fontFamily: "TWKEverett-Medium",
@@ -112,7 +112,7 @@ export default function Chains({ name,eventName,btnText, language, amount, isEvm
 
                 <form name={name} onSubmit={handleFormSubmit}>
                     <TextField
-                        label={name + " Address"}
+                        label={name2 + " Address"}
                         variant="outlined"
                         value={address}
                         onChange={(e) => setAddress(e.target.value)}

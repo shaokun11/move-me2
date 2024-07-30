@@ -43,7 +43,7 @@ function TabPanel({value, networkName}: TabPanelProps): JSX.Element {
     case Network.PREVIEWNET:
       return <ValidatorsTable />;
     case Network.MAINNET:
-    case Network.TESTNET:
+    case Network.DEVNET:
       return value === VALIDATORS_TAB_VALUE.DELEGATION_NODES ? (
         <DelegationValidatorsTable />
       ) : (
