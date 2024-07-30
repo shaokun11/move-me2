@@ -249,8 +249,9 @@ export async function getBlockByNumber(block, withTx) {
         // block not found
         return null;
     }
+    
     let parentHash = ZERO_HASH;
-    if (block > 2) {
+    if (block >= 2) {
         let info = await client.getBlockByHeight(block - 1, false);
         parentHash = info.block_hash;
     }
