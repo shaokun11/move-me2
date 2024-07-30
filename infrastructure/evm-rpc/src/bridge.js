@@ -476,9 +476,16 @@ export async function estimateGas(info) {
     };
     const result = await client.view(payload);
     const isSuccess = result[0] === '200';
+    // We need do more check, but now we just simply enlarge it 140%
+    // https://github.com/ethereum/go-ethereum/blob/b0f66e34ca2a4ea7ae23475224451c8c9a569826/eth/gasestimator/gasestimator.go#L52
+    let gas = isSuccess ? BigNumber(result[1]).times(14).div(10).toFixed(0) : 3e7
+    if(isSuccess && result[1] === "21000") {
+        // If it just transfer eth ,we no need to change it
+        gas = 21000
+    }    
     const ret = {
         success: isSuccess,
-        gas_used: isSuccess ? result[1] : 3e7,
+        gas_used: gas,
         code: result[0],
         message: result[2],
     };
