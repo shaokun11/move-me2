@@ -6,7 +6,7 @@ proposals:
     metadata:
       title: "upgrade framework"
       description: "upgrade framework"
-    execution_mode: RootSigner
+    execution_mode: SingleStep
     update_sequence:
       - Framework:
           bytecode_version: 6
