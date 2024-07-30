@@ -1,7 +1,6 @@
 module aptos_framework::evm_global_state {
     use std::vector;
     use aptos_framework::evm_util::{to_32bit};
-    use aptos_std::debug;
     use aptos_framework::block::{get_current_block_height};
     use aptos_framework::timestamp::now_seconds;
 
