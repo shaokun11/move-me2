@@ -162,11 +162,6 @@ module aptos_framework::evm_util {
         };
     }
 
-    public fun read_memory(memory: &mut vector<u8>, in_offset: u256, in_len: u256): vector<u8> {
-        expand_to_pos(memory, ((in_offset + in_len) as u64));
-        vector_slice_u256(*memory, in_offset, in_len)
-    }
-
     public fun write_call_output(memory: &mut vector<u8>, out_offset: u256, out_len: u256, ret_data: vector<u8>) {
         let data_len = vector::length(&ret_data);
         let out_len = (out_len as u64);
@@ -609,6 +604,5 @@ module aptos_framework::evm_util {
         vector::append(&mut res, *data);
         res
     }
-    
-}
 
+}
