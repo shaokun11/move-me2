@@ -265,7 +265,7 @@ module aptos_framework::evm {
             }
         } else {
             to = to_32bit(to);
-            if(is_precompile_address(to_u256(to))) {
+            if(is_precompile_address(to)) {
                 (_, return_value) = precompile(to, data, gas_limit, run_state);
                 success = CALL_RESULT_SUCCESS;
             } else {
@@ -1113,7 +1113,7 @@ module aptos_framework::evm {
                 let ret_len = pop_stack(stack, error_code);
                 let params = read_memory(memory, m_pos, m_len);
                 let (call_from, call_to, code_address) = get_call_info(sender, to, evm_dest_addr, opcode);
-                let is_precompile = is_precompile_address(to_u256(evm_dest_addr));
+                let is_precompile = is_precompile_address(evm_dest_addr);
                 let transfer_eth = if((opcode == 0xf1 || opcode == 0xf2) && msg_value > 0) true else false;
                 set_ret_bytes(run_state, x"");
                 if(get_is_static(run_state) && transfer_eth && call_from != call_to) {
@@ -1517,7 +1517,7 @@ module aptos_framework::evm {
         debug::print(&bytes);
 
         let data = &mut x"2e1a7d4d";
-        vector::append(data, u256_to_data(50));
+        vector::append(data, u256_to_data(100));
         let(result, gas, bytes) = execute(user, contract,3, 0, *data, gas_limit, gas_price, 0, 0, x"", 1, false, false, false);
         debug::print(&result);
         debug::print(&gas);
@@ -1532,17 +1532,23 @@ module aptos_framework::evm {
 
 
 
-        let data = &mut x"2e1a7d4d";
-        vector::append(data, u256_to_data(50));
-        let(result, gas, bytes) = execute(user, contract,5, 0, *data, gas_limit, gas_price, 0, 0, x"", 1, false, false, false);
-        debug::print(&utf8(b"withdraw2"));
-        debug::print(&result);
-        debug::print(&gas);
-        debug::print(&bytes);
+        // let data = &mut x"2e1a7d4d";
+        // vector::append(data, u256_to_data(50));
+        // let(result, gas, bytes) = execute(user, contract,5, 0, *data, gas_limit, gas_price, 0, 0, x"", 1, false, false, false);
+        // debug::print(&utf8(b"withdraw2"));
+        // debug::print(&result);
+        // debug::print(&gas);
+        // debug::print(&bytes);
+        //
+        // let data = &mut x"70a08231";
+        // vector::append(data, to_32bit(user));
+        // let(result, gas, bytes) = execute(user, contract,6, 0, *data, gas_limit, gas_price, 0, 0, x"", 1, false, false, false);
+        // debug::print(&result);
+        // debug::print(&gas);
+        // debug::print(&bytes);
 
-        let data = &mut x"70a08231";
-        vector::append(data, to_32bit(user));
-        let(result, gas, bytes) = execute(user, contract,6, 0, *data, gas_limit, gas_price, 0, 0, x"", 1, false, false, false);
+        let data = &mut x"18160ddd";
+        let(result, gas, bytes) = execute(user, contract,5, 0, *data, gas_limit, gas_price, 0, 0, x"", 1, false, false, false);
         debug::print(&result);
         debug::print(&gas);
         debug::print(&bytes);

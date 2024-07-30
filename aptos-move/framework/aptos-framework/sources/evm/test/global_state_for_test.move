@@ -3,8 +3,8 @@ module aptos_framework::evm_global_state_for_test {
     use aptos_framework::evm_util::{to_u256, to_32bit};
     use aptos_std::debug;
 
-    const TX_TYPE_NORMAL: u8 = 1;
-    const TX_TYPE_1559: u8 = 2;
+    const TX_TYPE_NORMAL: u8 = 0;
+    const TX_TYPE_1559: u8 = 1;
 
     struct Env has drop {
         base_fee: u256,
@@ -259,4 +259,3 @@ module aptos_framework::evm_global_state_for_test {
         }
     }
 }
-
