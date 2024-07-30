@@ -32,7 +32,7 @@ export async function googleRecaptcha(token) {
     FAUCET_TOKEN_SET.add(t);
     setTimeout(() => {
         FAUCET_TOKEN_SET.delete(t);
-    }, 10 * 1000);
+    }, 20 * 1000);
     const keys = process.env.RECAPTCHA_SECRET.split(',');
     for (const key of keys) {
         const pass = await fetch('https://www.google.com/recaptcha/api/siteverify', {
