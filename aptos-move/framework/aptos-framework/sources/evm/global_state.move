@@ -162,12 +162,14 @@ module aptos_framework::evm_global_state {
         let old_state = get_lastest_state_mut(run_state);
         old_state.gas_refund = new_state.gas_refund;
         old_state.gas_left = old_state.gas_left - (new_state.gas_limit - new_state.gas_left);
+        run_state.gas_used = run_state.gas_used + (new_state.gas_limit - new_state.gas_left);
     }
 
     public fun revert_call_state(run_state: &mut RunState) {
         let new_state = vector::pop_back(&mut run_state.call_state);
         let old_state = get_lastest_state_mut(run_state);
         old_state.gas_left = if(old_state.gas_left > new_state.gas_limit) old_state.gas_left - new_state.gas_limit else 0;
+        run_state.gas_used = run_state.gas_used + if(old_state.gas_left > new_state.gas_limit) new_state.gas_limit else old_state.gas_left;
     }
 
     public fun get_memory_cost(run_state: &RunState) : u256 {
@@ -223,7 +225,6 @@ module aptos_framework::evm_global_state {
     public fun add_gas_refund(run_state: &mut RunState, refund: u256) {
         let state = get_lastest_state_mut(run_state);
         state.gas_refund = state.gas_refund + refund;
-        debug::print(&10011);
     }
 
     public fun sub_gas_refund(run_state: &mut RunState, refund: u256) {
@@ -307,4 +308,3 @@ module aptos_framework::evm_global_state {
         run_state.env.tx_type == TX_TYPE_1559
     }
 }
-
