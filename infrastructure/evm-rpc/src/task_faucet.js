@@ -11,7 +11,7 @@ export async function startFaucetTask() {
     const faucet_amount = toBuffer(toHexStrict((FAUCET_AMOUNT * 1e18).toString()));
     while (1) {
         await run(faucet_amount, 100);
-        await sleep(0.5);
+        await sleep(2);
     }
 }
 /**
