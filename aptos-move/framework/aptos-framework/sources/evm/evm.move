@@ -109,6 +109,7 @@ module aptos_framework::evm {
     ) acquires ExecResource {
         let (chain_id, from, to, nonce, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_per_gas, access_list_bytes, tx_type) = decode_raw_tx(tx);
         assert!(chain_id == CHAIN_ID || chain_id == 0, ERROR_INVALID_CHAINID);
+        debug::print(&utf8(b"new tx"));
         execute(from, to, nonce, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_per_gas, access_list_bytes, tx_type, false, false, false);
     }
 
@@ -299,6 +300,9 @@ module aptos_framework::evm {
 
         emit_event(run_state, gas_usage, exception, message, created_address, logs);
         // emit_trace(run_state);
+        debug::print(&exception);
+        debug::print(&gas_usage);
+        debug::print(&return_value);
 
         (exception, gas_usage, return_value)
     }
@@ -371,7 +375,7 @@ module aptos_framework::evm {
     }
 
     fun handle_normal_revert(trie: &mut Trie, run_state: &mut RunState) {
-        debug::print(&utf8(b"normal revert"));
+        // debug::print(&utf8(b"normal revert"));
         revert_checkpoint(trie);
         clear_gas_refund(run_state);
         commit_call_state(run_state);

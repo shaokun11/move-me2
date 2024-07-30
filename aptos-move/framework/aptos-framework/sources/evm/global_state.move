@@ -1,7 +1,7 @@
 module aptos_framework::evm_global_state {
     use std::vector;
     use aptos_framework::evm_util::{to_32bit};
-    use aptos_std::debug;
+    // use aptos_std::debug;
     use aptos_framework::block::{get_current_block_height};
     use aptos_framework::timestamp::now_seconds;
 
@@ -225,7 +225,6 @@ module aptos_framework::evm_global_state {
     public fun add_gas_refund(run_state: &mut RunState, refund: u256) {
         let state = get_lastest_state_mut(run_state);
         state.gas_refund = state.gas_refund + refund;
-        debug::print(&10011);
     }
 
     public fun sub_gas_refund(run_state: &mut RunState, refund: u256) {

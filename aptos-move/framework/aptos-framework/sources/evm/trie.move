@@ -183,13 +183,13 @@ module aptos_framework::evm_trie {
 
     public(friend) fun set_state(contract_addr: vector<u8>, key: u256, value: u256, trie: &mut Trie) {
         let account = load_account_checkpoint_mut(trie, &contract_addr);
-        if(value == 0) {
-            if(simple_map::contains_key(&mut account.storage, &key)) {
-                simple_map::remove(&mut account.storage, &key);
-            }
-        } else {
+        // if(value == 0) {
+        //     if(simple_map::contains_key(&mut account.storage, &key)) {
+        //         simple_map::remove(&mut account.storage, &key);
+        //     }
+        // } else {
             simple_map::upsert(&mut account.storage, key, value);
-        };
+        // };
     }
 
     public(friend) fun create_account(contract_addr: vector<u8>, code: vector<u8>, balance: u256, nonce: u256, trie: &mut Trie) {
