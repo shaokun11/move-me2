@@ -14,7 +14,6 @@ module aptos_framework::evm_for_test {
     use aptos_framework::evm_arithmetic::{add, mul, sub, div, sdiv, mod, smod, add_mod, mul_mod, exp, shr, sar, slt, sgt};
     use aptos_framework::evm_trie_for_test::{pre_init, Trie, add_checkpoint, revert_checkpoint, commit_latest_checkpoint, get_code, sub_balance, add_nonce, transfer, get_balance, get_state, set_state, exist_contract, get_nonce, new_account, get_storage_copy, save, add_balance, add_warm_address, get_transient_storage, put_transient_storage, set_code, is_contract_or_created_account, get_code_length, exist_account, TestAccount, add_log};
     use aptos_std::simple_map::SimpleMap;
-    use aptos_std::table;
     friend aptos_framework::genesis;
 
     const CONVERT_BASE: u256 = 10000000000;
@@ -1161,8 +1160,7 @@ module aptos_framework::evm_for_test {
             *error_code = ERROR_POP_STACK;
             0
         }
-
-        table
+        
     }
 
     fun pop_stack(stack: &mut vector<u256>, error_code: &mut u64): u256 {
