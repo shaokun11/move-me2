@@ -37,12 +37,12 @@ async function checkTxResult(tx) {
 
 async function sendTx(payload) {
     const expire_time_sec = 60;
-    const txnRequest = await client.generateTransaction(ROBOT_SENDER_ACCOUNT.address(), payload ,{
+    const txnRequest = await client.generateTransaction(ROBOT_SENDER_ACCOUNT.address(), payload, {
         expiration_timestamp_secs: Math.trunc(Date.now() / 1000) + expire_time_sec,
     });
     const signedTxn = await client.signTransaction(ROBOT_SENDER_ACCOUNT, txnRequest);
     const transactionRes = await client.submitTransaction(signedTxn);
-    await client.waitForTransaction(transactionRes.hash,{
+    await client.waitForTransaction(transactionRes.hash, {
         timeoutSecs: expire_time_sec + 5,
     });
     return transactionRes.hash;
