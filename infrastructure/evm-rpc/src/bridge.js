@@ -390,9 +390,6 @@ async function checkSendTx(tx) {
     if (!gasPrice || BigNumber(gasPrice).lt(BLOCK_BASE_FEE)) {
         throw 'gasPrice must be greater than or equal to baseFee';
     }
-    // if (BigNumber(tx.limit).gt(30_000_000)) {
-    //     throw 'gasLimit must be less than or equal to blockGasLimit';
-    // }
     const account = await getAccountInfo(tx.from);
     if (BigNumber(gasPrice).times(tx.limit).plus(tx.value).gt(account.balance)) {
         throw 'Insufficient balance';
@@ -400,6 +397,11 @@ async function checkSendTx(tx) {
     if (account.code !== '0x') {
         throw 'Sender not EOA';
     }
+    // The next check now we are skip, now we just check the nonce,balance and gasPrice
+
+    // if (BigNumber(tx.limit).gt(30_000_000)) {
+    //     throw 'gasLimit must be less than or equal to blockGasLimit';
+    // }
     // const MAX_INIT_CODE_SIZE = 49152;
     // if ((tx.data.length.slice(2)  > MAX_INIT_CODE_SIZE) && !tx.to) {
     //     throw "Contract creation code can't be more than 49152 bytes";
