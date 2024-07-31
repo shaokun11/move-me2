@@ -92,7 +92,7 @@ export async function startSummaryTask() {
         }
         await sleep(2);
         count++;
-        if (count % 10000 === 0) {
+        if (count % 1000 === 0) {
             count = 0;
             setTimeout(startSummaryTask, 0);
             break;
