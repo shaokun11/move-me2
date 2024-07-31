@@ -387,7 +387,7 @@ async function checkSendTx(tx) {
         throw 'Insufficient balance';
     }
     if (account.code !== '0x') {
-        throw 'Sender not eoa';
+        throw 'Sender not EOA';
     }
     // const MAX_INIT_CODE_SIZE = 49152;
     // if ((tx.data.length.slice(2)  > MAX_INIT_CODE_SIZE) && !tx.to) {
