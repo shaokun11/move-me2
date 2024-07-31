@@ -244,7 +244,14 @@ export async function getBlockByNumber(block, withTx) {
     }
     let info;
     try {
-        info = await client.getBlockByHeight(block, true);
+        const mKey = 'move:block:' + block;
+        const moveInfo = await db.get(mKey + block);
+        if (moveInfo) {
+            info = json.parse(moveInfo);
+        } else {
+            info = await client.getBlockByHeight(block, true);
+            await db.put(mKey, JSON.stringify(info));
+        }
     } catch (error) {
         // block not found
         return null;
@@ -260,7 +267,11 @@ export async function getBlockByNumber(block, withTx) {
     if (!is_pending) {
         for (let i = 0; i < transactions.length; i++) {
             let it = transactions[i];
-            if (it.type === 'user_transaction' && it?.payload?.function?.startsWith('0x1::evm::send_tx')) {
+            if (
+                it.success &&
+                it.type === 'user_transaction' &&
+                it?.payload?.function?.startsWith('0x1::evm::send_tx')
+            ) {
                 const { hash: evm_hash } = parseMoveTxPayload(it);
                 evm_tx.push(evm_hash);
             }
