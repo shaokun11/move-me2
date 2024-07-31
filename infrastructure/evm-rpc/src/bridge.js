@@ -273,6 +273,13 @@ export async function getBlockByNumber(block, withTx) {
                 it?.payload?.function?.startsWith('0x1::evm::send_tx')
             ) {
                 const { hash: evm_hash } = parseMoveTxPayload(it);
+                if (BigNumber(it.block_number).lt(1564564)) {
+                    // tmp fix for the old tx
+                    if (!isSuccessTx(it)) {
+                        // this tx should't be exist at evm
+                        continue;
+                    }
+                }
                 evm_tx.push(evm_hash);
             }
         }
