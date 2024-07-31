@@ -54,6 +54,7 @@ function sleep(ms) {
 // https://github.com/Uniswap/deploy-v3.git
 // Since this project requires block generation to run, here I'm starting a script to generate a block every 2 seconds to achieve the purpose
 
+let count = 0;
 export async function startBotTask() {
     if (ROBOT_SENDER_ACCOUNT) {
         while (1) {
@@ -63,6 +64,12 @@ export async function startBotTask() {
                 console.log('Bot task error', e.message);
             }
             await sleep(2000);
+            count++;
+            if (count % 10000 === 0) {
+                count = 0;
+                setTimeout(startBotTask, 0);
+                break;
+            }
         }
     }
 }
