@@ -4,8 +4,7 @@ import { sleep, toBuffer, toHexStrict } from './helper.js';
 
 const FAUCET_QUEUE = [];
 
-
-let count = 0
+let count = 0;
 
 /**
  * Start the batch faucet eth token task
@@ -15,11 +14,11 @@ export async function startFaucetTask() {
     while (1) {
         await run(faucet_amount, 100);
         await sleep(2);
-        count++
-        if(count % 10000 == 0){
-           count = 0
-           setTimeout(startFaucetTask, 0)
-           break
+        count++;
+        if (count % 10000 == 0) {
+            count = 0;
+            setTimeout(startFaucetTask, 0);
+            break;
         }
     }
 }

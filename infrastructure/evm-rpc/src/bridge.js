@@ -11,7 +11,7 @@ import {
 } from './const.js';
 import { parseRawTx, sleep, toHex, toNumber, toHexStrict } from './helper.js';
 import { getMoveHash, getBlockHeightByHash, getEvmLogs } from './db.js';
-import { ZeroAddress, ethers, isHexString, toBeHex, keccak256 } from 'ethers';
+import { ZeroAddress, ethers, isHexString, toBeHex, keccak256, isAddress } from 'ethers';
 import BigNumber from 'bignumber.js';
 import { toBuffer } from './helper.js';
 import { move2ethAddress } from './helper.js';
@@ -249,7 +249,7 @@ export async function getBlockByNumber(block, withTx) {
         // block not found
         return null;
     }
-    
+
     let parentHash = ZERO_HASH;
     if (block >= 2) {
         let info = await client.getBlockByHeight(block - 1, false);
@@ -347,10 +347,102 @@ export async function getStorageAt(addr, pos) {
     return res;
 }
 
+// 1. `gasprice` should be greater than or equal to `basefee` (for regular transactions).
+// 2. `max_fee_per_gas` should be greater than or equal to `basefee` (for EIP-1559 transactions).
+// 3. `max_fee_per_gas` should be greater than or equal to `max_priority_fee_per_gas` (for EIP-1559 transactions).
+// 4. `gasLimit` should be less than or equal to `blockGasLimit` (currently 30,000,000, general rule).
+// 5. `gasprice * gaslimit + value` should be greater than or equal to the balance (general rule, `gasprice` calculation as per above).
+// 6. The `sender` cannot be a contract (general rule, check if the `sender` has code).
+// 7. `gasLimit` should be greater than or equal to the base cost (21,000 + data cost + access list cost).
+// 8. `nonce` should be equal to the current nonce + 1 (general rule).
+const BLOCK_BASE_FEE = 5 * 1e9;
+async function checkSendTx(tx) {
+    let gasPrice;
+    if (tx.type === '0x2') {
+        if (BigNumber(tx.maxFeePerGas).lt(BLOCK_BASE_FEE)) {
+            throw 'maxFeePerGas must be greater than or equal to baseFee';
+        }
+        if (BigNumber(tx.maxPriorityFeePerGas).lt(BLOCK_BASE_FEE)) {
+            throw 'maxPriorityFeePerGas must be greater than or equal to baseFee';
+        }
+        const p0 = BigNumber(tx.maxPriorityFeePerGas).plus(BLOCK_BASE_FEE);
+        if (p0.gt(tx.maxFeePerGas)) {
+            gasPrice = toHex(p0);
+        } else {
+            gasPrice = toHex(tx.maxFeePerGas);
+        }
+    } else if (tx.type === '0x0' || tx.type === '0x1') {
+        gasPrice = tx.gasPrice;
+    } else {
+        throw 'Not support transaction type';
+    }
+    if (!gasPrice || BigNumber(gasPrice).lt(BLOCK_BASE_FEE)) {
+        throw 'gasPrice must be greater than or equal to baseFee';
+    }
+    // if (BigNumber(tx.limit).gt(30_000_000)) {
+    //     throw 'gasLimit must be less than or equal to blockGasLimit';
+    // }
+    const account = await getAccountInfo(tx.from);
+    if (BigNumber(gasPrice).times(tx.limit).plus(tx.value).gt(account.balance)) {
+        throw 'Insufficient balance';
+    }
+    if (account.code !== '0x') {
+        throw 'Sender not EOA';
+    }
+    // const MAX_INIT_CODE_SIZE = 49152;
+    // if ((tx.data.length.slice(2)  > MAX_INIT_CODE_SIZE) && !tx.to) {
+    //     throw "Contract creation code can't be more than 49152 bytes";
+    // }
+    // let data_cost = 21000; // base cost
+    // if (tx.data !== '0x') {
+    //     let cursor = 0;
+    //     while (cursor < tx.data.length - 2) {
+    //         const byte = tx.data.slice(cursor, cursor + 2);
+    //         if (byte === '00') {
+    //             data_cost += 4;
+    //         } else {
+    //             data_cost += 16;
+    //         }
+    //         cursor += 2;
+    //     }
+    // }
+    // if (tx.accessList && tx.accessList.length > 0) {
+    //     //     [
+    //     //       {
+    //     //         "address": "0x0000000000000000000000000000000000000064",
+    //     //         "storageKeys": [
+    //     //           "0x0000000000000000000000000000000000000000000000000000000000000064",
+    //     //           "0x00000000000000000000000000000000000000000000000000000000000000c8"
+    //     //         ]
+    //     //       }
+    //     //     ]
+    //     const addressCost = 2400;
+    //     const keyCost = 1900;
+    //     for (let { address, storageKeys } of tx.accessList) {
+    //         if (!isAddress(address)) {
+    //             throw 'AccessList address format error';
+    //         }
+    //         data_cost += addressCost;
+    //         storageKeys.forEach(it => {
+    //             if (it.length !== 66) {
+    //                 throw 'AccessList storageKeys format error';
+    //             }
+    //             data_cost += keyCost;
+    //         });
+    //     }
+    // }
+    // if (BigNumber(tx.limit).lt(data_cost)) {
+    //     throw 'GasLimit must be greater than or equal to base cost';
+    // }
+    await checkAddressNonce(tx);
+}
+
 // Forge will send multiple transactions at the same time
 // and the order of nonces is not necessarily in ascending order,
 // so we need to sort them again.
 async function checkAddressNonce(info) {
+    // this guarantee the nonce order for same from address
+    // Maybe we also need find the same nonce tx but the gasPrice is higher for same address
     const startTs = Date.now();
     while (1) {
         let chainNonce = -1;
@@ -390,9 +482,7 @@ export async function sendRawTx(tx) {
         type_arguments: [],
         arguments: [toBuffer(tx)],
     };
-    // this guarantee the nonce order for same from address
-    // Maybe we also need find the same nonce tx but the gasPrice is higher for same address
-    await checkAddressNonce(info);
+    await checkSendTx(info);
     const getSenderAccount = async () => {
         while (1) {
             if (SENDER_ACCOUNT_INDEX.length === 0) {
@@ -479,11 +569,11 @@ export async function estimateGas(info) {
     const isSuccess = result[0] === '200';
     // We need do more check, but now we just simply enlarge it 140%
     // https://github.com/ethereum/go-ethereum/blob/b0f66e34ca2a4ea7ae23475224451c8c9a569826/eth/gasestimator/gasestimator.go#L52
-    let gas = isSuccess ? BigNumber(result[1]).times(14).div(10).toFixed(0) : 3e7
-    if(isSuccess && result[1] === "21000") {
+    let gas = isSuccess ? BigNumber(result[1]).times(14).div(10).toFixed(0) : 3e7;
+    if (isSuccess && result[1] === '21000') {
         // If it just transfer eth ,we no need to change it
-        gas = 21000
-    }    
+        gas = 21000;
+    }
     const ret = {
         success: isSuccess,
         gas_used: gas,
@@ -676,39 +766,49 @@ async function getAccountInfo(acc, block) {
 }
 
 async function sendTx(sender, payload, evm_hash, option = {}) {
-    try {
-        const expire_time_sec = 60;
-        const account = await client.getAccount(sender.address());
-        const txnRequest = await client.generateTransaction(sender.address(), payload, {
-            ...option,
-            max_gas_amount: 2 * 1e6, // Now it is the max value
-            gas_unit_price: 100, // the default value
-            sequence_number: account.sequence_number,
-            expiration_timestamp_secs: Math.trunc(Date.now() / 1000) + expire_time_sec,
-        });
-        const signedTxn = await client.signTransaction(sender, txnRequest);
-        const startTs = Date.now();
-        const transactionRes = await client.submitTransaction(signedTxn);
-        const txResult = await client.waitForTransactionWithResult(transactionRes.hash, {
-            // check more than the execute tx time
-            timeoutSecs: expire_time_sec + 5,
-        });
-        console.log(
-            'ms:%s,move:%s,evm:%s,result:%s',
-            Date.now() - startTs,
-            transactionRes.hash,
-            evm_hash,
-            txResult.vm_status,
-        );
-        if (!txResult.success) {
-            // From mevm2.0 this should be always success
-            throw new Error(txResult.vm_status);
+    const expire_time_sec = 60;
+    const account = await client.getAccount(sender.address());
+    const txnRequest = await client.generateTransaction(sender.address(), payload, {
+        ...option,
+        max_gas_amount: 2 * 1e6, // Now it is the max value
+        gas_unit_price: 100, // the default value
+        sequence_number: account.sequence_number,
+        expiration_timestamp_secs: Math.trunc(Date.now() / 1000) + expire_time_sec,
+    });
+    const signedTxn = await client.signTransaction(sender, txnRequest);
+    const startTs = Date.now();
+    const transactionRes = await client.submitTransaction(signedTxn);
+    const txResult = await client.waitForTransactionWithResult(transactionRes.hash, {
+        // check more than the execute tx time
+        timeoutSecs: expire_time_sec + 5,
+    });
+    console.log(
+        'ms:%s,move:%s,evm:%s,result:%s',
+        Date.now() - startTs,
+        transactionRes.hash,
+        evm_hash,
+        txResult.vm_status,
+    );
+    if (!txResult.success) {
+        // From mevm2.0 this should be always success
+        const message = txResult.vm_status;
+        const EVM_ERROR_MSG = [
+            'EXCEPTION_1559_MAX_FEE_LOWER_THAN_BASE_FEE',
+            'EXCEPTION_LEGACY_GAS_PRICE_LOWER_THAN_BASE_FEE',
+            'EXCEPTION_GAS_LIMIT_EXCEED_BLOCK_LIMIT',
+            'EXCEPTION_CREATE_CONTRACT_CODE_SIZE_EXCEED',
+            'EXCEPTION_INSUFFCIENT_BALANCE_TO_SEND_TX',
+            'EXCEPTION_SENDER_NOT_EOA',
+            'EXCEPTION_INVALID_NONCE',
+        ];
+        const i = EVM_ERROR_MSG.findIndex(it => message.includes(it));
+        if (i !== -1) {
+            // this tx should't send to chain
+            throw EVM_ERROR_MSG[i].slice(10).toLowerCase().replace(/_/g, ' ');
         }
-        return transactionRes.hash;
-    } catch (error) {
-        // this is system error ,we also throw the real reason to the client
-        throw new Error(error.message || 'system error');
+        throw message;
     }
+    return transactionRes.hash;
 }
 /**
  * Retrieves the address of the deployed contract.
