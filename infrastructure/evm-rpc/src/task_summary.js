@@ -76,6 +76,7 @@ async function run(startVersion) {
     await store(address, txArr.length, endVersion);
 }
 
+let count = 0
 // this could be do it at evm indexers
 export async function startSummaryTask() {
     if (!START_SUMMARY_TASK) {
@@ -90,6 +91,12 @@ export async function startSummaryTask() {
             console.log('Summary task error', e.message);
         }
         await sleep(2);
+        count++;
+        if (count % 10000 === 0) {
+            count = 0;
+            setTimeout(startSummaryTask, 0);
+            break;
+        }
     }
 }
 
