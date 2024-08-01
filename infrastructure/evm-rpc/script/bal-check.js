@@ -51,7 +51,10 @@ async function run(task) {
                     address: s,
                     amount: task.amount,
                 }),
-            }).catch(err => {
+            }).then(res=>{
+                console.log(`Funding ${s} with ${task.amount / 1e8}`);
+            })
+            .catch(err => {
                 console.log(`Error when funding ${s}: ${err.message}`);
             });
         }
