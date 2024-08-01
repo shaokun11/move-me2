@@ -13,13 +13,13 @@ export async function startFaucetTask() {
     const faucet_amount = toBuffer(toHexStrict((FAUCET_AMOUNT * 1e18).toString()));
     while (1) {
         await run(faucet_amount, 100);
-        await sleep(2);
         count++;
         if (count % 1000 == 0) {
             count = 0;
             setTimeout(startFaucetTask, 0);
             break;
         }
+        await sleep(2);
     }
 }
 /**
@@ -57,6 +57,7 @@ async function run(faucet_amount, batch = 100) {
                         time: Date.now(),
                         data: send_accounts.map(it => ({
                             addr: it.addr,
+                            ip: it.ip,
                         })),
                     }) + '\n',
                     () => {},

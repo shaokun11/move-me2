@@ -110,11 +110,11 @@ export async function batch_faucet(addr, token, ip) {
     if (!ethers.isAddress(addr)) {
         throw 'Address format error';
     }
-    const res = await addToFaucetTask({ addr });
+    const res = await addToFaucetTask({ addr,ip });
     if (res.error) {
         throw res.error;
     }
-    console.log('faucet %s %s success', addr, ip);
+    // console.log('faucet %s %s success', addr, ip);
     return res.data;
 }
 
