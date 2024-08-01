@@ -41,7 +41,7 @@ const APT_TOKEN_TYPE = '0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>';
 async function run(task) {
     const sender = task.sender;
     for (const s of sender) {
-        const requestToken =async ()=>{
+        const requestToken = async () => {
             await fetch(`http://127.0.0.1:8081/fund`, {
                 method: 'POST',
                 headers: {
@@ -60,13 +60,14 @@ async function run(task) {
             if (parseInt(res.data.coin.value) > task.threshold) {
                 console.log(`Sender ${s} has enough balance ${res.data.coin.value / 1e8}`);
                 continue;
-            }else {
+            } else {
                 await requestToken()
             }
         } catch (error) {
-            // the frist time resource not found 
-            if(error?.message?.includes("Resource not found") ) {
-            await requestToken()
+            // the first time resource not found 
+            if (error?.message?.includes("Resource not found")) {
+                await requestToken()
+            }
         }
     }
 }
@@ -85,4 +86,4 @@ async function start() {
     setTimeout(start, 60 * 1000);
 }
 
-start();
+    start();
