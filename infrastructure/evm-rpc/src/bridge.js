@@ -399,39 +399,39 @@ async function checkSendTx(tx) {
     }
     const account = await getAccountInfo(tx.from);
     if (BigNumber(gasPrice).times(tx.limit).plus(tx.value).gt(account.balance)) {
-        throw 'Insufficient balance';
-    }
-
-    if(tx.data !== '0x' && BigNumber(tx.limit).lte(21000)){
-        // there exist many tx like 0x4a42ff6c917e1110965be89281cfbb0589f4509f5eaa8d43e964ac464f97755d , so prevent it 
-        throw 'tx data not empty and gasLimit must be greater than 21000';
+        throw 'insufficient balance';
     }
 
     if (account.code !== '0x') {
-        throw 'Sender not EOA';
+        throw 'sender not EOA';
     }
-    // The next check now we are skip, now we just check the nonce,balance and gasPrice
 
-    // if (BigNumber(tx.limit).gt(30_000_000)) {
-    //     throw 'gasLimit must be less than or equal to blockGasLimit';
-    // }
+    if (BigNumber(tx.limit).gt(30_000_000)) {
+        throw 'gasLimit must be less than or equal to blockGasLimit';
+    }
     // const MAX_INIT_CODE_SIZE = 49152;
-    // if ((tx.data.length.slice(2)  > MAX_INIT_CODE_SIZE) && !tx.to) {
-    //     throw "Contract creation code can't be more than 49152 bytes";
+    // if ((tx.data.length.slice(2)  > MAX_INIT_CODE_SIZE * 2) && !tx.to) {
+    //     throw "contract creation code can't be more than 49152 bytes";
     // }
-    // let data_cost = 21000; // base cost
-    // if (tx.data !== '0x') {
-    //     let cursor = 0;
-    //     while (cursor < tx.data.length - 2) {
-    //         const byte = tx.data.slice(cursor, cursor + 2);
-    //         if (byte === '00') {
-    //             data_cost += 4;
-    //         } else {
-    //             data_cost += 16;
-    //         }
-    //         cursor += 2;
-    //     }
-    // }
+    let data_cost = 21000; // base cost
+    if (tx.data !== '0x') {
+        let data = tx.data.startsWith('0x') ? tx.data.slice(2) : tx.data;
+        let cursor = 0;
+        if (data.length % 2 !== 0) {
+            throw new Error("invalid data length, should be even.");
+        }
+        while (cursor < data.length) {
+            const byte = data.slice(cursor, cursor + 2);
+            if (byte === '00') {
+                data_cost += 4;
+            } else {
+                data_cost += 16;
+            }
+            cursor += 2;
+        }
+    }
+    
+    // The next check now we are skip
     // if (tx.accessList && tx.accessList.length > 0) {
     //     //     [
     //     //       {
@@ -457,9 +457,9 @@ async function checkSendTx(tx) {
     //         });
     //     }
     // }
-    // if (BigNumber(tx.limit).lt(data_cost)) {
-    //     throw 'GasLimit must be greater than or equal to base cost';
-    // }
+    if (BigNumber(tx.limit).lt(data_cost)) {
+        throw 'gasLimit must be greater than or equal to base cost plus tx data cost';
+    }
     await checkAddressNonce(tx);
 }
 
