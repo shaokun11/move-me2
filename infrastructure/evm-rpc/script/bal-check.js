@@ -59,12 +59,16 @@ async function run(task) {
 }
 
 async function start() {
-    console.log('Start checking evm sender balance');
-    await run(evm_sender);
-    console.log('Start checking faucet balance');
-    await run(faucet_sender);
-    console.log('Start checking bot balance');
-    await run(bot_sender);
+    try {
+        console.log('Start checking evm sender balance');
+        await run(evm_sender);
+        console.log('Start checking faucet balance');
+        await run(faucet_sender);
+        console.log('Start checking bot balance');
+        await run(bot_sender);
+    } catch (error) {
+        console.log(`Error when checking balance: ${error.message}`);
+    }
     setTimeout(start, 60 * 1000);
 }
 
