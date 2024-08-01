@@ -110,7 +110,7 @@ export async function batch_faucet(addr, token, ip) {
     if (!ethers.isAddress(addr)) {
         throw 'Address format error';
     }
-    const res = await addToFaucetTask({ addr,ip });
+    const res = await addToFaucetTask({ addr, ip });
     if (res.error) {
         throw res.error;
     }
@@ -272,7 +272,7 @@ export async function getBlockByNumber(block, withTx) {
                 it.type === 'user_transaction' &&
                 it?.payload?.function?.startsWith('0x1::evm::send_tx')
             ) {
-                if (BigNumber(block).lt(1564564)) { 
+                if (BigNumber(block).lt(1564564)) {
                     // tmp fix for the old tx
                     if (!isSuccessTx(it)) {
                         // this tx should't be exist at evm
@@ -297,7 +297,7 @@ export async function getBlockByNumber(block, withTx) {
         evm_tx = await Promise.all(evm_tx.map(it => getTransactionByHash(it)));
     }
     const ret = {
-        baseFeePerGas: toHex(BLOCK_BASE_FEE), 
+        baseFeePerGas: toHex(BLOCK_BASE_FEE),
         difficulty: toHex(BigNumber('0x10000000000000')), //  7 bytes
         extraData: genHash(1),
         gasLimit: toHex(30_000_000),
@@ -785,11 +785,10 @@ async function getAccountInfo(acc, block) {
     return ret;
 }
 
-async function sendTx(sender, payload, evm_hash, option = {}) {
+async function sendTx(sender, payload, evm_hash) {
     const expire_time_sec = 60;
     const account = await client.getAccount(sender.address());
     const txnRequest = await client.generateTransaction(sender.address(), payload, {
-        ...option,
         max_gas_amount: 2 * 1e6, // Now it is the max value
         gas_unit_price: 100, // the default value
         sequence_number: account.sequence_number,
@@ -802,13 +801,7 @@ async function sendTx(sender, payload, evm_hash, option = {}) {
         // check more than the execute tx time
         timeoutSecs: expire_time_sec + 5,
     });
-    console.log(
-        'ms:%s,move:%s,evm:%s,result:%s',
-        Date.now() - startTs,
-        transactionRes.hash,
-        evm_hash,
-        txResult.vm_status,
-    );
+    console.log('ms:%s,move:%s,result:%s', Date.now() - startTs, transactionRes.hash, txResult.vm_status);
     if (!txResult.success) {
         // From mevm2.0 this should be always success
         const message = txResult.vm_status;
