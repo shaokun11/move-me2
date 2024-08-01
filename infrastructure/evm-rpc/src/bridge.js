@@ -801,7 +801,7 @@ async function sendTx(sender, payload, evm_hash) {
         // check more than the execute tx time
         timeoutSecs: expire_time_sec + 5,
     });
-    console.log('ms:%s,move:%s,result:%s', Date.now() - startTs, transactionRes.hash, txResult.vm_status);
+    console.log('ms:%s,move:%s %s', Date.now() - startTs, transactionRes.hash, txResult.success);
     if (!txResult.success) {
         // From mevm2.0 this should be always success
         const message = txResult.vm_status;
