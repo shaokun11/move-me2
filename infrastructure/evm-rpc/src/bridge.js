@@ -813,6 +813,8 @@ async function sendTx(sender, payload, evm_hash) {
             'EXCEPTION_INSUFFCIENT_BALANCE_TO_SEND_TX',
             'EXCEPTION_SENDER_NOT_EOA',
             'EXCEPTION_INVALID_NONCE',
+            "EXCEPTION_OUT_OF_GAS",
+            "EXCEPTION_INSUFFCIENT_BALANCE_TO_WITHDRAW",
         ];
         const i = EVM_ERROR_MSG.findIndex(it => message.includes(it));
         if (i !== -1) {
