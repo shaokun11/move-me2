@@ -51,8 +51,8 @@
 
 
 <pre><code><b>use</b> <a href="block.md#0x1_block">0x1::block</a>;
-<b>use</b> <a href="../../aptos-stdlib/doc/debug.md#0x1_debug">0x1::debug</a>;
 <b>use</b> <a href="util.md#0x1_evm_util">0x1::evm_util</a>;
+<b>use</b> <a href="timestamp.md#0x1_timestamp">0x1::timestamp</a>;
 </code></pre>
 
 
@@ -389,7 +389,7 @@
                 max_fee_per_gas: u256,
                 max_priority_fee_per_gas: u256,
                 tx_type: u64): <a href="global_state.md#0x1_evm_global_state_Env">Env</a> {
-    <b>let</b> base_fee = 0x00;
+    <b>let</b> base_fee = 5000000000;
     <b>let</b> coinbase = to_32bit(x"892a2b7cF919760e148A0d33C1eb0f44D3b383f8");
     <b>let</b> difficulty = 0x00;
     <b>let</b> excess_blob_gas = 0x0e0000;
@@ -914,7 +914,6 @@
 <pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_add_gas_refund">add_gas_refund</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>, refund: u256) {
     <b>let</b> state = <a href="global_state.md#0x1_evm_global_state_get_lastest_state_mut">get_lastest_state_mut</a>(run_state);
     state.gas_refund = state.gas_refund + refund;
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&10011);
 }
 </code></pre>
 
@@ -1159,7 +1158,7 @@
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_get_timestamp">get_timestamp</a>(_run_state: &<a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>): u256 {
-    ((get_epoch_interval_secs() / 1000000) <b>as</b> u256)
+    (now_seconds() <b>as</b> u256)
 }
 </code></pre>
 

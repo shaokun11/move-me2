@@ -27,7 +27,7 @@ const db = new LevelDBWrapper('db/tx');
 // Now the evm's 0x0 address cannot exist in the move, so we need to convert it to 0x1
 const ETH_ADDRESS_ONE = '0x0000000000000000000000000000000000000001';
 const ETH_ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
-
+const BLOCK_BASE_FEE = 5 * 1e9;
 function isSuccessTx(info) {
     const txResult = info.events.find(it => it.type === '0x1::evm::ExecResultEvent');
     return txResult.data.exception === '200';
@@ -297,7 +297,7 @@ export async function getBlockByNumber(block, withTx) {
         evm_tx = await Promise.all(evm_tx.map(it => getTransactionByHash(it)));
     }
     const ret = {
-        baseFeePerGas: toHex(5 * 1e9), // eip1559  set half of gasPrice
+        baseFeePerGas: toHex(BLOCK_BASE_FEE), 
         difficulty: toHex(BigNumber('0x10000000000000')), //  7 bytes
         extraData: genHash(1),
         gasLimit: toHex(30_000_000),
@@ -373,7 +373,7 @@ export async function getStorageAt(addr, pos) {
 // 6. The `sender` cannot be a contract (general rule, check if the `sender` has code).
 // 7. `gasLimit` should be greater than or equal to the base cost (21,000 + data cost + access list cost).
 // 8. `nonce` should be equal to the current nonce + 1 (general rule).
-const BLOCK_BASE_FEE = 5 * 1e9;
+
 async function checkSendTx(tx) {
     let gasPrice;
     if (tx.type === '0x2') {
@@ -603,7 +603,7 @@ export async function estimateGas(info) {
     return ret;
 }
 export async function getGasPrice() {
-    return toHex(10 * 1e9);
+    return toHex(2 * BLOCK_BASE_FEE);
 }
 
 async function getTransactionIndex(block, hash) {

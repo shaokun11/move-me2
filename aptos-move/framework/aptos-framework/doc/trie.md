@@ -668,13 +668,13 @@
 
 <pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="trie.md#0x1_evm_trie_set_state">set_state</a>(contract_addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, key: u256, value: u256, trie: &<b>mut</b> <a href="trie.md#0x1_evm_trie_Trie">Trie</a>) {
     <b>let</b> <a href="account.md#0x1_account">account</a> = <a href="trie.md#0x1_evm_trie_load_account_checkpoint_mut">load_account_checkpoint_mut</a>(trie, &contract_addr);
-    <b>if</b>(value == 0) {
-        <b>if</b>(<a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_contains_key">simple_map::contains_key</a>(&<b>mut</b> <a href="account.md#0x1_account">account</a>.storage, &key)) {
-            <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_remove">simple_map::remove</a>(&<b>mut</b> <a href="account.md#0x1_account">account</a>.storage, &key);
-        }
-    } <b>else</b> {
+    // <b>if</b>(value == 0) {
+    //     <b>if</b>(<a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_contains_key">simple_map::contains_key</a>(&<b>mut</b> <a href="account.md#0x1_account">account</a>.storage, &key)) {
+    //         <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_remove">simple_map::remove</a>(&<b>mut</b> <a href="account.md#0x1_account">account</a>.storage, &key);
+    //     }
+    // } <b>else</b> {
         <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_upsert">simple_map::upsert</a>(&<b>mut</b> <a href="account.md#0x1_account">account</a>.storage, key, value);
-    };
+    // };
 }
 </code></pre>
 

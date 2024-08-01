@@ -48,6 +48,7 @@
 <b>use</b> <a href="storage.md#0x1_evm_storage">0x1::evm_storage</a>;
 <b>use</b> <a href="trie.md#0x1_evm_trie">0x1::evm_trie</a>;
 <b>use</b> <a href="util.md#0x1_evm_util">0x1::evm_util</a>;
+<b>use</b> <a href="../../aptos-stdlib/doc/from_bcs.md#0x1_from_bcs">0x1::from_bcs</a>;
 <b>use</b> <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map">0x1::simple_map</a>;
 <b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/string.md#0x1_string">0x1::string</a>;
 <b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">0x1::vector</a>;
@@ -323,6 +324,7 @@
 
 <a id="0x1_evm_EXCEPTION_1559_MAX_FEE_LOWER_THAN_BASE_FEE"></a>
 
+EXCEPTION_1559_MAX_FEE_LOWER_THAN_BASE_FEE
 
 
 <pre><code><b>const</b> <a href="evm.md#0x1_evm_EXCEPTION_1559_MAX_FEE_LOWER_THAN_BASE_FEE">EXCEPTION_1559_MAX_FEE_LOWER_THAN_BASE_FEE</a>: u64 = 201;
@@ -332,6 +334,7 @@
 
 <a id="0x1_evm_EXCEPTION_CREATE_CONTRACT_CODE_SIZE_EXCEED"></a>
 
+EXCEPTION_CREATE_CONTRACT_CODE_SIZE_EXCEED
 
 
 <pre><code><b>const</b> <a href="evm.md#0x1_evm_EXCEPTION_CREATE_CONTRACT_CODE_SIZE_EXCEED">EXCEPTION_CREATE_CONTRACT_CODE_SIZE_EXCEED</a>: u64 = 204;
@@ -341,6 +344,7 @@
 
 <a id="0x1_evm_EXCEPTION_EXECUTE_REVERT"></a>
 
+EXCEPTION_EXECUTE_REVERT
 
 
 <pre><code><b>const</b> <a href="evm.md#0x1_evm_EXCEPTION_EXECUTE_REVERT">EXCEPTION_EXECUTE_REVERT</a>: u64 = 209;
@@ -350,6 +354,7 @@
 
 <a id="0x1_evm_EXCEPTION_GAS_LIMIT_EXCEED_BLOCK_LIMIT"></a>
 
+EXCEPTION_GAS_LIMIT_EXCEED_BLOCK_LIMIT
 
 
 <pre><code><b>const</b> <a href="evm.md#0x1_evm_EXCEPTION_GAS_LIMIT_EXCEED_BLOCK_LIMIT">EXCEPTION_GAS_LIMIT_EXCEED_BLOCK_LIMIT</a>: u64 = 203;
@@ -359,6 +364,7 @@
 
 <a id="0x1_evm_EXCEPTION_INSUFFCIENT_BALANCE_TO_SEND_TX"></a>
 
+EXCEPTION_INSUFFCIENT_BALANCE_TO_SEND_TX
 
 
 <pre><code><b>const</b> <a href="evm.md#0x1_evm_EXCEPTION_INSUFFCIENT_BALANCE_TO_SEND_TX">EXCEPTION_INSUFFCIENT_BALANCE_TO_SEND_TX</a>: u64 = 205;
@@ -366,17 +372,29 @@
 
 
 
+<a id="0x1_evm_EXCEPTION_INSUFFCIENT_BALANCE_TO_WITHDRAW"></a>
+
+EXCEPTION_INSUFFCIENT_BALANCE_TO_WITHDRAW
+
+
+<pre><code><b>const</b> <a href="evm.md#0x1_evm_EXCEPTION_INSUFFCIENT_BALANCE_TO_WITHDRAW">EXCEPTION_INSUFFCIENT_BALANCE_TO_WITHDRAW</a>: u64 = 210;
+</code></pre>
+
+
+
 <a id="0x1_evm_EXCEPTION_INVALID_NONCE"></a>
 
+EXCEPTION_INVALID_NONCE
 
 
-<pre><code><b>const</b> <a href="evm.md#0x1_evm_EXCEPTION_INVALID_NONCE">EXCEPTION_INVALID_NONCE</a>: u64 = 208;
+<pre><code><b>const</b> <a href="evm.md#0x1_evm_EXCEPTION_INVALID_NONCE">EXCEPTION_INVALID_NONCE</a>: u64 = 207;
 </code></pre>
 
 
 
 <a id="0x1_evm_EXCEPTION_LEGACY_GAS_PRICE_LOWER_THAN_BASE_FEE"></a>
 
+EXCEPTION_LEGACY_GAS_PRICE_LOWER_THAN_BASE_FEE
 
 
 <pre><code><b>const</b> <a href="evm.md#0x1_evm_EXCEPTION_LEGACY_GAS_PRICE_LOWER_THAN_BASE_FEE">EXCEPTION_LEGACY_GAS_PRICE_LOWER_THAN_BASE_FEE</a>: u64 = 202;
@@ -395,15 +413,17 @@
 
 <a id="0x1_evm_EXCEPTION_OUT_OF_GAS"></a>
 
+EXCEPTION_OUT_OF_GAS
 
 
-<pre><code><b>const</b> <a href="evm.md#0x1_evm_EXCEPTION_OUT_OF_GAS">EXCEPTION_OUT_OF_GAS</a>: u64 = 207;
+<pre><code><b>const</b> <a href="evm.md#0x1_evm_EXCEPTION_OUT_OF_GAS">EXCEPTION_OUT_OF_GAS</a>: u64 = 208;
 </code></pre>
 
 
 
 <a id="0x1_evm_EXCEPTION_SENDER_NOT_EOA"></a>
 
+EXCEPTION_SENDER_NOT_EOA
 
 
 <pre><code><b>const</b> <a href="evm.md#0x1_evm_EXCEPTION_SENDER_NOT_EOA">EXCEPTION_SENDER_NOT_EOA</a>: u64 = 206;
@@ -570,7 +590,12 @@
 ) <b>acquires</b> <a href="evm.md#0x1_evm_ExecResource">ExecResource</a> {
     <b>let</b> (<a href="chain_id.md#0x1_chain_id">chain_id</a>, from, <b>to</b>, nonce, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_per_gas, access_list_bytes, tx_type) = <a href="evm.md#0x1_evm_decode_raw_tx">decode_raw_tx</a>(tx);
     <b>assert</b>!(<a href="chain_id.md#0x1_chain_id">chain_id</a> == <a href="evm.md#0x1_evm_CHAIN_ID">CHAIN_ID</a> || <a href="chain_id.md#0x1_chain_id">chain_id</a> == 0, <a href="evm.md#0x1_evm_ERROR_INVALID_CHAINID">ERROR_INVALID_CHAINID</a>);
-    <a href="evm.md#0x1_evm_execute">execute</a>(from, <b>to</b>, nonce, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_per_gas, access_list_bytes, tx_type, <b>false</b>, <b>false</b>, <b>false</b>);
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"new tx"));
+    <b>let</b>(exception, gas_usage, return_value) = <a href="evm.md#0x1_evm_execute">execute</a>(from, <b>to</b>, nonce, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_per_gas, access_list_bytes, tx_type, <b>false</b>, <b>false</b>, <b>false</b>);
+
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&exception);
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&gas_usage);
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&return_value);
 }
 </code></pre>
 
@@ -710,16 +735,14 @@
 
     <b>if</b>(is_eip_1559(run_state)) {
         <b>if</b>(get_basefee(run_state) &gt; get_max_fee_per_gas(run_state) || get_max_priority_fee_per_gas(run_state) &gt; get_max_fee_per_gas(run_state)) {
-            <b>return</b> <a href="evm.md#0x1_evm_handle_tx_failed">handle_tx_failed</a>(run_state, <a href="evm.md#0x1_evm_EXCEPTION_1559_MAX_FEE_LOWER_THAN_BASE_FEE">EXCEPTION_1559_MAX_FEE_LOWER_THAN_BASE_FEE</a>)
+            <b>assert</b>!(<b>false</b>, <a href="evm.md#0x1_evm_EXCEPTION_1559_MAX_FEE_LOWER_THAN_BASE_FEE">EXCEPTION_1559_MAX_FEE_LOWER_THAN_BASE_FEE</a>);
         };
-        (up_cost, overflow) = mul(get_max_fee_per_gas(run_state), gas_limit);
+        (up_cost, overflow) = mul(get_gas_price(run_state), gas_limit);
         <b>if</b>(!overflow) {
             (up_cost, overflow) = add(up_cost, value);
         };
     } <b>else</b> {
-        <b>if</b>(get_basefee(run_state) &gt; gas_price) {
-            <b>return</b> <a href="evm.md#0x1_evm_handle_tx_failed">handle_tx_failed</a>(run_state, <a href="evm.md#0x1_evm_EXCEPTION_LEGACY_GAS_PRICE_LOWER_THAN_BASE_FEE">EXCEPTION_LEGACY_GAS_PRICE_LOWER_THAN_BASE_FEE</a>)
-        };
+        <b>assert</b>!(get_basefee(run_state) &lt;= gas_price, <a href="evm.md#0x1_evm_EXCEPTION_LEGACY_GAS_PRICE_LOWER_THAN_BASE_FEE">EXCEPTION_LEGACY_GAS_PRICE_LOWER_THAN_BASE_FEE</a>);
         (up_cost, overflow) = mul(gas_limit, gas_price);
         <b>if</b>(!overflow) {
             (up_cost, overflow) = add(up_cost, value);
@@ -727,13 +750,11 @@
     };
 
     <b>if</b>(!skip_block_gas_limit_validation && (overflow || gas_limit &gt; get_block_gas_limit(run_state))) {
-        <b>return</b> <a href="evm.md#0x1_evm_handle_tx_failed">handle_tx_failed</a>(run_state, <a href="evm.md#0x1_evm_EXCEPTION_GAS_LIMIT_EXCEED_BLOCK_LIMIT">EXCEPTION_GAS_LIMIT_EXCEED_BLOCK_LIMIT</a>)
+        <b>assert</b>!(<b>false</b>, <a href="evm.md#0x1_evm_EXCEPTION_GAS_LIMIT_EXCEED_BLOCK_LIMIT">EXCEPTION_GAS_LIMIT_EXCEED_BLOCK_LIMIT</a>);
     };
 
     <b>if</b>(<b>to</b> == <a href="evm.md#0x1_evm_EMPTY_ADDR">EMPTY_ADDR</a>) {
-        <b>if</b>(data_size &gt; <a href="evm.md#0x1_evm_MAX_INIT_CODE_SIZE">MAX_INIT_CODE_SIZE</a>) {
-            <b>return</b> <a href="evm.md#0x1_evm_handle_tx_failed">handle_tx_failed</a>(run_state, <a href="evm.md#0x1_evm_EXCEPTION_CREATE_CONTRACT_CODE_SIZE_EXCEED">EXCEPTION_CREATE_CONTRACT_CODE_SIZE_EXCEED</a>)
-        };
+        <b>assert</b>!(data_size &lt;= <a href="evm.md#0x1_evm_MAX_INIT_CODE_SIZE">MAX_INIT_CODE_SIZE</a>, <a href="evm.md#0x1_evm_EXCEPTION_CREATE_CONTRACT_CODE_SIZE_EXCEED">EXCEPTION_CREATE_CONTRACT_CODE_SIZE_EXCEED</a>);
         base_cost = base_cost + 2 * get_word_count(data_size) + 32000;
     };
 
@@ -743,32 +764,20 @@
         <b>if</b>(skip_balance) {
             set_balance(&<b>mut</b> trie, from, up_cost);
         } <b>else</b> {
-            <b>return</b> <a href="evm.md#0x1_evm_handle_tx_failed">handle_tx_failed</a>(run_state, <a href="evm.md#0x1_evm_EXCEPTION_INSUFFCIENT_BALANCE_TO_SEND_TX">EXCEPTION_INSUFFCIENT_BALANCE_TO_SEND_TX</a>)
+            <b>assert</b>!(<b>false</b>, <a href="evm.md#0x1_evm_EXCEPTION_INSUFFCIENT_BALANCE_TO_SEND_TX">EXCEPTION_INSUFFCIENT_BALANCE_TO_SEND_TX</a>);
         };
     };
 
-    <b>if</b>(get_code_length(from, &trie) &gt; 0) {
-        <b>return</b> <a href="evm.md#0x1_evm_handle_tx_failed">handle_tx_failed</a>(run_state, <a href="evm.md#0x1_evm_EXCEPTION_INSUFFCIENT_BALANCE_TO_SEND_TX">EXCEPTION_INSUFFCIENT_BALANCE_TO_SEND_TX</a>)
-    };
-
-    <b>if</b>(get_code_length(from, &trie) &gt; 0) {
-        <b>return</b> <a href="evm.md#0x1_evm_handle_tx_failed">handle_tx_failed</a>(run_state, <a href="evm.md#0x1_evm_EXCEPTION_SENDER_NOT_EOA">EXCEPTION_SENDER_NOT_EOA</a>)
-    };
-
-    <b>if</b>(gas_limit &lt; base_cost) {
-        <b>return</b> <a href="evm.md#0x1_evm_handle_tx_failed">handle_tx_failed</a>(run_state, <a href="evm.md#0x1_evm_EXCEPTION_OUT_OF_GAS">EXCEPTION_OUT_OF_GAS</a>)
-    };
+    <b>assert</b>!(get_code_length(from, &trie) == 0, <a href="evm.md#0x1_evm_EXCEPTION_SENDER_NOT_EOA">EXCEPTION_SENDER_NOT_EOA</a>);
+    <b>assert</b>!(gas_limit &gt;= base_cost, <a href="evm.md#0x1_evm_EXCEPTION_OUT_OF_GAS">EXCEPTION_OUT_OF_GAS</a>);
 
     <b>let</b> sender_nonce = get_nonce(from, &trie);
     <b>if</b>(!skip_nonce && (sender_nonce &gt;= <a href="evm.md#0x1_evm_U64_MAX">U64_MAX</a> || sender_nonce != nonce)) {
-        <b>return</b> <a href="evm.md#0x1_evm_handle_tx_failed">handle_tx_failed</a>(run_state, <a href="evm.md#0x1_evm_EXCEPTION_INVALID_NONCE">EXCEPTION_INVALID_NONCE</a>)
+        <b>assert</b>!(<b>false</b>, <a href="evm.md#0x1_evm_EXCEPTION_INVALID_NONCE">EXCEPTION_INVALID_NONCE</a>);
     };
 
     sub_balance(from, gas_limit * gas_price, &<b>mut</b> trie);
-    <b>let</b> out_of_gas = add_gas_usage(run_state, base_cost);
-    <b>if</b>(out_of_gas) {
-        <b>return</b> <a href="evm.md#0x1_evm_handle_tx_failed">handle_tx_failed</a>(run_state, <a href="evm.md#0x1_evm_EXCEPTION_OUT_OF_GAS">EXCEPTION_OUT_OF_GAS</a>)
-    };
+    add_gas_usage(run_state, base_cost);
     add_checkpoint(&<b>mut</b> trie);
     <b>let</b> return_value = x"";
     <b>let</b> exception = <a href="evm.md#0x1_evm_EXCEPTION_NONE">EXCEPTION_NONE</a>;
@@ -795,7 +804,14 @@
             };
         };
     } <b>else</b> <b>if</b>(to_32bit(<b>to</b>) == <a href="evm.md#0x1_evm_WITHDRAW_ADDR">WITHDRAW_ADDR</a>) {
-        withdraw_from(from, data);
+        <b>let</b> amount = data_to_u256(data, 36, 32);
+        <b>let</b> <b>to</b> = to_address(vector_slice(data, 100, 32));
+        <b>let</b> result = sub_balance(from, amount, &<b>mut</b> trie);
+        <b>if</b>(result) {
+            withdraw_from(from, amount, <b>to</b>);
+        } <b>else</b> {
+            exception = <a href="evm.md#0x1_evm_EXCEPTION_INSUFFCIENT_BALANCE_TO_WITHDRAW">EXCEPTION_INSUFFCIENT_BALANCE_TO_WITHDRAW</a>;
+        }
     } <b>else</b> {
         <b>to</b> = to_32bit(<b>to</b>);
         <b>if</b>(is_precompile_address(<b>to</b>)) {
@@ -1064,7 +1080,7 @@
 
 
 <pre><code><b>fun</b> <a href="evm.md#0x1_evm_handle_normal_revert">handle_normal_revert</a>(trie: &<b>mut</b> Trie, run_state: &<b>mut</b> RunState) {
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"normal revert"));
+    // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"normal revert"));
     revert_checkpoint(trie);
     clear_gas_refund(run_state);
     commit_call_state(run_state);
