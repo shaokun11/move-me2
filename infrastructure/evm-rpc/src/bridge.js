@@ -392,7 +392,7 @@ async function checkSendTx(tx) {
     } else if (tx.type === '0x0' || tx.type === '0x1') {
         gasPrice = tx.gasPrice;
     } else {
-        throw 'Not support transaction type';
+        throw 'not support transaction type';
     }
     if (!gasPrice || BigNumber(gasPrice).lt(BLOCK_BASE_FEE)) {
         throw 'gasPrice must be greater than or equal to baseFee';
@@ -401,6 +401,12 @@ async function checkSendTx(tx) {
     if (BigNumber(gasPrice).times(tx.limit).plus(tx.value).gt(account.balance)) {
         throw 'Insufficient balance';
     }
+
+    if(tx.data !== '0x' && BigNumber(tx.limit).lte(21000)){
+        // there exist many tx like 0x4a42ff6c917e1110965be89281cfbb0589f4509f5eaa8d43e964ac464f97755d , so prevent it 
+        throw 'tx data not empty and gasLimit must be greater than 21000';
+    }
+
     if (account.code !== '0x') {
         throw 'Sender not EOA';
     }
