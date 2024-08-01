@@ -506,7 +506,7 @@ export async function sendRawTx(tx) {
     const getSenderAccount = async () => {
         while (1) {
             if (SENDER_ACCOUNT_INDEX.length === 0) {
-                await sleep(0.05);
+                await sleep(0.2);
             } else {
                 return SENDER_ACCOUNT_INDEX.shift();
             }
