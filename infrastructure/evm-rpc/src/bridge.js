@@ -380,8 +380,8 @@ async function checkSendTx(tx) {
         if (BigNumber(tx.maxFeePerGas).lt(BLOCK_BASE_FEE)) {
             throw 'maxFeePerGas must be greater than or equal to baseFee';
         }
-        if (BigNumber(tx.maxPriorityFeePerGas).lt(BLOCK_BASE_FEE)) {
-            throw 'maxPriorityFeePerGas must be greater than or equal to baseFee';
+        if (BigNumber(tx.maxPriorityFeePerGas).lt(tx.maxFeePerGas)) {
+            throw 'maxFeePerGas must be greater than or equal to maxPriorityFeePerGas';
         }
         const p0 = BigNumber(tx.maxPriorityFeePerGas).plus(BLOCK_BASE_FEE);
         if (p0.gt(tx.maxFeePerGas)) {
