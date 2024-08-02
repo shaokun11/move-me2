@@ -917,7 +917,10 @@ export async function getLogs(obj) {
             skipTx.push(hash);
         }
     }
-    return r.filter(it => !skipTx.includes(it.transactionHash));
+    if (skipTx.length > 0) {
+        return r.filter(it => !skipTx.includes(it.transactionHash));
+    }
+    return r;
 }
 
 function parseLogs(info, blockNumber, blockHash, evm_hash, transactionIndex) {
