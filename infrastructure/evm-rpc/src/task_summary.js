@@ -94,7 +94,6 @@ export async function startSummaryTask() {
         count++;
         if (count % 100 === 0) {
             count = 0;
-            console.log('Restarting summary task');
             break;
         }
     }
