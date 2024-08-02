@@ -11,7 +11,7 @@ async function deposit() {
         type_arguments: [],
         arguments: [alice, random(1, 100)],
     };
-    await sendTx(payload)
+    await sendTx(payload);
     // const provider = new ethers.JsonRpcProvider('http://localhost:' + SERVER_PORT);
     // const evmSender = new ethers.Wallet(ROBOT_SENDER_ACCOUNT.toPrivateKeyObject().privateKeyHex, provider);
     // if (!evm_bot_sender) {

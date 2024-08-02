@@ -28,6 +28,8 @@ const db = new LevelDBWrapper('db/tx');
 const ETH_ADDRESS_ONE = '0x0000000000000000000000000000000000000001';
 const ETH_ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
 const BLOCK_BASE_FEE = 5 * 1e9;
+// if the block number is less than this value, we need to ignore the tx where the result is failed
+const WRONG_BLOCK_TX = 1785834;
 function isSuccessTx(info) {
     const txResult = info.events.find(it => it.type === '0x1::evm::ExecResultEvent');
     return txResult.data.exception === '200';
@@ -272,7 +274,7 @@ export async function getBlockByNumber(block, withTx) {
                 it.type === 'user_transaction' &&
                 it?.payload?.function?.startsWith('0x1::evm::send_tx')
             ) {
-                if (BigNumber(block).lt(1564564)) {
+                if (BigNumber(block).lt(WRONG_BLOCK_TX)) {
                     // tmp fix for the old tx
                     if (!isSuccessTx(it)) {
                         // this tx should't be exist at evm
@@ -418,7 +420,7 @@ async function checkSendTx(tx) {
         let data = tx.data.startsWith('0x') ? tx.data.slice(2) : tx.data;
         let cursor = 0;
         if (data.length % 2 !== 0) {
-            throw new Error("invalid data length, should be even.");
+            throw new Error('invalid data length, should be even.');
         }
         while (cursor < data.length) {
             const byte = data.slice(cursor, cursor + 2);
@@ -430,7 +432,7 @@ async function checkSendTx(tx) {
             cursor += 2;
         }
     }
-    
+
     // The next check now we are skip
     // if (tx.accessList && tx.accessList.length > 0) {
     //     //     [
@@ -819,8 +821,8 @@ async function sendTx(sender, payload, evm_hash) {
             'EXCEPTION_INSUFFCIENT_BALANCE_TO_SEND_TX',
             'EXCEPTION_SENDER_NOT_EOA',
             'EXCEPTION_INVALID_NONCE',
-            "EXCEPTION_OUT_OF_GAS",
-            "EXCEPTION_INSUFFCIENT_BALANCE_TO_WITHDRAW",
+            'EXCEPTION_OUT_OF_GAS',
+            'EXCEPTION_INSUFFCIENT_BALANCE_TO_WITHDRAW',
         ];
         const i = EVM_ERROR_MSG.findIndex(it => message.includes(it));
         if (i !== -1) {
@@ -896,8 +898,26 @@ export async function getLogs(obj) {
             removed: false,
         };
     });
-    // console.log('getLogs1', r);
-    return r;
+    // skip the wrong tx
+    const blocks = Array.from(
+        new Set(
+            r.map(it => ({
+                number: parseInt(it.blockNumber),
+                hash: it.transactionHash,
+            })),
+        ),
+    );
+    const skipTx = [];
+    for (const { number, hash } of blocks) {
+        if (number < WRONG_BLOCK_TX) {
+            const blockTx = await getBlockByNumber(number, false);
+            if (blockTx.transactions.includes(hash)) {
+                continue;
+            }
+            skipTx.push(hash);
+        }
+    }
+    return r.filter(it => !skipTx.includes(it.transactionHash));
 }
 
 function parseLogs(info, blockNumber, blockHash, evm_hash, transactionIndex) {
