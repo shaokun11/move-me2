@@ -14,7 +14,7 @@ export async function startFaucetTask() {
     while (1) {
         await run(faucet_amount, 100);
         count++;
-        if (count % 1000 == 0) {
+        if (count % 100 == 0) {
             count = 0;
             setTimeout(startFaucetTask, 0);
             break;
