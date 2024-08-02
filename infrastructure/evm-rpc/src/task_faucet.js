@@ -13,14 +13,14 @@ export async function startFaucetTask() {
     const faucet_amount = toBuffer(toHexStrict((FAUCET_AMOUNT * 1e18).toString()));
     while (1) {
         await run(faucet_amount, 100);
+        await sleep(2);
         count++;
         if (count % 100 == 0) {
             count = 0;
-            setTimeout(startFaucetTask, 0);
             break;
         }
-        await sleep(2);
     }
+    setImmediate(startFaucetTask);
 }
 /**
  * Add a task to the faucet

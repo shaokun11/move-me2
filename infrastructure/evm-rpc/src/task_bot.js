@@ -67,9 +67,9 @@ export async function startBotTask() {
             count++;
             if (count % 100 === 0) {
                 count = 0;
-                setTimeout(startBotTask, 0);
                 break;
             }
         }
+        setImmediate(startBotTask);
     }
 }
