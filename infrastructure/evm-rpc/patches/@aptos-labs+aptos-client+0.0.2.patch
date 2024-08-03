@@ -1,0 +1,14 @@
+diff --git a/node_modules/@aptos-labs/aptos-client/dist/node/index.node.js b/node_modules/@aptos-labs/aptos-client/dist/node/index.node.js
+index b94c8b5..2a3b851 100644
+--- a/node_modules/@aptos-labs/aptos-client/dist/node/index.node.js
++++ b/node_modules/@aptos-labs/aptos-client/dist/node/index.node.js
+@@ -109,6 +109,9 @@ async function aptosClient(requestOptions) {
+     url,
+     responseType: "json",
+     headers,
++    timeout:{
++      response: 70*1000  
++    },
+     hooks: {
+       beforeRequest: [
+         (options) => {
