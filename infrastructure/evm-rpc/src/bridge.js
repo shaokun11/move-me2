@@ -236,6 +236,9 @@ export async function getBlockByNumber(block, withTx) {
         block = info.block_height;
     }
     block = BigNumber(block).toNumber();
+    if (block < 0) {
+        throw 'block number error';
+    }
     const key = `block:${withTx}:` + block;
     if (!is_pending) {
         // only cache the block not pending
@@ -260,7 +263,7 @@ export async function getBlockByNumber(block, withTx) {
     }
 
     let parentHash = ZERO_HASH;
-    if (block >= 2) {
+    if (block >= 1) {
         let info = await client.getBlockByHeight(block - 1, false);
         parentHash = info.block_hash;
     }
@@ -298,6 +301,11 @@ export async function getBlockByNumber(block, withTx) {
     if (withTx && evm_tx.length > 0) {
         evm_tx = await Promise.all(evm_tx.map(it => getTransactionByHash(it)));
     }
+    let timestamp = toHex(Math.trunc(info.block_timestamp / 1e6));
+    if (block === 0) {
+        timestamp = BigNumber((await getBlockByNumber(1, false)).timestamp).minus(1);
+        timestamp = toHex(timestamp);
+    }
     const ret = {
         baseFeePerGas: toHex(BLOCK_BASE_FEE),
         difficulty: toHex(BigNumber('0x10000000000000')), //  7 bytes
@@ -315,7 +323,7 @@ export async function getBlockByNumber(block, withTx) {
         sha3Uncles: genHash(4),
         size: toHex(30_000_000),
         stateRoot: genHash(5),
-        timestamp: toHex(Math.trunc(info.block_timestamp / 1e6)),
+        timestamp: timestamp,
         totalDifficulty: toHex(BigNumber('0x10000000000000000000').plus(info.last_version)), //  10 bytes
         transactions: evm_tx,
         transactionsRoot: genHash(6),
