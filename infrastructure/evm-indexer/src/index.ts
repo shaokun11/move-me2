@@ -1,6 +1,6 @@
 import { Config } from "./config";
 import { Worker } from "./worker";
-const configPath = "./config.yaml";
+const configPath = ".config.yaml";
 import { EvmHash, EvmLogs } from "./models/evm";
 import { EvmProcessor } from "./evm-processor";
 
