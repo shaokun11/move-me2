@@ -3,6 +3,7 @@ import { ProcessingResult, TransactionsProcessor } from "./processor";
 import { aptos } from "@aptos-labs/aptos-protos";
 import { EvmHash, EvmLogs } from "./models/evm";
 import { ethers } from "ethers";
+import { createNextVersionToProcess, NextVersionToProcess } from "./models/next_version_to_process";
 
 function move2ethAddress(addr) {
   addr = addr.toLowerCase();
@@ -171,6 +172,15 @@ export class EvmProcessor extends TransactionsProcessor {
           await txnManager.insert(EvmLogs, chunk);
         }
       }
+      const nextVersionToProcess = createNextVersionToProcess({
+        indexerName: this.name(),
+        version: endVersion + 1n,
+      });
+      await txnManager.upsert(
+        NextVersionToProcess,
+        nextVersionToProcess,
+        ["indexerName"],
+      );
     });
     return {
       startVersion,
