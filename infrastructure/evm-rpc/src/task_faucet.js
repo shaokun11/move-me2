@@ -15,12 +15,12 @@ export async function startFaucetTask() {
         await run(faucet_amount, 100);
         await sleep(2);
         count++;
-        if (count % 10000 == 0) {
+        if (count % 100 == 0) {
             count = 0;
-            setTimeout(startFaucetTask, 0);
             break;
         }
     }
+    setImmediate(startFaucetTask);
 }
 /**
  * Add a task to the faucet
@@ -57,6 +57,7 @@ async function run(faucet_amount, batch = 100) {
                         time: Date.now(),
                         data: send_accounts.map(it => ({
                             addr: it.addr,
+                            ip: it.ip,
                         })),
                     }) + '\n',
                     () => {},

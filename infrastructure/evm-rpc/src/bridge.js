@@ -27,7 +27,9 @@ const db = new LevelDBWrapper('db/tx');
 // Now the evm's 0x0 address cannot exist in the move, so we need to convert it to 0x1
 const ETH_ADDRESS_ONE = '0x0000000000000000000000000000000000000001';
 const ETH_ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
-
+const BLOCK_BASE_FEE = 5 * 1e9;
+// if the block number is less than this value, we need to ignore the tx where the result is failed
+const WRONG_BLOCK_TX = 1785834;
 function isSuccessTx(info) {
     const txResult = info.events.find(it => it.type === '0x1::evm::ExecResultEvent');
     return txResult.data.exception === '200';
@@ -110,11 +112,11 @@ export async function batch_faucet(addr, token, ip) {
     if (!ethers.isAddress(addr)) {
         throw 'Address format error';
     }
-    const res = await addToFaucetTask({ addr });
+    const res = await addToFaucetTask({ addr, ip });
     if (res.error) {
         throw res.error;
     }
-    console.log('faucet %s %s success', addr, ip);
+    // console.log('faucet %s %s success', addr, ip);
     return res.data;
 }
 
@@ -234,6 +236,9 @@ export async function getBlockByNumber(block, withTx) {
         block = info.block_height;
     }
     block = BigNumber(block).toNumber();
+    if (block < 0) {
+        throw 'block number error';
+    }
     const key = `block:${withTx}:` + block;
     if (!is_pending) {
         // only cache the block not pending
@@ -258,7 +263,7 @@ export async function getBlockByNumber(block, withTx) {
     }
 
     let parentHash = ZERO_HASH;
-    if (block >= 2) {
+    if (block >= 1) {
         let info = await client.getBlockByHeight(block - 1, false);
         parentHash = info.block_hash;
     }
@@ -272,6 +277,13 @@ export async function getBlockByNumber(block, withTx) {
                 it.type === 'user_transaction' &&
                 it?.payload?.function?.startsWith('0x1::evm::send_tx')
             ) {
+                if (BigNumber(block).lt(WRONG_BLOCK_TX)) {
+                    // tmp fix for the old tx
+                    if (!isSuccessTx(it)) {
+                        // this tx should't be exist at evm
+                        continue;
+                    }
+                }
                 const { hash: evm_hash } = parseMoveTxPayload(it);
                 evm_tx.push(evm_hash);
             }
@@ -289,8 +301,13 @@ export async function getBlockByNumber(block, withTx) {
     if (withTx && evm_tx.length > 0) {
         evm_tx = await Promise.all(evm_tx.map(it => getTransactionByHash(it)));
     }
+    let timestamp = toHex(Math.trunc(info.block_timestamp / 1e6));
+    if (block === 0) {
+        timestamp = BigNumber((await getBlockByNumber(1, false)).timestamp).minus(1);
+        timestamp = toHex(timestamp);
+    }
     const ret = {
-        baseFeePerGas: toHex(5 * 1e9), // eip1559  set half of gasPrice
+        baseFeePerGas: toHex(BLOCK_BASE_FEE),
         difficulty: toHex(BigNumber('0x10000000000000')), //  7 bytes
         extraData: genHash(1),
         gasLimit: toHex(30_000_000),
@@ -306,7 +323,7 @@ export async function getBlockByNumber(block, withTx) {
         sha3Uncles: genHash(4),
         size: toHex(30_000_000),
         stateRoot: genHash(5),
-        timestamp: toHex(Math.trunc(info.block_timestamp / 1e6)),
+        timestamp: timestamp,
         totalDifficulty: toHex(BigNumber('0x10000000000000000000').plus(info.last_version)), //  10 bytes
         transactions: evm_tx,
         transactionsRoot: genHash(6),
@@ -366,15 +383,15 @@ export async function getStorageAt(addr, pos) {
 // 6. The `sender` cannot be a contract (general rule, check if the `sender` has code).
 // 7. `gasLimit` should be greater than or equal to the base cost (21,000 + data cost + access list cost).
 // 8. `nonce` should be equal to the current nonce + 1 (general rule).
-const BLOCK_BASE_FEE = 5 * 1e9;
+
 async function checkSendTx(tx) {
     let gasPrice;
     if (tx.type === '0x2') {
         if (BigNumber(tx.maxFeePerGas).lt(BLOCK_BASE_FEE)) {
             throw 'maxFeePerGas must be greater than or equal to baseFee';
         }
-        if (BigNumber(tx.maxPriorityFeePerGas).lt(BLOCK_BASE_FEE)) {
-            throw 'maxPriorityFeePerGas must be greater than or equal to baseFee';
+        if (BigNumber(tx.maxFeePerGas).lt(tx.maxPriorityFeePerGas)) {
+            throw 'maxFeePerGas must be greater than or equal to maxPriorityFeePerGas';
         }
         const p0 = BigNumber(tx.maxPriorityFeePerGas).plus(BLOCK_BASE_FEE);
         if (p0.gt(tx.maxFeePerGas)) {
@@ -385,38 +402,46 @@ async function checkSendTx(tx) {
     } else if (tx.type === '0x0' || tx.type === '0x1') {
         gasPrice = tx.gasPrice;
     } else {
-        throw 'Not support transaction type';
+        throw 'not support transaction type';
     }
     if (!gasPrice || BigNumber(gasPrice).lt(BLOCK_BASE_FEE)) {
         throw 'gasPrice must be greater than or equal to baseFee';
     }
-    // if (BigNumber(tx.limit).gt(30_000_000)) {
-    //     throw 'gasLimit must be less than or equal to blockGasLimit';
-    // }
     const account = await getAccountInfo(tx.from);
     if (BigNumber(gasPrice).times(tx.limit).plus(tx.value).gt(account.balance)) {
-        throw 'Insufficient balance';
+        throw 'insufficient balance';
     }
+
     if (account.code !== '0x') {
-        throw 'Sender not EOA';
+        throw 'sender not EOA';
+    }
+
+    if (BigNumber(tx.limit).gt(30_000_000)) {
+        throw 'gasLimit must be less than or equal to blockGasLimit';
     }
     // const MAX_INIT_CODE_SIZE = 49152;
-    // if ((tx.data.length.slice(2)  > MAX_INIT_CODE_SIZE) && !tx.to) {
-    //     throw "Contract creation code can't be more than 49152 bytes";
+    // if ((tx.data.length.slice(2)  > MAX_INIT_CODE_SIZE * 2) && !tx.to) {
+    //     throw "contract creation code can't be more than 49152 bytes";
     // }
-    // let data_cost = 21000; // base cost
-    // if (tx.data !== '0x') {
-    //     let cursor = 0;
-    //     while (cursor < tx.data.length - 2) {
-    //         const byte = tx.data.slice(cursor, cursor + 2);
-    //         if (byte === '00') {
-    //             data_cost += 4;
-    //         } else {
-    //             data_cost += 16;
-    //         }
-    //         cursor += 2;
-    //     }
-    // }
+    let data_cost = 21000; // base cost
+    if (tx.data !== '0x') {
+        let data = tx.data.startsWith('0x') ? tx.data.slice(2) : tx.data;
+        let cursor = 0;
+        if (data.length % 2 !== 0) {
+            throw new Error('invalid data length, should be even.');
+        }
+        while (cursor < data.length) {
+            const byte = data.slice(cursor, cursor + 2);
+            if (byte === '00') {
+                data_cost += 4;
+            } else {
+                data_cost += 16;
+            }
+            cursor += 2;
+        }
+    }
+
+    // The next check now we are skip
     // if (tx.accessList && tx.accessList.length > 0) {
     //     //     [
     //     //       {
@@ -442,9 +467,9 @@ async function checkSendTx(tx) {
     //         });
     //     }
     // }
-    // if (BigNumber(tx.limit).lt(data_cost)) {
-    //     throw 'GasLimit must be greater than or equal to base cost';
-    // }
+    if (BigNumber(tx.limit).lt(data_cost)) {
+        throw 'gasLimit must be greater than or equal to base cost plus tx data cost';
+    }
     await checkAddressNonce(tx);
 }
 
@@ -497,7 +522,7 @@ export async function sendRawTx(tx) {
     const getSenderAccount = async () => {
         while (1) {
             if (SENDER_ACCOUNT_INDEX.length === 0) {
-                await sleep(0.05);
+                await sleep(0.2);
             } else {
                 return SENDER_ACCOUNT_INDEX.shift();
             }
@@ -594,7 +619,7 @@ export async function estimateGas(info) {
     return ret;
 }
 export async function getGasPrice() {
-    return toHex(10 * 1e9);
+    return toHex(2 * BLOCK_BASE_FEE);
 }
 
 async function getTransactionIndex(block, hash) {
@@ -776,11 +801,10 @@ async function getAccountInfo(acc, block) {
     return ret;
 }
 
-async function sendTx(sender, payload, evm_hash, option = {}) {
+async function sendTx(sender, payload, evm_hash) {
     const expire_time_sec = 60;
     const account = await client.getAccount(sender.address());
     const txnRequest = await client.generateTransaction(sender.address(), payload, {
-        ...option,
         max_gas_amount: 2 * 1e6, // Now it is the max value
         gas_unit_price: 100, // the default value
         sequence_number: account.sequence_number,
@@ -793,13 +817,7 @@ async function sendTx(sender, payload, evm_hash, option = {}) {
         // check more than the execute tx time
         timeoutSecs: expire_time_sec + 5,
     });
-    console.log(
-        'ms:%s,move:%s,evm:%s,result:%s',
-        Date.now() - startTs,
-        transactionRes.hash,
-        evm_hash,
-        txResult.vm_status,
-    );
+    console.log('ms:%s,move:%s %s', Date.now() - startTs, transactionRes.hash, txResult.success);
     if (!txResult.success) {
         // From mevm2.0 this should be always success
         const message = txResult.vm_status;
@@ -811,6 +829,8 @@ async function sendTx(sender, payload, evm_hash, option = {}) {
             'EXCEPTION_INSUFFCIENT_BALANCE_TO_SEND_TX',
             'EXCEPTION_SENDER_NOT_EOA',
             'EXCEPTION_INVALID_NONCE',
+            'EXCEPTION_OUT_OF_GAS',
+            'EXCEPTION_INSUFFCIENT_BALANCE_TO_WITHDRAW',
         ];
         const i = EVM_ERROR_MSG.findIndex(it => message.includes(it));
         if (i !== -1) {
@@ -886,7 +906,28 @@ export async function getLogs(obj) {
             removed: false,
         };
     });
-    // console.log('getLogs1', r);
+    // skip the wrong tx
+    const blocks = Array.from(
+        new Set(
+            r.map(it => ({
+                number: parseInt(it.blockNumber),
+                hash: it.transactionHash,
+            })),
+        ),
+    );
+    const skipTx = [];
+    for (const { number, hash } of blocks) {
+        if (number < WRONG_BLOCK_TX) {
+            const blockTx = await getBlockByNumber(number, false);
+            if (blockTx.transactions.includes(hash)) {
+                continue;
+            }
+            skipTx.push(hash);
+        }
+    }
+    if (skipTx.length > 0) {
+        return r.filter(it => !skipTx.includes(it.transactionHash));
+    }
     return r;
 }
 

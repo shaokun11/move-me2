@@ -65,11 +65,11 @@ export async function startBotTask() {
             }
             await sleep(2000);
             count++;
-            if (count % 10000 === 0) {
+            if (count % 100 === 0) {
                 count = 0;
-                setTimeout(startBotTask, 0);
                 break;
             }
         }
+        setImmediate(startBotTask);
     }
 }

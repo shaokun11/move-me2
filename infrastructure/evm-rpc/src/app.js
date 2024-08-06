@@ -7,8 +7,12 @@ import { rpc } from './rpc.js';
 import { SERVER_PORT } from './const.js';
 import { startBotTask } from './task_bot.js';
 import { startFaucetTask } from './task_faucet.js';
+import http from 'node:http';
 const { JSONRPCServer, createJSONRPCErrorResponse, JSONRPCErrorException } = JsonRpc;
+
 const app = express();
+const httpServer = http.createServer(app);
+httpServer.setTimeout(100 * 1000);
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 

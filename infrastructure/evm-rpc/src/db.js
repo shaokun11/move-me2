@@ -1,6 +1,7 @@
 import { gql } from '@urql/core';
 import { indexer_client } from './const.js';
 import { group, mapValues, sort, retry } from 'radash';
+import { isAddress } from 'ethers';
 
 export async function getMoveHash(evm_hash) {
     const run = async function () {
@@ -43,6 +44,10 @@ export async function getBlockHeightByHash(block_hash) {
         }
         return res.data.block_metadata_transactions[0].block_height;
     };
+    // the graphql can't found block 0 , so we need to handle it
+    if (block_hash == '0x' + '0'.repeat(64)) {
+        return 0;
+    }
     return await retry({ times: 3, delay: 1000 }, run);
 }
 
@@ -58,9 +63,14 @@ export async function getEvmLogs(obj) {
                     topicArr.push(obj.topics[i]);
                 }
                 // Why there need [] but the address doesn't need ? Just for the gql syntax?
-                topicWhere += `topic${i}: {_in: [${topicArr.map(x => `"${x}"`)}]}\n`;
+                topicWhere += `topic${i}: {_in: [${topicArr.map(x => `"${x.toLowerCase()}"`)}]}\n`;
             }
         }
+    }
+    const addresses = obj.address.filter(it => isAddress(it));
+    let addressWhere = '';
+    if (addresses.length > 0) {
+        addressWhere = `address: {_in: [${addresses.map(x => `"${x.toLowerCase()}"`)}]}\n`;
     }
     const query = gql`
             {
@@ -70,9 +80,7 @@ export async function getEvmLogs(obj) {
                         _gte:${obj.from},
                         _lte:${obj.to}
                     }
-                    address:{
-                        _in:${obj.address.map(x => `"${x}"`)}
-                    }
+                    ${addressWhere}
                     ${topicWhere}
                 }
             }) {

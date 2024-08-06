@@ -22,6 +22,7 @@ This module provides a solution for unsorted maps, that is it has the properties
 -  [Function `borrow_mut`](#0x1_simple_map_borrow_mut)
 -  [Function `contains_key`](#0x1_simple_map_contains_key)
 -  [Function `destroy_empty`](#0x1_simple_map_destroy_empty)
+-  [Function `add_no_check`](#0x1_simple_map_add_no_check)
 -  [Function `add`](#0x1_simple_map_add)
 -  [Function `add_all`](#0x1_simple_map_add_all)
 -  [Function `upsert`](#0x1_simple_map_upsert)
@@ -358,6 +359,34 @@ This function is deprecated, use <code>new</code> instead.
 <pre><code><b>public</b> <b>fun</b> <a href="simple_map.md#0x1_simple_map_destroy_empty">destroy_empty</a>&lt;Key: store, Value: store&gt;(map: <a href="simple_map.md#0x1_simple_map_SimpleMap">SimpleMap</a>&lt;Key, Value&gt;) {
     <b>let</b> <a href="simple_map.md#0x1_simple_map_SimpleMap">SimpleMap</a> { data } = map;
     <a href="../../move-stdlib/doc/vector.md#0x1_vector_destroy_empty">vector::destroy_empty</a>(data);
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_simple_map_add_no_check"></a>
+
+## Function `add_no_check`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="simple_map.md#0x1_simple_map_add_no_check">add_no_check</a>&lt;Key: store, Value: store&gt;(map: &<b>mut</b> <a href="simple_map.md#0x1_simple_map_SimpleMap">simple_map::SimpleMap</a>&lt;Key, Value&gt;, key: Key, value: Value)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="simple_map.md#0x1_simple_map_add_no_check">add_no_check</a>&lt;Key: store, Value: store&gt;(
+    map: &<b>mut</b> <a href="simple_map.md#0x1_simple_map_SimpleMap">SimpleMap</a>&lt;Key, Value&gt;,
+    key: Key,
+    value: Value,
+) {
+    <a href="../../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(&<b>mut</b> map.data, <a href="simple_map.md#0x1_simple_map_Element">Element</a> { key, value });
 }
 </code></pre>
 
