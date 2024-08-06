@@ -84,7 +84,7 @@ impl IndexerApiManager {
     }
 
     pub fn get_url(&self) -> Url {
-        Url::parse(&format!("http://0.0.0.0:{}", self.indexer_api_port)).unwrap()
+        Url::parse(&format!("http://127.0.0.1:{}", self.indexer_api_port)).unwrap()
     }
 }
 
