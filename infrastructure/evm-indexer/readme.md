@@ -16,6 +16,7 @@ If the chain's data is reset, please follow the steps below to resync the EVM da
 
 3. Run the index script:
     ```bash
+    cp config.yaml .config.yaml
     node dist/index.js
     ```
 
@@ -28,3 +29,4 @@ If the chain's data is reset, please follow the steps below to resync the EVM da
     ```bash
     ./sync.sh
     ```
+6. If indexer starts with aptos-node, import `hasura_metadata_aptos_node.json` after Indexer starts
