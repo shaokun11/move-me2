@@ -473,11 +473,13 @@ async function checkSendTx(tx) {
     await checkAddressNonce(tx);
 }
 
-const NonceArr = [];
+const NONCE_ARR = [];
 
 setInterval(() => {
     // clear the nonce cache every 30s  to avoid the max memory to be used
-    NonceArr.length > 2 && NonceArr.slice(Math.floor(NonceArr.length / 2));
+    if (NONCE_ARR.length > 300) {
+        NONCE_ARR.splice(0, NONCE_ARR.length - 300);
+    }
 }, 30 * 1000);
 
 // Forge will send multiple transactions at the same time
@@ -497,11 +499,11 @@ async function checkAddressNonce(info) {
             chainNonce = parseInt(accInfo.nonce);
             if (parseInt(accInfo.nonce) === parseInt(info.nonce)) {
                 const key = 'nonce:' + info.from + ':' + info.nonce;
-                // The use send the same nonce tx , but previous tx is still pending
-                if (NonceArr.includes(key)) {
+                // This tx use send the same nonce , but previous tx is still pending
+                if (NONCE_ARR.includes(key)) {
                     throw 'Nonce too low';
                 }
-                NonceArr.push(key);
+                NONCE_ARR.push(key);
                 return true;
             }
         } catch (error) {}
