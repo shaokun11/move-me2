@@ -473,14 +473,7 @@ async function checkSendTx(tx) {
     await checkAddressNonce(tx);
 }
 
-const NONCE_ARR = [];
-
-setInterval(() => {
-    // clear the nonce cache every 30s  to avoid the max memory to be used
-    if (NONCE_ARR.length > 300) {
-        NONCE_ARR.splice(0, NONCE_ARR.length - 300);
-    }
-}, 30 * 1000);
+const PENDING_TX_SET = new Set();
 
 // Forge will send multiple transactions at the same time
 // and the order of nonces is not necessarily in ascending order,
@@ -498,13 +491,12 @@ async function checkAddressNonce(info) {
             ]);
             chainNonce = parseInt(accInfo.nonce);
             if (parseInt(accInfo.nonce) === parseInt(info.nonce)) {
-                const key = 'nonce:' + info.from + ':' + info.nonce;
-                // TODO 
+                const key = info.from + ':' + info.nonce;
                 // This tx use send the same nonce , but previous tx is still pending
-                // if (NONCE_ARR.includes(key)) {
-                //     throw 'Nonce too low';
-                // }
-                // NONCE_ARR.push(key);
+                if (PENDING_TX_SET.has(key)) {
+                    throw 'Nonce too low';
+                }
+                PENDING_TX_SET.add(key);
                 return true;
             }
         } catch (error) {}
@@ -545,19 +537,18 @@ export async function sendRawTx(tx) {
         }
     };
     const senderIndex = await getSenderAccount();
-
     const sender = GET_SENDER_ACCOUNT(senderIndex);
+    const reset = () => {
+        SENDER_ACCOUNT_INDEX.push(senderIndex);
+        const key = info.from + ':' + info.nonce;
+        PENDING_TX_SET.delete(key);
+    };
     try {
         await sendTx(sender, payload, info.hash);
-        SENDER_ACCOUNT_INDEX.push(senderIndex);
-        return info.hash;
-    } catch (e) {
-        // No matter what the error is, we need to return the sender account
-        // We also could use try finally to do this, but we need to make sure the sender account is pushed back
-        SENDER_ACCOUNT_INDEX.push(senderIndex);
-        // the sendTx has parsed the error , so we just throw it
-        throw e;
+    } finally {
+        reset();
     }
+    return info.hash;
 }
 
 export async function callContract(from, contract, calldata, value, block) {
