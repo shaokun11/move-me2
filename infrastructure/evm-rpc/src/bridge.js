@@ -473,7 +473,6 @@ async function checkSendTx(tx) {
     await checkAddressNonce(tx);
 }
 
-
 // Forge will send multiple transactions at the same time
 // and the order of nonces is not necessarily in ascending order,
 // so we need to sort them again.
@@ -520,17 +519,19 @@ export async function sendRawTx(tx) {
         type_arguments: [],
         arguments: [toBuffer(tx)],
     };
-    await checkSendTx(info);
-    const getSenderAccount = async () => {
+
+    const waitSender = async () => {
         while (1) {
             if (SENDER_ACCOUNT_INDEX.length === 0) {
                 await sleep(0.2);
             } else {
-                return SENDER_ACCOUNT_INDEX.shift();
+                break;
             }
         }
     };
-    const senderIndex = await getSenderAccount();
+    await waitSender();
+    await checkSendTx(info);
+    const senderIndex = SENDER_ACCOUNT_INDEX.shift();
     const sender = GET_SENDER_ACCOUNT(senderIndex);
     const key = info.from + ':' + info.nonce;
     try {
