@@ -499,11 +499,12 @@ async function checkAddressNonce(info) {
             chainNonce = parseInt(accInfo.nonce);
             if (parseInt(accInfo.nonce) === parseInt(info.nonce)) {
                 const key = 'nonce:' + info.from + ':' + info.nonce;
+                // TODO 
                 // This tx use send the same nonce , but previous tx is still pending
-                if (NONCE_ARR.includes(key)) {
-                    throw 'Nonce too low';
-                }
-                NONCE_ARR.push(key);
+                // if (NONCE_ARR.includes(key)) {
+                //     throw 'Nonce too low';
+                // }
+                // NONCE_ARR.push(key);
                 return true;
             }
         } catch (error) {}
