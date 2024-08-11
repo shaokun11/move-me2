@@ -473,7 +473,6 @@ async function checkSendTx(tx) {
     await checkAddressNonce(tx);
 }
 
-const PENDING_TX_SET = new Set();
 
 // Forge will send multiple transactions at the same time
 // and the order of nonces is not necessarily in ascending order,
@@ -491,12 +490,6 @@ async function checkAddressNonce(info) {
             ]);
             chainNonce = parseInt(accInfo.nonce);
             if (parseInt(accInfo.nonce) === parseInt(info.nonce)) {
-                const key = info.from + ':' + info.nonce;
-                // This tx use send the same nonce , but previous tx is still pending
-                if (PENDING_TX_SET.has(key)) {
-                    throw 'Nonce too low';
-                }
-                PENDING_TX_SET.add(key);
                 return true;
             }
         } catch (error) {}
@@ -514,6 +507,7 @@ async function checkAddressNonce(info) {
 }
 
 const SENDER_ACCOUNT_INDEX = Array.from({ length: SENDER_ACCOUNT_COUNT }, (_, i) => i);
+const PENDING_TX_SET = new Set();
 
 if (SENDER_ACCOUNT_INDEX.length === 0) {
     throw "please provide the sender account, now it's empty";
@@ -538,15 +532,16 @@ export async function sendRawTx(tx) {
     };
     const senderIndex = await getSenderAccount();
     const sender = GET_SENDER_ACCOUNT(senderIndex);
-    const reset = () => {
-        SENDER_ACCOUNT_INDEX.push(senderIndex);
-        const key = info.from + ':' + info.nonce;
-        PENDING_TX_SET.delete(key);
-    };
+    const key = info.from + ':' + info.nonce;
     try {
+        if (PENDING_TX_SET.has(key)) {
+            throw 'Nonce too low';
+        }
+        PENDING_TX_SET.add(key);
         await sendTx(sender, payload, info.hash);
     } finally {
-        reset();
+        SENDER_ACCOUNT_INDEX.push(senderIndex);
+        PENDING_TX_SET.delete(key);
     }
     return info.hash;
 }
