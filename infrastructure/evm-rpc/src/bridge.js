@@ -547,13 +547,17 @@ export async function sendRawTx(tx) {
             if (SENDER_ACCOUNT_INDEX.length === 0) {
                 await sleep(0.2);
             } else {
-                break;
+                return SENDER_ACCOUNT_INDEX.shift();
             }
         }
     };
-    await waitSender();
-    await checkSendTx(info);
-    const senderIndex = SENDER_ACCOUNT_INDEX.shift();
+    const senderIndex = await waitSender();
+    try {
+        await checkSendTx(info);
+    } catch (e) {
+        SENDER_ACCOUNT_INDEX.push(senderIndex);
+        throw e;
+    }
     const sender = GET_SENDER_ACCOUNT(senderIndex);
     const key = info.from + ':' + info.nonce;
     try {
@@ -563,11 +567,12 @@ export async function sendRawTx(tx) {
         PENDING_TX_SET.add(key);
         await sendTx(sender, payload, info.hash);
     } catch (error) {
-        console.error('sendRawTx %s error',key, error.message);
         throw error;
     } finally {
         SENDER_ACCOUNT_INDEX.push(senderIndex);
-        PENDING_TX_SET.delete(key);
+        setTimeout(() => {
+            PENDING_TX_SET.delete(key);
+        }, 30 * 1000);
     }
     return info.hash;
 }
