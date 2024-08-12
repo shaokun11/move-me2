@@ -59,11 +59,13 @@ export async function getEvmSummary() {
             })
                 .then(it => it.json())
                 .then(res => res.result);
+            ret.addressCount = res.addressCount;
+            ret.txCount = res.txCount;
         } else {
             res = JSON.parse(await readFile('tx-summary.json', 'utf8'));
+            ret.addressCount = res.addrCount;
+            ret.txCount = res.txCount;
         }
-        ret.addressCount = res.addrCount;
-        ret.txCount = res.txCount;
     } catch (error) {}
     return ret;
 }
