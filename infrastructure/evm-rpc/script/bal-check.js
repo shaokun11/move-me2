@@ -2,6 +2,7 @@ import { AptosClient } from 'aptos';
 
 const evm_sender = {
     sender: [
+        /** for base node sender */
         '0x167bf5e7a3135d4d23054bea0605d3c3eb1b8efde51ffbb62994ba8361d05853',
         '0x5a3ad3ef2196cf8b269efd135e3a6bdd06e7d9897d46f2bb357f30200c33d9d3',
         '0x1790163a7821879e3ddd2b1cc14821425c501fa7c2889f27303fda427859d43c',
@@ -12,11 +13,9 @@ const evm_sender = {
         '0x1f565d5b45b9976a0ae73eb675b31625d1da9939a25c5ec829ffd564d6a0bebb',
         '0xb7293fa5b8ad8b89c70f9b329946286453235b63a8ebe1b62f6fa4e103a7fc12',
         '0x184df25baa560c9fac901d71147f8b0da3e75967e342cf0308749a416e00bdc6',
+        /**********        for sync node sender                          */
         '0xdaee19bf07c589088947f5aaeeb2ac83755c60e8abcee84696be50a6c90aa4b5',
         '0x4ff4cfeacf38acec73e9a31e2cf17f607ca867606468cd54f01eb5fe04c111fb',
-        '0x58289edf9ec35554844a5ddc7c29147d7f9dc70e782b4677bb3a9101094ebf5f',
-        '0xf30ef76064c3381d5f2ae7b876e9dfcfa90dd1d9279fa72bdf2e07bb90df39e0',
-        '0x7ae1c9c87ee71e972606284470879e8a99f2c14f7ffbce4edfe6a3498fd52e81',
     ],
     threshold: 1000 * 1e8,
     amount: 10000 * 1e8,
@@ -56,25 +55,26 @@ async function run(task) {
                     address: s,
                     amount: task.amount,
                 }),
-            }).then(res=>{
-                console.log(`Funding ${s} with ${task.amount / 1e8}`);
             })
-            .catch(err => {
-                console.log(`Error when funding ${s}: ${err.message}`);
-            });
-        }
+                .then(res => {
+                    console.log(`Funding ${s} with ${task.amount / 1e8}`);
+                })
+                .catch(err => {
+                    console.log(`Error when funding ${s}: ${err.message}`);
+                });
+        };
         try {
             const res = await client.getAccountResource(s, APT_TOKEN_TYPE);
             if (parseInt(res.data.coin.value) > task.threshold) {
                 console.log(`Sender ${s} has enough balance ${res.data.coin.value / 1e8}`);
                 continue;
             } else {
-                await requestToken()
+                await requestToken();
             }
         } catch (error) {
-            // the first time resource not found 
-            if (error?.message?.includes("Resource not found")) {
-                await requestToken()
+            // the first time resource not found
+            if (error?.message?.includes('Resource not found')) {
+                await requestToken();
             }
         }
     }
@@ -94,4 +94,4 @@ async function start() {
     setTimeout(start, 60 * 1000);
 }
 
-    start();
+start();
