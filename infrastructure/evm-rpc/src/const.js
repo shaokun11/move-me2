@@ -42,7 +42,7 @@ senderAccounts.forEach((account, i) => {
 });
 export const GET_SENDER_ACCOUNT = (i = 0) => senderAccounts[i];
 export const SENDER_ACCOUNT_COUNT = senderAccounts.length;
-export const FAUCET_SENDER_ACCOUNT = null;
+export let FAUCET_SENDER_ACCOUNT = null;
 if (FAUCET_SENDER) {
     FAUCET_SENDER_ACCOUNT = AptosAccount.fromAptosAccountObject({
         privateKeyHex: FAUCET_SENDER,
