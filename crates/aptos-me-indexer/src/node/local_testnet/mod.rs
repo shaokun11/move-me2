@@ -148,11 +148,11 @@ impl CliCommand<()> for RunLocalTestnet {
             .collect();
 
         // Run any pre-run steps.
-        for manager in &managers {
-            manager.pre_run().await.with_context(|| {
-                format!("Failed to apply pre run steps for {}", manager.get_name())
-            })?;
-        }
+        // for manager in &managers {
+        //     manager.pre_run().await.with_context(|| {
+        //         format!("Failed to apply pre run steps for {}", manager.get_name())
+        //     })?;
+        // }
         let mut join_set = JoinSet::new();
         // Start each of the services.
         for manager in managers.into_iter() {
@@ -165,7 +165,7 @@ impl CliCommand<()> for RunLocalTestnet {
         // happen, it means one of the services failed to start up, in which case we
         // stop waiting for the rest of the services and error out.
         tokio::select! {
-            res = join_set.join_next() => {
+            _ = join_set.join_next() => {
                 eprintln!("\nOne of the services failed to start up, running shutdown steps...");
                 run_shutdown_steps(shutdown_steps).await?;
                 eprintln!("Ran shutdown steps");

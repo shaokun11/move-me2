@@ -124,7 +124,7 @@ impl ProcessorManager {
             enable_verbose_logging: None,
             // The default at the time of writing is 30 but we don't need that
             // many in a local testnet environment.
-            db_pool_size: Some(8),
+            db_pool_size: Some(30),
             gap_detection_batch_size: 50,
             pb_channel_txn_chunk_size: 100_000,
             per_table_chunk_sizes: Default::default(),
