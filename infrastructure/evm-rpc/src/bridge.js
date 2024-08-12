@@ -567,6 +567,7 @@ export async function sendRawTx(tx) {
         PENDING_TX_SET.add(key);
         await sendTx(sender, payload, info.hash);
     } catch (error) {
+        console.error('send tx error %s ', key, error.message);
         throw error;
     } finally {
         SENDER_ACCOUNT_INDEX.push(senderIndex);
