@@ -8,6 +8,7 @@ import {
     FAUCET_AMOUNT,
     SENDER_ACCOUNT_COUNT,
     ENV_IS_PRO,
+    SUMMARY_URL,
 } from './const.js';
 import { parseRawTx, sleep, toHex, toNumber, toHexStrict } from './helper.js';
 import { getMoveHash, getBlockHeightByHash, getEvmLogs } from './db.js';
@@ -41,7 +42,26 @@ export async function getEvmSummary() {
         addressCount: 0,
     };
     try {
-        const res = JSON.parse(await readFile('tx-summary.json', 'utf8'));
+        let res;
+        if (SUMMARY_URL) {
+            // for the async node, it could get this info  from base node
+            res = await fetch(SUMMARY_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    id: '1',
+                    jsonrpc: '2.0',
+                    method: 'admin_getEvmTxSummary',
+                    params: [],
+                }),
+            })
+                .then(it => it.json())
+                .then(res => res.result);
+        } else {
+            res = JSON.parse(await readFile('tx-summary.json', 'utf8'));
+        }
         ret.addressCount = res.addrCount;
         ret.txCount = res.txCount;
     } catch (error) {}

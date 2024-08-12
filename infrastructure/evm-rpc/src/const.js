@@ -42,10 +42,13 @@ senderAccounts.forEach((account, i) => {
 });
 export const GET_SENDER_ACCOUNT = (i = 0) => senderAccounts[i];
 export const SENDER_ACCOUNT_COUNT = senderAccounts.length;
-export const FAUCET_SENDER_ACCOUNT = AptosAccount.fromAptosAccountObject({
-    privateKeyHex: FAUCET_SENDER,
-});
-console.log(`Faucet sender: ${FAUCET_SENDER_ACCOUNT.address().hexString}`);
+export const FAUCET_SENDER_ACCOUNT = null;
+if (FAUCET_SENDER) {
+    FAUCET_SENDER_ACCOUNT = AptosAccount.fromAptosAccountObject({
+        privateKeyHex: FAUCET_SENDER,
+    });
+    console.log(`Faucet sender: ${FAUCET_SENDER_ACCOUNT.address().hexString}`);
+}
 export const client = new AptosClient(NODE_URL);
 export const indexer_client = new Client({
     url: process.env.INDEXER_URL,
@@ -64,3 +67,5 @@ if (ROBOT_SENDER_ACCOUNT) {
 export const ENV_IS_PRO = process.env.NODE_ENV === 'production';
 export const START_SUMMARY_TASK = process.env.START_SUMMARY_TASK || false;
 export const RECAPTCHA_SECRET = process.env.RECAPTCHA_SECRET;
+
+export const SUMMARY_URL = process.env.SUMMARY_URL;
