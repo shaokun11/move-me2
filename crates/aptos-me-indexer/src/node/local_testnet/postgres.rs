@@ -64,6 +64,10 @@ pub struct PostgresArgs {
     /// When --use-host-postgres is set, this is the password to connect with.
     #[clap(long)]
     pub host_postgres_password: Option<String>,
+
+    /// The URL to connect to the postgres instance. If this is set, it will be used
+    #[clap(long)]
+    pub postgres_url: Option<String>,
 }
 
 impl PostgresArgs {
@@ -85,29 +89,33 @@ impl PostgresArgs {
     /// will give you the string for connecting from another container in the network
     /// we create for all containers in the local testnet.
     pub fn get_connection_string(&self, database: Option<&str>, external: bool) -> String {
-        let password = match self.use_host_postgres {
-            true => match &self.host_postgres_password {
-                Some(password) => format!(":{}", password),
-                None => "".to_string(),
-            },
-            false => "".to_string(),
-        };
-        let port = self.get_postgres_port(external);
-        let database = match database {
-            Some(database) => database,
-            None => &self.postgres_database,
-        };
-        let host = match self.use_host_postgres {
-            true => "127.0.0.1",
-            false => match external {
-                true => "127.0.0.1",
-                false => POSTGRES_CONTAINER_NAME,
-            },
-        };
-        format!(
-            "postgres://{}{}@{}:{}/{}",
-            self.postgres_user, password, host, port, database,
-        )
+        if(self.postgres_url.is_some()){
+            return self.postgres_url.clone().unwrap();
+        }   
+        return  "postgres://postgres:@localhost:5432/postgres".to_string();
+        // let password = match self.use_host_postgres {
+        //     true => match &self.host_postgres_password {
+        //         Some(password) => format!(":{}", password),
+        //         None => "".to_string(),
+        //     },
+        //     false => "".to_string(),
+        // };
+        // let port = self.get_postgres_port(external);
+        // let database = match database {
+        //     Some(database) => database,
+        //     None => &self.postgres_database,
+        // };
+        // let host = match self.use_host_postgres {
+        //     true => "127.0.0.1",
+        //     false => match external {
+        //         true => "127.0.0.1",
+        //         false => POSTGRES_CONTAINER_NAME,
+        //     },
+        // };
+        // format!(
+        //     "postgres://{}{}@{}:{}/{}",
+        //     self.postgres_user, password, host, port, database,
+        // )
     }
 }
 
