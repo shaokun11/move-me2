@@ -565,9 +565,9 @@ export async function sendRawTx(tx) {
             throw 'Nonce too low';
         }
         PENDING_TX_SET.add(key);
-        await sendTx(sender, payload, info.hash);
+        await sendTx(sender, payload, key);
     } catch (error) {
-        console.error('send tx error %s ', key, error.message ?? error);
+        console.warn('evm:%s,sender:%s,error %s ', info.hash, key, error.message ?? error);
         throw error;
     } finally {
         SENDER_ACCOUNT_INDEX.push(senderIndex);
@@ -835,7 +835,7 @@ async function getAccountInfo(acc, block) {
     return ret;
 }
 
-async function sendTx(sender, payload, evm_hash) {
+async function sendTx(sender, payload, sender_info) {
     const expire_time_sec = 60;
     const account = await client.getAccount(sender.address());
     const txnRequest = await client.generateTransaction(sender.address(), payload, {
@@ -851,7 +851,13 @@ async function sendTx(sender, payload, evm_hash) {
         // check more than the execute tx time
         timeoutSecs: expire_time_sec + 5,
     });
-    console.log('ms:%s,move:%s %s', Date.now() - startTs, transactionRes.hash, txResult.success);
+    console.log(
+        'ms:%s,hash:%s,sender:%s,%s',
+        Date.now() - startTs,
+        transactionRes.hash,
+        sender_info,
+        txResult.success,
+    );
     if (!txResult.success) {
         // From mevm2.0 this should be always success
         const message = txResult.vm_status;
