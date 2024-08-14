@@ -559,6 +559,7 @@ export async function sendRawTx(tx) {
     };
     const senderIndex = await waitSender();
     try {
+        checkIsSend();
         await checkSendTx(info);
     } catch (e) {
         // need to put back the sender index
