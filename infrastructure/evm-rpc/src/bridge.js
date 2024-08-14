@@ -499,32 +499,41 @@ async function checkSendTx(tx) {
 // and the order of nonces is not necessarily in ascending order,
 // so we need to sort them again.
 async function checkAddressNonce(info) {
-    // this guarantee the nonce order for same from address
-    // Maybe we also need find the same nonce tx but the gasPrice is higher for same address
-    const startTs = Date.now();
-    while (1) {
-        let chainNonce = -1;
-        try {
-            const accInfo = await Promise.race([
-                getAccountInfo(info.from),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10 * 1000)),
-            ]);
-            chainNonce = parseInt(accInfo.nonce);
-            if (parseInt(accInfo.nonce) === parseInt(info.nonce)) {
-                return true;
+    return new Promise((resolve, reject) => {
+        const startTs = Date.now();
+        let intervalId;
+        const checkNonce = async () => {
+            let chainNonce = -1;
+            try {
+                const accInfo = await Promise.race([
+                    getAccountInfo(info.from),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10 * 1000)),
+                ]);
+                chainNonce = parseInt(accInfo.nonce);
+
+                if (chainNonce === parseInt(info.nonce)) {
+                    clearInterval(intervalId);
+                    return resolve(true);
+                }
+            } catch (error) {
+                // request account info timeout ignore
             }
-        } catch (error) {}
-        // make sure found the onchain account nonce
-        if (chainNonce !== -1) {
-            if (chainNonce > parseInt(info.nonce)) {
-                throw 'nonce too low';
+            // make sure found the onchain account nonce
+            if (chainNonce !== -1 && chainNonce > parseInt(info.nonce)) {
+                clearInterval(intervalId);
+                return reject(new Error('nonce too low'));
             }
-        }
-        if (Date.now() - startTs > 30 * 1000) {
-            throw 'Timeout to discard from memory pool. Please send tx follow address nonce order';
-        }
-        await sleep(0.2);
-    }
+            if (Date.now() - startTs > 30 * 1000) {
+                clearInterval(intervalId);
+                return reject(
+                    new Error(
+                        'Timeout to discard from memory pool. Please send tx follow address nonce order',
+                    ),
+                );
+            }
+        };
+        intervalId = setInterval(checkNonce, 200);
+    });
 }
 
 const SENDER_ACCOUNT_INDEX = Array.from({ length: SENDER_ACCOUNT_COUNT }, (_, i) => i);
