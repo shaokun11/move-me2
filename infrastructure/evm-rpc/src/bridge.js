@@ -852,7 +852,7 @@ async function sendTx(sender, payload, sender_info) {
         timeoutSecs: expire_time_sec + 5,
     });
     console.log(
-        'ms:%s,hash:%s,sender:%s,%s',
+        'ms:%s,move:%s,sender:%s,%s',
         Date.now() - startTs,
         transactionRes.hash,
         sender_info,
