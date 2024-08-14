@@ -43,7 +43,7 @@ async function store(addressArr, txCount, syncVersion) {
 }
 
 async function run(startVersion) {
-    const txArr = await getEvmTransaction(startVersion, 5);
+    const txArr = await getEvmTransaction(startVersion, 50);
     if (!txArr || txArr.length === 0) {
         // Nothing, we slowly the task
         await sleep(5);
@@ -90,7 +90,7 @@ export async function startSummaryTask() {
         } catch (e) {
             console.log('Summary task error', e.message);
         }
-        await sleep(2);
+        await sleep(1);
         count++;
         if (count % 100 === 0) {
             count = 0;
