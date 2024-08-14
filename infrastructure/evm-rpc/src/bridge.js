@@ -571,6 +571,7 @@ export async function sendRawTx(tx) {
     try {
         checkIsSend();
         await checkSendTx(info);
+        checkIsSend();
     } catch (e) {
         // need to put back the sender index
         SENDER_ACCOUNT_INDEX.push(senderIndex);
@@ -578,7 +579,6 @@ export async function sendRawTx(tx) {
     }
     const sender = GET_SENDER_ACCOUNT(senderIndex);
     try {
-        checkIsSend();
         PENDING_TX_SET.add(key);
         await sendTx(sender, payload, key);
     } catch (error) {
