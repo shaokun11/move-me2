@@ -578,8 +578,8 @@ export async function sendRawTx(tx) {
         throw e;
     }
     const sender = GET_SENDER_ACCOUNT(senderIndex);
+    PENDING_TX_SET.add(key);
     try {
-        PENDING_TX_SET.add(key);
         await sendTx(sender, payload, key);
     } catch (error) {
         console.warn('evm:%s,sender:%s,error %s ', info.hash, key, error.message ?? error);
