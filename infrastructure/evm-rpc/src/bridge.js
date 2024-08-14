@@ -549,13 +549,14 @@ export async function sendRawTx(tx) {
     };
     checkIsSend();
     const waitSender = async () => {
-        while (1) {
-            if (SENDER_ACCOUNT_INDEX.length === 0) {
-                await sleep(0.1);
-            } else {
-                return SENDER_ACCOUNT_INDEX.shift();
-            }
-        }
+        return new Promise(resolve => {
+            const intervalId = setInterval(() => {
+                if (SENDER_ACCOUNT_INDEX.length > 0) {
+                    clearInterval(intervalId);
+                    resolve(SENDER_ACCOUNT_INDEX.shift());
+                }
+            }, 100);
+        });
     };
     const senderIndex = await waitSender();
     try {
