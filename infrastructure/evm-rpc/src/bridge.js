@@ -523,7 +523,7 @@ async function checkAddressNonce(info) {
         if (Date.now() - startTs > 30 * 1000) {
             throw 'Timeout to discard from memory pool. Please send tx follow address nonce order';
         }
-        await sleep(0.5);
+        await sleep(0.2);
     }
 }
 
@@ -541,11 +541,17 @@ export async function sendRawTx(tx) {
         type_arguments: [],
         arguments: [toBuffer(tx)],
     };
-
+    const key = info.from + ':' + info.nonce;
+    const checkIsSend = () => {
+        if (PENDING_TX_SET.has(key)) {
+            throw 'Nonce too low';
+        }
+    };
+    checkIsSend();
     const waitSender = async () => {
         while (1) {
             if (SENDER_ACCOUNT_INDEX.length === 0) {
-                await sleep(0.2);
+                await sleep(0.1);
             } else {
                 return SENDER_ACCOUNT_INDEX.shift();
             }
@@ -555,15 +561,13 @@ export async function sendRawTx(tx) {
     try {
         await checkSendTx(info);
     } catch (e) {
+        // need to put back the sender index
         SENDER_ACCOUNT_INDEX.push(senderIndex);
         throw e;
     }
     const sender = GET_SENDER_ACCOUNT(senderIndex);
-    const key = info.from + ':' + info.nonce;
     try {
-        if (PENDING_TX_SET.has(key)) {
-            throw 'Nonce too low';
-        }
+        checkIsSend();
         PENDING_TX_SET.add(key);
         await sendTx(sender, payload, key);
     } catch (error) {
