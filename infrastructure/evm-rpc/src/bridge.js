@@ -502,7 +502,10 @@ async function checkAddressNonce(info) {
     return new Promise((resolve, reject) => {
         const startTs = Date.now();
         let intervalId;
+        let isRunning = false
         const checkNonce = async () => {
+            if(isRunning) return
+            isRunning = true
             let chainNonce = -1;
             try {
                 const accInfo = await Promise.race([
@@ -531,6 +534,7 @@ async function checkAddressNonce(info) {
                     ),
                 );
             }
+            isRunning = false
         };
         intervalId = setInterval(checkNonce, 200);
     });
