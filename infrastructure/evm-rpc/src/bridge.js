@@ -970,24 +970,28 @@ async function sendTx(sender, tx, sender_info, senderIndex) {
     const checkTxResult = async () => {
         let isRunning = false;
         let checkStart = Date.now();
-        let intervalId = setInterval(async () => {
-            if (isRunning) {
-                return;
-            }
-            isRunning = true;
-            try {
-                const accountNow = await client.getAccount(sender.address());
-                // if the sequence_number is changed, this account can reuse to send tx again
-                if (account.sequence_number !== accountNow.sequence_number) {
-                    clearInterval(intervalId);
+        await new Promise(resolve => {
+            let intervalId = setInterval(async () => {
+                if (isRunning) {
+                    return;
                 }
-                if (Date.now() - checkStart > (expire_time_sec + 5) * 1000) {
-                    // maybe drop the tx for the tx expired
-                    clearInterval(intervalId);
-                }
-            } catch (error) {}
-            isRunning = false;
-        }, 200);
+                isRunning = true;
+                try {
+                    const accountNow = await client.getAccount(sender.address());
+                    // if the sequence_number is changed, this account can reuse to send tx again
+                    if (account.sequence_number !== accountNow.sequence_number) {
+                        clearInterval(intervalId);
+                        resolve();
+                    }
+                    if (Date.now() - checkStart > (expire_time_sec + 5) * 1000) {
+                        // maybe drop the tx for the tx expired
+                        clearInterval(intervalId);
+                        resolve();
+                    }
+                } catch (error) {}
+                isRunning = false;
+            }, 200);
+        });
         SENDER_ACCOUNT_INDEX.push(senderIndex);
         PENDING_TX_SET.delete(sender_info);
         const result = await client.getTransactionByHash(transactionRes.hash);
