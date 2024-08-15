@@ -37,7 +37,7 @@ fn native_print(
     let time = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
-        .as_millis();
+        .as_micros();
 
     if cfg!(feature = "testing") {
         let val = safely_pop_arg!(args, Struct);
