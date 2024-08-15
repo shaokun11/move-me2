@@ -92,6 +92,9 @@ export async function sendRawTx(tx) {
             if (BigNumber(price).gt(mPrice)) {
                 // delete the old tx
                 fromTxArr.splice(existIndex, 1);
+            } else if (BigNumber(price).eq(mPrice)) {
+                // is same price , do nothing
+                return info.hash;
             } else {
                 throw 'replacement transaction underpriced';
             }
@@ -923,7 +926,7 @@ async function sendTx(sender, tx, sender_info, senderIndex) {
         type_arguments: [],
         arguments: [toBuffer(tx)],
     };
-    const expire_time_sec = 60;
+    const expire_time_sec = 120;
     const account = await client.getAccount(sender.address());
     const txnRequest = await client.generateTransaction(sender.address(), payload, {
         max_gas_amount: 2 * 1e6, // Now it is the max value
