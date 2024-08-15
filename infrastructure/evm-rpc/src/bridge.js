@@ -937,9 +937,10 @@ async function sendTx(sender, tx, sender_info, senderIndex) {
     const checkTxResult = async () => {
         while (1) {
             try {
-                const account = await client.getAccount(sender.address());
+                const accountNow = await client.getAccount(sender.address());
+                // console.log('account', account.sequence_number, accountNow.sequence_number);
                 // if the sequence_number is changed, this account can reuse to send tx again
-                if (account.sequence_number !== sender_info.sequence_number) {
+                if (account.sequence_number !== accountNow.sequence_number) {
                     break;
                 }
                 await sleep(0.02);
