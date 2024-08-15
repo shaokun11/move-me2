@@ -1,7 +1,7 @@
 import { Config } from "./config";
 import { Worker } from "./worker";
 const configPath = ".config.yaml";
-import { EvmHash, EvmLogs } from "./models/evm";
+import { EvmErrorHash, EvmHash, EvmLogs } from "./models/evm";
 import { EvmProcessor } from "./evm-processor";
 
 async function main() {
@@ -10,7 +10,7 @@ async function main() {
   const worker = new Worker({
     config,
     processor,
-    models: [EvmLogs, EvmHash],
+    models: [EvmLogs, EvmHash,EvmErrorHash],
   });
   await worker.run();
 }
