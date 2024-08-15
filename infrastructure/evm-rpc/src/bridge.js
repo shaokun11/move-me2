@@ -21,7 +21,6 @@ import { addToFaucetTask } from './task_faucet.js';
 import { inspect } from 'node:util';
 import { readFile } from 'node:fs/promises';
 import LevelDBWrapper from './leveldb_wrapper.js';
-import { start } from 'node:repl';
 
 const db = new LevelDBWrapper('db/tx');
 
@@ -35,10 +34,89 @@ const WRONG_BLOCK_TX = 1785834;
 
 const SENDER_ACCOUNT_INDEX = Array.from({ length: SENDER_ACCOUNT_COUNT }, (_, i) => i);
 const PENDING_TX_SET = new Set();
-const TX_MEMORY_POOL = new WeakMap();
+/**
+ *
+ *  {
+ *     0x1 :[
+ *          {
+ *             nonce: 0,
+ *             from:"0x1"
+ *             key:"0x1:0"
+ *             tx:"0x123",
+ *             ts:1234
+ *          }
+ *   ]
+ * }
+ *
+ */
+const TX_MEMORY_POOL = {};
+const TX_EXPIRE_TIME = 1000 * 60 * 5; // 5 Minutes
+const TX_NONCE_FIRST_CHECK_TIME = {};
 
 if (SENDER_ACCOUNT_INDEX.length === 0) {
     throw "please provide the sender account, now it's empty";
+}
+
+function removeTxFromMemoryPool(from, nonce) {
+    const fromTx = TX_MEMORY_POOL[from];
+    if (fromTx) {
+        const existIndex = fromTx.findIndex(it => parseInt(it.nonce) === parseInt(nonce));
+        if (existIndex !== -1) {
+            fromTx.splice(existIndex, 1);
+        }
+    }
+    // release the empty account info
+    if (TX_MEMORY_POOL[from]?.length === 0) {
+        delete TX_MEMORY_POOL[from];
+    }
+}
+
+export async function sendRawTx(tx) {
+    const info = parseRawTx(tx);
+    // also there could use tx hash as the key
+    let key = info.from + ':' + info.nonce;
+    const checkIsSend = () => {
+        if (PENDING_TX_SET.has(key)) {
+            throw 'Tx is in tx memory pool';
+        }
+    };
+    checkIsSend();
+    await checkSendTx(info);
+    checkIsSend();
+    let fromTx = TX_MEMORY_POOL[info.from];
+    const existIndex = fromTx.findIndex(it => parseInt(it.nonce) === parseInt(info.nonce));
+    if (existIndex !== -1) {
+        let mTx = TX_MEMORY_POOL.get(key);
+        const mPrice = getGasPriceFromTx(mTx);
+        const price = getGasPriceFromTx(info);
+        if (BigNumber(price).gt(mPrice)) {
+            // delete the old tx
+            fromTx.splice(existIndex, 1);
+        } else {
+            throw 'replacement transaction underpriced';
+        }
+    }
+    if (!fromTx) {
+        TX_MEMORY_POOL[info.from] = [
+            {
+                nonce: parseInt(info.nonce),
+                tx,
+                ts: Date.now(),
+                key,
+            },
+        ];
+    } else {
+        fromTx.push({
+            nonce: parseInt(info.nonce),
+            tx,
+            from: info.from,
+            ts: Date.now(),
+            key,
+        });
+        // sort
+        fromTx.sort((a, b) => a.nonce - b.nonce);
+    }
+    return info.hash;
 }
 
 async function sendTxTask() {
@@ -48,29 +126,64 @@ async function sendTxTask() {
             return;
         }
         isSending = true;
-        let size = Math.min(TX_MEMORY_POOL.size, SENDER_ACCOUNT_INDEX.length);
+        const allTx = [];
+        Object.entries.forEach(txArr => {
+            allTx.push(...txArr);
+        });
+        allTx.sort((a, b) => {
+            // Sort by timestamp first (ascending)
+            if (a.ts !== b.ts) {
+                return a.ts - b.ts;
+            } else {
+                // If timestamps are equal, sort by nonce (ascending)
+                return a.nonce - b.nonce;
+            }
+        });
+        let size = Math.min(allTx.length, SENDER_ACCOUNT_INDEX.length);
         if (size > 0) {
             for (let i = 0; i < size; i++) {
-                const [[key, tx]] = TX_MEMORY_POOL;
+                const txInfo = allTx.shift();
+                const { key, tx, from, nonce } = txInfo;
                 if (PENDING_TX_SET.has(key)) {
-                    TX_MEMORY_POOL.delete(key);
+                    // it has send to chain but not finish
+                    removeTxFromMemoryPool(from, nonce);
                     continue;
                 }
-                TX_MEMORY_POOL.delete(key);
+                // Maybe the pool tx nonce is greater than the chain nonce
+                const sendTxChainInfo = await getAccountInfo(from);
+                if (parseInt(sendTxChainInfo.nonce) !== parseInt(nonce)) {
+                    let checkTime = TX_NONCE_FIRST_CHECK_TIME[key];
+                    if (!checkTime) {
+                        // record the first check time
+                        TX_NONCE_FIRST_CHECK_TIME[key] = Date.now();
+                    } else {
+                        // timeout
+                        if (Date.now() - checkTime > TX_EXPIRE_TIME) {
+                            //drop this tx
+                            removeTxFromMemoryPool(from, nonce);
+                        }
+                    }
+                    continue;
+                }
+                removeTxFromMemoryPool(from, nonce);
                 PENDING_TX_SET.add(key);
                 const senderIndex = SENDER_ACCOUNT_INDEX.shift();
                 const sender = GET_SENDER_ACCOUNT(senderIndex);
                 try {
-                    // maybe no wait 
+                    // maybe no wait
                     await sendTx(sender, tx, key, senderIndex);
                 } catch (error) {
                     // reset this tx info to the pool
                     PENDING_TX_SET.delete(key);
-                    TX_MEMORY_POOL.set(key, tx);
+                    const fromAcc = TX_MEMORY_POOL[from];
+                    if (fromAcc) {
+                        // put it back to the pool
+                        fromAcc.push(txInfo);
+                    }
+                    // put the sender back to the pool
                     SENDER_ACCOUNT_INDEX.push(senderIndex);
                     // maybe tx can't be send to the chain
                     console.warn('evm:%s,sender:%s,error %s ', info.hash, key, error.message ?? error);
-                    throw error;
                 }
             }
         }
@@ -549,32 +662,6 @@ async function checkSendTx(tx) {
     if (chainNonce > parseInt(info.nonce)) {
         throw new Error('nonce too low');
     }
-}
-
-export async function sendRawTx(tx) {
-    const info = parseRawTx(tx);
-    let key = info.from + ':' + info.nonce;
-    const checkIsSend = () => {
-        if (PENDING_TX_SET.has(key)) {
-            throw 'Tx is in tx memory pool';
-        }
-    };
-    checkIsSend();
-    await checkSendTx(info);
-    // not send to the network, allow to send the same tx
-    // also there could use tx hash as the key
-    if (!TX_MEMORY_POOL.has(key)) {
-        let mTx = TX_MEMORY_POOL.get(key);
-        const mPrice = getGasPriceFromTx(mTx);
-        const price = getGasPriceFromTx(info);
-        if (BigNumber(price).gt(mPrice)) {
-            TX_MEMORY_POOL.set(key, info);
-        } else {
-            throw 'replacement transaction underpriced';
-        }
-    }
-    TX_MEMORY_POOL.set(key, info);
-    return info.hash;
 }
 
 export async function callContract(from, contract, calldata, value, block) {
