@@ -23,17 +23,16 @@ const evm_sender = {
         '0x2ac5ccf29419dfc7caf97544fa05a8c3954aef234077f97a194a800f03ec9815',
         '0x1938ff1ea78f4a45b319accf86ce9dd8bdf8200c6220804497f97b26c172b4f8',
         '0xd881ba68225d34293c174a48c3e5bd6a733410889bdde9ee3a5dc8d6ef915d10',
-        /** for base node evm-rpc 2 sender */
-        '0x7bcd5c6855a70b2f6ab6ff612ccdaca0e6b8aec5b138357294810761ad689210',
-        '0x1db0beaebdd4dc3164a803d2e28520de12e72c18a441e5415c5bc8c9d927fbf6',
-        '0x9d650538b4894dedd26d2e1e94ad4a047e25808b9636bc73dae696d658f7d205',
-        '0xa69688eb1b781d922aff4f657949ee18184ad0faf72ec0ed5fb1bf82dbc97421',
-        '0x0cdb6e109199b4456103a790eadad45873e437f7c6b2ee4d46021ffbb87b8ddd',
-        '0x209edd22a3645bd79ffe6281bcd10beeb09d4890c8d3a437fe60303fdfd7ea97',
-        '0xc3ac4e8b7c3068e561dca9b78a0ffb3d1059798911726b729a3e819b31123a41',
-        '0x746c7ee3550792329756be6e4d8d174bcf440ff2342379f5fc7e016a81af7e53',
-        '0x5138cea0bb1e190bee5258e211d66e7a7b5034a10d8174a16c0778d4306f70b2',
-        '0xf0d0e7be414c35a822bf8ca9534f07984cbde111161ab80e57bdea309235c45a',
+        '0xda3e05ec3191418a3400108cf5df18de88fea4df81b2778c08bc88e097b5496a',
+        '0x5f2917124492550112afd2e2fba9eaae403419d33102ebdccf5a9ed7ca14838a',
+        '0x32d77fb2f14342e17c77f5044b6ff00bf02a4974b951c7afa364f33c59fe8f11',
+        '0xa363fb89d4338d4e0cd0c111b72b72b91162cfb03bd6be813e7fa172402a94e7',
+        '0xe539548d86189b3b54c0f2e0b878be9a9f64a96ffefb32acbd6d786d1367dfb2',
+        '0xe5b94f4815aa17b3ab5a779e39d53d8c0b4bcdfb30802d5efbb69f90fb857404',
+        '0xe814c1dfac240a7cfba2aeaabb4611f7227a7fde069edf5b49828166a3134899',
+        '0x27a8eccee9a4ee778327005ff07d260c867bc58ee46e0139bd252c263becb498',
+        '0x78de982fc794ba3b3044db7ce5fc954293b9cf5e15568cbea4ad6ae8787f31ca',
+        '0xf60ccbead4262d49928ebf963aba69ccf15ea83f520ab4b84639f4c1054f2657',
         /**********        for sync node-1 sender                          */
         '0xdaee19bf07c589088947f5aaeeb2ac83755c60e8abcee84696be50a6c90aa4b5',
         '0x4ff4cfeacf38acec73e9a31e2cf17f607ca867606468cd54f01eb5fe04c111fb',
@@ -45,7 +44,6 @@ const evm_sender = {
 const faucet_sender = {
     sender: [
         '0xa4ca13309eb1b74344928a3ba008ce2cba9dacaac2354a83cd2021f4a78ce455', // base node 1 evm
-        '0x3d753c54dbe2cf4a975918df330b4a35c5bf732b442edc58a6a3ab627935bbfe', // base node 2 evm
         '0x43f1fa2559bb529ea189b4d582532306be79a5fe7b33a4f1fffc29b33aa18e42', // move
     ],
     threshold: 100 * 1e8,
