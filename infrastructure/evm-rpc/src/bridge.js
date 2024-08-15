@@ -112,7 +112,6 @@ export async function sendRawTx(tx) {
     } else {
         fromTxArr.push(item);
     }
-    await sleep(0.2);
     return info.hash;
 }
 
