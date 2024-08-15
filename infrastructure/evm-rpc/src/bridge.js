@@ -949,7 +949,7 @@ async function sendTx(sender, tx, sender_info, senderIndex) {
                     // maybe drop the tx for the tx expired
                     break;
                 }
-                await sleep(0.1);
+                await sleep(0.2);
             } catch (error) {}
         }
         SENDER_ACCOUNT_INDEX.push(senderIndex);
@@ -966,7 +966,9 @@ async function sendTx(sender, tx, sender_info, senderIndex) {
         );
     };
     // Need to check the tx result for log and return sender account to the pool
-    checkTxResult();
+    checkTxResult().catch(err => {
+        console.error('checkTxResult error', err);
+    });
     return transactionRes.hash;
 }
 /**
