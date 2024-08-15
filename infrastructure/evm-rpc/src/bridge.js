@@ -945,7 +945,7 @@ async function sendTx(sender, tx, sender_info, senderIndex) {
                 if (account.sequence_number !== accountNow.sequence_number) {
                     break;
                 }
-                await sleep(0.02);
+                await sleep(0.1);
             } catch (error) {}
         }
         SENDER_ACCOUNT_INDEX.push(senderIndex);

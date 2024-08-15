@@ -76,8 +76,9 @@ async function run(task) {
                     amount: task.amount,
                 }),
             })
+                .then(res => res.json())
                 .then(res => {
-                    console.log(`Funding ${s} with ${task.amount / 1e8}`);
+                    console.log(`Funding ${s} with ${task.amount / 1e8} ${res.hash}`);
                 })
                 .catch(err => {
                     console.log(`Error when funding ${s}: ${err.message}`);
