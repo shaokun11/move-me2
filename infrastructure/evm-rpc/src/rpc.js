@@ -24,6 +24,7 @@ import {
     getBlockReceipts,
     getEvmSummary,
     getMaxPriorityFeePerGas,
+    getErrorByHash
 } from './bridge.js';
 import JsonRpc from 'json-rpc-2.0';
 const { JSONRPCErrorException } = JsonRpc;
@@ -75,6 +76,10 @@ export const rpc = {
      */
     debug_getMoveHash: async function (args) {
         return get_move_hash(args[0]);
+    },
+
+    debug_getErrorByHash: async function (args) {
+        return getErrorByHash(args[0]);
     },
 
     /**

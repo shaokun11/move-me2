@@ -67,6 +67,21 @@ curl --location 'http://127.0.0.1:8998' \
 }'
 ```
 
+- `debug_getErrorByHash`:Return the evm tx running fail detail info
+
+```bash
+curl --location 'http://127.0.0.1:8998' \
+--header 'Content-Type: application/json' \
+--data '{
+    "id": "1",
+    "jsonrpc": "2.0",
+    "method": "debug_getErrorByHash",
+    "params": [
+        "0x3dc7fc5be27c5a5f92d35590ebe2a671ca0e98c22aeb09e3036ae94b6fedf81a"
+    ]
+}'
+```
+
 - `eth_batch_faucet`: use google recaptcha to protect to faucet token
 
 ```bash

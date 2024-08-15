@@ -126,6 +126,18 @@ export async function getEvmLogs(obj) {
     });
 }
 
+export async function getErrorTxMoveHash(evm_hash) {
+    const query = gql`
+        {
+            evm_error_hash(limit: 1, where: {evm_hash: {_eq: "${evm_hash}"}}) {
+                move_hash
+            }
+        }
+    `;
+    const res = await indexer_client.query(query).toPromise();
+    return res.data.evm_error_hash[0];
+}
+
 export async function getEvmTransaction(startVersion, count = 20) {
     const query = gql`
         {

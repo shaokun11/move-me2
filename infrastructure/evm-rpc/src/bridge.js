@@ -11,7 +11,7 @@ import {
     SUMMARY_URL,
 } from './const.js';
 import { parseRawTx, sleep, toHex, toNumber, toHexStrict } from './helper.js';
-import { getMoveHash, getBlockHeightByHash, getEvmLogs } from './db.js';
+import { getMoveHash, getBlockHeightByHash, getEvmLogs, getErrorTxMoveHash } from './db.js';
 import { ZeroAddress, ethers, isHexString, toBeHex, keccak256, isAddress } from 'ethers';
 import BigNumber from 'bignumber.js';
 import { toBuffer } from './helper.js';
@@ -56,6 +56,26 @@ const TX_NONCE_FIRST_CHECK_TIME = {};
 
 if (SENDER_ACCOUNT_INDEX.length === 0) {
     throw "please provide the sender account, now it's empty";
+}
+
+export async function getErrorByHash(hash) {
+    if (!hash) {
+        throw 'hash is empty';
+    }
+    if (hash.length !== 66) {
+        throw 'hash format error';
+    }
+    const ret = {
+        moveHash: null,
+        error: 'Maybe the transaction is dropped by vm, you can try send it again',
+    };
+    const mHash = await getErrorTxMoveHash(hash);
+    if (mHash) {
+        ret.moveHash = mHash.move_hash;
+        const info = await client.getTransactionByHash(mHash.move_hash);
+        ret.error = info.vm_status;
+    }
+    return ret;
 }
 
 function removeTxFromMemoryPool(from, nonce) {
