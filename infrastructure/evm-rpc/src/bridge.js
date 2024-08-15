@@ -21,7 +21,6 @@ import { addToFaucetTask } from './task_faucet.js';
 import { inspect } from 'node:util';
 import { readFile } from 'node:fs/promises';
 import LevelDBWrapper from './leveldb_wrapper.js';
-import { clear } from 'node:console';
 
 const db = new LevelDBWrapper('db/tx');
 
@@ -160,8 +159,7 @@ async function sendTxTask() {
                 return a.nonce - b.nonce;
             }
         });
-
-        if (allTx.length.length > 0 && SENDER_ACCOUNT_INDEX.length > 0) {
+        if (allTx.length > 0 && SENDER_ACCOUNT_INDEX.length > 0) {
             let size = Math.max(allTx.length, SENDER_ACCOUNT_INDEX.length);
             for (let i = 0; i < size; i++) {
                 if (allTx.length === 0) break;
