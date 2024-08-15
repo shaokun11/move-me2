@@ -1,6 +1,6 @@
 module aptos_framework::evm_gas {
     use std::vector;
-    use aptos_framework::evm_util::{u256_to_data, u256_bytes_length, get_word_count, get_valid_ethereum_address};
+    use aptos_framework::evm_util::{u256_to_data, u256_bytes_length, get_word_count, get_valid_ethereum_address, print_opcode};
     use aptos_framework::evm_global_state::{get_memory_cost, set_memory_cost, add_gas_refund, sub_gas_refund, get_memory_word_size, set_memory_word_size, RunState, get_gas_left, get_ret_size};
     use std::vector::for_each;
     use aptos_framework::evm_trie::{Trie, get_state, exist_account, is_cold_address, get_cache, get_balance};
@@ -447,7 +447,7 @@ module aptos_framework::evm_gas {
                              gas_limit: u256,
                              error_code: &mut u64
                             ): u256 {
-        // print_opcode(opcode);
+        print_opcode(opcode);
         let gas = if (opcode == 0x00) {
             // STOP
             0
