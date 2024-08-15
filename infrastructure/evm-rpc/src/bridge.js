@@ -77,45 +77,39 @@ export async function sendRawTx(tx) {
     let key = info.from + ':' + info.nonce;
     const checkIsSend = () => {
         if (PENDING_TX_SET.has(key)) {
-            throw 'Tx is in tx memory pool';
+            throw 'transaction is in tx memory pool';
         }
     };
     checkIsSend();
     await checkSendTx(info);
     checkIsSend();
-    let fromTx = TX_MEMORY_POOL[info.from];
-    const existIndex = fromTx.findIndex(it => parseInt(it.nonce) === parseInt(info.nonce));
-    if (existIndex !== -1) {
-        let mTx = TX_MEMORY_POOL.get(key);
-        const mPrice = getGasPriceFromTx(mTx);
-        const price = getGasPriceFromTx(info);
-        if (BigNumber(price).gt(mPrice)) {
-            // delete the old tx
-            fromTx.splice(existIndex, 1);
-        } else {
-            throw 'replacement transaction underpriced';
+    let fromTxArr = TX_MEMORY_POOL[info.from];
+    if (fromTxArr) {
+        const existIndex = fromTxArr.findIndex(it => parseInt(it.nonce) === parseInt(info.nonce));
+        if (existIndex !== -1) {
+            const mPrice = getGasPriceFromTx(parseRawTx(fromTxArr[existIndex].tx));
+            const price = getGasPriceFromTx(info);
+            if (BigNumber(price).gt(mPrice)) {
+                // delete the old tx
+                fromTxArr.splice(existIndex, 1);
+            } else {
+                throw 'replacement transaction underpriced';
+            }
         }
     }
-    if (!fromTx) {
-        TX_MEMORY_POOL[info.from] = [
-            {
-                nonce: parseInt(info.nonce),
-                tx,
-                ts: Date.now(),
-                key,
-            },
-        ];
+    const item = {
+        nonce: info.nonce,
+        tx,
+        from: info.from,
+        ts: Date.now(),
+        key,
+    };
+    if (!fromTxArr) {
+        TX_MEMORY_POOL[info.from] = [item];
     } else {
-        fromTx.push({
-            nonce: parseInt(info.nonce),
-            tx,
-            from: info.from,
-            ts: Date.now(),
-            key,
-        });
-        // sort
-        fromTx.sort((a, b) => a.nonce - b.nonce);
+        fromTxArr.push(item);
     }
+    await sleep(0.2);
     return info.hash;
 }
 
@@ -127,7 +121,7 @@ async function sendTxTask() {
         }
         isSending = true;
         const allTx = [];
-        Object.entries.forEach(txArr => {
+        Object.values(TX_MEMORY_POOL).forEach(txArr => {
             allTx.push(...txArr);
         });
         allTx.sort((a, b) => {
@@ -182,6 +176,7 @@ async function sendTxTask() {
                     }
                     // put the sender back to the pool
                     SENDER_ACCOUNT_INDEX.push(senderIndex);
+                    const info = parseRawTx(tx);
                     // maybe tx can't be send to the chain
                     console.warn('evm:%s,sender:%s,error %s ', info.hash, key, error.message ?? error);
                 }
@@ -607,10 +602,11 @@ async function checkSendTx(tx) {
     if (BigNumber(tx.limit).gt(30_000_000)) {
         throw 'gasLimit must be less than or equal to blockGasLimit';
     }
-    // const MAX_INIT_CODE_SIZE = 49152;
-    // if ((tx.data.length.slice(2)  > MAX_INIT_CODE_SIZE * 2) && !tx.to) {
-    //     throw "contract creation code can't be more than 49152 bytes";
-    // }
+    // hex length is 2 * byte length
+    const MAX_INIT_CODE_SIZE = 49152 * 2;
+    if (tx.data.length.slice(2) > MAX_INIT_CODE_SIZE && !tx.to) {
+        throw "contract creation code can't be more than 49152 bytes";
+    }
     let data_cost = 21000; // base cost
     if (tx.data !== '0x') {
         let data = tx.data.startsWith('0x') ? tx.data.slice(2) : tx.data;
@@ -659,7 +655,7 @@ async function checkSendTx(tx) {
         throw 'gasLimit must be greater than or equal to base cost plus tx data cost';
     }
     const chainNonce = parseInt(account.nonce);
-    if (chainNonce > parseInt(info.nonce)) {
+    if (chainNonce > parseInt(tx.nonce)) {
         throw new Error('nonce too low');
     }
 }
@@ -939,25 +935,28 @@ async function sendTx(sender, tx, sender_info, senderIndex) {
     const startTs = Date.now();
     const transactionRes = await client.submitTransaction(signedTxn);
     const checkTxResult = async () => {
-        try {
-            const txResult = await client.waitForTransactionWithResult(transactionRes.hash, {
-                // check more than the execute tx time
-                timeoutSecs: expire_time_sec + 5,
-            });
-            console.log(
-                'ms:%s,move:%s,sender:%s,%s',
-                Date.now() - startTs,
-                transactionRes.hash,
-                sender_info,
-                txResult.success,
-            );
-        } catch (error) {
-            // may tx dropped
-            console.warn('sender:%s', sender_info, error.message ?? error);
-        } finally {
-            SENDER_ACCOUNT_INDEX.push(senderIndex);
-            PENDING_TX_SET.delete(sender_info);
+        while (1) {
+            try {
+                const account = await client.getAccount(sender.address());
+                // if the sequence_number is changed, this account can reuse to send tx again
+                if (account.sequence_number !== sender_info.sequence_number) {
+                    break;
+                }
+                await sleep(0.02);
+            } catch (error) {}
         }
+        SENDER_ACCOUNT_INDEX.push(senderIndex);
+        PENDING_TX_SET.delete(sender_info);
+        const result = await client.getTransactionByHash(transactionRes.hash);
+        // maybe pending
+        console.log(
+            'ms:%s,move:%s,sender:%s,%s',
+            Date.now() - startTs,
+            transactionRes.hash,
+            sender_info,
+            result.success || 'pending',
+            result.vm_status || 'none',
+        );
     };
     // Need to check the tx result for log and return sender account to the pool
     checkTxResult();
