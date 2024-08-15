@@ -604,7 +604,7 @@ async function checkSendTx(tx) {
     }
     // hex length is 2 * byte length
     const MAX_INIT_CODE_SIZE = 49152 * 2;
-    if (tx.data.length.slice(2) > MAX_INIT_CODE_SIZE && !tx.to) {
+    if (tx.data.slice(2).length > MAX_INIT_CODE_SIZE && !tx.to) {
         throw "contract creation code can't be more than 49152 bytes";
     }
     let data_cost = 21000; // base cost
