@@ -24,7 +24,7 @@ import {
     getBlockReceipts,
     getEvmSummary,
     getMaxPriorityFeePerGas,
-    getErrorByHash
+    getErrorByHash,
 } from './bridge.js';
 import JsonRpc from 'json-rpc-2.0';
 const { JSONRPCErrorException } = JsonRpc;

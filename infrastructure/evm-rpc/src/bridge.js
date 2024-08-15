@@ -21,6 +21,7 @@ import { addToFaucetTask } from './task_faucet.js';
 import { inspect } from 'node:util';
 import { readFile } from 'node:fs/promises';
 import LevelDBWrapper from './leveldb_wrapper.js';
+import { clear } from 'node:console';
 
 const db = new LevelDBWrapper('db/tx');
 
@@ -51,7 +52,7 @@ const PENDING_TX_SET = new Set();
  */
 const TX_MEMORY_POOL = {};
 const TX_EXPIRE_TIME = 1000 * 60 * 2; // 2 Minutes
-const ONE_ADDRESS_MAX_TX_COUNT = 3;
+const ONE_ADDRESS_MAX_TX_COUNT = 10;
 const TX_NONCE_FIRST_CHECK_TIME = {};
 
 if (SENDER_ACCOUNT_INDEX.length === 0) {
@@ -87,9 +88,9 @@ function removeTxFromMemoryPool(from, nonce) {
         }
     }
     // release the empty account info
-    if (TX_MEMORY_POOL[from]?.length === 0) {
-        delete TX_MEMORY_POOL[from];
-    }
+    // if (TX_MEMORY_POOL[from]?.length === 0) {
+    //     delete TX_MEMORY_POOL[from];
+    // }
 }
 
 export async function sendRawTx(tx) {
@@ -131,8 +132,8 @@ export async function sendRawTx(tx) {
     if (!fromTxArr) {
         TX_MEMORY_POOL[info.from] = [item];
     } else {
-        if (fromTxArr.length >= ONE_ADDRESS_MAX_TX_COUNT) {
-            throw 'too many tx in the memory pool';
+        if (fromTxArr.length > ONE_ADDRESS_MAX_TX_COUNT) {
+            throw 'account has too many tx in the memory pool';
         }
         fromTxArr.push(item);
     }
@@ -159,9 +160,11 @@ async function sendTxTask() {
                 return a.nonce - b.nonce;
             }
         });
-        let size = Math.min(allTx.length, SENDER_ACCOUNT_INDEX.length);
-        if (size > 0) {
+
+        if (allTx.length.length > 0 && SENDER_ACCOUNT_INDEX.length > 0) {
+            let size = Math.max(allTx.length, SENDER_ACCOUNT_INDEX.length);
             for (let i = 0; i < size; i++) {
+                if (allTx.length === 0) break;
                 const txInfo = allTx.shift();
                 const { key, tx, from, nonce } = txInfo;
                 if (PENDING_TX_SET.has(key)) {
@@ -170,8 +173,12 @@ async function sendTxTask() {
                     continue;
                 }
                 // Maybe the pool tx nonce is greater than the chain nonce
-                const sendTxChainInfo = await getAccountInfo(from);
-                if (parseInt(sendTxChainInfo.nonce) !== parseInt(nonce)) {
+                const chainAccountInfo = await getAccountInfo(from);
+                if (parseInt(chainAccountInfo.nonce) > parseInt(nonce)) {
+                    removeTxFromMemoryPool(from, nonce);
+                    continue;
+                }
+                if (parseInt(chainAccountInfo.nonce) !== parseInt(nonce)) {
                     let checkTime = TX_NONCE_FIRST_CHECK_TIME[key];
                     if (!checkTime) {
                         // record the first check time
@@ -181,16 +188,18 @@ async function sendTxTask() {
                         if (Date.now() - checkTime > TX_EXPIRE_TIME) {
                             //drop this tx
                             removeTxFromMemoryPool(from, nonce);
+                            delete TX_NONCE_FIRST_CHECK_TIME[key];
                         }
                     }
                     continue;
                 }
+                if (SENDER_ACCOUNT_INDEX.length === 0) break;
+                const senderIndex = SENDER_ACCOUNT_INDEX.shift();
                 removeTxFromMemoryPool(from, nonce);
                 PENDING_TX_SET.add(key);
-                const senderIndex = SENDER_ACCOUNT_INDEX.shift();
+                delete TX_NONCE_FIRST_CHECK_TIME[key];
                 const sender = GET_SENDER_ACCOUNT(senderIndex);
                 try {
-                    // maybe no wait
                     await sendTx(sender, tx, key, senderIndex);
                 } catch (error) {
                     // reset this tx info to the pool
@@ -961,21 +970,26 @@ async function sendTx(sender, tx, sender_info, senderIndex) {
     const startTs = Date.now();
     const transactionRes = await client.submitTransaction(signedTxn);
     const checkTxResult = async () => {
+        let isRunning = false;
         let checkStart = Date.now();
-        while (1) {
+        let intervalId = setInterval(async () => {
+            if (isRunning) {
+                return;
+            }
+            isRunning = true;
             try {
                 const accountNow = await client.getAccount(sender.address());
                 // if the sequence_number is changed, this account can reuse to send tx again
                 if (account.sequence_number !== accountNow.sequence_number) {
-                    break;
+                    clearInterval(intervalId);
                 }
                 if (Date.now() - checkStart > (expire_time_sec + 5) * 1000) {
                     // maybe drop the tx for the tx expired
-                    break;
+                    clearInterval(intervalId);
                 }
-                await sleep(0.2);
             } catch (error) {}
-        }
+            isRunning = false;
+        }, 200);
         SENDER_ACCOUNT_INDEX.push(senderIndex);
         PENDING_TX_SET.delete(sender_info);
         const result = await client.getTransactionByHash(transactionRes.hash);
