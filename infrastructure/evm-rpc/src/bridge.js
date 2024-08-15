@@ -937,12 +937,16 @@ async function sendTx(sender, tx, sender_info, senderIndex) {
     const startTs = Date.now();
     const transactionRes = await client.submitTransaction(signedTxn);
     const checkTxResult = async () => {
+        let checkStart = Date.now();
         while (1) {
             try {
                 const accountNow = await client.getAccount(sender.address());
-                // console.log('account', account.sequence_number, accountNow.sequence_number);
                 // if the sequence_number is changed, this account can reuse to send tx again
                 if (account.sequence_number !== accountNow.sequence_number) {
+                    break;
+                }
+                if (Date.now() - checkStart > (expire_time_sec + 5) * 1000) {
+                    // maybe drop the tx for the tx expired
                     break;
                 }
                 await sleep(0.1);

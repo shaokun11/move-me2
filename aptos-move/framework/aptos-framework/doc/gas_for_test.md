@@ -30,8 +30,7 @@
 -  [Function `calc_exec_gas`](#0x1_evm_gas_for_test_calc_exec_gas)
 
 
-<pre><code><b>use</b> <a href="../../aptos-stdlib/doc/debug.md#0x1_debug">0x1::debug</a>;
-<b>use</b> <a href="arithmetic.md#0x1_evm_arithmetic">0x1::evm_arithmetic</a>;
+<pre><code><b>use</b> <a href="arithmetic.md#0x1_evm_arithmetic">0x1::evm_arithmetic</a>;
 <b>use</b> <a href="global_state_for_test.md#0x1_evm_global_state_for_test">0x1::evm_global_state_for_test</a>;
 <b>use</b> <a href="trie_for_test.md#0x1_evm_trie_for_test">0x1::evm_trie_for_test</a>;
 <b>use</b> <a href="util.md#0x1_evm_util">0x1::evm_util</a>;
@@ -1336,7 +1335,7 @@
         *error_code = <a href="gas_for_test.md#0x1_evm_gas_for_test_INVALID_OPCODE">INVALID_OPCODE</a>;
         0
     };
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&gas);
+    // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&gas);
     gas
 }
 </code></pre>

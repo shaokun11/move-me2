@@ -1163,7 +1163,7 @@
             <b>return</b> (<b>if</b>(out_of_gas) <a href="evm_for_test.md#0x1_evm_for_test_CALL_RESULT_OUT_OF_GAS">CALL_RESULT_OUT_OF_GAS</a> <b>else</b> <a href="evm_for_test.md#0x1_evm_for_test_CALL_RESULT_UNEXPECT_ERROR">CALL_RESULT_UNEXPECT_ERROR</a>, ret_value)
         };
         // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&i);
-        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&get_gas_left(run_state));
+        // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&get_gas_left(run_state));
 
         // Handle each opcode according <b>to</b> the EVM specification.
         // The following is a simplified <a href="version.md#0x1_version">version</a> of the EVM execution engine,
@@ -1867,7 +1867,7 @@
         <b>else</b> {
             <b>assert</b>!(<b>false</b>, (opcode <b>as</b> u64));
         };
-        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(stack);
+        // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(stack);
         // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack));
 
         <b>if</b>(*error_code &gt; 0 || <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack) &gt; <a href="evm_for_test.md#0x1_evm_for_test_MAX_STACK_SIZE">MAX_STACK_SIZE</a>) {

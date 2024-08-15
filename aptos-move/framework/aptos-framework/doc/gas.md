@@ -1102,7 +1102,7 @@
                          gas_limit: u256,
                          error_code: &<b>mut</b> u64
                         ): u256 {
-    // print_opcode(opcode);
+    print_opcode(opcode);
     <b>let</b> gas = <b>if</b> (opcode == 0x00) {
         // STOP
         0
