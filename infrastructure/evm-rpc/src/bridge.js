@@ -21,6 +21,7 @@ import { addToFaucetTask } from './task_faucet.js';
 import { inspect } from 'node:util';
 import { readFile } from 'node:fs/promises';
 import LevelDBWrapper from './leveldb_wrapper.js';
+import { start } from 'node:repl';
 
 const db = new LevelDBWrapper('db/tx');
 
@@ -31,6 +32,53 @@ const ETH_ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
 const BLOCK_BASE_FEE = 5 * 1e9;
 // if the block number is less than this value, we need to ignore the tx where the result is failed
 const WRONG_BLOCK_TX = 1785834;
+
+const SENDER_ACCOUNT_INDEX = Array.from({ length: SENDER_ACCOUNT_COUNT }, (_, i) => i);
+const PENDING_TX_SET = new Set();
+const TX_MEMORY_POOL = new WeakMap();
+
+if (SENDER_ACCOUNT_INDEX.length === 0) {
+    throw "please provide the sender account, now it's empty";
+}
+
+async function sendTxTask() {
+    let isSending = false;
+    setInterval(async () => {
+        if (isSending) {
+            return;
+        }
+        isSending = true;
+        let size = Math.min(TX_MEMORY_POOL.size, SENDER_ACCOUNT_INDEX.length);
+        if (size > 0) {
+            for (let i = 0; i < size; i++) {
+                const [[key, tx]] = TX_MEMORY_POOL;
+                if (PENDING_TX_SET.has(key)) {
+                    TX_MEMORY_POOL.delete(key);
+                    continue;
+                }
+                TX_MEMORY_POOL.delete(key);
+                PENDING_TX_SET.add(key);
+                const senderIndex = SENDER_ACCOUNT_INDEX.shift();
+                const sender = GET_SENDER_ACCOUNT(senderIndex);
+                try {
+                    // maybe no wait 
+                    await sendTx(sender, tx, key, senderIndex);
+                } catch (error) {
+                    // reset this tx info to the pool
+                    PENDING_TX_SET.delete(key);
+                    TX_MEMORY_POOL.set(key, tx);
+                    SENDER_ACCOUNT_INDEX.push(senderIndex);
+                    // maybe tx can't be send to the chain
+                    console.warn('evm:%s,sender:%s,error %s ', info.hash, key, error.message ?? error);
+                    throw error;
+                }
+            }
+        }
+        isSending = false;
+    }, 100);
+}
+sendTxTask();
+
 function isSuccessTx(info) {
     const txResult = info.events.find(it => it.type === '0x1::evm::ExecResultEvent');
     return txResult.data.exception === '200';
@@ -397,16 +445,7 @@ export async function getStorageAt(addr, pos) {
     return res;
 }
 
-// 1. `gasprice` should be greater than or equal to `basefee` (for regular transactions).
-// 2. `max_fee_per_gas` should be greater than or equal to `basefee` (for EIP-1559 transactions).
-// 3. `max_fee_per_gas` should be greater than or equal to `max_priority_fee_per_gas` (for EIP-1559 transactions).
-// 4. `gasLimit` should be less than or equal to `blockGasLimit` (currently 30,000,000, general rule).
-// 5. `gasprice * gaslimit + value` should be greater than or equal to the balance (general rule, `gasprice` calculation as per above).
-// 6. The `sender` cannot be a contract (general rule, check if the `sender` has code).
-// 7. `gasLimit` should be greater than or equal to the base cost (21,000 + data cost + access list cost).
-// 8. `nonce` should be equal to the current nonce + 1 (general rule).
-
-async function checkSendTx(tx) {
+function getGasPriceFromTx(tx) {
     let gasPrice;
     if (tx.type === '0x2') {
         if (BigNumber(tx.maxFeePerGas).lt(BLOCK_BASE_FEE)) {
@@ -429,6 +468,20 @@ async function checkSendTx(tx) {
     if (!gasPrice || BigNumber(gasPrice).lt(BLOCK_BASE_FEE)) {
         throw 'gasPrice must be greater than or equal to baseFee';
     }
+    return gasPrice;
+}
+
+// 1. `gasprice` should be greater than or equal to `basefee` (for regular transactions).
+// 2. `max_fee_per_gas` should be greater than or equal to `basefee` (for EIP-1559 transactions).
+// 3. `max_fee_per_gas` should be greater than or equal to `max_priority_fee_per_gas` (for EIP-1559 transactions).
+// 4. `gasLimit` should be less than or equal to `blockGasLimit` (currently 30,000,000, general rule).
+// 5. `gasprice * gaslimit + value` should be greater than or equal to the balance (general rule, `gasprice` calculation as per above).
+// 6. The `sender` cannot be a contract (general rule, check if the `sender` has code).
+// 7. `gasLimit` should be greater than or equal to the base cost (21,000 + data cost + access list cost).
+// 8. `nonce` should be equal to the current nonce + 1 (general rule).
+
+async function checkSendTx(tx) {
+    const gasPrice = getGasPriceFromTx(tx);
     const account = await getAccountInfo(tx.from);
     if (BigNumber(gasPrice).times(tx.limit).plus(tx.value).gt(account.balance)) {
         throw 'insufficient balance';
@@ -492,108 +545,35 @@ async function checkSendTx(tx) {
     if (BigNumber(tx.limit).lt(data_cost)) {
         throw 'gasLimit must be greater than or equal to base cost plus tx data cost';
     }
-    await checkAddressNonce(tx);
-}
-
-// Forge will send multiple transactions at the same time
-// and the order of nonces is not necessarily in ascending order,
-// so we need to sort them again.
-async function checkAddressNonce(info) {
-    return new Promise((resolve, reject) => {
-        const startTs = Date.now();
-        let intervalId;
-        let isRunning = false
-        const checkNonce = async () => {
-            if(isRunning) return
-            isRunning = true
-            let chainNonce = -1;
-            try {
-                const accInfo = await Promise.race([
-                    getAccountInfo(info.from),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10 * 1000)),
-                ]);
-                chainNonce = parseInt(accInfo.nonce);
-
-                if (chainNonce === parseInt(info.nonce)) {
-                    clearInterval(intervalId);
-                    return resolve(true);
-                }
-            } catch (error) {
-                // request account info timeout ignore
-            }
-            // make sure found the onchain account nonce
-            if (chainNonce !== -1 && chainNonce > parseInt(info.nonce)) {
-                clearInterval(intervalId);
-                return reject(new Error('nonce too low'));
-            }
-            if (Date.now() - startTs > 30 * 1000) {
-                clearInterval(intervalId);
-                return reject(
-                    new Error(
-                        'Timeout to discard from memory pool. Please send tx follow address nonce order',
-                    ),
-                );
-            }
-            isRunning = false
-        };
-        intervalId = setInterval(checkNonce, 200);
-    });
-}
-
-const SENDER_ACCOUNT_INDEX = Array.from({ length: SENDER_ACCOUNT_COUNT }, (_, i) => i);
-const PENDING_TX_SET = new Set();
-
-if (SENDER_ACCOUNT_INDEX.length === 0) {
-    throw "please provide the sender account, now it's empty";
+    const chainNonce = parseInt(account.nonce);
+    if (chainNonce > parseInt(info.nonce)) {
+        throw new Error('nonce too low');
+    }
 }
 
 export async function sendRawTx(tx) {
     const info = parseRawTx(tx);
-    const payload = {
-        function: `0x1::evm::send_tx`,
-        type_arguments: [],
-        arguments: [toBuffer(tx)],
-    };
-    const key = info.from + ':' + info.nonce;
+    let key = info.from + ':' + info.nonce;
     const checkIsSend = () => {
         if (PENDING_TX_SET.has(key)) {
-            throw 'Nonce too low';
+            throw 'Tx is in tx memory pool';
         }
     };
     checkIsSend();
-    const waitSender = async () => {
-        return new Promise(resolve => {
-            const intervalId = setInterval(() => {
-                if (SENDER_ACCOUNT_INDEX.length > 0) {
-                    clearInterval(intervalId);
-                    resolve(SENDER_ACCOUNT_INDEX.shift());
-                }
-            }, 100);
-        });
-    };
-    const senderIndex = await waitSender();
-    try {
-        checkIsSend();
-        await checkSendTx(info);
-        checkIsSend();
-    } catch (e) {
-        // need to put back the sender index
-        SENDER_ACCOUNT_INDEX.push(senderIndex);
-        throw e;
+    await checkSendTx(info);
+    // not send to the network, allow to send the same tx
+    // also there could use tx hash as the key
+    if (!TX_MEMORY_POOL.has(key)) {
+        let mTx = TX_MEMORY_POOL.get(key);
+        const mPrice = getGasPriceFromTx(mTx);
+        const price = getGasPriceFromTx(info);
+        if (BigNumber(price).gt(mPrice)) {
+            TX_MEMORY_POOL.set(key, info);
+        } else {
+            throw 'replacement transaction underpriced';
+        }
     }
-    const sender = GET_SENDER_ACCOUNT(senderIndex);
-    PENDING_TX_SET.add(key);
-    try {
-        await sendTx(sender, payload, key);
-    } catch (error) {
-        console.warn('evm:%s,sender:%s,error %s ', info.hash, key, error.message ?? error);
-        throw error;
-    } finally {
-        SENDER_ACCOUNT_INDEX.push(senderIndex);
-        setTimeout(() => {
-            PENDING_TX_SET.delete(key);
-        }, 30 * 1000);
-    }
+    TX_MEMORY_POOL.set(key, info);
     return info.hash;
 }
 
@@ -854,7 +834,12 @@ async function getAccountInfo(acc, block) {
     return ret;
 }
 
-async function sendTx(sender, payload, sender_info) {
+async function sendTx(sender, tx, sender_info, senderIndex) {
+    const payload = {
+        function: `0x1::evm::send_tx`,
+        type_arguments: [],
+        arguments: [toBuffer(tx)],
+    };
     const expire_time_sec = 60;
     const account = await client.getAccount(sender.address());
     const txnRequest = await client.generateTransaction(sender.address(), payload, {
@@ -866,38 +851,29 @@ async function sendTx(sender, payload, sender_info) {
     const signedTxn = await client.signTransaction(sender, txnRequest);
     const startTs = Date.now();
     const transactionRes = await client.submitTransaction(signedTxn);
-    const txResult = await client.waitForTransactionWithResult(transactionRes.hash, {
-        // check more than the execute tx time
-        timeoutSecs: expire_time_sec + 5,
-    });
-    console.log(
-        'ms:%s,move:%s,sender:%s,%s',
-        Date.now() - startTs,
-        transactionRes.hash,
-        sender_info,
-        txResult.success,
-    );
-    if (!txResult.success) {
-        // From mevm2.0 this should be always success
-        const message = txResult.vm_status;
-        const EVM_ERROR_MSG = [
-            'EXCEPTION_1559_MAX_FEE_LOWER_THAN_BASE_FEE',
-            'EXCEPTION_LEGACY_GAS_PRICE_LOWER_THAN_BASE_FEE',
-            'EXCEPTION_GAS_LIMIT_EXCEED_BLOCK_LIMIT',
-            'EXCEPTION_CREATE_CONTRACT_CODE_SIZE_EXCEED',
-            'EXCEPTION_INSUFFCIENT_BALANCE_TO_SEND_TX',
-            'EXCEPTION_SENDER_NOT_EOA',
-            'EXCEPTION_INVALID_NONCE',
-            'EXCEPTION_OUT_OF_GAS',
-            'EXCEPTION_INSUFFCIENT_BALANCE_TO_WITHDRAW',
-        ];
-        const i = EVM_ERROR_MSG.findIndex(it => message.includes(it));
-        if (i !== -1) {
-            // this tx should't send to chain
-            throw EVM_ERROR_MSG[i].slice(10).toLowerCase().replace(/_/g, ' ');
+    const checkTxResult = async () => {
+        try {
+            const txResult = await client.waitForTransactionWithResult(transactionRes.hash, {
+                // check more than the execute tx time
+                timeoutSecs: expire_time_sec + 5,
+            });
+            console.log(
+                'ms:%s,move:%s,sender:%s,%s',
+                Date.now() - startTs,
+                transactionRes.hash,
+                sender_info,
+                txResult.success,
+            );
+        } catch (error) {
+            // may tx dropped
+            console.warn('sender:%s', sender_info, error.message ?? error);
+        } finally {
+            SENDER_ACCOUNT_INDEX.push(senderIndex);
+            PENDING_TX_SET.delete(sender_info);
         }
-        throw message;
-    }
+    };
+    // Need to check the tx result for log and return sender account to the pool
+    checkTxResult();
     return transactionRes.hash;
 }
 /**
