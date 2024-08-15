@@ -50,7 +50,8 @@ const PENDING_TX_SET = new Set();
  *
  */
 const TX_MEMORY_POOL = {};
-const TX_EXPIRE_TIME = 1000 * 60 * 5; // 5 Minutes
+const TX_EXPIRE_TIME = 1000 * 60 * 2; // 2 Minutes
+const ONE_ADDRESS_MAX_TX_COUNT = 20;
 const TX_NONCE_FIRST_CHECK_TIME = {};
 
 if (SENDER_ACCOUNT_INDEX.length === 0) {
@@ -110,6 +111,9 @@ export async function sendRawTx(tx) {
     if (!fromTxArr) {
         TX_MEMORY_POOL[info.from] = [item];
     } else {
+        if (fromTxArr.length >= ONE_ADDRESS_MAX_TX_COUNT) {
+            throw 'too many tx in the memory pool';
+        }
         fromTxArr.push(item);
     }
     return info.hash;
