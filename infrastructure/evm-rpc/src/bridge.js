@@ -137,7 +137,6 @@ async function sendTxTask() {
         });
         let size = Math.min(allTx.length, SENDER_ACCOUNT_INDEX.length);
         if (size > 0) {
-            console.log('memory:%s,sender:%s ', allTx.length, SENDER_ACCOUNT_INDEX.length);
             for (let i = 0; i < size; i++) {
                 const txInfo = allTx.shift();
                 const { key, tx, from, nonce } = txInfo;
