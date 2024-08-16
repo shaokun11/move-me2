@@ -464,7 +464,7 @@ export async function getBlockByNumber(block, withTx) {
         const mKey = 'move:block:' + block;
         const moveInfo = await db.get(mKey + block);
         if (moveInfo) {
-            info = json.parse(moveInfo);
+            info = JSON.parse(moveInfo);
         } else {
             info = await client.getBlockByHeight(block, true);
             await db.put(mKey, JSON.stringify(info));
