@@ -19,11 +19,11 @@ import { move2ethAddress } from './helper.js';
 import { googleRecaptcha } from './provider.js';
 import { addToFaucetTask } from './task_faucet.js';
 import { inspect } from 'node:util';
-import { readFile } from 'node:fs/promises';
+import { readFile, unlink, writeFile } from 'node:fs/promises';
 import LevelDBWrapper from './leveldb_wrapper.js';
 
 const db = new LevelDBWrapper('db/tx');
-
+const pend_tx_path = 'db/tx-pending.json';
 /// When eth_call or estimateGas,from may be 0x0,
 // Now the evm's 0x0 address cannot exist in the move, so we need to convert it to 0x1
 const ETH_ADDRESS_ONE = '0x0000000000000000000000000000000000000001';
@@ -57,6 +57,29 @@ const TX_NONCE_FIRST_CHECK_TIME = {};
 if (SENDER_ACCOUNT_INDEX.length === 0) {
     throw "please provide the sender account, now it's empty";
 }
+
+async function initTxPool() {
+    try {
+        const { pool } = JSON.parse(await readFile(pend_tx_path, 'utf8'));
+        Object.keys(TX_MEMORY_POOL).forEach(key => {
+            TX_MEMORY_POOL[key] = pool[key];
+        });
+        await unlink(pend_tx_path);
+    } catch (error) {}
+}
+
+await initTxPool();
+// restart the process , save the tx pool
+process.on('SIGINT', () => {
+    writeFile(
+        pend_tx_path,
+        JSON.stringify({
+            pool: TX_MEMORY_POOL,
+        }),
+    ).then(() => {
+        process.exit(1);
+    });
+});
 
 export async function getErrorByHash(hash) {
     if (!hash) {
@@ -113,7 +136,7 @@ export async function sendRawTx(tx) {
             if (BigNumber(price).gt(mPrice)) {
                 // delete the old tx
                 fromTxArr.splice(existIndex, 1);
-            // } else if (BigNumber(price).eq(mPrice)) {
+                // } else if (BigNumber(price).eq(mPrice)) {
                 // is same price , do nothing
                 // return info.hash;
             } else {
@@ -1008,7 +1031,7 @@ async function sendTx(sender, tx, sender_info, senderIndex) {
     };
     // Need to check the tx result for log and return sender account to the pool
     checkTxResult().catch(err => {
-        console.error('checkTxResult %s error %s',transactionRes.hash, err.message ?? err);
+        console.error('checkTxResult %s error %s', transactionRes.hash, err.message ?? err);
     });
     return transactionRes.hash;
 }
