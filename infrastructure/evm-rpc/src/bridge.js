@@ -77,7 +77,7 @@ process.on('SIGINT', () => {
             pool: TX_MEMORY_POOL,
         }),
     ).then(() => {
-        process.exit(1);
+        process.exit(0);
     });
 });
 
