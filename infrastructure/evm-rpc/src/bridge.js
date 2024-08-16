@@ -113,9 +113,9 @@ export async function sendRawTx(tx) {
             if (BigNumber(price).gt(mPrice)) {
                 // delete the old tx
                 fromTxArr.splice(existIndex, 1);
-            } else if (BigNumber(price).eq(mPrice)) {
+            // } else if (BigNumber(price).eq(mPrice)) {
                 // is same price , do nothing
-                return info.hash;
+                // return info.hash;
             } else {
                 throw 'replacement transaction underpriced';
             }
