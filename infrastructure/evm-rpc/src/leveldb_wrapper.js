@@ -1,6 +1,6 @@
 import levelup from 'levelup';
 import leveldown from 'leveldown';
-import { DISABLE_CACHE } from './const';
+import { DISABLE_CACHE } from './const.js';
 
 class LevelDBWrapper {
     constructor(dbPath) {
