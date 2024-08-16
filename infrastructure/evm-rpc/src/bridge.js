@@ -1007,7 +1007,7 @@ async function sendTx(sender, tx, sender_info, senderIndex) {
     };
     // Need to check the tx result for log and return sender account to the pool
     checkTxResult().catch(err => {
-        console.error('checkTxResult error', err);
+        console.error('checkTxResult %s error %s',transactionRes.hash, err.message ?? err);
     });
     return transactionRes.hash;
 }
