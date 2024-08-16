@@ -68,3 +68,4 @@ export const RECAPTCHA_SECRET = process.env.RECAPTCHA_SECRET;
 export const SUMMARY_URL = process.env.SUMMARY_URL;
 export const DISABLE_SEND_TX = process.env.DISABLE_SEND_TX === 'true';
 export const DISABLE_EVM_ARCHIVE_NODE = process.env.DISABLE_EVM_ARCHIVE_NODE === 'true';
+export const DISABLE_CACHE = process.env.DISABLE_CACHE === 'true';

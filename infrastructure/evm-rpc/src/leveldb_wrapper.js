@@ -1,5 +1,6 @@
 import levelup from 'levelup';
 import leveldown from 'leveldown';
+import { DISABLE_CACHE } from './const';
 
 class LevelDBWrapper {
     constructor(dbPath) {
@@ -7,6 +8,7 @@ class LevelDBWrapper {
     }
 
     async put(key, value) {
+        if (DISABLE_CACHE) return;
         return new Promise((resolve, reject) => {
             this.db.put(key, value, err => {
                 // just for cache, no need to reject
@@ -17,6 +19,7 @@ class LevelDBWrapper {
     }
 
     async get(key) {
+        if (DISABLE_CACHE) return null;
         return new Promise((resolve, reject) => {
             this.db.get(key, (err, value) => {
                 if (err) {
@@ -30,6 +33,7 @@ class LevelDBWrapper {
     }
 
     async del(key) {
+        if (DISABLE_CACHE) return;
         return new Promise((resolve, reject) => {
             this.db.del(key, err => {
                 if (err) return reject(err);
@@ -39,6 +43,7 @@ class LevelDBWrapper {
     }
 
     async batch(operations) {
+        if (DISABLE_CACHE) return;
         return new Promise((resolve, reject) => {
             this.db.batch(operations, err => {
                 if (err) return reject(err);
