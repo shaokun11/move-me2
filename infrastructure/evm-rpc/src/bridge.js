@@ -170,8 +170,8 @@ async function sendTxTask() {
                     removeTxFromMemoryPool(from, nonce);
                     continue;
                 }
-                // Maybe the pool tx nonce is greater than the chain nonce
                 const chainAccountInfo = await getAccountInfo(from);
+                // The chain nonce greater than the tx nonce ,it will be drop
                 if (parseInt(chainAccountInfo.nonce) > parseInt(nonce)) {
                     removeTxFromMemoryPool(from, nonce);
                     continue;
@@ -195,6 +195,7 @@ async function sendTxTask() {
                 const senderIndex = SENDER_ACCOUNT_INDEX.shift();
                 removeTxFromMemoryPool(from, nonce);
                 PENDING_TX_SET.add(key);
+                // This tx will be send to chain , so we can remove the first check time
                 delete TX_NONCE_FIRST_CHECK_TIME[key];
                 const sender = GET_SENDER_ACCOUNT(senderIndex);
                 try {
