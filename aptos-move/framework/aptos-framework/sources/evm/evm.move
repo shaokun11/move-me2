@@ -768,9 +768,9 @@ module aptos_framework::evm {
                 // push1 -> push32
             else if(opcode >= 0x60 && opcode <= 0x7f)  {
                 let n = ((opcode - 0x60) as u256);
-                debug::print(utf8(b"borrow"));
+                debug::print(&utf8(b"borrow"));
                 let number = data_to_u256(code, i + 1, n + 1);
-                debug::print(utf8(b"pushback"));
+                debug::print(&utf8(b"pushback"));
                 vector::push_back(stack, number);
                 i = i + n + 2;
             }
