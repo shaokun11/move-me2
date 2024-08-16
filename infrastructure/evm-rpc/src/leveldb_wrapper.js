@@ -61,7 +61,7 @@ class LevelDBWrapper {
         });
     }
 }
-
+export const DB_TX = new LevelDBWrapper('db/tx');
 export default LevelDBWrapper;
 
 // let db = new LevelDBWrapper('./db/tx');

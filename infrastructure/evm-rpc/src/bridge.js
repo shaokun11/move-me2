@@ -22,9 +22,9 @@ import { googleRecaptcha } from './provider.js';
 import { addToFaucetTask } from './task_faucet.js';
 import { inspect } from 'node:util';
 import { readFile, unlink, writeFile } from 'node:fs/promises';
-import LevelDBWrapper from './leveldb_wrapper.js';
+import { DB_TX } from './leveldb_wrapper.js';
+import { ClientWrapper } from './client_wrapper.js';
 
-const db = new LevelDBWrapper('db/tx');
 const pend_tx_path = 'db/tx-pending.json';
 /// When eth_call or estimateGas,from may be 0x0,
 // Now the evm's 0x0 address cannot exist in the move, so we need to convert it to 0x1
@@ -478,7 +478,7 @@ export async function getBlockByNumber(block, withTx) {
     const key = `block:${withTx}:` + block;
     if (!is_pending) {
         // only cache the block not pending
-        const cache = await db.get(key);
+        const cache = await DB_TX.get(key);
         if (cache) {
             return JSON.parse(cache);
         }
@@ -486,12 +486,12 @@ export async function getBlockByNumber(block, withTx) {
     let info;
     try {
         const mKey = 'move:block:' + block;
-        const moveInfo = await db.get(mKey + block);
+        const moveInfo = await DB_TX.get(mKey + block);
         if (moveInfo) {
             info = JSON.parse(moveInfo);
         } else {
-            info = await client.getBlockByHeight(block, true);
-            await db.put(mKey, JSON.stringify(info));
+            info = await ClientWrapper.getBlockByHeight(block, true);
+            await DB_TX.put(mKey, JSON.stringify(info));
         }
     } catch (error) {
         // block not found
@@ -500,7 +500,7 @@ export async function getBlockByNumber(block, withTx) {
 
     let parentHash = ZERO_HASH;
     if (block >= 1) {
-        let info = await client.getBlockByHeight(block - 1, false);
+        let info = await ClientWrapper.getBlockByHeight(block - 1, false);
         parentHash = info.block_hash;
     }
     let transactions = info.transactions || [];
@@ -566,7 +566,7 @@ export async function getBlockByNumber(block, withTx) {
         uncles: [],
     };
     if (!is_pending) {
-        await db.put(key, JSON.stringify(ret));
+        await DB_TX.put(key, JSON.stringify(ret));
     }
     return ret;
 }
@@ -575,10 +575,10 @@ export async function getBlockByHash(hash, withTx) {
     try {
         // Use keccak256 for make key more shorter
         const key = keccak256(Buffer.from(`hash:to:block:${hash}`, 'utf8'));
-        let height = await db.get(key);
+        let height = await DB_TX.get(key);
         if (!height) {
             height = await getBlockHeightByHash(hash);
-            await db.put(key, height);
+            await DB_TX.put(key, height);
         }
         return getBlockByNumber(parseInt(height), withTx);
     } catch (error) {
@@ -727,7 +727,7 @@ export async function callContract(from, contract, calldata, value, block) {
         block = undefined;
     } else {
         if (isHexString(block)) {
-            let info = await client.getBlockByHeight(toNumber(block), false);
+            let info = await ClientWrapper.getBlockByHeight(toNumber(block), false);
             block = info.last_version;
         } else {
             // it maybe latest
@@ -839,7 +839,7 @@ export async function getTransactionByHash(evm_hash) {
         return null;
     }
     const key = 'tx:' + evm_hash;
-    let cache = await db.get(key);
+    let cache = await DB_TX.get(key);
     if (cache) {
         return JSON.parse(cache);
     }
@@ -874,7 +874,7 @@ export async function getTransactionByHash(evm_hash) {
         chainId: toHex(CHAIN_ID),
         ...gasInfo,
     };
-    await db.put(key, JSON.stringify(ret));
+    await DB_TX.put(key, JSON.stringify(ret));
     return ret;
 }
 
@@ -887,7 +887,7 @@ export async function getTransactionReceipt(evm_hash) {
         return null;
     }
     const key = 'receipt:' + evm_hash;
-    let cache = await db.get(key);
+    let cache = await DB_TX.get(key);
     if (cache) {
         return JSON.parse(cache);
     }
@@ -918,7 +918,7 @@ export async function getTransactionReceipt(evm_hash) {
         transactionIndex: transactionIndex,
         type,
     };
-    await db.put(key, JSON.stringify(recept));
+    await DB_TX.put(key, JSON.stringify(recept));
     return recept;
 }
 /**
@@ -963,7 +963,7 @@ async function getAccountInfo(acc, block) {
             block = undefined;
         } else {
             if (isHexString(block)) {
-                let info = await client.getBlockByHeight(toNumber(block), false);
+                let info = await ClientWrapper.getBlockByHeight(toNumber(block), false);
                 block = info.last_version;
             } else {
                 block = undefined;
