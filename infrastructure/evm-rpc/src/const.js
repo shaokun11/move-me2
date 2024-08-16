@@ -11,32 +11,29 @@ export const NODE_URL = process.env.NODE_URL;
 /**
  * EVM_SENDER is the sender's address, fetched from environment variables
  */
-const EVM_SENDER = process.env.EVM_SENDER.split(',');
+const EVM_SENDER = (process.env.EVM_SENDER ?? '').split(',');
+if (EVM_SENDER.length === 0) {
+    console.warn('evm sender is empty and will not be able to send transactions');
+}
 const FAUCET_SENDER = process.env.FAUCET_SENDER;
 const ROBOT_SENDER = process.env.ROBOT_SENDER;
 
 export const FAUCET_AMOUNT = process.env.FAUCET_AMOUNT || 1;
-
-/**
- * CHAIN_ID is the ID of the chain
- */
 export const CHAIN_ID = 30732;
-
-/**
- * ZERO_HASH is a constant representing a hash of all zeros
- */
 export const ZERO_HASH = '0x' + '0'.repeat(64);
-
-/**
- * LOG_BLOOM is a constant representing a bloom filter of all zeros
- */
 export const LOG_BLOOM = '0x' + '0'.repeat(512);
 
-const senderAccounts = EVM_SENDER.map(privateKeyHex =>
-    AptosAccount.fromAptosAccountObject({
-        privateKeyHex,
-    }),
-);
+const senderAccounts = [];
+EVM_SENDER.forEach(privateKeyHex => {
+    if (privateKeyHex && privateKeyHex.length === 66) {
+        senderAccounts.push(
+            AptosAccount.fromAptosAccountObject({
+                privateKeyHex,
+            }),
+        );
+    }
+});
+
 senderAccounts.forEach((account, i) => {
     console.log(`Sender ${i}: ${account.address().hexString}`);
 });
@@ -69,3 +66,5 @@ export const START_SUMMARY_TASK = process.env.START_SUMMARY_TASK || false;
 export const RECAPTCHA_SECRET = process.env.RECAPTCHA_SECRET;
 
 export const SUMMARY_URL = process.env.SUMMARY_URL;
+export const DISABLE_SEND_TX = process.env.DISABLE_SEND_TX === 'true';
+export const DISABLE_EVM_ARCHIVE_NODE = process.env.DISABLE_EVM_ARCHIVE_NODE === 'true';

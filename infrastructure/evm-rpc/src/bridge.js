@@ -9,6 +9,8 @@ import {
     SENDER_ACCOUNT_COUNT,
     ENV_IS_PRO,
     SUMMARY_URL,
+    DISABLE_EVM_ARCHIVE_NODE,
+    DISABLE_SEND_TX,
 } from './const.js';
 import { parseRawTx, sleep, toHex, toNumber, toHexStrict } from './helper.js';
 import { getMoveHash, getBlockHeightByHash, getEvmLogs, getErrorTxMoveHash } from './db.js';
@@ -53,10 +55,6 @@ const TX_MEMORY_POOL = {};
 const TX_EXPIRE_TIME = 1000 * 60 * 2; // 2 Minutes
 const ONE_ADDRESS_MAX_TX_COUNT = 10;
 const TX_NONCE_FIRST_CHECK_TIME = {};
-
-if (SENDER_ACCOUNT_INDEX.length === 0) {
-    throw "please provide the sender account, now it's empty";
-}
 
 async function initTxPool() {
     try {
@@ -116,6 +114,9 @@ function removeTxFromMemoryPool(from, nonce) {
 }
 
 export async function sendRawTx(tx) {
+    if (DISABLE_SEND_TX) {
+        throw new Error('Not implemented');
+    }
     const info = parseRawTx(tx);
     // also there could use tx hash as the key
     let key = info.from + ':' + info.nonce;
@@ -722,12 +723,16 @@ export async function callContract(from, contract, calldata, value, block) {
         from = ETH_ADDRESS_ONE;
     }
     contract = contract || ZeroAddress;
-    if (isHexString(block)) {
-        let info = await client.getBlockByHeight(toNumber(block), false);
-        block = info.last_version;
-    } else {
-        // it maybe latest
+    if (DISABLE_EVM_ARCHIVE_NODE) {
         block = undefined;
+    } else {
+        if (isHexString(block)) {
+            let info = await client.getBlockByHeight(toNumber(block), false);
+            block = info.last_version;
+        } else {
+            // it maybe latest
+            block = undefined;
+        }
     }
     return callContractImpl(from, contract, calldata, value, block);
 }
@@ -954,11 +959,15 @@ async function getAccountInfo(acc, block) {
     acc = acc.toLowerCase();
     try {
         let moveAddress = await getMoveAddress(acc);
-        if (isHexString(block)) {
-            let info = await client.getBlockByHeight(toNumber(block), false);
-            block = info.last_version;
-        } else {
+        if (DISABLE_EVM_ARCHIVE_NODE) {
             block = undefined;
+        } else {
+            if (isHexString(block)) {
+                let info = await client.getBlockByHeight(toNumber(block), false);
+                block = info.last_version;
+            } else {
+                block = undefined;
+            }
         }
         const resource = await client.getAccountResource(moveAddress, `0x1::evm_storage::AccountStorage`, {
             ledgerVersion: block,
