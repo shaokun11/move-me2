@@ -169,6 +169,9 @@ async function sendTxTask() {
         if (isSending) {
             return;
         }
+        if (SENDER_ACCOUNT_INDEX.length === 0 ) {
+            return;
+        }
         isSending = true;
         const allTx = [];
         Object.values(TX_MEMORY_POOL).forEach(txArr => {
@@ -241,7 +244,7 @@ async function sendTxTask() {
             }
         }
         isSending = false;
-    }, 300);
+    }, 500);
 }
 sendTxTask();
 
@@ -1023,7 +1026,7 @@ async function sendTx(sender, tx, sender_info, senderIndex) {
                     }
                 } catch (error) {}
                 isRunning = false;
-            }, 300);
+            }, 500);
         });
         SENDER_ACCOUNT_INDEX.push(senderIndex);
         PENDING_TX_SET.delete(sender_info);
