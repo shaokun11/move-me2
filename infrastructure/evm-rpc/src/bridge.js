@@ -241,7 +241,7 @@ async function sendTxTask() {
             }
         }
         isSending = false;
-    }, 100);
+    }, 300);
 }
 sendTxTask();
 
