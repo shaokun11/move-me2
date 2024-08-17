@@ -1023,7 +1023,7 @@ async function sendTx(sender, tx, sender_info, senderIndex) {
                     }
                 } catch (error) {}
                 isRunning = false;
-            }, 200);
+            }, 300);
         });
         SENDER_ACCOUNT_INDEX.push(senderIndex);
         PENDING_TX_SET.delete(sender_info);
