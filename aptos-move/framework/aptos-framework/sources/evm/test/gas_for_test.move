@@ -672,7 +672,7 @@ module aptos_framework::evm_gas_for_test {
             *error_code = INVALID_OPCODE;
             0
         };
-        // debug::print(&gas);
+        debug::print(&gas);
         gas
     }
 }

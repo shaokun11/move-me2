@@ -369,7 +369,6 @@ unsupport precomile address
 <pre><code><b>fun</b> <a href="precompile.md#0x1_evm_precompile_ecrecover">ecrecover</a>(calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_limit: u256): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, u256) {
     <b>let</b> message_hash = vector_slice(calldata, 0, 32);
     <b>let</b> v = to_u256(vector_slice(calldata, 32, 32));
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&v);
     <b>if</b>(v != 27 && v != 28) {
         <b>return</b> (<b>true</b>, x"", <a href="precompile.md#0x1_evm_precompile_Ecrecover">Ecrecover</a>)
     };
@@ -407,8 +406,6 @@ unsupport precomile address
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="precompile.md#0x1_evm_precompile_run_precompile">run_precompile</a>(addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_limit: u256): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, u256)  {
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&addr);
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&calldata);
     <b>if</b>(addr == <a href="precompile.md#0x1_evm_precompile_RCRECOVER">RCRECOVER</a>) {
         <a href="precompile.md#0x1_evm_precompile_ecrecover">ecrecover</a>(calldata, gas_limit)
     } <b>else</b> <b>if</b>(addr == <a href="precompile.md#0x1_evm_precompile_SHA256">SHA256</a>) {
@@ -509,10 +506,6 @@ unsupport precomile address
     };
 
     <b>let</b> gas = multiplication_complexity * adj_exp_len / <a href="precompile.md#0x1_evm_precompile_ModexpGquaddivisor">ModexpGquaddivisor</a>;
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&848484);
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&multiplication_complexity);
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&adj_exp_len);
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&gas);
     <b>if</b>(gas &lt; 200) {
         gas = 200;
     };

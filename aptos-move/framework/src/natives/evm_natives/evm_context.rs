@@ -167,6 +167,13 @@ impl Substate {
     }
 }
 
+fn is_in_range(address: H160) -> bool {
+    let lower_bound = H160::from_low_u64_be(1);  // 0x1
+    let upper_bound = H160::from_low_u64_be(16); // 0x10
+
+    address >= lower_bound && address <= upper_bound
+}
+
 fn native_set_account(
     context: &mut SafeNativeContext,
     _ty_args: Vec<Type>,
@@ -380,6 +387,9 @@ fn native_is_cold_address (
     mut args: VecDeque<Value>
 ) -> SafeNativeResult<SmallVec<[Value; 1]>> {
     let address = bytes_to_h160(&safely_pop_arg!(args, Vec<u8>));
+    if is_in_range(address) {
+        return Ok(smallvec![Value::bool(false)])
+    } 
     let ctx = context.extensions_mut().get_mut::<NativeEvmContext>();
     let is_cold = !ctx.accessed.contains(&(address, None)) && ctx.substate.known_is_cold(address, None);
     ctx.substate.accessed.insert((address, None));

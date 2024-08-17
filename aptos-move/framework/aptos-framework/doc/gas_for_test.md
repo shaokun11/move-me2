@@ -925,9 +925,7 @@
     <b>let</b> gas = 0;
     <b>let</b> words = get_word_count(length);
     gas = gas + <a href="gas_for_test.md#0x1_evm_gas_for_test_calc_memory_expand">calc_memory_expand</a>(stack, 2, 3, run_state, gas_limit, error_code);
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&gas);
     gas = gas + words * <a href="gas_for_test.md#0x1_evm_gas_for_test_InitCodeWordCost">InitCodeWordCost</a>;
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&gas);
 
     <a href="gas_for_test.md#0x1_evm_gas_for_test_access_address">access_address</a>(<b>address</b>);
 
