@@ -613,7 +613,7 @@ fn native_calculate_root(
     let mut keys: Vec<H160> = Vec::new();
 
     let ctx = context.extensions().get::<NativeEvmContext>();
-    // println!(" storage {:?}", ctx.substate.storages);
+    println!(" storage {:?}", ctx.substate.storages);
 
     keys.extend(ctx.substate.balances.keys().cloned());
     keys.extend(ctx.substate.codes.keys().cloned());
@@ -646,7 +646,7 @@ fn native_calculate_root(
             None => calculate_storage_root(&BTreeMap::new())
         };
 
-        // println!("acconts {:?} {:?} {:?} {:?}", address, balance, nonce, storage_root);
+        println!("acconts {:?} {:?} {:?} {:?}", address, balance, nonce, storage_root);
 
         let hashed_addr = keccak256(&address.to_fixed_bytes());
         root_map.insert(hashed_addr.to_vec(), rlp_encode(balance, code, nonce, storage_root));

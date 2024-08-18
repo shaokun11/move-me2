@@ -194,12 +194,13 @@ module aptos_framework::evm_for_test {
                 handle_tx_failed();
                 return
             };
-            add_checkpoint();
+
             if(to == EMPTY_ADDR) {
                 let evm_contract = get_contract_address(from, (get_nonce(from) as u64));
                 if(is_contract_or_created_account(evm_contract)) {
                     add_gas_usage(run_state, gas_limit);
                 } else {
+                    add_checkpoint();
                     let gas_left = get_gas_left(run_state);
                     add_call_state(run_state, gas_left, false);
                     let (result, bytes) = run(from, evm_contract, data, x"", value, gas_left, run_state, true, true, 0);
@@ -208,6 +209,7 @@ module aptos_framework::evm_for_test {
                     }
                 };
             } else {
+                add_checkpoint();
                 to = to_32bit(to);
                 if(is_precompile_address(to)) {
                     precompile(to, data, gas_limit, run_state);
