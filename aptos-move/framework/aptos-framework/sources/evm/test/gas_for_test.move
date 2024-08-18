@@ -156,9 +156,6 @@ module aptos_framework::evm_gas_for_test {
         let current = get_state(address, key);
         let new = *vector::borrow(stack,len - 2);
         let cold_cost = if(is_cold_slot) Coldsload else 0;
-        debug::print(&current);
-        debug::print(&origin);
-        debug::print(&new);
         let gas_cost = cold_cost;
 
         if(current == new) {

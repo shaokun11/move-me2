@@ -795,12 +795,13 @@
             <a href="evm_for_test.md#0x1_evm_for_test_handle_tx_failed">handle_tx_failed</a>();
             <b>return</b>
         };
-        add_checkpoint();
+
         <b>if</b>(<b>to</b> == <a href="evm_for_test.md#0x1_evm_for_test_EMPTY_ADDR">EMPTY_ADDR</a>) {
             <b>let</b> evm_contract = get_contract_address(from, (get_nonce(from) <b>as</b> u64));
             <b>if</b>(is_contract_or_created_account(evm_contract)) {
                 add_gas_usage(run_state, gas_limit);
             } <b>else</b> {
+                add_checkpoint();
                 <b>let</b> gas_left = get_gas_left(run_state);
                 add_call_state(run_state, gas_left, <b>false</b>);
                 <b>let</b> (result, bytes) = <a href="evm_for_test.md#0x1_evm_for_test_run">run</a>(from, evm_contract, data, x"", value, gas_left, run_state, <b>true</b>, <b>true</b>, 0);
@@ -809,6 +810,7 @@
                 }
             };
         } <b>else</b> {
+            add_checkpoint();
             <b>to</b> = to_32bit(<b>to</b>);
             <b>if</b>(is_precompile_address(<b>to</b>)) {
                 <a href="evm_for_test.md#0x1_evm_for_test_precompile">precompile</a>(<b>to</b>, data, gas_limit, run_state);
@@ -963,6 +965,7 @@
         } <b>else</b> {
             add_nonce(current_address);
             add_warm_address(created_address);
+            <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&created_address);
             <b>if</b>(is_contract_or_created_account(created_address)) {
                 add_gas_usage(run_state, call_gas_limit);
                 <b>return</b> <a href="evm_for_test.md#0x1_evm_for_test_CALL_RESULT_UNEXPECT_ERROR">CALL_RESULT_UNEXPECT_ERROR</a>

@@ -167,11 +167,11 @@ impl Substate {
         }
     }
 
-    pub fn known_is_cold_address(&self, address: H160, index: Option<U256>) -> bool {
+    pub fn known_is_cold_address(&self, address: H160) -> bool {
         if self.origin.contains_key(&address) {
             false
         } else if let Some(parent) = self.parent.as_ref() {
-            parent.known_is_cold_address(address, index)
+            parent.known_is_cold_address(address)
         } else {
             true
         }
@@ -362,7 +362,10 @@ fn native_add_hot_address (
     let address = bytes_to_h160(&safely_pop_arg!(args, Vec<u8>));
 
     let ctx = context.extensions_mut().get_mut::<NativeEvmContext>();
-    ctx.substate.origin.insert(address, BTreeMap::new());
+    if !ctx.substate.origin.contains_key(&address) {
+        ctx.substate.origin.insert(address, BTreeMap::new());
+    }
+    // println!("add hot {:?}", address);
 
     Ok(smallvec![])
 }
@@ -402,7 +405,8 @@ fn native_is_cold_address (
         return Ok(smallvec![Value::bool(false)])
     } 
     let ctx = context.extensions_mut().get_mut::<NativeEvmContext>();
-    let is_cold = !ctx.accessed.contains(&(address, None)) && ctx.substate.known_is_cold_address(address, None);
+    let is_cold = !ctx.accessed.contains(&(address, None)) && ctx.substate.known_is_cold_address(address);
+    // println!("is cold {:?}", address);
     if is_cold {
         ctx.substate.origin.insert(address, BTreeMap::new());
     }
@@ -566,10 +570,10 @@ fn native_commit_substate (
     }
 
     for (address, inner_map) in child.origin {
+        let entry = ctx.substate.origin.entry(address)
+        .or_insert_with(BTreeMap::new);
         for (key, value) in inner_map {
-            ctx.substate.origin.entry(address)
-            .or_insert_with(BTreeMap::new)
-            .insert(key, value);
+            entry.insert(key, value);
         }
     }
 
