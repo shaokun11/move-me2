@@ -43,7 +43,9 @@ async function run(faucet_amount, batch = 100) {
         };
         const ret_msg = {};
         try {
-            const txnRequest = await client.generateTransaction(FAUCET_SENDER_ACCOUNT.address(), payload);
+            const txnRequest = await client.generateTransaction(FAUCET_SENDER_ACCOUNT.address(), payload, {
+                gas_unit_price: 200,
+            });
             const signedTxn = await client.signTransaction(FAUCET_SENDER_ACCOUNT, txnRequest);
             const transactionRes = await client.submitTransaction(signedTxn);
             await client.waitForTransaction(transactionRes.hash);
