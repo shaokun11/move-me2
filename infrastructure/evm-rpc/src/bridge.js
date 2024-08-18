@@ -169,7 +169,7 @@ async function sendTxTask() {
         if (isSending) {
             return;
         }
-        if (SENDER_ACCOUNT_INDEX.length === 0 ) {
+        if (SENDER_ACCOUNT_INDEX.length === 0) {
             return;
         }
         isSending = true;
@@ -478,10 +478,10 @@ export async function getBlockByNumber(block, withTx) {
     if (block < 0) {
         throw 'block number error';
     }
-    const key = `block:${withTx}:` + block;
+    const eKey = `block:${withTx}:` + block;
     if (!is_pending) {
         // only cache the block not pending
-        const cache = await DB_TX.get(key);
+        const cache = await DB_TX.get(eKey);
         if (cache) {
             return JSON.parse(cache);
         }
@@ -569,7 +569,7 @@ export async function getBlockByNumber(block, withTx) {
         uncles: [],
     };
     if (!is_pending) {
-        await DB_TX.put(key, JSON.stringify(ret));
+        await DB_TX.put(eKey, JSON.stringify(ret));
     }
     return ret;
 }
