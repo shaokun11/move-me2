@@ -489,7 +489,7 @@ export async function getBlockByNumber(block, withTx) {
     let info;
     try {
         const mKey = 'move:block:' + block;
-        const moveInfo = await DB_TX.get(mKey + block);
+        const moveInfo = await DB_TX.get(mKey);
         if (moveInfo) {
             info = JSON.parse(moveInfo);
         } else {
