@@ -11,6 +11,8 @@ import {
     SUMMARY_URL,
     DISABLE_EVM_ARCHIVE_NODE,
     DISABLE_SEND_TX,
+    DISABLE_FAUCET,
+    DISABLE_BATCH_FAUCET,
 } from './const.js';
 import { parseRawTx, sleep, toHex, toNumber, toHexStrict } from './helper.js';
 import { getMoveHash, getBlockHeightByHash, getEvmLogs, getErrorTxMoveHash } from './db.js';
@@ -345,6 +347,10 @@ export async function traceTransaction(hash) {
 }
 
 export async function batch_faucet(addr, token, ip) {
+    // for production use
+    if (DISABLE_BATCH_FAUCET) {
+        throw 'please get the token from web page';
+    }
     if ((await googleRecaptcha(token)) === false) {
         throw 'recaptcha error';
     }
@@ -362,8 +368,9 @@ export async function batch_faucet(addr, token, ip) {
 let IS_FAUCET_RUNNING = false;
 
 export async function faucet(addr) {
-    if (ENV_IS_PRO && addr !== ETH_ADDRESS_ONE) {
-        throw 'please get the test token from web page';
+    // for development use
+    if (DISABLE_FAUCET && addr !== ETH_ADDRESS_ONE) {
+        throw 'please get the token from web page';
     }
     if (!ethers.isAddress(addr)) {
         throw 'Eth address format error';

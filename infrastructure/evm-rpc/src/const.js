@@ -69,3 +69,5 @@ export const SUMMARY_URL = process.env.SUMMARY_URL;
 export const DISABLE_SEND_TX = process.env.DISABLE_SEND_TX === 'true';
 export const DISABLE_EVM_ARCHIVE_NODE = process.env.DISABLE_EVM_ARCHIVE_NODE === 'true';
 export const DISABLE_CACHE = process.env.DISABLE_CACHE === 'true';
+export const DISABLE_FAUCET = process.env.DISABLE_FAUCET === 'true';
+export const DISABLE_BATCH_FAUCET = process.env.DISABLE_BATCH_FAUCET === 'true';
