@@ -613,6 +613,7 @@ fn native_calculate_root(
     let mut keys: Vec<H160> = Vec::new();
 
     let ctx = context.extensions().get::<NativeEvmContext>();
+    // println!(" storage {:?}", ctx.substate.storages);
 
     keys.extend(ctx.substate.balances.keys().cloned());
     keys.extend(ctx.substate.codes.keys().cloned());

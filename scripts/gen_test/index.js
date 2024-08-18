@@ -97,5 +97,5 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "operationDiffGas"
-read("./src/GeneralStateTests/stBadOpcode/operationDiffGas.json", key, 1, 0, 0)
+let key = "callcallcall_ABCB_RECURSIVE"
+read("./src/GeneralStateTests/stCallCodes/callcallcall_ABCB_RECURSIVE.json", key, 0, 0, 0)

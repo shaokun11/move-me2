@@ -1838,8 +1838,8 @@
         <b>else</b> {
             <b>assert</b>!(<b>false</b>, (opcode <b>as</b> u64));
         };
-        // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(stack);
-        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack));
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(stack);
+        // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack));
 
         <b>if</b>(*error_code &gt; 0 || <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack) &gt; <a href="evm_for_test.md#0x1_evm_for_test_MAX_STACK_SIZE">MAX_STACK_SIZE</a>) {
             <a href="evm_for_test.md#0x1_evm_for_test_handle_unexpect_revert">handle_unexpect_revert</a>(run_state, error_code);

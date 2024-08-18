@@ -1098,8 +1098,8 @@ module aptos_framework::evm_for_test {
             else {
                 assert!(false, (opcode as u64));
             };
-            // debug::print(stack);
-            debug::print(&vector::length(stack));
+            debug::print(stack);
+            // debug::print(&vector::length(stack));
 
             if(*error_code > 0 || vector::length(stack) > MAX_STACK_SIZE) {
                 handle_unexpect_revert(run_state, error_code);
