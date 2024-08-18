@@ -40,8 +40,9 @@ async function run(faucet_amount, batch = 100) {
             });
             const signedTxn = await client.signTransaction(FAUCET_SENDER_ACCOUNT, txnRequest);
             const transactionRes = await client.submitTransaction(signedTxn);
-            await client.waitForTransaction(transactionRes.hash);
-            const res = await client.getTransactionByHash(transactionRes.hash);
+            const res = await client.waitForTransactionWithResult(transactionRes.hash,{
+                timeoutSecs: 60 * 5,
+            });
             if (res.success) {
                 ret_msg['hash'] = res.hash;
                 appendFile(

@@ -43,14 +43,16 @@ async function run(faucet_amount, batch = 100) {
         };
         const ret_msg = {};
         try {
+            const expire_time_sec =  60 * 5;
             const txnRequest = await client.generateTransaction(FAUCET_SENDER_ACCOUNT.address(), payload, {
                 gas_unit_price: 200,
-                expiration_timestamp_secs: Math.floor(Date.now() / 1000) + 60 *5,
+                expiration_timestamp_secs: Math.floor(Date.now() / 1000) + expire_time_sec,
             });
             const signedTxn = await client.signTransaction(FAUCET_SENDER_ACCOUNT, txnRequest);
             const transactionRes = await client.submitTransaction(signedTxn);
-            await client.waitForTransaction(transactionRes.hash);
-            const res = await client.getTransactionByHash(transactionRes.hash);
+            const res = await client.waitForTransactionWithResult(transactionRes.hash, {
+                timeoutSecs: expire_time_sec,
+            });
             if (res.success) {
                 ret_msg['hash'] = res.hash;
                 appendFile(
