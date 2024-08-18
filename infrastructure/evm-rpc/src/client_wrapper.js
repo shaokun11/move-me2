@@ -8,7 +8,8 @@ export class ClientWrapper {
         }
         // this api only return the first 100 transactions
         const block = await client.getBlockByHeight(height, true);
-        let count = BigNumber(block.last_version).minus(block.first_version).toNumber() - 100 + 1;
+        const fetchCount = block.transactions.length;
+        let count = BigNumber(block.last_version).minus(block.first_version).toNumber() - fetchCount + 1;
         if (count > 0) {
             block.transactions.push(
                 ...(await Promise.all(
@@ -17,7 +18,7 @@ export class ClientWrapper {
                         .map((_, i) => {
                             return client.getTransactionByVersion(
                                 BigNumber(block.first_version)
-                                    .plus(100 + i)
+                                    .plus(fetchCount + i)
                                     .toFixed(0),
                             );
                         }),
