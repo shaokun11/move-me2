@@ -30,7 +30,6 @@ use trie;
 #[derive(Default, Tid)]
 pub struct NativeEvmContext {
     substate: Box<Substate>,
-    origin: BTreeMap<(H160, U256), U256>,
     accessed: BTreeSet<(H160, Option<U256>)>,
 }
 
@@ -38,8 +37,7 @@ impl NativeEvmContext {
     pub fn new() -> Self {
         Self {
             substate: Box::new(Substate::new()),
-            accessed: BTreeSet::new(),
-            origin: BTreeMap::new()
+            accessed: BTreeSet::new()
         }
     }
 }
@@ -50,8 +48,8 @@ struct Substate {
     balances: BTreeMap<H160, U256>,
     codes: BTreeMap<H160, Vec<u8>>,
     nonces: BTreeMap<H160, U256>,
-    accessed: BTreeSet<(H160, Option<U256>)>,
     storages: BTreeMap<H160, BTreeMap<U256, U256>>,
+    origin: BTreeMap<H160, BTreeMap<U256, U256>>,
     transient_storage: BTreeMap<(H160, U256), U256>,
     deletes: BTreeSet<H160>,
 }
@@ -64,9 +62,9 @@ impl Substate {
             codes: Default::default(),
             nonces: Default::default(),
             storages: Default::default(),
+            origin: Default::default(),
             transient_storage: Default::default(),
             deletes: Default::default(),
-            accessed: Default::default(),
         }
     }
 
@@ -102,6 +100,19 @@ impl Substate {
 
     pub fn known_storage(&self, address: H160, key: U256) -> Option<U256> {
         if let Some(inner_map) = self.storages.get(&address) {
+            if let Some(value) = inner_map.get(&key) {
+                return Some(*value)
+            }
+        }
+        if let Some(parent) = self.parent.as_ref() {
+            return parent.known_storage(address, key)
+        }
+
+        None
+    }
+
+    pub fn known_origin(&self, address: H160, key: U256) -> Option<U256> {
+        if let Some(inner_map) = self.origin.get(&address) {
             if let Some(value) = inner_map.get(&key) {
                 return Some(*value)
             }
@@ -156,11 +167,11 @@ impl Substate {
         }
     }
 
-    pub fn known_is_cold(&self, address: H160, index: Option<U256>) -> bool {
-        if self.accessed.contains(&(address, index)) {
+    pub fn known_is_cold_address(&self, address: H160, index: Option<U256>) -> bool {
+        if self.origin.contains_key(&address) {
             false
         } else if let Some(parent) = self.parent.as_ref() {
-            parent.known_is_cold(address, index)
+            parent.known_is_cold_address(address, index)
         } else {
             true
         }
@@ -351,7 +362,7 @@ fn native_add_hot_address (
     let address = bytes_to_h160(&safely_pop_arg!(args, Vec<u8>));
 
     let ctx = context.extensions_mut().get_mut::<NativeEvmContext>();
-    ctx.substate.accessed.insert((address, None));
+    ctx.substate.origin.insert(address, BTreeMap::new());
 
     Ok(smallvec![])
 }
@@ -391,8 +402,11 @@ fn native_is_cold_address (
         return Ok(smallvec![Value::bool(false)])
     } 
     let ctx = context.extensions_mut().get_mut::<NativeEvmContext>();
-    let is_cold = !ctx.accessed.contains(&(address, None)) && ctx.substate.known_is_cold(address, None);
-    ctx.substate.accessed.insert((address, None));
+    let is_cold = !ctx.accessed.contains(&(address, None)) && ctx.substate.known_is_cold_address(address, None);
+    if is_cold {
+        ctx.substate.origin.insert(address, BTreeMap::new());
+    }
+    
 
     Ok(smallvec![Value::bool(is_cold)])
 }
@@ -423,17 +437,24 @@ fn native_get_origin (
     let ctx = context.extensions_mut().get_mut::<NativeEvmContext>();
     let mut is_cold_slot = !ctx.accessed.contains(&(address, Some(index)));
     let result;
-    if ctx.origin.contains_key(&(address, index)) {
-        is_cold_slot = false;
-        result = evm_u256_to_move_u256(&ctx.origin.get(&(address, index)).unwrap());
-    } else {
-        let value = match ctx.substate.known_storage(address, index) {
-            Some(value) => value,
-            None => U256::zero()
-        };
-        ctx.origin.insert((address, index), value);
-        result = evm_u256_to_move_u256(&value);
-    };
+
+
+    match ctx.substate.known_origin(address, index) {
+        Some(value) => {
+            is_cold_slot = false;
+            result = evm_u256_to_move_u256(&value);
+        },
+        None => {
+            let value = match ctx.substate.known_storage(address, index) {
+                Some(value) => value,
+                None => U256::zero()
+            };
+            ctx.substate.origin.entry(address)
+            .or_insert_with(BTreeMap::new)
+            .insert(index, value);
+            result = evm_u256_to_move_u256(&value);
+        }
+    }
 
     Ok(smallvec![Value::bool(is_cold_slot), Value::u256(result)])
 }
@@ -543,12 +564,17 @@ fn native_commit_substate (
     for ((address, key), value) in child.transient_storage {
         ctx.substate.transient_storage.insert((address, key), value);
     }
-    for address in child.deletes {
-        ctx.substate.deletes.insert(address);
+
+    for (address, inner_map) in child.origin {
+        for (key, value) in inner_map {
+            ctx.substate.origin.entry(address)
+            .or_insert_with(BTreeMap::new)
+            .insert(key, value);
+        }
     }
 
-    for address in child.accessed {
-        ctx.substate.accessed.insert(address);
+    for address in child.deletes {
+        ctx.substate.deletes.insert(address);
     }
 
     Ok(smallvec![])
