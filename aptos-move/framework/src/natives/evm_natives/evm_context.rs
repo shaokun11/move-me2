@@ -118,7 +118,7 @@ impl Substate {
             }
         }
         if let Some(parent) = self.parent.as_ref() {
-            return parent.known_storage(address, key)
+            return parent.known_origin(address, key)
         }
 
         None
@@ -438,10 +438,10 @@ fn native_get_origin (
     let mut is_cold_slot = !ctx.accessed.contains(&(address, Some(index)));
     let result;
 
-
     match ctx.substate.known_origin(address, index) {
         Some(value) => {
             is_cold_slot = false;
+
             result = evm_u256_to_move_u256(&value);
         },
         None => {
@@ -620,7 +620,6 @@ fn native_calculate_root(
     keys.extend(ctx.substate.nonces.keys().cloned());
     keys.extend(ctx.substate.storages.keys().cloned());
 
-    // 移除重复的 key
     keys.sort();
     keys.dedup();
 

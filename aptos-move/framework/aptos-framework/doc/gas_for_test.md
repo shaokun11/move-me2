@@ -531,7 +531,9 @@
     <b>let</b> current = get_state(<b>address</b>, key);
     <b>let</b> new = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(stack,len - 2);
     <b>let</b> cold_cost = <b>if</b>(is_cold_slot) <a href="gas_for_test.md#0x1_evm_gas_for_test_Coldsload">Coldsload</a> <b>else</b> 0;
-    // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(get)
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&current);
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&origin);
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&new);
     <b>let</b> gas_cost = cold_cost;
 
     <b>if</b>(current == new) {
@@ -567,6 +569,7 @@
         }
     };
 
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&gas_cost);
     gas_cost
 }
 </code></pre>
