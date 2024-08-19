@@ -25,10 +25,11 @@ import { inspect } from 'node:util';
 import { readFile, unlink, writeFile } from 'node:fs/promises';
 import { DB_TX } from './leveldb_wrapper.js';
 import { ClientWrapper } from './client_wrapper.js';
-import { Piscina } from 'piscina';
+import { FixedQueue, Piscina } from 'piscina';
 
 const workerPool = new Piscina({
     filename: new URL('./tx_worker.js', import.meta.url).href,
+    taskQueue: new FixedQueue(),
 });
 const pend_tx_path = 'db/tx-pending.json';
 /// When eth_call or estimateGas,from may be 0x0,
