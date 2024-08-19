@@ -212,7 +212,7 @@ module aptos_framework::evm_for_test {
                 add_checkpoint();
                 to = to_32bit(to);
                 if(is_precompile_address(to)) {
-                    precompile(to, data, gas_limit, run_state);
+                    precompile(from, to, data, value, gas_limit , run_state, true);
                 } else {
                     add_call_state(run_state, gas_limit - base_cost, false);
                     run(from, to, get_code(to), data, value, gas_limit - base_cost, run_state, true, false, 0);
@@ -972,6 +972,7 @@ module aptos_framework::evm_for_test {
                 let (call_gas_limit, gas_stipend) = max_call_gas(gas_left, gas, msg_value, need_stipend);
                 if(gas_stipend > 0) {
                     add_gas_left(run_state, gas_stipend);
+                    debug::print(&get_gas_left(run_state));
                 };
                 let m_pos = pop_stack(stack, error_code);
                 let m_len = pop_stack(stack, error_code);
@@ -988,11 +989,8 @@ module aptos_framework::evm_for_test {
                     vector::push_back(stack, 0);
                 } else {
                     if(is_precompile) {
-                        let (success, bytes) = precompile(code_address, params, call_gas_limit, run_state);
+                        let (success, bytes) = precompile(call_from, code_address, params, msg_value, call_gas_limit, run_state, transfer_eth);
                         if(success) {
-                            if(transfer_eth) {
-                                transfer(call_from, call_to, msg_value);
-                            };
                             set_ret_bytes(run_state, bytes);
                             write_call_output(memory, ret_pos, ret_len, bytes);
                         };
@@ -1007,7 +1005,6 @@ module aptos_framework::evm_for_test {
                             // debug::print()
                             write_call_output(memory, ret_pos, ret_len, bytes);
                         };
-                        debug::print(&get_gas_left(run_state));
                         vector::push_back(stack,  if(call_res == CALL_RESULT_SUCCESS) 1 else 0);
                     } else {
                         if(msg_value > 0 && transfer_eth && !transfer(call_from, call_to, msg_value)) {
@@ -1139,11 +1136,20 @@ module aptos_framework::evm_for_test {
     }
 
     // This function is used to execute precompile EVM contracts.
-    fun precompile(to: vector<u8>, calldata: vector<u8>, gas_limit: u256, run_state: &mut RunState): (bool, vector<u8>)  {
+    fun precompile(sender: vector<u8>, to: vector<u8>, calldata: vector<u8>, value: u256, gas_limit: u256, run_state: &mut RunState, transfer_eth: bool): (bool, vector<u8>)  {
+        if(transfer_eth) {
+            if(get_balance(sender) < value) {
+                return (false, x"")
+            };
+        };
+
         let (success, res, gas) = run_precompile(to, calldata, gas_limit);
         if(gas > gas_limit) {
             success = false;
             gas = gas_limit;
+        };
+        if(success && transfer_eth) {
+            transfer(sender, to, value);
         };
         add_gas_usage(run_state, gas);
         (success, res)

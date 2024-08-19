@@ -426,6 +426,9 @@ module aptos_framework::evm_gas_for_test {
             gas_stipend = gas_stipend + CallStipend;
             gas_limit = gas_limit + CallStipend;
         };
+        debug::print(&2123213);
+        debug::print(&gas_limit);
+        debug::print(&gas_stipend);
         (gas_limit, gas_stipend)
     }
 
