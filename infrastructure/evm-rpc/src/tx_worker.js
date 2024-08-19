@@ -6,21 +6,11 @@ export const sortTx = function (txPool) {
         allTx.push(...txArr);
     });
 
-    allTx.sort((a, b) => {
-        // for ETH and ERC20 transfer priority
-        if (a.gasLimit < 50000 && b.gasLimit < 50000) {
-            return a.gasLimit - b.gasLimit;
+    items.sort((a, b) => {
+        if (a.nonce !== b.nonce) {
+            return b.nonce - a.nonce;
         }
-        if (a.gasLimit < 50000) {
-            return -1;
-        }
-        if (b.gasLimit < 50000) {
-            return 1;
-        }
-        if (a.ts !== b.ts) {
-            return a.ts - b.ts;
-        }
-        return b.nonce - a.nonce;
+        return a.ts - b.ts;
     });
     return allTx;
 };
