@@ -190,7 +190,6 @@ async function sendTxTask() {
         }
         isSending = true;
         const allTx = await workerPool.run(TX_MEMORY_POOL);
-        console.log('sorted tx ', allTx);
         if (allTx.length > 0 && SENDER_ACCOUNT_INDEX.length > 0) {
             let size = Math.max(allTx.length, SENDER_ACCOUNT_INDEX.length);
             for (let i = 0; i < size; i++) {
