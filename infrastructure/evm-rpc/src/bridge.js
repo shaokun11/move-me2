@@ -122,7 +122,7 @@ export async function sendRawTx(tx) {
     if (DISABLE_SEND_TX) {
         throw new Error('Not implemented');
     }
-    const info = parseRawTx(tx);
+    const info = await workerPool.run(tx, { name: 'parseTx' });
     // also there could use tx hash as the key
     let key = info.from + ':' + info.nonce;
     const checkIsSend = () => {
@@ -137,7 +137,9 @@ export async function sendRawTx(tx) {
     if (fromTxArr) {
         const existIndex = fromTxArr.findIndex(it => parseInt(it.nonce) === parseInt(info.nonce));
         if (existIndex !== -1) {
-            const mPrice = getGasPriceFromTx(parseRawTx(fromTxArr[existIndex].tx));
+            const mTx = await workerPool.run(fromTxArr[existIndex].tx, { name: 'parseTx' });
+            checkIsSend();
+            const mPrice = getGasPriceFromTx(mTx);
             const price = getGasPriceFromTx(info);
             if (BigNumber(price).gt(mPrice)) {
                 // delete the old tx
@@ -189,7 +191,7 @@ async function sendTxTask() {
             return;
         }
         isSending = true;
-        const allTx = await workerPool.run(TX_MEMORY_POOL);
+        const allTx = await workerPool.run(TX_MEMORY_POOL, { name: 'sortTx' });
         if (allTx.length > 0 && SENDER_ACCOUNT_INDEX.length > 0) {
             let size = Math.max(allTx.length, SENDER_ACCOUNT_INDEX.length);
             for (let i = 0; i < size; i++) {
@@ -241,7 +243,7 @@ async function sendTxTask() {
                     }
                     // put the sender back to the pool
                     SENDER_ACCOUNT_INDEX.push(senderIndex);
-                    const info = parseRawTx(tx);
+                    const info = await workerPool.run(tx, { name: 'parseTx' });
                     // maybe tx can't be send to the chain
                     console.warn('evm:%s,sender:%s,error %s ', info.hash, key, error.message ?? error);
                 }
@@ -532,7 +534,7 @@ export async function getBlockByNumber(block, withTx) {
                         continue;
                     }
                 }
-                const { hash: evm_hash } = parseMoveTxPayload(it);
+                const { hash: evm_hash } = await parseMoveTxPayload(it);
                 evm_tx.push(evm_hash);
             }
         }
@@ -857,7 +859,7 @@ export async function getTransactionByHash(evm_hash) {
     }
     const info = await client.getTransactionByHash(move_hash);
     const block = await client.getBlockByVersion(info.version);
-    const txInfo = parseMoveTxPayload(info);
+    const txInfo = await parseMoveTxPayload(info);
     const transactionIndex = toHex(await getTransactionIndex(block.block_height, evm_hash));
     // const txResult = info.events.find(it => it.type === '0x1::evm::ExecResultEvent');
     const gasInfo = {};
@@ -905,7 +907,7 @@ export async function getTransactionReceipt(evm_hash) {
     }
     let info = await client.getTransactionByHash(move_hash);
     let block = await client.getBlockByVersion(info.version);
-    const { to, from, type } = parseMoveTxPayload(info);
+    const { to, from, type } = await parseMoveTxPayload(info);
     // let contractAddress = await getDeployedContract(info);
     const transactionIndex = toHex(await getTransactionIndex(block.block_height, evm_hash));
     // we could get it from indexer , but is also to parse it directly to reduce the request
@@ -1063,7 +1065,7 @@ async function sendTx(sender, tx, sender_info, senderIndex) {
  */
 async function getDeployedContract(info) {
     if (!info.success) return null;
-    const { nonce, to, from } = parseMoveTxPayload(info);
+    const { nonce, to, from } = await parseMoveTxPayload(info);
     if (to === ZeroAddress || !to) {
         return ethers.getCreateAddress({ from: from, nonce }).toLowerCase();
     }
@@ -1170,7 +1172,8 @@ function parseLogs(info, blockNumber, blockHash, evm_hash, transactionIndex) {
     }
     return logs;
 }
-function parseMoveTxPayload(info) {
+async function parseMoveTxPayload(info) {
     const args = info.payload.arguments;
-    return parseRawTx(args[0]);
+    return await workerPool.run(args[0], { name: 'parseTx' });
+    // return parseRawTx(args[0]);
 }

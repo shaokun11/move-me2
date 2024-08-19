@@ -1,4 +1,6 @@
-export default function (txPool) {
+import { parseRawTx } from './helper.js';
+
+export const sortTx = function (txPool) {
     const allTx = [];
     Object.values(txPool).forEach(txArr => {
         allTx.push(...txArr);
@@ -11,4 +13,8 @@ export default function (txPool) {
         }
     });
     return allTx;
-}
+};
+
+export const parseTx = function (tx) {
+    return parseRawTx(tx);
+};
