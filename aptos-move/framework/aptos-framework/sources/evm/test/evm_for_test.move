@@ -806,6 +806,7 @@ module aptos_framework::evm_for_test {
                 // mload
             else if(opcode == 0x51) {
                 let pos = pop_stack_u64(stack, error_code);
+                expand_to_pos(memory, pos + 32);
                 vector::push_back(stack, data_to_u256(vector_slice(*memory, pos, 32), 0, 32));
                 i = i + 1;
             }
