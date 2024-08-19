@@ -25,12 +25,7 @@ import { inspect } from 'node:util';
 import { readFile, unlink, writeFile } from 'node:fs/promises';
 import { DB_TX } from './leveldb_wrapper.js';
 import { ClientWrapper } from './client_wrapper.js';
-import { FixedQueue, Piscina } from 'piscina';
 
-const workerPool = new Piscina({
-    filename: new URL('./tx_worker.js', import.meta.url).href,
-    taskQueue: new FixedQueue(),
-});
 const pend_tx_path = 'db/tx-pending.json';
 /// When eth_call or estimateGas,from may be 0x0,
 // Now the evm's 0x0 address cannot exist in the move, so we need to convert it to 0x1
@@ -190,38 +185,62 @@ async function sendTxTask() {
         if (!hasTransactions) {
             return;
         }
+
+        // set LOCKER
         isSending = true;
-        const allTx = await workerPool.run(TX_MEMORY_POOL, { name: 'sortTx' });
-        if (allTx.length > 0 && SENDER_ACCOUNT_INDEX.length > 0) {
-            let size = Math.max(allTx.length, SENDER_ACCOUNT_INDEX.length);
+
+        const allTx = [];
+        Object.values(TX_MEMORY_POOL).forEach(txArr => {
+            allTx.push(...txArr);
+        });
+        // only the nonce is equal to the chain nonce, it will be send to the chain
+        const accMap = {};
+        const getCurrAcc = async addr => {
+            if (!accMap[addr]) {
+                accMap[addr] = await getAccountInfo(addr);
+            }
+            return accMap[addr];
+        };
+        // find the tx nonce is equal to the chain nonce 
+        const sendTxArr = [];
+        for (let item of allTx) {
+            const { from, nonce } = item;
+            const currAccInfo = await getCurrAcc(from);
+            // The chain nonce greater than the tx nonce ,it will be drop
+            if (parseInt(currAccInfo.nonce) > parseInt(nonce)) {
+                removeTxFromMemoryPool(from, nonce);
+                continue;
+            }
+            if (parseInt(currAccInfo.nonce) !== parseInt(nonce)) {
+                let checkTime = TX_NONCE_FIRST_CHECK_TIME[key];
+                if (!checkTime) {
+                    // record the first check time
+                    TX_NONCE_FIRST_CHECK_TIME[key] = Date.now();
+                } else {
+                    // timeout
+                    if (Date.now() - checkTime > TX_EXPIRE_TIME) {
+                        //drop this tx
+                        removeTxFromMemoryPool(from, nonce);
+                        delete TX_NONCE_FIRST_CHECK_TIME[key];
+                    }
+                }
+                continue;
+            }
+            sendTxArr.push(item);
+        }
+
+        // Now we simply sort the tx by the timestamp
+        sendTxArr.sort((a, b) => a.ts - b.ts);
+
+        if (sendTxArr.length > 0 && SENDER_ACCOUNT_INDEX.length > 0) {
+            let size = Math.min(sendTxArr.length, SENDER_ACCOUNT_INDEX.length);
             for (let i = 0; i < size; i++) {
-                if (allTx.length === 0) break;
-                const txInfo = allTx.shift();
+                if (sendTxArr.length === 0) break;
+                const txInfo = sendTxArr.shift();
                 const { key, tx, from, nonce } = txInfo;
                 if (PENDING_TX_SET.has(key)) {
                     // it has send to chain but not finish
                     removeTxFromMemoryPool(from, nonce);
-                    continue;
-                }
-                const chainAccountInfo = await getAccountInfo(from);
-                // The chain nonce greater than the tx nonce ,it will be drop
-                if (parseInt(chainAccountInfo.nonce) > parseInt(nonce)) {
-                    removeTxFromMemoryPool(from, nonce);
-                    continue;
-                }
-                if (parseInt(chainAccountInfo.nonce) !== parseInt(nonce)) {
-                    let checkTime = TX_NONCE_FIRST_CHECK_TIME[key];
-                    if (!checkTime) {
-                        // record the first check time
-                        TX_NONCE_FIRST_CHECK_TIME[key] = Date.now();
-                    } else {
-                        // timeout
-                        if (Date.now() - checkTime > TX_EXPIRE_TIME) {
-                            //drop this tx
-                            removeTxFromMemoryPool(from, nonce);
-                            delete TX_NONCE_FIRST_CHECK_TIME[key];
-                        }
-                    }
                     continue;
                 }
                 if (SENDER_ACCOUNT_INDEX.length === 0) break;
@@ -249,6 +268,7 @@ async function sendTxTask() {
                 }
             }
         }
+        // release locker
         isSending = false;
     }, 500);
 }
