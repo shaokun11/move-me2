@@ -43,7 +43,7 @@ async function run(faucet_amount, batch = 100) {
         };
         const ret_msg = {};
         try {
-            const expire_time_sec =  60 * 5;
+            const expire_time_sec = 60 * 5;
             const txnRequest = await client.generateTransaction(FAUCET_SENDER_ACCOUNT.address(), payload, {
                 gas_unit_price: 200,
                 expiration_timestamp_secs: Math.floor(Date.now() / 1000) + expire_time_sec,

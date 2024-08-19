@@ -7,16 +7,15 @@ import {
     CHAIN_ID,
     FAUCET_AMOUNT,
     SENDER_ACCOUNT_COUNT,
-    ENV_IS_PRO,
     SUMMARY_URL,
     DISABLE_EVM_ARCHIVE_NODE,
     DISABLE_SEND_TX,
     DISABLE_FAUCET,
     DISABLE_BATCH_FAUCET,
 } from './const.js';
-import { parseRawTx, sleep, toHex, toNumber, toHexStrict } from './helper.js';
+import { parseRawTx, toHex, toNumber, toHexStrict } from './helper.js';
 import { getMoveHash, getBlockHeightByHash, getEvmLogs, getErrorTxMoveHash } from './db.js';
-import { ZeroAddress, ethers, isHexString, toBeHex, keccak256, isAddress } from 'ethers';
+import { ZeroAddress, ethers, isHexString, toBeHex, keccak256 } from 'ethers';
 import BigNumber from 'bignumber.js';
 import { toBuffer } from './helper.js';
 import { move2ethAddress } from './helper.js';
@@ -26,7 +25,11 @@ import { inspect } from 'node:util';
 import { readFile, unlink, writeFile } from 'node:fs/promises';
 import { DB_TX } from './leveldb_wrapper.js';
 import { ClientWrapper } from './client_wrapper.js';
+import { Piscina } from 'piscina';
 
+const workerPool = new Piscina({
+    filename: new URL('./tx_worker.js', import.meta.url).href,
+});
 const pend_tx_path = 'db/tx-pending.json';
 /// When eth_call or estimateGas,from may be 0x0,
 // Now the evm's 0x0 address cannot exist in the move, so we need to convert it to 0x1
@@ -110,9 +113,9 @@ function removeTxFromMemoryPool(from, nonce) {
         }
     }
     // release the empty account info
-    // if (TX_MEMORY_POOL[from]?.length === 0) {
-    //     delete TX_MEMORY_POOL[from];
-    // }
+    if (TX_MEMORY_POOL[from]?.length === 0) {
+        delete TX_MEMORY_POOL[from];
+    }
 }
 
 export async function sendRawTx(tx) {
@@ -174,20 +177,20 @@ async function sendTxTask() {
         if (SENDER_ACCOUNT_INDEX.length === 0) {
             return;
         }
-        isSending = true;
-        const allTx = [];
-        Object.values(TX_MEMORY_POOL).forEach(txArr => {
-            allTx.push(...txArr);
-        });
-        allTx.sort((a, b) => {
-            // Sort by timestamp first (ascending)
-            if (a.ts !== b.ts) {
-                return a.ts - b.ts;
-            } else {
-                // If timestamps are equal, sort by nonce (ascending)
-                return a.nonce - b.nonce;
+
+        let hasTransactions = false;
+        for (let key in TX_MEMORY_POOL) {
+            if (TX_MEMORY_POOL[key]) {
+                hasTransactions = true;
+                break;
             }
-        });
+        }
+        if (!hasTransactions) {
+            return;
+        }
+        isSending = true;
+        const allTx = await workerPool.run(TX_MEMORY_POOL);
+        console.log('sorted tx ', allTx);
         if (allTx.length > 0 && SENDER_ACCOUNT_INDEX.length > 0) {
             let size = Math.max(allTx.length, SENDER_ACCOUNT_INDEX.length);
             for (let i = 0; i < size; i++) {
