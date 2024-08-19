@@ -264,6 +264,8 @@ async function sendTxTask() {
                     if (fromAcc) {
                         // put it back to the pool
                         fromAcc.push(txInfo);
+                    } else {
+                        TX_MEMORY_POOL[from] = [txInfo];
                     }
                     // put the sender back to the pool
                     SENDER_ACCOUNT_INDEX.push(senderIndex);
