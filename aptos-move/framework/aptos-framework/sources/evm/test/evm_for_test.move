@@ -389,6 +389,7 @@ module aptos_framework::evm_for_test {
         while (i < len) {
             // Fetch the current opcode from the bytecode.
             let opcode: u8 = *vector::borrow(&code, (i as u64));
+            debug::print(&get_gas_left(run_state));
             let gas = calc_exec_gas(opcode, to, stack, run_state, gas_limit, error_code);
             let out_of_gas = add_gas_usage(run_state, gas);
             if(*error_code > 0 || out_of_gas) {
@@ -396,7 +397,7 @@ module aptos_framework::evm_for_test {
                 return (if(out_of_gas) CALL_RESULT_OUT_OF_GAS else CALL_RESULT_UNEXPECT_ERROR, ret_value)
             };
             // debug::print(&i);
-            debug::print(&get_gas_left(run_state));
+
 
             // Handle each opcode according to the EVM specification.
             // The following is a simplified version of the EVM execution engine,
@@ -1005,6 +1006,7 @@ module aptos_framework::evm_for_test {
                             // debug::print()
                             write_call_output(memory, ret_pos, ret_len, bytes);
                         };
+                        debug::print(&get_gas_left(run_state));
                         vector::push_back(stack,  if(call_res == CALL_RESULT_SUCCESS) 1 else 0);
                     } else {
                         if(msg_value > 0 && transfer_eth && !transfer(call_from, call_to, msg_value)) {

@@ -140,7 +140,7 @@ module aptos_framework::evm_global_state_for_test {
 
     public fun add_gas_left(run_state: &mut RunState, amount: u256) {
         let state = get_lastest_state_mut(run_state);
-        state.gas_left = if(state.gas_left > amount) state.gas_left + amount else 0;
+        state.gas_left = state.gas_left + amount;
     }
 
     public fun add_gas_refund(run_state: &mut RunState, refund: u256) {
