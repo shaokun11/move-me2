@@ -965,7 +965,6 @@
         } <b>else</b> {
             add_nonce(current_address);
             add_warm_address(created_address);
-            <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&created_address);
             <b>if</b>(is_contract_or_created_account(created_address)) {
                 add_gas_usage(run_state, call_gas_limit);
                 <b>return</b> <a href="evm_for_test.md#0x1_evm_for_test_CALL_RESULT_UNEXPECT_ERROR">CALL_RESULT_UNEXPECT_ERROR</a>

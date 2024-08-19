@@ -566,7 +566,6 @@
         }
     };
 
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&gas_cost);
     gas_cost
 }
 </code></pre>

@@ -284,7 +284,6 @@ module aptos_framework::evm_for_test {
             } else {
                 add_nonce(current_address);
                 add_warm_address(created_address);
-                debug::print(&created_address);
                 if(is_contract_or_created_account(created_address)) {
                     add_gas_usage(run_state, call_gas_limit);
                     return CALL_RESULT_UNEXPECT_ERROR

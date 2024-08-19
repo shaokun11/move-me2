@@ -111,7 +111,12 @@ module aptos_framework::evm_gas_for_test {
             return 0
         };
         let offset = *vector::borrow(stack,len - 1);
-        calc_memory_expand_internal(offset + 32, run_state, gas_limit, error_code)
+        let (size, overflow) = add(offset, 32);
+        if(overflow) {
+            *error_code = OUT_OF_GAS;
+            return 0
+        };
+        calc_memory_expand_internal(size, run_state, gas_limit, error_code)
     }
 
     fun calc_mstore8_gas(stack: &vector<u256>,
@@ -191,7 +196,6 @@ module aptos_framework::evm_gas_for_test {
             }
         };
 
-        debug::print(&gas_cost);
         gas_cost
     }
 
