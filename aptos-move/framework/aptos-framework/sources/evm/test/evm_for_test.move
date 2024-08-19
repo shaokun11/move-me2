@@ -1049,18 +1049,18 @@ module aptos_framework::evm_for_test {
             }
                 //log1
             else if(opcode == 0xa1) {
-                let pos = pop_stack_u64(stack, error_code);
-                let len = pop_stack_u64(stack, error_code);
-                let data = vector_slice(*memory, pos, len);
+                let pos = pop_stack(stack, error_code);
+                let len = pop_stack(stack, error_code);
+                let data = vector_slice_u256(*memory, pos, len);
                 let topic0 = u256_to_data(pop_stack(stack, error_code));
                 add_log(to, data, vector[topic0]);
                 i = i + 1
             }
                 //log2
             else if(opcode == 0xa2) {
-                let pos = pop_stack_u64(stack, error_code);
-                let len = pop_stack_u64(stack, error_code);
-                let data = vector_slice(*memory, pos, len);
+                let pos = pop_stack(stack, error_code);
+                let len = pop_stack(stack, error_code);
+                let data = vector_slice_u256(*memory, pos, len);
                 let topic0 = u256_to_data(pop_stack(stack, error_code));
                 let topic1 = u256_to_data(pop_stack(stack, error_code));
                 add_log(to, data, vector[topic0, topic1]);
@@ -1068,9 +1068,9 @@ module aptos_framework::evm_for_test {
             }
                 //log3
             else if(opcode == 0xa3) {
-                let pos = pop_stack_u64(stack, error_code);
-                let len = pop_stack_u64(stack, error_code);
-                let data = vector_slice(*memory, pos, len);
+                let pos = pop_stack(stack, error_code);
+                let len = pop_stack(stack, error_code);
+                let data = vector_slice_u256(*memory, pos, len);
                 let topic0 = u256_to_data(pop_stack(stack, error_code));
                 let topic1 = u256_to_data(pop_stack(stack, error_code));
                 let topic2 = u256_to_data(pop_stack(stack, error_code));
@@ -1079,9 +1079,9 @@ module aptos_framework::evm_for_test {
             }
                 //log4
             else if(opcode == 0xa4) {
-                let pos = pop_stack_u64(stack, error_code);
-                let len = pop_stack_u64(stack, error_code);
-                let data = vector_slice(*memory, pos, len);
+                let pos = pop_stack(stack, error_code);
+                let len = pop_stack(stack, error_code);
+                let data = vector_slice_u256(*memory, pos, len);
                 let topic0 = u256_to_data(pop_stack(stack, error_code));
                 let topic1 = u256_to_data(pop_stack(stack, error_code));
                 let topic2 = u256_to_data(pop_stack(stack, error_code));
