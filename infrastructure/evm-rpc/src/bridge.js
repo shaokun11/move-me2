@@ -253,8 +253,8 @@ async function sendTxTask() {
                 delete TX_NONCE_FIRST_CHECK_TIME[key];
                 removeTxFromMemoryPool(from, nonce);
                 PENDING_TX_SET.add(key);
+                const senderIndex = SENDER_ACCOUNT_INDEX.shift();
                 try {
-                    const senderIndex = SENDER_ACCOUNT_INDEX.shift();
                     const sender = GET_SENDER_ACCOUNT(senderIndex);
                     await sendTx(sender, tx, key, senderIndex);
                 } catch (error) {
