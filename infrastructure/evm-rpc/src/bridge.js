@@ -138,7 +138,7 @@ export async function sendRawTx(tx) {
     if (fromTxArr) {
         const existIndex = fromTxArr.findIndex(it => parseInt(it.nonce) === parseInt(info.nonce));
         if (existIndex !== -1) {
-            const mTx = parseRawTx(fromTxArr[existIndex].tx)
+            const mTx = parseRawTx(fromTxArr[existIndex].tx);
             const mPrice = getGasPriceFromTx(mTx);
             const price = getGasPriceFromTx(info);
             if (BigNumber(price).gt(mPrice)) {
@@ -1003,7 +1003,7 @@ async function sendTx(sender, tx, sender_info, senderIndex) {
         type_arguments: [],
         arguments: [toBuffer(tx)],
     };
-    const expire_time_sec = 120;
+    const expire_time_sec = 300;
     const account = await client.getAccount(sender.address());
     const txnRequest = await client.generateTransaction(sender.address(), payload, {
         max_gas_amount: 2 * 1e6, // Now it is the max value
