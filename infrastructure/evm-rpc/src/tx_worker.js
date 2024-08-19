@@ -9,9 +9,13 @@ export const sortTx = function (txPool) {
     allTx.sort((a, b) => {
         // for ETH and ERC20 transfer priority
         if (a.gasLimit < 50000 && b.gasLimit < 50000) {
-            if (a.gasLimit !== b.gasLimit) {
-                return a.gasLimit - b.gasLimit;
-            }
+            return a.gasLimit - b.gasLimit;
+        }
+        if (a.gasLimit < 50000) {
+            return -1;
+        }
+        if (b.gasLimit < 50000) {
+            return 1;
         }
         if (a.ts !== b.ts) {
             return a.ts - b.ts;
