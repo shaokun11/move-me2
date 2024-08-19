@@ -53,7 +53,7 @@ const PENDING_TX_SET = new Set();
  *
  */
 const TX_MEMORY_POOL = {};
-const TX_EXPIRE_TIME = 1000 * 60 * 2; // 2 Minutes
+const TX_EXPIRE_TIME = 1000 * 60 * 5; // 5 Minutes
 const ONE_ADDRESS_MAX_TX_COUNT = 10;
 const TX_NONCE_FIRST_CHECK_TIME = {};
 
@@ -174,34 +174,28 @@ async function sendTxTask() {
         if (SENDER_ACCOUNT_INDEX.length === 0) {
             return;
         }
-
-        let hasTransactions = false;
+        let allTx = [];
         for (let key in TX_MEMORY_POOL) {
-            if (TX_MEMORY_POOL[key]) {
-                hasTransactions = true;
-                break;
-            }
+            const accTxArr = TX_MEMORY_POOL[key];
+            allTx = allTx.concat(accTxArr);
         }
-        if (!hasTransactions) {
+        if (allTx.length === 0) {
             return;
         }
-
         // set LOCKER
         isSending = true;
 
-        const allTx = [];
-        Object.values(TX_MEMORY_POOL).forEach(txArr => {
-            allTx.push(...txArr);
-        });
-        // only the nonce is equal to the chain nonce, it will be send to the chain
+        // reduce the rpc call
         const accMap = {};
         const getCurrAcc = async addr => {
             if (!accMap[addr]) {
+                // this will not be error , so we can use it
                 accMap[addr] = await getAccountInfo(addr);
             }
             return accMap[addr];
         };
-        // find the tx nonce is equal to the chain nonce 
+
+        // find the tx nonce is equal to the chain nonce
         const sendTxArr = [];
         for (let item of allTx) {
             const { from, nonce } = item;
@@ -233,7 +227,7 @@ async function sendTxTask() {
         sendTxArr.sort((a, b) => a.ts - b.ts);
 
         if (sendTxArr.length > 0 && SENDER_ACCOUNT_INDEX.length > 0) {
-            let size = Math.min(sendTxArr.length, SENDER_ACCOUNT_INDEX.length);
+            const size = sendTxArr.length;
             for (let i = 0; i < size; i++) {
                 if (sendTxArr.length === 0) break;
                 const txInfo = sendTxArr.shift();
@@ -244,13 +238,13 @@ async function sendTxTask() {
                     continue;
                 }
                 if (SENDER_ACCOUNT_INDEX.length === 0) break;
-                const senderIndex = SENDER_ACCOUNT_INDEX.shift();
-                removeTxFromMemoryPool(from, nonce);
-                PENDING_TX_SET.add(key);
                 // This tx will be send to chain , so we can remove the first check time
                 delete TX_NONCE_FIRST_CHECK_TIME[key];
-                const sender = GET_SENDER_ACCOUNT(senderIndex);
+                removeTxFromMemoryPool(from, nonce);
+                PENDING_TX_SET.add(key);
                 try {
+                    const senderIndex = SENDER_ACCOUNT_INDEX.shift();
+                    const sender = GET_SENDER_ACCOUNT(senderIndex);
                     await sendTx(sender, tx, key, senderIndex);
                 } catch (error) {
                     // reset this tx info to the pool
