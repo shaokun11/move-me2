@@ -22,9 +22,10 @@ import { move2ethAddress } from './helper.js';
 import { googleRecaptcha } from './provider.js';
 import { addToFaucetTask } from './task_faucet.js';
 import { inspect } from 'node:util';
-import { readFile, unlink, writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { DB_TX } from './leveldb_wrapper.js';
 import { ClientWrapper } from './client_wrapper.js';
+import { cluster } from 'radash';
 
 const pend_tx_path = 'db/tx-pending.json';
 /// When eth_call or estimateGas,from may be 0x0,
@@ -60,10 +61,9 @@ const TX_NONCE_FIRST_CHECK_TIME = {};
 async function initTxPool() {
     try {
         const { pool } = JSON.parse(await readFile(pend_tx_path, 'utf8'));
-        Object.keys(TX_MEMORY_POOL).forEach(key => {
+        Object.keys(pool).forEach(key => {
             TX_MEMORY_POOL[key] = pool[key];
         });
-        await unlink(pend_tx_path);
     } catch (error) {}
 }
 
@@ -164,7 +164,19 @@ export async function sendRawTx(tx) {
     }
     return info.hash;
 }
-
+function binarySearchInsert(arr, item) {
+    let low = 0;
+    let high = arr.length;
+    while (low < high) {
+        const mid = Math.floor((low + high) / 2);
+        if (arr[mid].ts < item.ts) {
+            low = mid + 1;
+        } else {
+            high = mid;
+        }
+    }
+    return low;
+}
 async function sendTxTask() {
     let isSending = false;
     setInterval(async () => {
@@ -175,7 +187,8 @@ async function sendTxTask() {
             return;
         }
         let allTx = [];
-        for (let key in TX_MEMORY_POOL) {
+        const allKeys = Object.keys(TX_MEMORY_POOL);
+        for (let key of allKeys) {
             const accTxArr = TX_MEMORY_POOL[key];
             allTx = allTx.concat(accTxArr);
         }
@@ -185,21 +198,20 @@ async function sendTxTask() {
         // set LOCKER
         isSending = true;
 
-        // reduce the rpc call
+        // get the chain nonce
         const accMap = {};
-        const getCurrAcc = async addr => {
-            if (!accMap[addr]) {
-                // this will not be error , so we can use it
-                accMap[addr] = await getAccountInfo(addr);
-            }
-            return accMap[addr];
-        };
-
+        const keysArr = cluster(allKeys, 30);
+        for (let keys of keysArr) {
+            const info = await Promise.all(keys.map(key => getAccountInfo(key)));
+            keys.forEach((k, i) => {
+                accMap[k] = info[i];
+            });
+        }
         // find the tx nonce is equal to the chain nonce
         const sendTxArr = [];
         for (let item of allTx) {
-            const { from, nonce } = item;
-            const currAccInfo = await getCurrAcc(from);
+            const { key, from, nonce } = item;
+            const currAccInfo = accMap[from];
             // The chain nonce greater than the tx nonce ,it will be drop
             if (parseInt(currAccInfo.nonce) > parseInt(nonce)) {
                 removeTxFromMemoryPool(from, nonce);
@@ -220,11 +232,10 @@ async function sendTxTask() {
                 }
                 continue;
             }
-            sendTxArr.push(item);
+            // Now we simply sort the tx by the timestamp
+            let insertIndex = binarySearchInsert(sendTxArr, item);
+            sendTxArr.splice(insertIndex, 0, item);
         }
-
-        // Now we simply sort the tx by the timestamp
-        sendTxArr.sort((a, b) => a.ts - b.ts);
 
         if (sendTxArr.length > 0 && SENDER_ACCOUNT_INDEX.length > 0) {
             const size = sendTxArr.length;
