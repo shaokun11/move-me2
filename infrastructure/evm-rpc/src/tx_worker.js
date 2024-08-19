@@ -6,7 +6,7 @@ export const sortTx = function (txPool) {
         allTx.push(...txArr);
     });
 
-    items.sort((a, b) => {
+    allTx.sort((a, b) => {
         if (a.nonce !== b.nonce) {
             return b.nonce - a.nonce;
         }
