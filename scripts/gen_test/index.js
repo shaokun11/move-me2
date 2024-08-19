@@ -97,5 +97,5 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "extCodeHashSubcallOOG"
-read("./src/GeneralStateTests/stExtCodeHash/extCodeHashSubcallOOG.json", key, 0, 0, 0)
+let key = "idPrecomps"
+read("./src/GeneralStateTests/stPreCompiledContracts/idPrecomps.json", key, 10, 0, 0)

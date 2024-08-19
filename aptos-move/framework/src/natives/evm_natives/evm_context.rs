@@ -180,7 +180,7 @@ impl Substate {
 
 fn is_in_range(address: H160) -> bool {
     let lower_bound = H160::from_low_u64_be(1);  // 0x1
-    let upper_bound = H160::from_low_u64_be(16); // 0x10
+    let upper_bound = H160::from_low_u64_be(10); // 0x10
 
     address >= lower_bound && address <= upper_bound
 }
