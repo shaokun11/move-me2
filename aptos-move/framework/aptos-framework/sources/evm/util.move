@@ -163,7 +163,9 @@ module aptos_framework::evm_util {
     }
 
     public fun read_memory(memory: &mut vector<u8>, in_offset: u256, in_len: u256): vector<u8> {
-        expand_to_pos(memory, ((in_offset + in_len) as u64));
+        if(in_len > 0) {
+            expand_to_pos(memory, ((in_offset + in_len) as u64));
+        };
         vector_slice_u256(*memory, in_offset, in_len)
     }
 
