@@ -158,6 +158,7 @@ export async function sendRawTx(tx) {
         from: info.from,
         ts: Date.now(),
         key,
+        gasLimit: BigNumber(info.limit).toNumber(),
     };
     if (!fromTxArr) {
         TX_MEMORY_POOL[info.from] = [item];
