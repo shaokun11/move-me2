@@ -123,7 +123,7 @@ export async function sendRawTx(tx) {
     if (DISABLE_SEND_TX) {
         throw new Error('Not implemented');
     }
-    const info = await workerPool.run(tx, { name: 'parseTx' });
+    const info = parseRawTx(tx);
     // also there could use tx hash as the key
     let key = info.from + ':' + info.nonce;
     const checkIsSend = () => {
@@ -138,8 +138,7 @@ export async function sendRawTx(tx) {
     if (fromTxArr) {
         const existIndex = fromTxArr.findIndex(it => parseInt(it.nonce) === parseInt(info.nonce));
         if (existIndex !== -1) {
-            const mTx = await workerPool.run(fromTxArr[existIndex].tx, { name: 'parseTx' });
-            checkIsSend();
+            const mTx = parseRawTx(fromTxArr[existIndex].tx)
             const mPrice = getGasPriceFromTx(mTx);
             const price = getGasPriceFromTx(info);
             if (BigNumber(price).gt(mPrice)) {
@@ -244,7 +243,7 @@ async function sendTxTask() {
                     }
                     // put the sender back to the pool
                     SENDER_ACCOUNT_INDEX.push(senderIndex);
-                    const info = await workerPool.run(tx, { name: 'parseTx' });
+                    const info = parseRawTx(tx);
                     // maybe tx can't be send to the chain
                     console.warn('evm:%s,sender:%s,error %s ', info.hash, key, error.message ?? error);
                 }
@@ -1175,6 +1174,6 @@ function parseLogs(info, blockNumber, blockHash, evm_hash, transactionIndex) {
 }
 async function parseMoveTxPayload(info) {
     const args = info.payload.arguments;
-    return await workerPool.run(args[0], { name: 'parseTx' });
-    // return parseRawTx(args[0]);
+    // return await workerPool.run(args[0], { name: 'parseTx' });
+    return parseRawTx(args[0]);
 }
