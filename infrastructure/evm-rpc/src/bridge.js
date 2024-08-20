@@ -267,9 +267,8 @@ async function sendTxTask() {
                     }
                     // put the sender back to the pool
                     SENDER_ACCOUNT_INDEX.push(senderIndex);
-                    const info = parseRawTx(tx);
                     // maybe tx can't be send to the chain
-                    console.warn('evm:%s,sender:%s,error %s ', info.hash, key, error.message ?? error);
+                    console.warn('evm:%s,error %s ', key, error.message ?? error);
                 }
             }
         }
