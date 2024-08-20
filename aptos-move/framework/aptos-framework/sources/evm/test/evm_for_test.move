@@ -389,7 +389,7 @@ module aptos_framework::evm_for_test {
         while (i < len) {
             // Fetch the current opcode from the bytecode.
             let opcode: u8 = *vector::borrow(&code, (i as u64));
-            debug::print(&get_gas_left(run_state));
+            // debug::print(&get_gas_left(run_state));
             let gas = calc_exec_gas(opcode, to, stack, run_state, gas_limit, error_code);
             let out_of_gas = add_gas_usage(run_state, gas);
             if(*error_code > 0 || out_of_gas) {
@@ -1120,7 +1120,7 @@ module aptos_framework::evm_for_test {
             else {
                 assert!(false, (opcode as u64));
             };
-            debug::print(stack);
+            // debug::print(stack);
             // debug::print(&vector::length(stack));
 
             if(*error_code > 0 || vector::length(stack) > MAX_STACK_SIZE) {
