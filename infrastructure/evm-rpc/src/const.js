@@ -35,20 +35,22 @@ EVM_SENDER.forEach(privateKeyHex => {
 });
 
 senderAccounts.forEach((account, i) => {
-    console.log(`Sender ${i}: ${account.address().hexString}`);
+    console.log(`evm sender ${i}: ${account.address().hexString}`);
 });
 export const GET_SENDER_ACCOUNT = (i = 0) => senderAccounts[i];
 export const SENDER_ACCOUNT_COUNT = senderAccounts.length;
+
 export let FAUCET_SENDER_ACCOUNT = null;
 if (FAUCET_SENDER) {
     FAUCET_SENDER_ACCOUNT = AptosAccount.fromAptosAccountObject({
         privateKeyHex: FAUCET_SENDER,
     });
-    console.log(`Faucet sender: ${FAUCET_SENDER_ACCOUNT.address().hexString}`);
+    console.log(`faucet sender: ${FAUCET_SENDER_ACCOUNT.address().hexString}`);
 }
 export const client = new AptosClient(NODE_URL);
+const INDEXER_URL = process.env.INDEXER_URL;
 export const indexer_client = new Client({
-    url: process.env.INDEXER_URL,
+    url: INDEXER_URL,
     exchanges: [fetchExchange],
 });
 
@@ -58,16 +60,29 @@ export const ROBOT_SENDER_ACCOUNT = Boolean(ROBOT_SENDER)
       })
     : null;
 if (ROBOT_SENDER_ACCOUNT) {
-    console.log(`Robot sender: ${ROBOT_SENDER_ACCOUNT.address().hexString}`);
+    console.log(`robot sender: ${ROBOT_SENDER_ACCOUNT.address().hexString}`);
 }
 
-export const ENV_IS_PRO = process.env.NODE_ENV === 'production';
-export const START_SUMMARY_TASK = process.env.START_SUMMARY_TASK || false;
 export const RECAPTCHA_SECRET = process.env.RECAPTCHA_SECRET;
 
-export const SUMMARY_URL = process.env.SUMMARY_URL;
+export const DISABLE_EVM_SUMMARY_TASK = process.env.DISABLE_EVM_SUMMARY_TASK === 'true';
+export const SUMMARY_URL = process.env.SUMMARY_URL || '';
+
 export const DISABLE_SEND_TX = process.env.DISABLE_SEND_TX === 'true';
 export const DISABLE_EVM_ARCHIVE_NODE = process.env.DISABLE_EVM_ARCHIVE_NODE === 'true';
 export const DISABLE_CACHE = process.env.DISABLE_CACHE === 'true';
-export const DISABLE_FAUCET = process.env.DISABLE_FAUCET === 'true';
 export const DISABLE_BATCH_FAUCET = process.env.DISABLE_BATCH_FAUCET === 'true';
+
+console.log({
+    SERVER_PORT,
+    NODE_URL,
+    INDEXER_URL,
+    FAUCET_AMOUNT,
+    CHAIN_ID,
+    DISABLE_EVM_SUMMARY_TASK,
+    SUMMARY_URL,
+    DISABLE_SEND_TX,
+    DISABLE_EVM_ARCHIVE_NODE,
+    DISABLE_CACHE,
+    DISABLE_BATCH_FAUCET,
+});

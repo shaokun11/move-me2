@@ -1,6 +1,6 @@
 /// for summary all evm wallet address and evm transaction count
 
-import { client, START_SUMMARY_TASK } from './const.js';
+import { client } from './const.js';
 import { getEvmTransaction } from './db.js';
 import { JSONFilePreset } from 'lowdb/node';
 import { sleep } from './helper.js';
@@ -79,10 +79,6 @@ async function run(startVersion) {
 let count = 0;
 // this could be do it at evm indexers
 export async function startSummaryTask() {
-    if (!START_SUMMARY_TASK) {
-        console.log('Summary task is not started');
-        return;
-    }
     while (1) {
         try {
             const ver = await db.data.syncVersion;

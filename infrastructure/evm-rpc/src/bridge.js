@@ -3,14 +3,11 @@ import {
     client,
     ZERO_HASH,
     LOG_BLOOM,
-    FAUCET_SENDER_ACCOUNT,
     CHAIN_ID,
-    FAUCET_AMOUNT,
     SENDER_ACCOUNT_COUNT,
     SUMMARY_URL,
     DISABLE_EVM_ARCHIVE_NODE,
     DISABLE_SEND_TX,
-    DISABLE_FAUCET,
     DISABLE_BATCH_FAUCET,
 } from './const.js';
 import { parseRawTx, toHex, toNumber, toHexStrict } from './helper.js';
@@ -169,6 +166,7 @@ function binarySearchInsert(arr, item) {
     let high = arr.length;
     while (low < high) {
         const mid = Math.floor((low + high) / 2);
+        // Now just sort the tx by the timestamp
         if (arr[mid].ts < item.ts) {
             low = mid + 1;
         } else {
@@ -392,52 +390,7 @@ export async function batch_faucet(addr, token, ip) {
     if (res.error) {
         throw res.error;
     }
-    // console.log('faucet %s %s success', addr, ip);
     return res.data;
-}
-
-let IS_FAUCET_RUNNING = false;
-
-export async function faucet(addr) {
-    // for development use
-    if (DISABLE_FAUCET && addr !== ETH_ADDRESS_ONE) {
-        throw 'please get the token from web page';
-    }
-    if (!ethers.isAddress(addr)) {
-        throw 'Eth address format error';
-    }
-    if (IS_FAUCET_RUNNING) {
-        throw 'System busy, please try later';
-    }
-    let amount = FAUCET_AMOUNT;
-    if (addr === ETH_ADDRESS_ONE) {
-        amount = 100 * FAUCET_AMOUNT;
-    }
-    const payload = {
-        function: `0x1::evm::deposit`,
-        type_arguments: [],
-        arguments: [toBuffer(addr), toBuffer(toBeHex(BigNumber(amount).times(1e18).toString()))],
-    };
-    const txnRequest = await client.generateTransaction(FAUCET_SENDER_ACCOUNT.address(), payload, {
-        expiration_timestamp_secs: Math.floor(Date.now() / 1000) + 10,
-    });
-    const signedTxn = await client.signTransaction(FAUCET_SENDER_ACCOUNT, txnRequest);
-    const transactionRes = await client.submitTransaction(signedTxn);
-    // this not do any check , but we make it slowly to keep this function
-    // await sleep(5);
-    try {
-        const res = await client.waitForTransactionWithResult(transactionRes.hash);
-        console.log('faucet %s %s %s', addr, transactionRes.hash, res.vm_status);
-        if (res.success) {
-            return transactionRes.hash;
-        } else {
-            throw res.vm_status;
-        }
-    } catch (e) {
-        throw 'System error, please try later';
-    } finally {
-        IS_FAUCET_RUNNING = false;
-    }
 }
 
 export async function getMaxPriorityFeePerGas() {

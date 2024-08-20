@@ -37,21 +37,6 @@ The following RPC methods have been implemented to ensure interaction with Solid
 
 ### New Rpc for Move Evm
 
-- `eth_faucet`: For get test token, only NODE_ENV not production is validate
-
-```bash
-curl --location 'http://127.0.0.1:8998' \
---header 'Content-Type: application/json' \
---data '{
-    "id": "1",
-    "jsonrpc": "2.0",
-    "method": "eth_faucet",
-    "params": [
-        "0xB8f7166496996A7da21cF1f1b04d9B3E26a3d077"
-    ]
-}'
-```
-
 - `debug_getMoveHash`:Return the move evm hash by evm hash, this could use for query details at move explorer
 
 ```bash

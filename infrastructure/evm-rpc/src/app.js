@@ -4,7 +4,7 @@ import cors from 'cors';
 import JsonRpc from 'json-rpc-2.0';
 import { fork } from 'node:child_process';
 import { rpc } from './rpc.js';
-import { SERVER_PORT } from './const.js';
+import { DISABLE_EVM_SUMMARY_TASK, SERVER_PORT } from './const.js';
 import { startBotTask } from './task_bot.js';
 import { startFaucetTask } from './task_faucet.js';
 import http from 'node:http';
@@ -67,5 +67,7 @@ app.listen(SERVER_PORT, () => {
     startBotTask();
     startFaucetTask();
     // This not necessary for rpc, but it may use many memory, so we can run this in another process
-    fork('./src/task_summary.js');
+    if (!DISABLE_EVM_SUMMARY_TASK) {
+        fork('./src/task_summary.js');
+    }
 });

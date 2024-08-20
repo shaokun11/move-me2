@@ -14,7 +14,6 @@ import {
     getTransactionByHash,
     getTransactionReceipt,
     sendRawTx,
-    faucet,
     getLogs,
     eth_feeHistory,
     get_move_hash,
@@ -260,12 +259,6 @@ export const rpc = {
     },
     eth_getBlockReceipts: async function (args) {
         return getBlockReceipts(args[0]);
-    },
-    /**
-     * For development purpose, to get some test token
-     */
-    eth_faucet: async function (args, ctx) {
-        return faucet(args[0], ctx.ip);
     },
     /**
      * Use google recaptcha to implement the faucet
