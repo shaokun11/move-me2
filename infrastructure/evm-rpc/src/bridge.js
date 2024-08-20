@@ -22,7 +22,7 @@ import { inspect } from 'node:util';
 import { readFile, writeFile } from 'node:fs/promises';
 import { DB_TX } from './leveldb_wrapper.js';
 import { ClientWrapper } from './client_wrapper.js';
-import { cluster } from 'radash';
+import { cluster, isObject } from 'radash';
 
 const pend_tx_path = 'db/tx-pending.json';
 /// When eth_call or estimateGas,from may be 0x0,
@@ -720,9 +720,17 @@ export async function callContract(from, contract, calldata, value, block) {
     if (DISABLE_EVM_ARCHIVE_NODE) {
         block = undefined;
     } else {
-        if (isHexString(block)) {
-            let info = await ClientWrapper.getBlockByHeight(toNumber(block), false);
+        if (block?.blockHash?.length === 66) {
+            const height = await getBlockHeightByHash(block.blockHash);
+            const info = await ClientWrapper.getBlockByHeight(toNumber(height), false);
             block = info.last_version;
+        } else if (isHexString(block)) {
+            try {
+                const info = await ClientWrapper.getBlockByHeight(toNumber(block), false);
+                block = info.last_version;
+            } catch (error) {
+                throw 'block number error';
+            }
         } else {
             // it maybe latest
             block = undefined;
