@@ -209,11 +209,11 @@ module aptos_framework::evm_for_test {
                     }
                 };
             } else {
-                add_checkpoint();
                 to = to_32bit(to);
                 if(is_precompile_address(to)) {
                     precompile(from, to, data, value, gas_limit , run_state, true);
                 } else {
+                    add_checkpoint();
                     add_call_state(run_state, gas_limit - base_cost, false);
                     run(from, to, get_code(to), data, value, gas_limit - base_cost, run_state, true, false, 0);
                 };

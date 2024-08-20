@@ -97,5 +97,5 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "randomStatetest618"
-read("./src/GeneralStateTests/stRandom2/randomStatetest618.json", key, 0, 0, 0)
+let key = "randomStatetest642"
+read("./src/GeneralStateTests/stRandom2/randomStatetest642.json", key, 0, 0, 0)
