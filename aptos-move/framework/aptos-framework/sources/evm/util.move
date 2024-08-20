@@ -182,15 +182,17 @@ module aptos_framework::evm_util {
     }
 
     public fun copy_to_memory(memory: &mut vector<u8>, m_pos: u256, d_pos: u256, len: u256, data: vector<u8>) {
-        expand_to_pos(memory, ((m_pos + len) as u64));
-        let i = 0;
-        let d_len =( vector::length(&data) as u256);
+        if(len > 0) {
+            expand_to_pos(memory, ((m_pos + len) as u64));
+            let i = 0;
+            let d_len =( vector::length(&data) as u256);
 
-        while (i < len) {
-            let bytes = if(d_pos > U64_MAX || d_pos + i >= d_len) 0 else *vector::borrow(&data, ((d_pos + i) as u64));
-            *vector::borrow_mut(memory, ((m_pos + i) as u64)) = bytes;
-            i = i + 1;
-        };
+            while (i < len) {
+                let bytes = if(d_pos > U64_MAX || d_pos + i >= d_len) 0 else *vector::borrow(&data, ((d_pos + i) as u64));
+                *vector::borrow_mut(memory, ((m_pos + i) as u64)) = bytes;
+                i = i + 1;
+            };
+        }
     }
 
     public fun mstore(memory: &mut vector<u8>, pos: u64, data: vector<u8>) {
