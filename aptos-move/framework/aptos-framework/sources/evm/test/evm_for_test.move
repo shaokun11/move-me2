@@ -1041,7 +1041,11 @@ module aptos_framework::evm_for_test {
                 let pos = pop_stack_u64(stack, error_code);
                 let len = pop_stack_u64(stack, error_code);
                 let data = vector_slice(*memory, pos, len);
-                add_log(to, data, vector[]);
+                if(get_is_static(run_state)) {
+                    *error_code = ERROR_STATIC_STATE_CHANGE;
+                } else {
+                    add_log(to, data, vector[]);
+                };
                 i = i + 1
             }
                 //log1
@@ -1050,7 +1054,11 @@ module aptos_framework::evm_for_test {
                 let len = pop_stack(stack, error_code);
                 let data = vector_slice_u256(*memory, pos, len);
                 let topic0 = u256_to_data(pop_stack(stack, error_code));
-                add_log(to, data, vector[topic0]);
+                if(get_is_static(run_state)) {
+                    *error_code = ERROR_STATIC_STATE_CHANGE;
+                } else {
+                    add_log(to, data, vector[topic0]);
+                };
                 i = i + 1
             }
                 //log2
@@ -1060,7 +1068,11 @@ module aptos_framework::evm_for_test {
                 let data = vector_slice_u256(*memory, pos, len);
                 let topic0 = u256_to_data(pop_stack(stack, error_code));
                 let topic1 = u256_to_data(pop_stack(stack, error_code));
-                add_log(to, data, vector[topic0, topic1]);
+                if(get_is_static(run_state)) {
+                    *error_code = ERROR_STATIC_STATE_CHANGE;
+                } else {
+                    add_log(to, data, vector[topic0, topic1]);
+                };
                 i = i + 1
             }
                 //log3
@@ -1071,7 +1083,11 @@ module aptos_framework::evm_for_test {
                 let topic0 = u256_to_data(pop_stack(stack, error_code));
                 let topic1 = u256_to_data(pop_stack(stack, error_code));
                 let topic2 = u256_to_data(pop_stack(stack, error_code));
-                add_log(to, data, vector[topic0, topic1, topic2]);
+                if(get_is_static(run_state)) {
+                    *error_code = ERROR_STATIC_STATE_CHANGE;
+                } else {
+                    add_log(to, data, vector[topic0, topic1, topic2]);
+                };
                 i = i + 1
             }
                 //log4
@@ -1083,7 +1099,11 @@ module aptos_framework::evm_for_test {
                 let topic1 = u256_to_data(pop_stack(stack, error_code));
                 let topic2 = u256_to_data(pop_stack(stack, error_code));
                 let topic3 = u256_to_data(pop_stack(stack, error_code));
-                add_log(to, data, vector[topic0, topic1, topic2, topic3]);
+                if(get_is_static(run_state)) {
+                    *error_code = ERROR_STATIC_STATE_CHANGE;
+                } else {
+                    add_log(to, data, vector[topic0, topic1, topic2, topic3]);
+                };
                 i = i + 1
             }
                 //invalid opcode
