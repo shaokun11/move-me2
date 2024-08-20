@@ -211,7 +211,7 @@ module aptos_framework::evm_for_test {
             } else {
                 to = to_32bit(to);
                 if(is_precompile_address(to)) {
-                    precompile(from, to, data, value, gas_limit , run_state, true);
+                    precompile(from, to, to, data, value, gas_limit , run_state, true);
                 } else {
                     add_checkpoint();
                     add_call_state(run_state, gas_limit - base_cost, false);
@@ -989,7 +989,7 @@ module aptos_framework::evm_for_test {
                     vector::push_back(stack, 0);
                 } else {
                     if(is_precompile) {
-                        let (success, bytes) = precompile(call_from, code_address, params, msg_value, call_gas_limit, run_state, transfer_eth);
+                        let (success, bytes) = precompile(call_from, call_to, code_address, params, msg_value, call_gas_limit, run_state, transfer_eth);
                         if(success) {
                             set_ret_bytes(run_state, bytes);
                             write_call_output(memory, ret_pos, ret_len, bytes);
@@ -1156,14 +1156,14 @@ module aptos_framework::evm_for_test {
     }
 
     // This function is used to execute precompile EVM contracts.
-    fun precompile(sender: vector<u8>, to: vector<u8>, calldata: vector<u8>, value: u256, gas_limit: u256, run_state: &mut RunState, transfer_eth: bool): (bool, vector<u8>)  {
+    fun precompile(sender: vector<u8>, to: vector<u8>, address: vector<u8>, calldata: vector<u8>, value: u256, gas_limit: u256, run_state: &mut RunState, transfer_eth: bool): (bool, vector<u8>)  {
         if(transfer_eth) {
             if(get_balance(sender) < value) {
                 return (false, x"")
             };
         };
 
-        let (success, res, gas) = run_precompile(to, calldata, gas_limit);
+        let (success, res, gas) = run_precompile(address, calldata, gas_limit);
         if(gas > gas_limit) {
             success = false;
             gas = gas_limit;
