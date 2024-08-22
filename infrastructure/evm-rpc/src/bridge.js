@@ -5,10 +5,12 @@ import {
     LOG_BLOOM,
     CHAIN_ID,
     SENDER_ACCOUNT_COUNT,
-    SUMMARY_URL,
+    EVM_SUMMARY_URL,
     DISABLE_EVM_ARCHIVE_NODE,
     DISABLE_SEND_TX,
     DISABLE_BATCH_FAUCET,
+    EVM_RAW_TX_URL,
+    EVM_FAUCET_URL,
 } from './const.js';
 import { parseRawTx, toHex, toNumber, toHexStrict } from './helper.js';
 import { getMoveHash, getBlockHeightByHash, getEvmLogs, getErrorTxMoveHash } from './db.js';
@@ -23,6 +25,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { DB_TX } from './leveldb_wrapper.js';
 import { ClientWrapper } from './client_wrapper.js';
 import { cluster, isObject } from 'radash';
+import { postJsonRpc } from './request.js';
 
 const pend_tx_path = 'db/tx-pending.json';
 /// When eth_call or estimateGas,from may be 0x0,
@@ -114,6 +117,10 @@ function removeTxFromMemoryPool(from, nonce) {
 export async function sendRawTx(tx) {
     if (DISABLE_SEND_TX) {
         throw new Error('Not implemented');
+    }
+    if (EVM_RAW_TX_URL) {
+        const res = await postJsonRpc(EVM_RAW_TX_URL, 'eth_sendRawTransaction', [tx]);
+        return res.result;
     }
     const info = parseRawTx(tx);
     // also there could use tx hash as the key
@@ -290,22 +297,9 @@ export async function getEvmSummary() {
     };
     try {
         let res;
-        if (SUMMARY_URL) {
+        if (EVM_SUMMARY_URL) {
             // for the async node, it could get this info  from base node
-            res = await fetch(SUMMARY_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    id: '1',
-                    jsonrpc: '2.0',
-                    method: 'admin_getEvmTxSummary',
-                    params: [],
-                }),
-            })
-                .then(it => it.json())
-                .then(res => res.result);
+            res = await postJsonRpc(EVM_SUMMARY_URL, 'admin_getEvmTxSummary', []).then(res => res.result);
             ret.addressCount = res.addressCount;
             ret.txCount = res.txCount;
         } else {
@@ -379,12 +373,19 @@ export async function batch_faucet(addr, token, ip) {
     if (DISABLE_BATCH_FAUCET) {
         throw 'please get the token from web page';
     }
-    if ((await googleRecaptcha(token)) === false) {
-        throw 'recaptcha error';
-    }
     if (!ethers.isAddress(addr)) {
         throw 'Address format error';
     }
+    if (EVM_FAUCET_URL) {
+        const res = await postJsonRpc(EVM_FAUCET_URL, 'eth_batch_faucet', [addr], {
+            token: token,
+        });
+        return res.result;
+    }
+    if ((await googleRecaptcha(token)) === false) {
+        throw 'recaptcha error';
+    }
+
     const res = await addToFaucetTask({ addr, ip });
     if (res.error) {
         throw res.error;
