@@ -984,7 +984,7 @@ async function getAccountInfo(acc, block) {
     return ret;
 }
 
-async function sendTx(sender, tx, sender_info, senderIndex) {
+async function sendTx(sender, tx, txKey, senderIndex) {
     const payload = {
         function: `0x1::evm::send_tx`,
         type_arguments: [],
@@ -1027,14 +1027,14 @@ async function sendTx(sender, tx, sender_info, senderIndex) {
             }, 500);
         });
         SENDER_ACCOUNT_INDEX.push(senderIndex);
-        PENDING_TX_SET.delete(sender_info);
+        PENDING_TX_SET.delete(txKey);
         const result = await client.getTransactionByHash(transactionRes.hash);
         // maybe pending
         console.log(
-            'ms:%s,move:%s,sender:%s,%s',
+            'ms:%s,move:%s,tx:%s,%s',
             Date.now() - startTs,
             transactionRes.hash,
-            sender_info,
+            txKey,
             result.success || 'pending',
             result.vm_status || 'none',
         );
