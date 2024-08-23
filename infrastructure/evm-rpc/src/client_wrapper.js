@@ -1,5 +1,6 @@
 import BigNumber from 'bignumber.js';
 import { client } from './const.js';
+import { retry } from 'radash';
 BigNumber.config({ EXPONENTIAL_AT: 100 });
 export class ClientWrapper {
     static async getBlockByHeight(height, withTxs) {
@@ -26,5 +27,19 @@ export class ClientWrapper {
             );
         }
         return block;
+    }
+
+    static getTransactionByHash(hash) {
+        const run = () => {
+            return client.getTransactionByHash(hash);
+        };
+        // for some node may not sync to the latest block, we need to retry
+        return retry(
+            {
+                times: 3,
+                delay: 1000,
+            },
+            run,
+        );
     }
 }

@@ -94,7 +94,7 @@ export async function getErrorByHash(hash) {
     const mHash = await getErrorTxMoveHash(hash);
     if (mHash) {
         ret.moveHash = mHash.move_hash;
-        const info = await client.getTransactionByHash(mHash.move_hash);
+        const info = await ClientWrapper.getTransactionByHash(mHash.move_hash);
         ret.error = info.vm_status;
     }
     return ret;
@@ -333,7 +333,7 @@ export async function traceTransaction(hash) {
     // Now it is not support , but maybe useful in the future
     return {};
     const move_hash = await getMoveHash(hash);
-    const info = await client.getTransactionByHash(move_hash);
+    const info = await ClientWrapper.getTransactionByHash(move_hash);
     const callType = ['CALL', 'STATIC_CALL', 'DELEGATE_CALL'];
     const toEtherAddress = addr => '0x' + addr.slice(-40);
     const format_item = data => ({
@@ -850,7 +850,7 @@ export async function getTransactionByHash(evm_hash) {
     if (cache) {
         return JSON.parse(cache);
     }
-    const info = await client.getTransactionByHash(move_hash);
+    const info = await ClientWrapper.getTransactionByHash(move_hash);
     const block = await client.getBlockByVersion(info.version);
     const txInfo = await parseMoveTxPayload(info);
     const transactionIndex = toHex(await getTransactionIndex(block.block_height, evm_hash));
@@ -898,7 +898,7 @@ export async function getTransactionReceipt(evm_hash) {
     if (cache) {
         return JSON.parse(cache);
     }
-    let info = await client.getTransactionByHash(move_hash);
+    let info = await ClientWrapper.getTransactionByHash(move_hash);
     let block = await client.getBlockByVersion(info.version);
     const { to, from, type } = await parseMoveTxPayload(info);
     // let contractAddress = await getDeployedContract(info);
@@ -1034,7 +1034,7 @@ async function sendTx(sender, tx, txKey, senderIndex) {
         });
         SENDER_ACCOUNT_INDEX.push(senderIndex);
         PENDING_TX_SET.delete(txKey);
-        const result = await client.getTransactionByHash(transactionRes.hash);
+        const result = await ClientWrapper.getTransactionByHash(transactionRes.hash);
         // maybe pending
         console.log(
             'ms:%s,move:%s,tx:%s,%s',
