@@ -33,9 +33,6 @@ EVM_SENDER.forEach(privateKeyHex => {
         );
     }
 });
-if (senderAccounts.length === 0) {
-    console.warn('evm sender is empty');
-}
 senderAccounts.forEach((account, i) => {
     console.log(`evm sender ${i}: ${account.address().hexString}`);
 });
