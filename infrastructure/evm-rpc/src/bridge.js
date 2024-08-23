@@ -120,6 +120,8 @@ export async function sendRawTx(tx) {
     }
     if (EVM_RAW_TX_URL) {
         const res = await postJsonRpc(EVM_RAW_TX_URL, 'eth_sendRawTransaction', [tx]);
+        let msg = res.error?.message ?? res.result ?? res;
+        console.log('send raw tx', msg);
         if (res.error) {
             throw res.error?.message ?? res.error;
         }
