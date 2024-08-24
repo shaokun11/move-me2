@@ -21,6 +21,7 @@
 -  [Function `set_transient_storage`](#0x1_evm_context_set_transient_storage)
 -  [Function `add_balance`](#0x1_evm_context_add_balance)
 -  [Function `sub_balance`](#0x1_evm_context_sub_balance)
+-  [Function `set_balance`](#0x1_evm_context_set_balance)
 -  [Function `inc_nonce`](#0x1_evm_context_inc_nonce)
 -  [Function `set_nonce`](#0x1_evm_context_set_nonce)
 -  [Function `add_always_hot_address`](#0x1_evm_context_add_always_hot_address)
@@ -29,6 +30,11 @@
 -  [Function `push_substate`](#0x1_evm_context_push_substate)
 -  [Function `commit_substate`](#0x1_evm_context_commit_substate)
 -  [Function `revert_substate`](#0x1_evm_context_revert_substate)
+-  [Function `get_balance_change_set`](#0x1_evm_context_get_balance_change_set)
+-  [Function `get_nonce_change_set`](#0x1_evm_context_get_nonce_change_set)
+-  [Function `get_code_change_set`](#0x1_evm_context_get_code_change_set)
+-  [Function `get_address_change_set`](#0x1_evm_context_get_address_change_set)
+-  [Function `get_storage_change_set`](#0x1_evm_context_get_storage_change_set)
 
 
 <pre><code></code></pre>
@@ -387,6 +393,28 @@
 
 </details>
 
+<a id="0x1_evm_context_set_balance"></a>
+
+## Function `set_balance`
+
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="evm_context.md#0x1_evm_context_set_balance">set_balance</a>(contract: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, balance: u256)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>native</b> <b>fun</b> <a href="evm_context.md#0x1_evm_context_set_balance">set_balance</a>(contract: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, balance: u256);
+</code></pre>
+
+
+
+</details>
+
 <a id="0x1_evm_context_inc_nonce"></a>
 
 ## Function `inc_nonce`
@@ -557,6 +585,116 @@
 
 
 <pre><code><b>public</b>(<b>friend</b>) <b>native</b> <b>fun</b> <a href="evm_context.md#0x1_evm_context_revert_substate">revert_substate</a>();
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_context_get_balance_change_set"></a>
+
+## Function `get_balance_change_set`
+
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="evm_context.md#0x1_evm_context_get_balance_change_set">get_balance_change_set</a>(): (u64, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u256&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>native</b> <b>fun</b> <a href="evm_context.md#0x1_evm_context_get_balance_change_set">get_balance_change_set</a>(): (u64, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u256&gt;);
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_context_get_nonce_change_set"></a>
+
+## Function `get_nonce_change_set`
+
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="evm_context.md#0x1_evm_context_get_nonce_change_set">get_nonce_change_set</a>(): (u64, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u256&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>native</b> <b>fun</b> <a href="evm_context.md#0x1_evm_context_get_nonce_change_set">get_nonce_change_set</a>(): (u64, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u256&gt;);
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_context_get_code_change_set"></a>
+
+## Function `get_code_change_set`
+
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="evm_context.md#0x1_evm_context_get_code_change_set">get_code_change_set</a>(): (u64, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u64&gt;, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>native</b> <b>fun</b> <a href="evm_context.md#0x1_evm_context_get_code_change_set">get_code_change_set</a>(): (u64, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u64&gt;, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;);
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_context_get_address_change_set"></a>
+
+## Function `get_address_change_set`
+
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="evm_context.md#0x1_evm_context_get_address_change_set">get_address_change_set</a>(): (u64, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>native</b> <b>fun</b> <a href="evm_context.md#0x1_evm_context_get_address_change_set">get_address_change_set</a>(): (u64, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;);
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_context_get_storage_change_set"></a>
+
+## Function `get_storage_change_set`
+
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="evm_context.md#0x1_evm_context_get_storage_change_set">get_storage_change_set</a>(<b>address</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): (<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u256&gt;, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u256&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>native</b> <b>fun</b> <a href="evm_context.md#0x1_evm_context_get_storage_change_set">get_storage_change_set</a>(<b>address</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): (<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u256&gt;, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u256&gt;);
 </code></pre>
 
 

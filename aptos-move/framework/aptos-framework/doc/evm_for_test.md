@@ -810,11 +810,11 @@
                 }
             };
         } <b>else</b> {
-            add_checkpoint();
             <b>to</b> = to_32bit(<b>to</b>);
             <b>if</b>(is_precompile_address(<b>to</b>)) {
-                <a href="evm_for_test.md#0x1_evm_for_test_precompile">precompile</a>(<b>to</b>, data, gas_limit, run_state);
+                <a href="evm_for_test.md#0x1_evm_for_test_precompile">precompile</a>(from, <b>to</b>, <b>to</b>, data, value, gas_limit , run_state, <b>true</b>);
             } <b>else</b> {
+                add_checkpoint();
                 add_call_state(run_state, gas_limit - base_cost, <b>false</b>);
                 <a href="evm_for_test.md#0x1_evm_for_test_run">run</a>(from, <b>to</b>, get_code(<b>to</b>), data, value, gas_limit - base_cost, run_state, <b>true</b>, <b>false</b>, 0);
             };
@@ -1129,6 +1129,7 @@
     <b>while</b> (i &lt; len) {
         // Fetch the current opcode from the bytecode.
         <b>let</b> opcode: u8 = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&<a href="code.md#0x1_code">code</a>, (i <b>as</b> u64));
+        // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&get_gas_left(run_state));
         <b>let</b> gas = calc_exec_gas(opcode, <b>to</b>, stack, run_state, gas_limit, error_code);
         <b>let</b> out_of_gas = add_gas_usage(run_state, gas);
         <b>if</b>(*error_code &gt; 0 || out_of_gas) {
@@ -1136,7 +1137,7 @@
             <b>return</b> (<b>if</b>(out_of_gas) <a href="evm_for_test.md#0x1_evm_for_test_CALL_RESULT_OUT_OF_GAS">CALL_RESULT_OUT_OF_GAS</a> <b>else</b> <a href="evm_for_test.md#0x1_evm_for_test_CALL_RESULT_UNEXPECT_ERROR">CALL_RESULT_UNEXPECT_ERROR</a>, ret_value)
         };
         // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&i);
-        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&get_gas_left(run_state));
+
 
         // Handle each opcode according <b>to</b> the EVM specification.
         // The following is a simplified <a href="version.md#0x1_version">version</a> of the EVM execution engine,
@@ -1545,6 +1546,7 @@
             // mload
         <b>else</b> <b>if</b>(opcode == 0x51) {
             <b>let</b> pos = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack_u64">pop_stack_u64</a>(stack, error_code);
+            expand_to_pos(memory, pos + 32);
             <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, data_to_u256(vector_slice(*memory, pos, 32), 0, 32));
             i = i + 1;
         }
@@ -1710,6 +1712,7 @@
             <b>let</b> (call_gas_limit, gas_stipend) = max_call_gas(gas_left, gas, msg_value, need_stipend);
             <b>if</b>(gas_stipend &gt; 0) {
                 add_gas_left(run_state, gas_stipend);
+                <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&get_gas_left(run_state));
             };
             <b>let</b> m_pos = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
             <b>let</b> m_len = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
@@ -1726,11 +1729,8 @@
                 <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 0);
             } <b>else</b> {
                 <b>if</b>(is_precompile) {
-                    <b>let</b> (success, bytes) = <a href="evm_for_test.md#0x1_evm_for_test_precompile">precompile</a>(code_address, params, call_gas_limit, run_state);
+                    <b>let</b> (success, bytes) = <a href="evm_for_test.md#0x1_evm_for_test_precompile">precompile</a>(call_from, call_to, code_address, params, msg_value, call_gas_limit, run_state, transfer_eth);
                     <b>if</b>(success) {
-                        <b>if</b>(transfer_eth) {
-                            transfer(call_from, call_to, msg_value);
-                        };
                         set_ret_bytes(run_state, bytes);
                         write_call_output(memory, ret_pos, ret_len, bytes);
                     };
@@ -1781,49 +1781,69 @@
             <b>let</b> pos = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack_u64">pop_stack_u64</a>(stack, error_code);
             <b>let</b> len = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack_u64">pop_stack_u64</a>(stack, error_code);
             <b>let</b> data = vector_slice(*memory, pos, len);
-            add_log(<b>to</b>, data, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>[]);
+            <b>if</b>(get_is_static(run_state)) {
+                *error_code = <a href="evm_for_test.md#0x1_evm_for_test_ERROR_STATIC_STATE_CHANGE">ERROR_STATIC_STATE_CHANGE</a>;
+            } <b>else</b> {
+                add_log(<b>to</b>, data, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>[]);
+            };
             i = i + 1
         }
             //log1
         <b>else</b> <b>if</b>(opcode == 0xa1) {
-            <b>let</b> pos = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack_u64">pop_stack_u64</a>(stack, error_code);
-            <b>let</b> len = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack_u64">pop_stack_u64</a>(stack, error_code);
-            <b>let</b> data = vector_slice(*memory, pos, len);
+            <b>let</b> pos = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
+            <b>let</b> len = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
+            <b>let</b> data = vector_slice_u256(*memory, pos, len);
             <b>let</b> topic0 = u256_to_data(<a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code));
-            add_log(<b>to</b>, data, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>[topic0]);
+            <b>if</b>(get_is_static(run_state)) {
+                *error_code = <a href="evm_for_test.md#0x1_evm_for_test_ERROR_STATIC_STATE_CHANGE">ERROR_STATIC_STATE_CHANGE</a>;
+            } <b>else</b> {
+                add_log(<b>to</b>, data, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>[topic0]);
+            };
             i = i + 1
         }
             //log2
         <b>else</b> <b>if</b>(opcode == 0xa2) {
-            <b>let</b> pos = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack_u64">pop_stack_u64</a>(stack, error_code);
-            <b>let</b> len = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack_u64">pop_stack_u64</a>(stack, error_code);
-            <b>let</b> data = vector_slice(*memory, pos, len);
+            <b>let</b> pos = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
+            <b>let</b> len = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
+            <b>let</b> data = vector_slice_u256(*memory, pos, len);
             <b>let</b> topic0 = u256_to_data(<a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code));
             <b>let</b> topic1 = u256_to_data(<a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code));
-            add_log(<b>to</b>, data, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>[topic0, topic1]);
+            <b>if</b>(get_is_static(run_state)) {
+                *error_code = <a href="evm_for_test.md#0x1_evm_for_test_ERROR_STATIC_STATE_CHANGE">ERROR_STATIC_STATE_CHANGE</a>;
+            } <b>else</b> {
+                add_log(<b>to</b>, data, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>[topic0, topic1]);
+            };
             i = i + 1
         }
             //log3
         <b>else</b> <b>if</b>(opcode == 0xa3) {
-            <b>let</b> pos = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack_u64">pop_stack_u64</a>(stack, error_code);
-            <b>let</b> len = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack_u64">pop_stack_u64</a>(stack, error_code);
-            <b>let</b> data = vector_slice(*memory, pos, len);
+            <b>let</b> pos = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
+            <b>let</b> len = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
+            <b>let</b> data = vector_slice_u256(*memory, pos, len);
             <b>let</b> topic0 = u256_to_data(<a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code));
             <b>let</b> topic1 = u256_to_data(<a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code));
             <b>let</b> topic2 = u256_to_data(<a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code));
-            add_log(<b>to</b>, data, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>[topic0, topic1, topic2]);
+            <b>if</b>(get_is_static(run_state)) {
+                *error_code = <a href="evm_for_test.md#0x1_evm_for_test_ERROR_STATIC_STATE_CHANGE">ERROR_STATIC_STATE_CHANGE</a>;
+            } <b>else</b> {
+                add_log(<b>to</b>, data, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>[topic0, topic1, topic2]);
+            };
             i = i + 1
         }
             //log4
         <b>else</b> <b>if</b>(opcode == 0xa4) {
-            <b>let</b> pos = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack_u64">pop_stack_u64</a>(stack, error_code);
-            <b>let</b> len = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack_u64">pop_stack_u64</a>(stack, error_code);
-            <b>let</b> data = vector_slice(*memory, pos, len);
+            <b>let</b> pos = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
+            <b>let</b> len = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
+            <b>let</b> data = vector_slice_u256(*memory, pos, len);
             <b>let</b> topic0 = u256_to_data(<a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code));
             <b>let</b> topic1 = u256_to_data(<a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code));
             <b>let</b> topic2 = u256_to_data(<a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code));
             <b>let</b> topic3 = u256_to_data(<a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code));
-            add_log(<b>to</b>, data, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>[topic0, topic1, topic2, topic3]);
+            <b>if</b>(get_is_static(run_state)) {
+                *error_code = <a href="evm_for_test.md#0x1_evm_for_test_ERROR_STATIC_STATE_CHANGE">ERROR_STATIC_STATE_CHANGE</a>;
+            } <b>else</b> {
+                add_log(<b>to</b>, data, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>[topic0, topic1, topic2, topic3]);
+            };
             i = i + 1
         }
             //invalid opcode
@@ -1840,7 +1860,7 @@
         <b>else</b> {
             <b>assert</b>!(<b>false</b>, (opcode <b>as</b> u64));
         };
-        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(stack);
+        // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(stack);
         // <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack));
 
         <b>if</b>(*error_code &gt; 0 || <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack) &gt; <a href="evm_for_test.md#0x1_evm_for_test_MAX_STACK_SIZE">MAX_STACK_SIZE</a>) {
@@ -1905,7 +1925,7 @@
 
 
 
-<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_precompile">precompile</a>(<b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_limit: u256, run_state: &<b>mut</b> <a href="global_state_for_test.md#0x1_evm_global_state_for_test_RunState">evm_global_state_for_test::RunState</a>): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_precompile">precompile</a>(sender: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <b>address</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, value: u256, gas_limit: u256, run_state: &<b>mut</b> <a href="global_state_for_test.md#0x1_evm_global_state_for_test_RunState">evm_global_state_for_test::RunState</a>, transfer_eth: bool): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)
 </code></pre>
 
 
@@ -1914,11 +1934,20 @@
 <summary>Implementation</summary>
 
 
-<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_precompile">precompile</a>(<b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_limit: u256, run_state: &<b>mut</b> RunState): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)  {
-    <b>let</b> (success, res, gas) = run_precompile(<b>to</b>, calldata, gas_limit);
+<pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_precompile">precompile</a>(sender: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <b>address</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, calldata: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, value: u256, gas_limit: u256, run_state: &<b>mut</b> RunState, transfer_eth: bool): (bool, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)  {
+    <b>if</b>(transfer_eth) {
+        <b>if</b>(get_balance(sender) &lt; value) {
+            <b>return</b> (<b>false</b>, x"")
+        };
+    };
+
+    <b>let</b> (success, res, gas) = run_precompile(<b>address</b>, calldata, gas_limit);
     <b>if</b>(gas &gt; gas_limit) {
         success = <b>false</b>;
         gas = gas_limit;
+    };
+    <b>if</b>(success && transfer_eth) {
+        transfer(sender, <b>to</b>, value);
     };
     add_gas_usage(run_state, gas);
     (success, res)

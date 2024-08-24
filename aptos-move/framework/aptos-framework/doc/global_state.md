@@ -889,7 +889,7 @@
 
 <pre><code><b>public</b> <b>fun</b> <a href="global_state.md#0x1_evm_global_state_add_gas_left">add_gas_left</a>(run_state: &<b>mut</b> <a href="global_state.md#0x1_evm_global_state_RunState">RunState</a>, amount: u256) {
     <b>let</b> state = <a href="global_state.md#0x1_evm_global_state_get_lastest_state_mut">get_lastest_state_mut</a>(run_state);
-    state.gas_left = <b>if</b>(state.gas_left &gt; amount) state.gas_left + amount <b>else</b> 0;
+    state.gas_left = state.gas_left + amount;
 }
 </code></pre>
 

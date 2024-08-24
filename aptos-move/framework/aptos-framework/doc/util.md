@@ -753,7 +753,9 @@ owned.
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_read_memory">read_memory</a>(memory: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, in_offset: u256, in_len: u256): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt; {
-    <a href="util.md#0x1_evm_util_expand_to_pos">expand_to_pos</a>(memory, ((in_offset + in_len) <b>as</b> u64));
+    <b>if</b>(in_len &gt; 0) {
+        <a href="util.md#0x1_evm_util_expand_to_pos">expand_to_pos</a>(memory, ((in_offset + in_len) <b>as</b> u64));
+    };
     <a href="util.md#0x1_evm_util_vector_slice_u256">vector_slice_u256</a>(*memory, in_offset, in_len)
 }
 </code></pre>
@@ -810,15 +812,17 @@ owned.
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_copy_to_memory">copy_to_memory</a>(memory: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, m_pos: u256, d_pos: u256, len: u256, data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;) {
-    <a href="util.md#0x1_evm_util_expand_to_pos">expand_to_pos</a>(memory, ((m_pos + len) <b>as</b> u64));
-    <b>let</b> i = 0;
-    <b>let</b> d_len =( <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&data) <b>as</b> u256);
+    <b>if</b>(len &gt; 0) {
+        <a href="util.md#0x1_evm_util_expand_to_pos">expand_to_pos</a>(memory, ((m_pos + len) <b>as</b> u64));
+        <b>let</b> i = 0;
+        <b>let</b> d_len =( <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&data) <b>as</b> u256);
 
-    <b>while</b> (i &lt; len) {
-        <b>let</b> bytes = <b>if</b>(d_pos &gt; <a href="util.md#0x1_evm_util_U64_MAX">U64_MAX</a> || d_pos + i &gt;= d_len) 0 <b>else</b> *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&data, ((d_pos + i) <b>as</b> u64));
-        *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow_mut">vector::borrow_mut</a>(memory, ((m_pos + i) <b>as</b> u64)) = bytes;
-        i = i + 1;
-    };
+        <b>while</b> (i &lt; len) {
+            <b>let</b> bytes = <b>if</b>(d_pos &gt; <a href="util.md#0x1_evm_util_U64_MAX">U64_MAX</a> || d_pos + i &gt;= d_len) 0 <b>else</b> *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&data, ((d_pos + i) <b>as</b> u64));
+            *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow_mut">vector::borrow_mut</a>(memory, ((m_pos + i) <b>as</b> u64)) = bytes;
+            i = i + 1;
+        };
+    }
 }
 </code></pre>
 

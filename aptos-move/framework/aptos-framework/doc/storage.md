@@ -11,7 +11,12 @@
 -  [Function `get_move_address`](#0x1_evm_storage_get_move_address)
 -  [Function `exist_account_storage`](#0x1_evm_storage_exist_account_storage)
 -  [Function `get_code_storage`](#0x1_evm_storage_get_code_storage)
+-  [Function `get_nonce_storage`](#0x1_evm_storage_get_nonce_storage)
+-  [Function `get_balance_storage`](#0x1_evm_storage_get_balance_storage)
 -  [Function `get_state_storage`](#0x1_evm_storage_get_state_storage)
+-  [Function `save_account_balance`](#0x1_evm_storage_save_account_balance)
+-  [Function `save_account_nonce`](#0x1_evm_storage_save_account_nonce)
+-  [Function `save_account_code`](#0x1_evm_storage_save_account_code)
 -  [Function `save_account_state`](#0x1_evm_storage_save_account_state)
 -  [Function `save_account_storage`](#0x1_evm_storage_save_account_storage)
 -  [Function `load_account_storage`](#0x1_evm_storage_load_account_storage)
@@ -221,6 +226,66 @@
 
 </details>
 
+<a id="0x1_evm_storage_get_nonce_storage"></a>
+
+## Function `get_nonce_storage`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="storage.md#0x1_evm_storage_get_nonce_storage">get_nonce_storage</a>(<b>address</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): u256
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="storage.md#0x1_evm_storage_get_nonce_storage">get_nonce_storage</a>(<b>address</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): u256 <b>acquires</b> <a href="storage.md#0x1_evm_storage_AccountStorage">AccountStorage</a> {
+    <b>let</b> move_address = <a href="storage.md#0x1_evm_storage_get_move_address">get_move_address</a>(<b>address</b>);
+    <b>if</b>(<b>exists</b>&lt;<a href="storage.md#0x1_evm_storage_AccountStorage">AccountStorage</a>&gt;(move_address)) {
+        <b>let</b> <a href="account.md#0x1_account">account</a> = <b>borrow_global</b>&lt;<a href="storage.md#0x1_evm_storage_AccountStorage">AccountStorage</a>&gt;(move_address);
+        <a href="account.md#0x1_account">account</a>.nonce
+    } <b>else</b> {
+        0
+    }
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_storage_get_balance_storage"></a>
+
+## Function `get_balance_storage`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="storage.md#0x1_evm_storage_get_balance_storage">get_balance_storage</a>(contract_addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): u256
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="storage.md#0x1_evm_storage_get_balance_storage">get_balance_storage</a>(contract_addr: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): u256 <b>acquires</b> <a href="storage.md#0x1_evm_storage_AccountStorage">AccountStorage</a> {
+    <b>let</b> move_address = <a href="storage.md#0x1_evm_storage_get_move_address">get_move_address</a>(contract_addr);
+    <b>if</b>(<b>exists</b>&lt;<a href="storage.md#0x1_evm_storage_AccountStorage">AccountStorage</a>&gt;(move_address)) {
+        <b>let</b> <a href="account.md#0x1_account">account</a> = <b>borrow_global</b>&lt;<a href="storage.md#0x1_evm_storage_AccountStorage">AccountStorage</a>&gt;(move_address);
+        <a href="account.md#0x1_account">account</a>.balance
+    } <b>else</b> {
+        0
+    }
+}
+</code></pre>
+
+
+
+</details>
+
 <a id="0x1_evm_storage_get_state_storage"></a>
 
 ## Function `get_state_storage`
@@ -244,6 +309,90 @@
     } <b>else</b> {
         0
     }
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_storage_save_account_balance"></a>
+
+## Function `save_account_balance`
+
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="storage.md#0x1_evm_storage_save_account_balance">save_account_balance</a>(<b>address</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, balance: u256)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="storage.md#0x1_evm_storage_save_account_balance">save_account_balance</a>(<b>address</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, balance: u256) <b>acquires</b> <a href="storage.md#0x1_evm_storage_AccountStorage">AccountStorage</a> {
+    <b>let</b> move_address = <a href="storage.md#0x1_evm_storage_get_move_address">get_move_address</a>(<b>address</b>);
+    <b>let</b> account_store_to = <b>borrow_global_mut</b>&lt;<a href="storage.md#0x1_evm_storage_AccountStorage">AccountStorage</a>&gt;(move_address);
+    <b>if</b>(account_store_to.balance != balance) {
+        account_store_to.balance = balance;
+    };
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_storage_save_account_nonce"></a>
+
+## Function `save_account_nonce`
+
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="storage.md#0x1_evm_storage_save_account_nonce">save_account_nonce</a>(<b>address</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, nonce: u256)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="storage.md#0x1_evm_storage_save_account_nonce">save_account_nonce</a>(<b>address</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, nonce: u256) <b>acquires</b> <a href="storage.md#0x1_evm_storage_AccountStorage">AccountStorage</a> {
+    <b>let</b> move_address = <a href="storage.md#0x1_evm_storage_get_move_address">get_move_address</a>(<b>address</b>);
+    <b>let</b> account_store_to = <b>borrow_global_mut</b>&lt;<a href="storage.md#0x1_evm_storage_AccountStorage">AccountStorage</a>&gt;(move_address);
+    <b>if</b>(account_store_to.nonce != nonce) {
+        account_store_to.nonce = nonce;
+    };
+}
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_storage_save_account_code"></a>
+
+## Function `save_account_code`
+
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="storage.md#0x1_evm_storage_save_account_code">save_account_code</a>(<b>address</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="code.md#0x1_code">code</a>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="storage.md#0x1_evm_storage_save_account_code">save_account_code</a>(<b>address</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="code.md#0x1_code">code</a>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;) <b>acquires</b> <a href="storage.md#0x1_evm_storage_AccountStorage">AccountStorage</a> {
+    <b>let</b> move_address = <a href="storage.md#0x1_evm_storage_get_move_address">get_move_address</a>(<b>address</b>);
+    <b>let</b> account_store_to = <b>borrow_global_mut</b>&lt;<a href="storage.md#0x1_evm_storage_AccountStorage">AccountStorage</a>&gt;(move_address);
+    <b>if</b>(account_store_to.<a href="code.md#0x1_code">code</a> != <a href="code.md#0x1_code">code</a>) {
+        account_store_to.<a href="code.md#0x1_code">code</a> = <a href="code.md#0x1_code">code</a>;
+    };
 }
 </code></pre>
 

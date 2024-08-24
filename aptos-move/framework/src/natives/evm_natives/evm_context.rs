@@ -295,6 +295,20 @@ fn native_sub_balance (
     Ok(smallvec![Value::bool(true)])
 }
 
+fn native_set_balance (
+    context: &mut SafeNativeContext,
+    _ty_args: Vec<Type>,
+    mut args: VecDeque<Value>
+) -> SafeNativeResult<SmallVec<[Value; 1]>> {
+    let balance = move_u256_to_evm_u256(&safely_pop_arg!(args, move_u256));
+    let target = bytes_to_h160(&safely_pop_arg!(args, Vec<u8>));
+
+    let ctx = context.extensions_mut().get_mut::<NativeEvmContext>();
+    ctx.substate.balances.insert(target, balance); 
+
+    Ok(smallvec![])
+}
+
 fn native_inc_nonce (
     context: &mut SafeNativeContext,
     _ty_args: Vec<Type>,
@@ -660,6 +674,117 @@ fn native_calculate_root(
     Ok(smallvec![Value::vector_u8(state_root.to_vec())])
 }
 
+fn native_get_balance_change_set(
+    context: &mut SafeNativeContext,
+    _ty_args: Vec<Type>,
+    _args: VecDeque<Value>,
+) -> SafeNativeResult<SmallVec<[Value; 1]>> { 
+    let ctx = context.extensions().get::<NativeEvmContext>();
+
+    let len = ctx.substate.balances.len();
+    let mut address_list: Vec<u8> = Vec::with_capacity(len * 32);
+    let mut value_list: Vec<move_u256> = Vec::new();
+
+    for (address, value) in ctx.substate.balances.iter() {
+        let mut padded_address = vec![0u8; 12]; // 12 个前置零
+        padded_address.extend_from_slice(address.as_bytes());
+
+        address_list.extend_from_slice(&padded_address);
+
+        value_list.push(evm_u256_to_move_u256(value));
+    }
+
+    Ok(smallvec![Value::u64(len as u64), Value::vector_u8(address_list), Value::vector_u256(value_list)])
+}
+
+fn native_get_nonce_change_set(
+    context: &mut SafeNativeContext,
+    _ty_args: Vec<Type>,
+    _args: VecDeque<Value>,
+) -> SafeNativeResult<SmallVec<[Value; 1]>> { 
+    let ctx = context.extensions().get::<NativeEvmContext>();
+
+    let len = ctx.substate.nonces.len();
+    let mut address_list: Vec<u8> = Vec::with_capacity(len * 32);
+    let mut value_list: Vec<move_u256> = Vec::new();
+
+    for (address, value) in ctx.substate.nonces.iter() {
+        let mut padded_address = vec![0u8; 12]; 
+        padded_address.extend_from_slice(address.as_bytes());
+
+        address_list.extend_from_slice(&padded_address);
+
+        value_list.push(evm_u256_to_move_u256(value));
+    }
+
+    Ok(smallvec![Value::u64(len as u64), Value::vector_u8(address_list), Value::vector_u256(value_list)])
+}
+
+fn native_get_code_change_set(
+    context: &mut SafeNativeContext,
+    _ty_args: Vec<Type>,
+    _args: VecDeque<Value>,
+) -> SafeNativeResult<SmallVec<[Value; 1]>> { 
+    let ctx = context.extensions().get::<NativeEvmContext>();
+
+    let len = ctx.substate.codes.len();
+    let mut address_list: Vec<u8> = Vec::with_capacity(len * 32);
+    let mut code_list: Vec<u8> = Vec::new();
+    let mut code_lengths: Vec<u64> = Vec::new();
+
+    for (address, code) in ctx.substate.codes.iter() {
+        let mut padded_address = vec![0u8; 12]; 
+        padded_address.extend_from_slice(address.as_bytes());
+
+        address_list.extend_from_slice(&padded_address);
+
+        code_lengths.push(code.len() as u64);
+        code_list.extend_from_slice(code);
+    }
+
+    Ok(smallvec![Value::u64(len as u64), Value::vector_u8(address_list), Value::vector_u64(code_lengths), Value::vector_u8(code_list)])
+}
+
+fn native_get_address_change_set(
+    context: &mut SafeNativeContext,
+    _ty_args: Vec<Type>,
+    _args: VecDeque<Value>,
+) -> SafeNativeResult<SmallVec<[Value; 1]>> { 
+    let ctx = context.extensions().get::<NativeEvmContext>();
+
+    let len = ctx.substate.storages.len();
+    let mut address_list: Vec<u8> = Vec::with_capacity(len * 32);
+
+    for address in ctx.substate.storages.keys() {
+        let mut padded_address = vec![0u8; 12]; 
+        padded_address.extend_from_slice(address.as_bytes());
+
+        address_list.extend_from_slice(&padded_address);
+    }
+
+    Ok(smallvec![Value::u64(len as u64), Value::vector_u8(address_list)])
+}
+
+fn native_get_storage_change_set(
+    context: &mut SafeNativeContext,
+    _ty_args: Vec<Type>,
+    mut args: VecDeque<Value>,
+) -> SafeNativeResult<SmallVec<[Value; 1]>> { 
+    let target_address = bytes_to_h160(&safely_pop_arg!(args, Vec<u8>));
+    let ctx = context.extensions().get::<NativeEvmContext>();
+
+    let mut keys: Vec<move_u256> = Vec::new();
+    let mut values: Vec<move_u256> = Vec::new();
+
+    if let Some(storage_map) = ctx.substate.storages.get(&target_address) {
+        for (key, value) in storage_map.iter() {
+            keys.push(evm_u256_to_move_u256(key));
+            values.push(evm_u256_to_move_u256(value));
+        }
+    }
+
+    Ok(smallvec![Value::vector_u256(keys), Value::vector_u256(values)])
+}
 
 /***************************************************************************************************
  * module
@@ -684,6 +809,7 @@ pub fn make_all(
         ("set_transient_storage", native_set_transient_storage as RawSafeNative),
         ("add_balance", native_add_balance as RawSafeNative),
         ("sub_balance", native_sub_balance as RawSafeNative),
+        ("set_balance", native_set_balance as RawSafeNative),
         ("inc_nonce", native_inc_nonce as RawSafeNative),
         ("set_nonce", native_set_nonce as RawSafeNative),
         ("add_always_hot_address", native_add_always_hot_address as RawSafeNative),
@@ -692,7 +818,12 @@ pub fn make_all(
         ("push_substate", native_push_substate as RawSafeNative),
         ("revert_substate", native_revert_substate as RawSafeNative),
         ("commit_substate", native_commit_substate as RawSafeNative),
-        ("calculate_root", native_calculate_root as RawSafeNative)
+        ("calculate_root", native_calculate_root as RawSafeNative),
+        ("get_balance_change_set", native_get_balance_change_set as RawSafeNative),
+        ("get_nonce_change_set", native_get_nonce_change_set as RawSafeNative),
+        ("get_code_change_set", native_get_code_change_set as RawSafeNative),
+        ("get_address_change_set", native_get_address_change_set as RawSafeNative),
+        ("get_storage_change_set", native_get_storage_change_set as RawSafeNative)
     ];
 
     builder.make_named_natives(natives)

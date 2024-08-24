@@ -11,6 +11,7 @@ module aptos_framework::evm_storage {
     use aptos_framework::account::{exists_at};
 
     friend aptos_framework::evm_trie;
+    friend aptos_framework::evm_trie_v2;
     friend aptos_framework::evm;
 
     const CONVERT_BASE: u256 = 10000000000;
@@ -49,6 +50,26 @@ module aptos_framework::evm_storage {
         }
     }
 
+    public fun get_nonce_storage(address: vector<u8>): u256 acquires AccountStorage {
+        let move_address = get_move_address(address);
+        if(exists<AccountStorage>(move_address)) {
+            let account = borrow_global<AccountStorage>(move_address);
+            account.nonce
+        } else {
+            0
+        }
+    }
+
+    public fun get_balance_storage(contract_addr: vector<u8>): u256 acquires AccountStorage {
+        let move_address = get_move_address(contract_addr);
+        if(exists<AccountStorage>(move_address)) {
+            let account = borrow_global<AccountStorage>(move_address);
+            account.balance
+        } else {
+            0
+        }
+    }
+
     public fun get_state_storage(contract_addr: vector<u8>, key: u256): u256 acquires AccountStorage {
         let move_address = get_move_address(contract_addr);
         if(exists<AccountStorage>(move_address)) {
@@ -57,6 +78,33 @@ module aptos_framework::evm_storage {
         } else {
             0
         }
+    }
+
+    public(friend) fun save_account_balance(address: vector<u8>, balance: u256) acquires AccountStorage {
+        let move_address = get_move_address(address);
+        create_account_if_not_exist(move_address);
+        let account_store_to = borrow_global_mut<AccountStorage>(move_address);
+        if(account_store_to.balance != balance) {
+            account_store_to.balance = balance;
+        };
+    }
+
+    public(friend) fun save_account_nonce(address: vector<u8>, nonce: u256) acquires AccountStorage {
+        let move_address = get_move_address(address);
+        create_account_if_not_exist(move_address);
+        let account_store_to = borrow_global_mut<AccountStorage>(move_address);
+        if(account_store_to.nonce != nonce) {
+            account_store_to.nonce = nonce;
+        };
+    }
+
+    public(friend) fun save_account_code(address: vector<u8>, code: vector<u8>) acquires AccountStorage {
+        let move_address = get_move_address(address);
+        create_account_if_not_exist(move_address);
+        let account_store_to = borrow_global_mut<AccountStorage>(move_address);
+        if(account_store_to.code != code) {
+            account_store_to.code = code;
+        };
     }
 
     public(friend) fun save_account_state(contract_addr: vector<u8>, keys: vector<u256>, values: vector<u256>) acquires AccountStorage {

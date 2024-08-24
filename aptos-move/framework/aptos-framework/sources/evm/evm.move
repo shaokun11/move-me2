@@ -9,13 +9,12 @@ module aptos_framework::evm {
     use aptos_std::simple_map;
     use aptos_framework::evm_arithmetic::{add, mul, sub, div, sdiv, mod, smod, add_mod, mul_mod, exp, slt, sgt, shr, sar};
     use aptos_framework::evm_global_state::{new_run_state, get_gas_price, get_coinbase, is_eip_1559, get_basefee, get_max_fee_per_gas, get_max_priority_fee_per_gas, get_block_gas_limit, add_gas_usage, get_gas_left, add_call_state, get_gas_refund, RunState, set_ret_bytes, get_is_static, clear_gas_refund, commit_call_state, revert_call_state, get_origin, get_ret_size, get_ret_bytes, get_timestamp, get_block_number, get_random, add_gas_left, get_sender, get_to, CallEvent, get_traces};
-    use aptos_framework::evm_trie::{init_new_trie, add_warm_address, get_balance, get_code_length, get_nonce, sub_balance, add_checkpoint, is_contract_or_created_account, set_code, add_nonce, add_balance, save, Trie, create_account, transfer, revert_checkpoint, commit_latest_checkpoint, exist_account, get_state, set_state, get_transient_storage, put_transient_storage, exist_contract, set_balance, add_log, Log, get_logs};
+    use aptos_framework::evm_trie_v2::{init_new_trie, add_warm_address, get_balance, get_code_length, get_nonce, sub_balance, add_checkpoint, is_contract_or_created_account, set_code, add_nonce, add_balance, save, transfer, revert_checkpoint, commit_latest_checkpoint, exist_account, get_state, set_state, get_transient_storage, put_transient_storage, exist_contract, set_balance, new_account};
     use aptos_framework::evm_gas::{calc_base_gas, max_call_gas, calc_exec_gas};
     use aptos_framework::evm_precompile::{is_precompile_address, run_precompile};
     use aptos_framework::evm_storage::{get_code_storage, deposit_to, get_state_storage, withdraw_from};
     use aptos_framework::evm_storage;
     use std::string::utf8;
-    use aptos_framework::evm_trie;
     #[test_only]
     use aptos_framework::account;
     #[test_only]
@@ -25,6 +24,8 @@ module aptos_framework::evm {
     use aptos_framework::coin::register;
     use aptos_framework::aptos_coin::AptosCoin;
     use aptos_std::from_bcs::to_address;
+    use aptos_framework::evm_log::{LogContext, Log};
+    use aptos_framework::evm_log;
 
     friend aptos_framework::genesis;
 
@@ -46,16 +47,27 @@ module aptos_framework::evm {
     const ERROR_INVALID_CHAINID: u64 = 60;
 
     const EXCEPTION_NONE: u64 = 200;
+    /// EXCEPTION_1559_MAX_FEE_LOWER_THAN_BASE_FEE
     const EXCEPTION_1559_MAX_FEE_LOWER_THAN_BASE_FEE: u64 = 201;
+    /// EXCEPTION_LEGACY_GAS_PRICE_LOWER_THAN_BASE_FEE
     const EXCEPTION_LEGACY_GAS_PRICE_LOWER_THAN_BASE_FEE: u64 = 202;
+    /// EXCEPTION_GAS_LIMIT_EXCEED_BLOCK_LIMIT
     const EXCEPTION_GAS_LIMIT_EXCEED_BLOCK_LIMIT: u64 = 203;
+    /// EXCEPTION_CREATE_CONTRACT_CODE_SIZE_EXCEED
     const EXCEPTION_CREATE_CONTRACT_CODE_SIZE_EXCEED: u64 = 204;
+    /// EXCEPTION_INSUFFCIENT_BALANCE_TO_SEND_TX
     const EXCEPTION_INSUFFCIENT_BALANCE_TO_SEND_TX: u64 = 205;
+    /// EXCEPTION_SENDER_NOT_EOA
     const EXCEPTION_SENDER_NOT_EOA: u64 = 206;
-    const EXCEPTION_OUT_OF_GAS: u64 = 207;
-    const EXCEPTION_INVALID_NONCE: u64 = 208;
+    /// EXCEPTION_INVALID_NONCE
+    const EXCEPTION_INVALID_NONCE: u64 = 207;
+    /// EXCEPTION_OUT_OF_GAS
+    const EXCEPTION_OUT_OF_GAS: u64 = 208;
+    /// EXCEPTION_EXECUTE_REVERT
     const EXCEPTION_EXECUTE_REVERT: u64 = 209;
+    /// EXCEPTION_INSUFFCIENT_BALANCE_TO_WITHDRAW
     const EXCEPTION_INSUFFCIENT_BALANCE_TO_WITHDRAW: u64 = 210;
+
 
     const MAX_STACK_SIZE: u64 = 1024;
     const MAX_DEPTH_SIZE: u64 = 1024;
@@ -109,7 +121,12 @@ module aptos_framework::evm {
     ) acquires ExecResource {
         let (chain_id, from, to, nonce, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_per_gas, access_list_bytes, tx_type) = decode_raw_tx(tx);
         assert!(chain_id == CHAIN_ID || chain_id == 0, ERROR_INVALID_CHAINID);
-        execute(from, to, nonce, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_per_gas, access_list_bytes, tx_type, false, false, false);
+        debug::print(&utf8(b"new tx"));
+        let(exception, gas_usage, return_value) = execute(from, to, nonce, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_per_gas, access_list_bytes, tx_type, false, false, false);
+
+        debug::print(&exception);
+        debug::print(&gas_usage);
+        debug::print(&return_value);
     }
 
     fun emit_trace(run_state: &RunState) acquires ExecResource {
@@ -139,28 +156,29 @@ module aptos_framework::evm {
     }
 
     fun execute(
-                from: vector<u8>,
-                to: vector<u8>,
-                nonce: u256,
-                value: u256,
-                data: vector<u8>,
-                gas_limit: u256,
-                gas_price: u256,
-                max_fee_per_gas: u256,
-                max_priority_per_gas: u256,
-                access_list_bytes: vector<u8>,
-                tx_type: u64,
-                skip_nonce: bool,
-                skip_balance: bool,
-                skip_block_gas_limit_validation: bool
-                ): (u64, u256, vector<u8>) acquires ExecResource {
-        let (trie, access_address_count, access_slot_count) = init_new_trie(access_list_bytes);
+        from: vector<u8>,
+        to: vector<u8>,
+        nonce: u256,
+        value: u256,
+        data: vector<u8>,
+        gas_limit: u256,
+        gas_price: u256,
+        max_fee_per_gas: u256,
+        max_priority_per_gas: u256,
+        access_list_bytes: vector<u8>,
+        tx_type: u64,
+        skip_nonce: bool,
+        skip_balance: bool,
+        skip_block_gas_limit_validation: bool
+    ): (u64, u256, vector<u8>) acquires ExecResource {
+        let (access_address_count, access_slot_count) = init_new_trie(access_list_bytes);
         let run_state = &mut new_run_state(from, to, gas_limit, gas_price, max_fee_per_gas, max_priority_per_gas, tx_type);
         let gas_price = get_gas_price(run_state);
+        let log_context = &mut evm_log::init_logs();
 
         from = to_32bit(from);
-        add_warm_address(from, &mut trie);
-        add_warm_address(get_coinbase(run_state), &mut trie);
+        add_warm_address(from);
+        add_warm_address(get_coinbase(run_state));
 
         let data_size = (vector::length(&data) as u256);
         let base_cost = calc_base_gas(&data, access_address_count, access_slot_count) + 21000;
@@ -169,16 +187,14 @@ module aptos_framework::evm {
 
         if(is_eip_1559(run_state)) {
             if(get_basefee(run_state) > get_max_fee_per_gas(run_state) || get_max_priority_fee_per_gas(run_state) > get_max_fee_per_gas(run_state)) {
-                return handle_tx_failed(run_state, EXCEPTION_1559_MAX_FEE_LOWER_THAN_BASE_FEE)
+                assert!(false, EXCEPTION_1559_MAX_FEE_LOWER_THAN_BASE_FEE);
             };
-            (up_cost, overflow) = mul(get_max_fee_per_gas(run_state), gas_limit);
+            (up_cost, overflow) = mul(get_gas_price(run_state), gas_limit);
             if(!overflow) {
                 (up_cost, overflow) = add(up_cost, value);
             };
         } else {
-            if(get_basefee(run_state) > gas_price) {
-                return handle_tx_failed(run_state, EXCEPTION_LEGACY_GAS_PRICE_LOWER_THAN_BASE_FEE)
-            };
+            assert!(get_basefee(run_state) <= gas_price, EXCEPTION_LEGACY_GAS_PRICE_LOWER_THAN_BASE_FEE);
             (up_cost, overflow) = mul(gas_limit, gas_price);
             if(!overflow) {
                 (up_cost, overflow) = add(up_cost, value);
@@ -186,49 +202,35 @@ module aptos_framework::evm {
         };
 
         if(!skip_block_gas_limit_validation && (overflow || gas_limit > get_block_gas_limit(run_state))) {
-            return handle_tx_failed(run_state, EXCEPTION_GAS_LIMIT_EXCEED_BLOCK_LIMIT)
+            assert!(false, EXCEPTION_GAS_LIMIT_EXCEED_BLOCK_LIMIT);
         };
 
         if(to == EMPTY_ADDR) {
-            if(data_size > MAX_INIT_CODE_SIZE) {
-                return handle_tx_failed(run_state, EXCEPTION_CREATE_CONTRACT_CODE_SIZE_EXCEED)
-            };
+            assert!(data_size <= MAX_INIT_CODE_SIZE, EXCEPTION_CREATE_CONTRACT_CODE_SIZE_EXCEED);
             base_cost = base_cost + 2 * get_word_count(data_size) + 32000;
         };
 
-        let from_balance = get_balance(from, &trie);
+        let from_balance = get_balance(from);
 
         if(from_balance < up_cost) {
             if(skip_balance) {
-                set_balance(&mut trie, from, up_cost);
+                set_balance(from, up_cost);
             } else {
-                return handle_tx_failed(run_state, EXCEPTION_INSUFFCIENT_BALANCE_TO_SEND_TX)
+                assert!(false, EXCEPTION_INSUFFCIENT_BALANCE_TO_SEND_TX);
             };
         };
 
-        if(get_code_length(from, &trie) > 0) {
-            return handle_tx_failed(run_state, EXCEPTION_INSUFFCIENT_BALANCE_TO_SEND_TX)
-        };
+        assert!(get_code_length(from) == 0, EXCEPTION_SENDER_NOT_EOA);
+        assert!(gas_limit >= base_cost, EXCEPTION_OUT_OF_GAS);
 
-        if(get_code_length(from, &trie) > 0) {
-            return handle_tx_failed(run_state, EXCEPTION_SENDER_NOT_EOA)
-        };
-
-        if(gas_limit < base_cost) {
-            return handle_tx_failed(run_state, EXCEPTION_OUT_OF_GAS)
-        };
-
-        let sender_nonce = get_nonce(from, &trie);
+        let sender_nonce = get_nonce(from);
         if(!skip_nonce && (sender_nonce >= U64_MAX || sender_nonce != nonce)) {
-            return handle_tx_failed(run_state, EXCEPTION_INVALID_NONCE)
+            assert!(false, EXCEPTION_INVALID_NONCE);
         };
 
-        sub_balance(from, gas_limit * gas_price, &mut trie);
-        let out_of_gas = add_gas_usage(run_state, base_cost);
-        if(out_of_gas) {
-            return handle_tx_failed(run_state, EXCEPTION_OUT_OF_GAS)
-        };
-        add_checkpoint(&mut trie);
+        sub_balance(from, gas_limit * gas_price);
+        add_gas_usage(run_state, base_cost);
+
         let return_value = x"";
         let exception = EXCEPTION_NONE;
         let message = x"";
@@ -236,16 +238,17 @@ module aptos_framework::evm {
         let created_address = x"";
 
         if(to == EMPTY_ADDR) {
-            let evm_contract = get_contract_address(from, (get_nonce(from, &trie) as u64));
-            if(is_contract_or_created_account(evm_contract, &trie)) {
+            let evm_contract = get_contract_address(from, (get_nonce(from) as u64));
+            if(is_contract_or_created_account(evm_contract)) {
                 add_gas_usage(run_state, gas_limit);
             } else {
+                handle_new_checkpoint(log_context);
                 let gas_left = get_gas_left(run_state);
                 add_call_state(run_state, gas_left, false);
-                (success, return_value) = run(from, evm_contract, data, x"", value, gas_left, &mut trie, run_state, true, true, 0);
+                (success, return_value) = run(from, evm_contract, data, x"", value, gas_left, log_context, run_state, true, true, 0);
                 if(success == CALL_RESULT_SUCCESS) {
                     created_address = evm_contract;
-                    set_code(&mut trie, evm_contract, return_value);
+                    set_code( evm_contract, return_value);
                 } else if(success == CALL_RESULT_OUT_OF_GAS) {
                     exception = EXCEPTION_OUT_OF_GAS;
                 } else {
@@ -256,7 +259,7 @@ module aptos_framework::evm {
         } else if(to_32bit(to) == WITHDRAW_ADDR) {
             let amount = data_to_u256(data, 36, 32);
             let to = to_address(vector_slice(data, 100, 32));
-            let result = sub_balance(from, amount, &mut trie);
+            let result = sub_balance(from, amount);
             if(result) {
                 withdraw_from(from, amount, to);
             } else {
@@ -265,11 +268,12 @@ module aptos_framework::evm {
         } else {
             to = to_32bit(to);
             if(is_precompile_address(to)) {
-                (_, return_value) = precompile(to, data, gas_limit, run_state);
+                (_, return_value) = precompile(from, to, to, data, value, gas_limit , run_state, true);
                 success = CALL_RESULT_SUCCESS;
             } else {
+                handle_new_checkpoint(log_context);
                 add_call_state(run_state, gas_limit - base_cost, false);
-                (success, return_value) = run(from, to, get_code(to), data, value, gas_limit - base_cost, &mut trie, run_state, true, false, 0);
+                (success, return_value) = run(from, to, get_code(to), data, value, gas_limit - base_cost, log_context, run_state, true, false, 0);
             };
             if(success != CALL_RESULT_SUCCESS) {
                 if(success == CALL_RESULT_OUT_OF_GAS) {
@@ -287,15 +291,15 @@ module aptos_framework::evm {
             gas_refund = gas_usage / 5
         };
         gas_usage = gas_usage - gas_refund;
-        add_nonce(from, &mut trie);
+        add_nonce(from);
         let basefee = get_basefee(run_state);
         if(basefee < gas_price) {
             let miner_value = (gas_price - basefee) * gas_usage;
-            add_balance(get_coinbase(run_state), miner_value, &mut trie);
+            add_balance(get_coinbase(run_state), miner_value);
         };
-        add_balance(from, (gas_left + gas_refund) * gas_price, &mut trie);
-        let logs = get_logs(&trie);
-        save(&mut trie);
+        add_balance(from, (gas_left + gas_refund) * gas_price);
+        let logs = evm_log::get_logs(log_context);
+        save();
 
         emit_event(run_state, gas_usage, exception, message, created_address, logs);
         // emit_trace(run_state);
@@ -360,30 +364,48 @@ module aptos_framework::evm {
     }
 
     // This function is used to execute precompile EVM contracts.
-    fun precompile(to: vector<u8>, calldata: vector<u8>, gas_limit: u256, run_state: &mut RunState): (bool, vector<u8>)  {
-        let (success, res, gas) = run_precompile(to, calldata, gas_limit);
+    fun precompile(sender: vector<u8>, to: vector<u8>, address: vector<u8>, calldata: vector<u8>, value: u256, gas_limit: u256, run_state: &mut RunState, transfer_eth: bool): (bool, vector<u8>)  {
+        if(transfer_eth) {
+            if(get_balance(sender) < value) {
+                return (false, x"")
+            };
+        };
+
+        let (success, res, gas) = run_precompile(address, calldata, gas_limit);
         if(gas > gas_limit) {
             success = false;
             gas = gas_limit;
+        };
+        if(success && transfer_eth) {
+            transfer(sender, to, value);
         };
         add_gas_usage(run_state, gas);
         (success, res)
     }
 
-    fun handle_normal_revert(trie: &mut Trie, run_state: &mut RunState) {
-        debug::print(&utf8(b"normal revert"));
-        revert_checkpoint(trie);
+
+    fun handle_new_checkpoint(log_context: &mut LogContext) {
+        add_checkpoint();
+        evm_log::add_checkpoint(log_context);
+    }
+
+    fun handle_normal_revert(run_state: &mut RunState, log_context: &mut LogContext) {
+        // debug::print(&utf8(b"normal revert"));
+        evm_log::revert(log_context);
+        revert_checkpoint();
         clear_gas_refund(run_state);
         commit_call_state(run_state);
     }
 
-    fun handle_unexpect_revert(trie: &mut Trie, run_state: &mut RunState) {
-        revert_checkpoint(trie);
+    fun handle_unexpect_revert(run_state: &mut RunState, log_context: &mut LogContext) {
+        evm_log::revert(log_context);
+        revert_checkpoint();
         revert_call_state(run_state);
     }
 
-    fun handle_commit(trie: &mut Trie, run_state: &mut RunState) {
-        commit_latest_checkpoint(trie);
+    fun handle_commit(run_state: &mut RunState, log_context: &mut LogContext) {
+        evm_log::commit(log_context);
+        commit_latest_checkpoint();
         commit_call_state(run_state);
     }
 
@@ -394,7 +416,7 @@ module aptos_framework::evm {
                         codes: vector<u8>,
                         msg_value: u256,
                         run_state: &mut RunState,
-                        trie: &mut Trie,
+                        log_context: &mut LogContext,
                         error_code: &mut u64): u8 acquires ExecResource {
         set_ret_bytes(run_state, x"");
         if(init_len > MAX_INIT_CODE_SIZE ) {
@@ -407,21 +429,21 @@ module aptos_framework::evm {
             let gas_left = get_gas_left(run_state);
             let (call_gas_limit, _) = max_call_gas(gas_left, gas_left, msg_value, false);
             if(depth >= MAX_DEPTH_SIZE ||
-                get_balance(current_address, trie) < msg_value ||
-                get_nonce(current_address, trie) >= U64_MAX) {
+                get_balance(current_address) < msg_value ||
+                get_nonce(current_address) >= U64_MAX) {
                 return CALL_RESULT_UNEXPECT_ERROR
             } else {
-                add_nonce(current_address, trie);
-                add_warm_address(created_address, trie);
-                if(is_contract_or_created_account(created_address, trie)) {
+                add_nonce(current_address);
+                add_warm_address(created_address);
+                if(is_contract_or_created_account(created_address)) {
                     add_gas_usage(run_state, call_gas_limit);
                     return CALL_RESULT_UNEXPECT_ERROR
                 } else {
                     add_call_state(run_state, call_gas_limit, false);
-                    add_checkpoint(trie);
-                    let (create_res, bytes) = run(current_address, created_address, codes, x"", msg_value, call_gas_limit, trie, run_state, true, true, depth + 1);
+                    handle_new_checkpoint(log_context);
+                    let (create_res, bytes) = run(current_address, created_address, codes, x"", msg_value, call_gas_limit, log_context, run_state, true, true, depth + 1);
                     if(create_res == CALL_RESULT_SUCCESS) {
-                        set_code(trie, created_address, bytes);
+                        set_code(created_address, bytes);
                     } else if(create_res == CALL_RESULT_REVERT) {
                         set_ret_bytes(run_state, bytes);
                     };
@@ -437,14 +459,14 @@ module aptos_framework::evm {
                depth: u64,
                current_address: vector<u8>,
                run_state: &mut RunState,
-               trie: &mut Trie,
+               log_context: &mut LogContext,
                error_code: &mut u64) acquires ExecResource {
         let msg_value = pop_stack(stack, error_code);
         let pos = pop_stack(stack, error_code);
         let len = pop_stack(stack, error_code);
         let codes = vector_slice_u256(*memory, pos, len);
-        let new_evm_contract_addr = get_contract_address(current_address, (get_nonce(current_address, trie) as u64));
-        let result = create_internal(len, current_address, new_evm_contract_addr, depth, codes, msg_value, run_state, trie, error_code);
+        let new_evm_contract_addr = get_contract_address(current_address, (get_nonce(current_address) as u64));
+        let result = create_internal(len, current_address, new_evm_contract_addr, depth, codes, msg_value, run_state, log_context, error_code);
         if(result == CALL_RESULT_SUCCESS) {
             vector::push_back(stack, to_u256(new_evm_contract_addr));
         } else {
@@ -457,7 +479,7 @@ module aptos_framework::evm {
                 depth: u64,
                 current_address: vector<u8>,
                 run_state: &mut RunState,
-                trie: &mut Trie,
+                log_context: &mut LogContext,
                 error_code: &mut u64) acquires ExecResource {
         let msg_value = pop_stack(stack, error_code);
         let pos = pop_stack(stack, error_code);
@@ -470,13 +492,14 @@ module aptos_framework::evm {
         vector::append(&mut p, salt);
         vector::append(&mut p, keccak256(codes));
         let new_evm_contract_addr = to_32bit(vector_slice(keccak256(p), 12, 20));
-        let result = create_internal(len, current_address, new_evm_contract_addr, depth, codes, msg_value, run_state, trie, error_code);
+        let result = create_internal(len, current_address, new_evm_contract_addr, depth, codes, msg_value, run_state, log_context, error_code);
         if(result == CALL_RESULT_SUCCESS) {
             vector::push_back(stack, to_u256(new_evm_contract_addr));
         } else {
             vector::push_back(stack, 0);
         }
     }
+
 
 
     fun run(
@@ -486,22 +509,22 @@ module aptos_framework::evm {
         data: vector<u8>,
         value: u256,
         gas_limit: u256,
-        trie: &mut Trie,
+        log_context: &mut LogContext,
         run_state: &mut RunState,
         transfer_eth: bool,
         is_create: bool,
         depth: u64
     ): (u8, vector<u8>) acquires ExecResource {
 
-        add_warm_address(to, trie);
+        add_warm_address(to);
 
         if(is_create) {
-            create_account(to, x"", 0, 1, trie);
+            new_account(to, x"", 0, 1);
         };
 
         if(transfer_eth) {
-            if(!transfer(sender, to, value, trie)) {
-                handle_normal_revert(trie, run_state);
+            if(!transfer(sender, to, value)) {
+                handle_normal_revert(run_state, log_context);
                 return (CALL_RESULT_UNEXPECT_ERROR, x"")
             };
         };
@@ -521,14 +544,15 @@ module aptos_framework::evm {
         while (i < len) {
             // Fetch the current opcode from the bytecode.
             let opcode: u8 = *vector::borrow(&code, (i as u64));
-            let gas = calc_exec_gas(opcode, to, stack, run_state, trie, gas_limit, error_code);
+            // debug::print(&get_gas_left(run_state));
+            let gas = calc_exec_gas(opcode, to, stack, run_state, gas_limit, error_code);
             let out_of_gas = add_gas_usage(run_state, gas);
             if(*error_code > 0 || out_of_gas) {
-                handle_unexpect_revert(trie, run_state);
+                handle_unexpect_revert(run_state, log_context);
                 return (if(out_of_gas) CALL_RESULT_OUT_OF_GAS else CALL_RESULT_UNEXPECT_ERROR, ret_value)
             };
             // debug::print(&i);
-            // debug::print(&get_gas_left(run_state));
+
 
             // Handle each opcode according to the EVM specification.
             // The following is a simplified version of the EVM execution engine,
@@ -785,7 +809,7 @@ module aptos_framework::evm {
                 //balance
             else if(opcode == 0x31) {
                 let target = get_valid_ethereum_address(pop_stack(stack, error_code));
-                vector::push_back(stack, get_balance(target, trie));
+                vector::push_back(stack, get_balance(target));
                 i = i + 1;
             }
                 //origin
@@ -846,14 +870,14 @@ module aptos_framework::evm {
                 //extcodesize
             else if(opcode == 0x3b) {
                 let target = get_valid_ethereum_address(pop_stack(stack, error_code));
-                let code = evm_trie::get_code(target, trie);
+                let code = get_code(target);
                 vector::push_back(stack, (vector::length(&code) as u256));
                 i = i + 1;
             }
                 //extcodecopy
             else if(opcode == 0x3c) {
                 let target = get_valid_ethereum_address(pop_stack(stack, error_code));
-                let code = evm_trie::get_code(target, trie);
+                let code = get_code(target);
                 let m_pos = pop_stack(stack, error_code);
                 let d_pos = pop_stack(stack, error_code);
                 let len = pop_stack(stack, error_code);
@@ -879,8 +903,8 @@ module aptos_framework::evm {
                 //extcodehash
             else if(opcode == 0x3f) {
                 let target = get_valid_ethereum_address(pop_stack(stack, error_code));
-                if(exist_account(target, trie)) {
-                    let code = evm_trie::get_code(target, trie);
+                if(exist_account(target)) {
+                    let code = get_code(target);
                     let hash = keccak256(code);
                     vector::push_back(stack, to_u256(hash));
                 } else {
@@ -926,7 +950,7 @@ module aptos_framework::evm {
             }
                 //self balance
             else if(opcode == 0x47) {
-                vector::push_back(stack, get_balance(to, trie));
+                vector::push_back(stack, get_balance(to));
                 i = i + 1;
             }
                 //self balance
@@ -937,6 +961,7 @@ module aptos_framework::evm {
                 // mload
             else if(opcode == 0x51) {
                 let pos = pop_stack_u64(stack, error_code);
+                expand_to_pos(memory, pos + 32);
                 vector::push_back(stack, data_to_u256(vector_slice(*memory, pos, 32), 0, 32));
                 i = i + 1;
             }
@@ -961,7 +986,7 @@ module aptos_framework::evm {
                 // sload
             else if(opcode == 0x54) {
                 let key = pop_stack(stack, error_code);
-                vector::push_back(stack, get_state(to, key, trie));
+                vector::push_back(stack, get_state(to, key));
                 i = i + 1;
             }
                 // sstore
@@ -971,7 +996,7 @@ module aptos_framework::evm {
                 if(get_is_static(run_state)) {
                     *error_code = ERROR_STATIC_STATE_CHANGE;
                 } else {
-                    set_state(to, key, value, trie);
+                    set_state(to, key, value);
                 };
 
                 i = i + 1;
@@ -1052,7 +1077,7 @@ module aptos_framework::evm {
                 //TLOAD
             else if(opcode == 0x5c) {
                 let key = pop_stack(stack, error_code);
-                vector::push_back(stack, get_transient_storage(trie, to, key));
+                vector::push_back(stack, get_transient_storage(to, key));
 
                 i = i + 1
             }
@@ -1063,7 +1088,7 @@ module aptos_framework::evm {
                 if(get_is_static(run_state)) {
                     *error_code = ERROR_STATIC_STATE_CHANGE
                 } else {
-                    put_transient_storage(trie, to, key, value);
+                    put_transient_storage(to, key, value);
                 };
 
                 i = i + 1
@@ -1102,6 +1127,7 @@ module aptos_framework::evm {
                 let (call_gas_limit, gas_stipend) = max_call_gas(gas_left, gas, msg_value, need_stipend);
                 if(gas_stipend > 0) {
                     add_gas_left(run_state, gas_stipend);
+                    debug::print(&get_gas_left(run_state));
                 };
                 let m_pos = pop_stack(stack, error_code);
                 let m_len = pop_stack(stack, error_code);
@@ -1118,20 +1144,17 @@ module aptos_framework::evm {
                     vector::push_back(stack, 0);
                 } else {
                     if(is_precompile) {
-                        let (success, bytes) = precompile(code_address, params, call_gas_limit, run_state);
+                        let (success, bytes) = precompile(call_from, call_to, code_address, params, msg_value, call_gas_limit, run_state, transfer_eth);
                         if(success) {
-                            if(transfer_eth) {
-                                transfer(call_from, call_to, msg_value, trie);
-                            };
                             set_ret_bytes(run_state, bytes);
                             write_call_output(memory, ret_pos, ret_len, bytes);
                         };
                         vector::push_back(stack, if(success) 1 else 0);
-                    } else if (exist_contract(code_address, trie)) {
-                        let dest_code = evm_trie::get_code(code_address, trie);
+                    } else if (exist_contract(code_address)) {
+                        let dest_code = get_code(code_address);
                         add_call_state(run_state, call_gas_limit, is_static);
-                        add_checkpoint(trie);
-                        let (call_res, bytes) = run(call_from, call_to, dest_code, params, msg_value, call_gas_limit, trie, run_state, transfer_eth, false, depth + 1);
+                        handle_new_checkpoint(log_context);
+                        let (call_res, bytes) = run(call_from, call_to, dest_code, params, msg_value, call_gas_limit, log_context, run_state, transfer_eth, false, depth + 1);
                         if(call_res == CALL_RESULT_SUCCESS || call_res == CALL_RESULT_REVERT) {
                             set_ret_bytes(run_state, bytes);
                             // debug::print()
@@ -1139,7 +1162,7 @@ module aptos_framework::evm {
                         };
                         vector::push_back(stack,  if(call_res == CALL_RESULT_SUCCESS) 1 else 0);
                     } else {
-                        if(msg_value > 0 && transfer_eth && !transfer(call_from, call_to, msg_value, trie)) {
+                        if(msg_value > 0 && transfer_eth && !transfer(call_from, call_to, msg_value)) {
                             vector::push_back(stack, 0);
                         } else {
                             vector::push_back(stack, 1);
@@ -1151,19 +1174,19 @@ module aptos_framework::evm {
             }
                 //create
             else if(opcode == 0xf0) {
-                create(memory, stack, depth, to, run_state, trie, error_code);
+                create(memory, stack, depth, to, run_state, log_context, error_code);
                 i = i + 1
             }
                 //create2
             else if(opcode == 0xf5) {
-                create2(memory, stack, depth, to, run_state, trie, error_code);
+                create2(memory, stack, depth, to, run_state, log_context, error_code);
                 i = i + 1
             }
                 //revert
             else if(opcode == 0xfd) {
                 let pos = pop_stack(stack, error_code);
                 let len = pop_stack(stack, error_code);
-                handle_normal_revert(trie, run_state);
+                handle_normal_revert(run_state, log_context);
                 ret_value = vector_slice_u256(*memory, pos, len);
 
                 return (CALL_RESULT_REVERT, ret_value)
@@ -1173,49 +1196,69 @@ module aptos_framework::evm {
                 let pos = pop_stack_u64(stack, error_code);
                 let len = pop_stack_u64(stack, error_code);
                 let data = vector_slice(*memory, pos, len);
-                add_log(trie, to, data, vector[]);
+                if(get_is_static(run_state)) {
+                    *error_code = ERROR_STATIC_STATE_CHANGE;
+                } else {
+                    evm_log::add_log(log_context, to, data, vector[]);
+                };
                 i = i + 1
             }
                 //log1
             else if(opcode == 0xa1) {
-                let pos = pop_stack_u64(stack, error_code);
-                let len = pop_stack_u64(stack, error_code);
-                let data = vector_slice(*memory, pos, len);
+                let pos = pop_stack(stack, error_code);
+                let len = pop_stack(stack, error_code);
+                let data = vector_slice_u256(*memory, pos, len);
                 let topic0 = u256_to_data(pop_stack(stack, error_code));
-                add_log(trie, to, data, vector[topic0]);
+                if(get_is_static(run_state)) {
+                    *error_code = ERROR_STATIC_STATE_CHANGE;
+                } else {
+                    evm_log::add_log(log_context, to, data, vector[topic0]);
+                };
                 i = i + 1
             }
                 //log2
             else if(opcode == 0xa2) {
-                let pos = pop_stack_u64(stack, error_code);
-                let len = pop_stack_u64(stack, error_code);
-                let data = vector_slice(*memory, pos, len);
+                let pos = pop_stack(stack, error_code);
+                let len = pop_stack(stack, error_code);
+                let data = vector_slice_u256(*memory, pos, len);
                 let topic0 = u256_to_data(pop_stack(stack, error_code));
                 let topic1 = u256_to_data(pop_stack(stack, error_code));
-                add_log(trie, to, data, vector[topic0, topic1]);
+                if(get_is_static(run_state)) {
+                    *error_code = ERROR_STATIC_STATE_CHANGE;
+                } else {
+                    evm_log::add_log(log_context, to, data, vector[topic0, topic1]);
+                };
                 i = i + 1
             }
                 //log3
             else if(opcode == 0xa3) {
-                let pos = pop_stack_u64(stack, error_code);
-                let len = pop_stack_u64(stack, error_code);
-                let data = vector_slice(*memory, pos, len);
+                let pos = pop_stack(stack, error_code);
+                let len = pop_stack(stack, error_code);
+                let data = vector_slice_u256(*memory, pos, len);
                 let topic0 = u256_to_data(pop_stack(stack, error_code));
                 let topic1 = u256_to_data(pop_stack(stack, error_code));
                 let topic2 = u256_to_data(pop_stack(stack, error_code));
-                add_log(trie, to, data, vector[topic0, topic1, topic2]);
+                if(get_is_static(run_state)) {
+                    *error_code = ERROR_STATIC_STATE_CHANGE;
+                } else {
+                    evm_log::add_log(log_context, to, data, vector[topic0, topic1, topic2]);
+                };
                 i = i + 1
             }
                 //log4
             else if(opcode == 0xa4) {
-                let pos = pop_stack_u64(stack, error_code);
-                let len = pop_stack_u64(stack, error_code);
-                let data = vector_slice(*memory, pos, len);
+                let pos = pop_stack(stack, error_code);
+                let len = pop_stack(stack, error_code);
+                let data = vector_slice_u256(*memory, pos, len);
                 let topic0 = u256_to_data(pop_stack(stack, error_code));
                 let topic1 = u256_to_data(pop_stack(stack, error_code));
                 let topic2 = u256_to_data(pop_stack(stack, error_code));
                 let topic3 = u256_to_data(pop_stack(stack, error_code));
-                add_log(trie, to, data, vector[topic0, topic1, topic2, topic3]);
+                if(get_is_static(run_state)) {
+                    *error_code = ERROR_STATIC_STATE_CHANGE;
+                } else {
+                    evm_log::add_log(log_context, to, data, vector[topic0, topic1, topic2, topic3]);
+                };
                 i = i + 1
             }
                 //invalid opcode
@@ -1234,10 +1277,9 @@ module aptos_framework::evm {
             };
             // debug::print(stack);
             // debug::print(&vector::length(stack));
-            debug::print(&utf8(b"opcode end"));
 
             if(*error_code > 0 || vector::length(stack) > MAX_STACK_SIZE) {
-                handle_unexpect_revert(trie, run_state);
+                handle_unexpect_revert(run_state, log_context);
                 return (CALL_RESULT_UNEXPECT_ERROR, ret_value)
             }
         };
@@ -1246,13 +1288,11 @@ module aptos_framework::evm {
             let code_size = (vector::length(&ret_value) as u256);
             let out_of_gas = add_gas_usage(run_state, 200 * code_size);
             if(code_size > MAX_CODE_SIZE || (code_size > 0 && (*vector::borrow(&ret_value, 0)) == 0xef) || out_of_gas) {
-                handle_unexpect_revert(trie, run_state);
+                handle_unexpect_revert(run_state, log_context);
                 return (CALL_RESULT_UNEXPECT_ERROR, x"")
             };
         };
-        // let gas_left = get_gas_left(run_state);
-        // add_trace(run_state, sender, to, gas_limit, gas_limit - gas_left, data, ret_value, depth, value, if(is_create) 2 else 1);
-        handle_commit(trie, run_state);
+        handle_commit(run_state, log_context);
 
         (CALL_RESULT_SUCCESS, ret_value)
     }
@@ -1485,16 +1525,70 @@ module aptos_framework::evm {
     #[test]
     fun simple_run() acquires ExecResource {
         init();
-        let addr = x"ca6ac10293acc7b0d2b278cf20aaf1f1720d964d";
-        test_deposit_to(addr, 1000000000000000000);
-        let data = x"6080604052601260055f6101000a81548160ff021916908360ff16021790555034801561002a575f80fd5b506040518060400160405280600481526020017f55534454000000000000000000000000000000000000000000000000000000008152506040518060400160405280600481526020017f555344540000000000000000000000000000000000000000000000000000000081525081600390816100a691906105b2565b5080600490816100b691906105b2565b5050506100d5336b204fce5e3e250261100000006100da60201b60201c565b610796565b5f73ffffffffffffffffffffffffffffffffffffffff168273ffffffffffffffffffffffffffffffffffffffff160361014a575f6040517fec442f0500000000000000000000000000000000000000000000000000000000815260040161014191906106c0565b60405180910390fd5b61015b5f838361015f60201b60201c565b5050565b5f73ffffffffffffffffffffffffffffffffffffffff168373ffffffffffffffffffffffffffffffffffffffff16036101af578060025f8282546101a39190610706565b9250508190555061027d565b5f805f8573ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020015f2054905081811015610238578381836040517fe450d38c00000000000000000000000000000000000000000000000000000000815260040161022f93929190610748565b60405180910390fd5b8181035f808673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020015f2081905550505b5f73ffffffffffffffffffffffffffffffffffffffff168273ffffffffffffffffffffffffffffffffffffffff16036102c4578060025f828254039250508190555061030e565b805f808473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020015f205f82825401925050819055505b8173ffffffffffffffffffffffffffffffffffffffff168373ffffffffffffffffffffffffffffffffffffffff167fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef8360405161036b919061077d565b60405180910390a3505050565b5f81519050919050565b7f4e487b71000000000000000000000000000000000000000000000000000000005f52604160045260245ffd5b7f4e487b71000000000000000000000000000000000000000000000000000000005f52602260045260245ffd5b5f60028204905060018216806103f357607f821691505b602082108103610406576104056103af565b5b50919050565b5f819050815f5260205f209050919050565b5f6020601f8301049050919050565b5f82821b905092915050565b5f600883026104687fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff8261042d565b610472868361042d565b95508019841693508086168417925050509392505050565b5f819050919050565b5f819050919050565b5f6104b66104b16104ac8461048a565b610493565b61048a565b9050919050565b5f819050919050565b6104cf8361049c565b6104e36104db826104bd565b848454610439565b825550505050565b5f90565b6104f76104eb565b6105028184846104c6565b505050565b5b818110156105255761051a5f826104ef565b600181019050610508565b5050565b601f82111561056a5761053b8161040c565b6105448461041e565b81016020851015610553578190505b61056761055f8561041e565b830182610507565b50505b505050565b5f82821c905092915050565b5f61058a5f198460080261056f565b1980831691505092915050565b5f6105a2838361057b565b9150826002028217905092915050565b6105bb82610378565b67ffffffffffffffff8111156105d4576105d3610382565b5b6105de82546103dc565b6105e9828285610529565b5f60209050601f83116001811461061a575f8415610608578287015190505b6106128582610597565b865550610679565b601f1984166106288661040c565b5f5b8281101561064f5784890151825560018201915060208501945060208101905061062a565b8683101561066c5784890151610668601f89168261057b565b8355505b6001600288020188555050505b505050505050565b5f73ffffffffffffffffffffffffffffffffffffffff82169050919050565b5f6106aa82610681565b9050919050565b6106ba816106a0565b82525050565b5f6020820190506106d35f8301846106b1565b92915050565b7f4e487b71000000000000000000000000000000000000000000000000000000005f52601160045260245ffd5b5f6107108261048a565b915061071b8361048a565b9250828201905080821115610733576107326106d9565b5b92915050565b6107428161048a565b82525050565b5f60608201905061075b5f8301866106b1565b6107686020830185610739565b6107756040830184610739565b949350505050565b5f6020820190506107905f830184610739565b92915050565b610dee806107a35f395ff3fe608060405234801561000f575f80fd5b5060043610610091575f3560e01c8063313ce56711610064578063313ce5671461013157806370a082311461014f57806395d89b411461017f578063a9059cbb1461019d578063dd62ed3e146101cd57610091565b806306fdde0314610095578063095ea7b3146100b357806318160ddd146100e357806323b872dd14610101575b5f80fd5b61009d6101fd565b6040516100aa9190610a67565b60405180910390f35b6100cd60048036038101906100c89190610b18565b61028d565b6040516100da9190610b70565b60405180910390f35b6100eb6102af565b6040516100f89190610b98565b60405180910390f35b61011b60048036038101906101169190610bb1565b6102b8565b6040516101289190610b70565b60405180910390f35b6101396102e6565b6040516101469190610c1c565b60405180910390f35b61016960048036038101906101649190610c35565b6102fb565b6040516101769190610b98565b60405180910390f35b610187610340565b6040516101949190610a67565b60405180910390f35b6101b760048036038101906101b29190610b18565b6103d0565b6040516101c49190610b70565b60405180910390f35b6101e760048036038101906101e29190610c60565b6103f2565b6040516101f49190610b98565b60405180910390f35b60606003805461020c90610ccb565b80601f016020809104026020016040519081016040528092919081815260200182805461023890610ccb565b80156102835780601f1061025a57610100808354040283529160200191610283565b820191905f5260205f20905b81548152906001019060200180831161026657829003601f168201915b5050505050905090565b5f80610297610474565b90506102a481858561047b565b600191505092915050565b5f600254905090565b5f806102c2610474565b90506102cf85828561048d565b6102da85858561051f565b60019150509392505050565b5f60055f9054906101000a900460ff16905090565b5f805f8373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020015f20549050919050565b60606004805461034f90610ccb565b80601f016020809104026020016040519081016040528092919081815260200182805461037b90610ccb565b80156103c65780601f1061039d576101008083540402835291602001916103c6565b820191905f5260205f20905b8154815290600101906020018083116103a957829003601f168201915b5050505050905090565b5f806103da610474565b90506103e781858561051f565b600191505092915050565b5f60015f8473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020015f205f8373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020015f2054905092915050565b5f33905090565b610488838383600161060f565b505050565b5f61049884846103f2565b90507fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff8114610519578181101561050a578281836040517ffb8f41b200000000000000000000000000000000000000000000000000000000815260040161050193929190610d0a565b60405180910390fd5b61051884848484035f61060f565b5b50505050565b5f73ffffffffffffffffffffffffffffffffffffffff168373ffffffffffffffffffffffffffffffffffffffff160361058f575f6040517f96c6fd1e0000000000000000000000000000000000000000000000000000000081526004016105869190610d3f565b60405180910390fd5b5f73ffffffffffffffffffffffffffffffffffffffff168273ffffffffffffffffffffffffffffffffffffffff16036105ff575f6040517fec442f050000000000000000000000000000000000000000000000000000000081526004016105f69190610d3f565b60405180910390fd5b61060a8383836107de565b505050565b5f73ffffffffffffffffffffffffffffffffffffffff168473ffffffffffffffffffffffffffffffffffffffff160361067f575f6040517fe602df050000000000000000000000000000000000000000000000000000000081526004016106769190610d3f565b60405180910390fd5b5f73ffffffffffffffffffffffffffffffffffffffff168373ffffffffffffffffffffffffffffffffffffffff16036106ef575f6040517f94280d620000000000000000000000000000000000000000000000000000000081526004016106e69190610d3f565b60405180910390fd5b8160015f8673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020015f205f8573ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020015f208190555080156107d8578273ffffffffffffffffffffffffffffffffffffffff168473ffffffffffffffffffffffffffffffffffffffff167f8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925846040516107cf9190610b98565b60405180910390a35b50505050565b5f73ffffffffffffffffffffffffffffffffffffffff168373ffffffffffffffffffffffffffffffffffffffff160361082e578060025f8282546108229190610d85565b925050819055506108fc565b5f805f8573ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020015f20549050818110156108b7578381836040517fe450d38c0000000000000000000000000000000000000000000000000000000081526004016108ae93929190610d0a565b60405180910390fd5b8181035f808673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020015f2081905550505b5f73ffffffffffffffffffffffffffffffffffffffff168273ffffffffffffffffffffffffffffffffffffffff1603610943578060025f828254039250508190555061098d565b805f808473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020015f205f82825401925050819055505b8173ffffffffffffffffffffffffffffffffffffffff168373ffffffffffffffffffffffffffffffffffffffff167fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef836040516109ea9190610b98565b60405180910390a3505050565b5f81519050919050565b5f82825260208201905092915050565b8281835e5f83830152505050565b5f601f19601f8301169050919050565b5f610a39826109f7565b610a438185610a01565b9350610a53818560208601610a11565b610a5c81610a1f565b840191505092915050565b5f6020820190508181035f830152610a7f8184610a2f565b905092915050565b5f80fd5b5f73ffffffffffffffffffffffffffffffffffffffff82169050919050565b5f610ab482610a8b565b9050919050565b610ac481610aaa565b8114610ace575f80fd5b50565b5f81359050610adf81610abb565b92915050565b5f819050919050565b610af781610ae5565b8114610b01575f80fd5b50565b5f81359050610b1281610aee565b92915050565b5f8060408385031215610b2e57610b2d610a87565b5b5f610b3b85828601610ad1565b9250506020610b4c85828601610b04565b9150509250929050565b5f8115159050919050565b610b6a81610b56565b82525050565b5f602082019050610b835f830184610b61565b92915050565b610b9281610ae5565b82525050565b5f602082019050610bab5f830184610b89565b92915050565b5f805f60608486031215610bc857610bc7610a87565b5b5f610bd586828701610ad1565b9350506020610be686828701610ad1565b9250506040610bf786828701610b04565b9150509250925092565b5f60ff82169050919050565b610c1681610c01565b82525050565b5f602082019050610c2f5f830184610c0d565b92915050565b5f60208284031215610c4a57610c49610a87565b5b5f610c5784828501610ad1565b91505092915050565b5f8060408385031215610c7657610c75610a87565b5b5f610c8385828601610ad1565b9250506020610c9485828601610ad1565b9150509250929050565b7f4e487b71000000000000000000000000000000000000000000000000000000005f52602260045260245ffd5b5f6002820490506001821680610ce257607f821691505b602082108103610cf557610cf4610c9e565b5b50919050565b610d0481610aaa565b82525050565b5f606082019050610d1d5f830186610cfb565b610d2a6020830185610b89565b610d376040830184610b89565b949350505050565b5f602082019050610d525f830184610cfb565b92915050565b7f4e487b71000000000000000000000000000000000000000000000000000000005f52601160045260245ffd5b5f610d8f82610ae5565b9150610d9a83610ae5565b9250828201905080821115610db257610db1610d58565b5b9291505056fea2646970667358221220163efd39b99e13a0ab713df696c80588a7ca19076a59513bc73a47aa06f6199364736f6c634300081a0033";
-        let(result, gas, bytes) = execute(addr, x"", 0, 0, data, 3000000, 10, 0, 0, x"", 1, false, false, false);
+        let user = x"8ded44ffa6351e286e7f073825feec6f108a4a88";
+        test_deposit_to(user, 1000000000000000000);
+        let gas_price = 10000000000;
+        let gas_limit = 3000000;
+        let value = 100;
+        let data = x"60c0604052600760808190526615dc985c1c195960ca1b60a09081526100289160009190610074565b50604080518082019091526004808252630ae8aa8960e31b602090920191825261005491600191610074565b506002805460ff1916601217905534801561006e57600080fd5b50610147565b8280546100809061010d565b90600052602060002090601f0160209004810192826100a257600085556100e8565b82601f106100bb57805160ff19168380011785556100e8565b828001600101855582156100e8579182015b828111156100e85782518255916020019190600101906100cd565b506100f49291506100f8565b5090565b5b808211156100f457600081556001016100f9565b600181811c9082168061012157607f821691505b60208210810361014157634e487b7160e01b600052602260045260246000fd5b50919050565b610829806101566000396000f3fe6080604052600436106100a05760003560e01c8063313ce56711610064578063313ce5671461016c57806370a082311461019857806395d89b41146101c5578063a9059cbb146101da578063d0e30db0146101fa578063dd62ed3e1461020257600080fd5b806306fdde03146100b4578063095ea7b3146100df57806318160ddd1461010f57806323b872dd1461012c5780632e1a7d4d1461014c57600080fd5b366100af576100ad61023a565b005b600080fd5b3480156100c057600080fd5b506100c9610295565b6040516100d69190610636565b60405180910390f35b3480156100eb57600080fd5b506100ff6100fa3660046106a7565b610323565b60405190151581526020016100d6565b34801561011b57600080fd5b50475b6040519081526020016100d6565b34801561013857600080fd5b506100ff6101473660046106d1565b61038f565b34801561015857600080fd5b506100ad61016736600461070d565b610552565b34801561017857600080fd5b506002546101869060ff1681565b60405160ff90911681526020016100d6565b3480156101a457600080fd5b5061011e6101b3366004610726565b60036020526000908152604090205481565b3480156101d157600080fd5b506100c9610615565b3480156101e657600080fd5b506100ff6101f53660046106a7565b610622565b6100ad61023a565b34801561020e57600080fd5b5061011e61021d366004610741565b600460209081526000928352604080842090915290825290205481565b336000908152600360205260408120805434929061025990849061078a565b909155505060405134815233907fe1fffcc4923d04b559f4d29a8bfc6cda04eb5b0d3c460751c2402c5c5cc9109c9060200160405180910390a2565b600080546102a2906107a2565b80601f01602080910402602001604051908101604052809291908181526020018280546102ce906107a2565b801561031b5780601f106102f05761010080835404028352916020019161031b565b820191906000526020600020905b8154815290600101906020018083116102fe57829003601f168201915b505050505081565b3360008181526004602090815260408083206001600160a01b038716808552925280832085905551919290917f8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b9259061037e9086815260200190565b60405180910390a350600192915050565b6001600160a01b0383166000908152600360205260408120548211156103d65760405162461bcd60e51b815260206004820152600060248201526044015b60405180910390fd5b6001600160a01b038416331480159061041457506001600160a01b038416600090815260046020908152604080832033845290915290205460001914155b1561049f576001600160a01b03841660009081526004602090815260408083203384529091529020548211156104665760405162461bcd60e51b815260206004820152600060248201526044016103cd565b6001600160a01b0384166000908152600460209081526040808320338452909152812080548492906104999084906107dc565b90915550505b6001600160a01b038416600090815260036020526040812080548492906104c79084906107dc565b90915550506001600160a01b038316600090815260036020526040812080548492906104f490849061078a565b92505081905550826001600160a01b0316846001600160a01b03167fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef8460405161054091815260200190565b60405180910390a35060019392505050565b3360009081526003602052604090205481111561058b5760405162461bcd60e51b815260206004820152600060248201526044016103cd565b33600090815260036020526040812080548392906105aa9084906107dc565b9091555050604051339082156108fc029083906000818181858888f193505050501580156105dc573d6000803e3d6000fd5b5060405181815233907f7fcf532c15f0a6db0bd6d0e038bea71d30d808c7d98cb3bf7268a95bf5081b659060200160405180910390a250565b600180546102a2906107a2565b600061062f33848461038f565b9392505050565b600060208083528351808285015260005b8181101561066357858101830151858201604001528201610647565b81811115610675576000604083870101525b50601f01601f1916929092016040019392505050565b80356001600160a01b03811681146106a257600080fd5b919050565b600080604083850312156106ba57600080fd5b6106c38361068b565b946020939093013593505050565b6000806000606084860312156106e657600080fd5b6106ef8461068b565b92506106fd6020850161068b565b9150604084013590509250925092565b60006020828403121561071f57600080fd5b5035919050565b60006020828403121561073857600080fd5b61062f8261068b565b6000806040838503121561075457600080fd5b61075d8361068b565b915061076b6020840161068b565b90509250929050565b634e487b7160e01b600052601160045260246000fd5b6000821982111561079d5761079d610774565b500190565b600181811c908216806107b657607f821691505b6020821081036107d657634e487b7160e01b600052602260045260246000fd5b50919050565b6000828210156107ee576107ee610774565b50039056fea2646970667358221220bd3e9a82552407db3e785c5d4952f96fbe1c5fd8bcd9e2ee374116bc358d60e564736f6c634300080d0033";
+        let(result, gas, bytes) = execute(user, x"", 0, 0, data, gas_limit, gas_price, 0, 0, x"", 1, false, false, false);
         debug::print(&result);
         debug::print(&gas);
         debug::print(&bytes);
 
-        let tx = x"01f8f901800a83061a8094095e7baea6a6c7c4c2dfeb977efac326af552d87830186a000f893f85994095e7baea6a6c7c4c2dfeb977efac326af552d87f842a00000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000001f794195e7baea6a6c7c4c2dfeb977efac326af552d87e1a0000000000000000000000000000000000000000000000000000000000000000080a011c97e0bb8a356fe4f49b37863d059c6fe8cd3214a6ac06a8387a2f6f0b75f60a0212368a1097da30806edfd13d9c35662e1baee939235eb25de867980bd0eda26";
-        send_tx(tx);
+        let contract = x"c4b16f158036160f10d41bdad4a084996b6ff551";
+
+        let data = x"d0e30db0";
+        let(result, gas, bytes) = execute(user, contract, 1, value, data, gas_limit, gas_price, 0, 0, x"", 1, false, false, false);
+        debug::print(&result);
+        debug::print(&gas);
+        debug::print(&bytes);
+
+        let data = &mut x"70a08231";
+        vector::append(data, to_32bit(user));
+        let(result, gas, bytes) = execute(user, contract,2, 0, *data, gas_limit, gas_price, 0, 0, x"", 1, false, false, false);
+        debug::print(&result);
+        debug::print(&gas);
+        debug::print(&bytes);
+
+        let data = &mut x"2e1a7d4d";
+        vector::append(data, u256_to_data(50));
+        let(result, gas, bytes) = execute(user, contract,3, 0, *data, gas_limit, gas_price, 0, 0, x"", 1, false, false, false);
+        debug::print(&result);
+        debug::print(&gas);
+        debug::print(&bytes);
+
+        let data = &mut x"70a08231";
+        vector::append(data, to_32bit(user));
+        let(result, gas, bytes) = execute(user, contract,4, 0, *data, gas_limit, gas_price, 0, 0, x"", 1, false, false, false);
+        debug::print(&result);
+        debug::print(&gas);
+        debug::print(&bytes);
+
+
+
+        let data = &mut x"2e1a7d4d";
+        vector::append(data, u256_to_data(50));
+        let(result, gas, bytes) = execute(user, contract,5, 0, *data, gas_limit, gas_price, 0, 0, x"", 1, false, false, false);
+        debug::print(&utf8(b"withdraw2"));
+        debug::print(&result);
+        debug::print(&gas);
+        debug::print(&bytes);
+
+        let data = &mut x"70a08231";
+        vector::append(data, to_32bit(user));
+        let(result, gas, bytes) = execute(user, contract,6, 0, *data, gas_limit, gas_price, 0, 0, x"", 1, false, false, false);
+        debug::print(&result);
+        debug::print(&gas);
+        debug::print(&bytes);
+
+        // let to = x"74f4176831a7b250b6a1560ebf222623f2b997ba";
+        // debug::print(&312312321321);
+        // let data = x"d09de08a";
+        // let(result, gas, bytes) = execute(addr, to, 2, 0, data, 3000000, 10000000000, 0, 0, x"", 1, false, false, false);
+        // debug::print(&result);
+        // debug::print(&gas);
+        // debug::print(&bytes);
 
         // data = x"095ea7b30000000000000000000000005b38da6a701c568545dcfcb03fcb875f56beddc40000000000000000000000000000000000000000000000000000000000000001";
         // let(result, gas, bytes) = execute(addr, x"d9145cce52d386f254917e481eb44e9943f39138", 1, 0, data, 3000000, 10, 0, 0, 1, false, false, false);
