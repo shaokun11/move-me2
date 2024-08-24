@@ -374,6 +374,10 @@ module aptos_framework::evm_util {
             debug::print(&utf8(b"DIFFICULTY"));
         } else if(opcode == 0x45) {
             debug::print(&utf8(b"GASLIMIT"));
+        } else if(opcode == 0x46) {
+            debug::print(&utf8(b"BASEFEE"));
+        } else if(opcode == 0x47) {
+            debug::print(&utf8(b"SELFBALANCE"));
         } else if(opcode == 0x48) {
             debug::print(&utf8(b"PREVRANDAO"));
         } else if(opcode == 0x50) {

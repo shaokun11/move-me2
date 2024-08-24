@@ -135,7 +135,6 @@ module aptos_framework::evm_trie_v2 {
     public(friend) fun get_code(contract: vector<u8>): vector<u8> {
         let (exist, code) = evm_context::get_code(contract);
         if(!exist) {
-            code = evm_storage::get_code_storage(contract);
             evm_context::set_code(contract, code);
         };
         code
@@ -220,13 +219,11 @@ module aptos_framework::evm_trie_v2 {
     }
 
     public(friend) fun save() {
-
         let (len, address_list, balances) = evm_context::get_balance_change_set();
         let i = 0;
         while(i < len) {
             let address = vector_slice(address_list, 32 * i, 32);
             let balance = *vector::borrow(&balances, i);
-            
             evm_storage::save_account_balance(address, balance);
             i = i + 1;
         };
@@ -236,7 +233,6 @@ module aptos_framework::evm_trie_v2 {
         while(i < len) {
             let address = vector_slice(address_list, 32 * i, 32);
             let nonce = *vector::borrow(&nonces, i);
-
             evm_storage::save_account_nonce(address, nonce);
             i = i + 1;
         };
@@ -261,7 +257,6 @@ module aptos_framework::evm_trie_v2 {
             let address = vector_slice(address_list, 32 * i, 32);
             let (keys, values) = evm_context::get_storage_change_set(address);
             evm_storage::save_account_state(address, keys, values);
-
             i = i + 1;
         };
     }
