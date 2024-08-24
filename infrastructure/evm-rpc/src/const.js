@@ -10,6 +10,7 @@ export const NODE_URL = process.env.NODE_URL;
 export const EVM_RAW_TX_URL = process.env.EVM_RAW_TX_URL;
 export const EVM_FAUCET_URL = process.env.EVM_FAUCET_URL;
 export const EVM_SUMMARY_URL = process.env.EVM_SUMMARY_URL;
+export const EVM_NONCE_URL = process.env.EVM_NONCE_URL;
 /**
  * EVM_SENDER is the sender's address, fetched from environment variables
  */
@@ -77,6 +78,7 @@ console.log({
     EVM_RAW_TX_URL,
     EVM_FAUCET_URL,
     EVM_SUMMARY_URL,
+    EVM_NONCE_URL,
     INDEXER_URL,
     FAUCET_AMOUNT,
     CHAIN_ID,

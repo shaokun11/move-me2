@@ -11,6 +11,7 @@ import {
     DISABLE_BATCH_FAUCET,
     EVM_RAW_TX_URL,
     EVM_FAUCET_URL,
+    EVM_NONCE_URL,
 } from './const.js';
 import { parseRawTx, toHex, toNumber, toHexStrict } from './helper.js';
 import { getMoveHash, getBlockHeightByHash, getEvmLogs, getErrorTxMoveHash } from './db.js';
@@ -935,6 +936,10 @@ export async function getTransactionReceipt(evm_hash) {
  * @throws Will throw an error if the account information cannot be retrieved.
  */
 export async function getNonce(sender) {
+    if(EVM_NONCE_URL) {
+        const res = await postJsonRpc(EVM_NONCE_URL, 'eth_getTransactionCount', [sender]);
+        return res.result;
+    }
     let info = await getAccountInfo(sender);
     return toHex(info.nonce);
 }
