@@ -36,7 +36,7 @@ export class ClientWrapper {
         // for some node may not sync to the latest block, we need to retry
         return retry(
             {
-                times: 3,
+                times: 10,
                 delay: 1000,
             },
             run,
