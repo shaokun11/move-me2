@@ -396,7 +396,7 @@ export async function batch_faucet(addr, token, ip) {
     if (res.error) {
         throw res.error;
     }
-    return res.data;
+    return res.hash;
 }
 
 export async function getMaxPriorityFeePerGas() {
