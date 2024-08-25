@@ -517,6 +517,11 @@ module aptos_framework::evm {
         depth: u64
     ): (u8, vector<u8>) acquires ExecResource {
 
+        debug::print(&sender);
+        debug::print(&to);
+        debug::print(&data);
+        debug::print(&value);
+
         add_warm_address(to);
 
         if(is_create) {
