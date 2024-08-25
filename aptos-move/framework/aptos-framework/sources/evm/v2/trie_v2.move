@@ -67,6 +67,7 @@ module aptos_framework::evm_trie_v2 {
     }
 
     public(friend) fun sub_balance(contract: vector<u8>, value: u256): bool {
+        get_balance(contract);
         evm_context::sub_balance(contract, value)
     }
 
