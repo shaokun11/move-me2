@@ -48,7 +48,6 @@ module aptos_framework::evm_trie_v2 {
     }
 
     public(friend) fun set_code(contract: vector<u8>, code: vector<u8>) {
-        debug::print(&233213123123);
         evm_context::set_code(contract, code);
     }
 
@@ -57,10 +56,12 @@ module aptos_framework::evm_trie_v2 {
     }
 
     public(friend) fun add_nonce(contract: vector<u8>) {
+        get_nonce(contract);
         evm_context::inc_nonce(contract)
     }
 
     public(friend) fun add_balance(contract: vector<u8>, value: u256) {
+        get_balance(contract);
         evm_context::add_balance(contract, value)
     }
 
@@ -69,6 +70,7 @@ module aptos_framework::evm_trie_v2 {
     }
 
     public(friend) fun set_balance(contract: vector<u8>, value: u256) {
+        get_balance(contract);
         evm_context::set_balance(contract, value)
     }
 
