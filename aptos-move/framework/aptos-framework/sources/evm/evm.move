@@ -1276,7 +1276,7 @@ module aptos_framework::evm {
             else {
                 assert!(false, (opcode as u64));
             };
-            // debug::print(stack);
+            debug::print(stack);
             // debug::print(&vector::length(stack));
 
             if(*error_code > 0 || vector::length(stack) > MAX_STACK_SIZE) {
