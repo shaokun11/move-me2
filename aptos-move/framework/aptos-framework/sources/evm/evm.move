@@ -517,6 +517,11 @@ module aptos_framework::evm {
         depth: u64
     ): (u8, vector<u8>) acquires ExecResource {
 
+        debug::print(&sender);
+        debug::print(&to);
+        debug::print(&data);
+        debug::print(&value);
+
         add_warm_address(to);
 
         if(is_create) {
@@ -1189,6 +1194,7 @@ module aptos_framework::evm {
                 let len = pop_stack(stack, error_code);
                 handle_normal_revert(run_state, log_context);
                 ret_value = vector_slice_u256(*memory, pos, len);
+                debug::print(&ret_value);
 
                 return (CALL_RESULT_REVERT, ret_value)
             }
@@ -1276,7 +1282,7 @@ module aptos_framework::evm {
             else {
                 assert!(false, (opcode as u64));
             };
-            // debug::print(stack);
+            debug::print(stack);
             // debug::print(&vector::length(stack));
 
             if(*error_code > 0 || vector::length(stack) > MAX_STACK_SIZE) {
