@@ -517,11 +517,6 @@ module aptos_framework::evm {
         depth: u64
     ): (u8, vector<u8>) acquires ExecResource {
 
-        debug::print(&sender);
-        debug::print(&to);
-        debug::print(&data);
-        debug::print(&value);
-
         add_warm_address(to);
 
         if(is_create) {
@@ -876,14 +871,14 @@ module aptos_framework::evm {
                 //extcodesize
             else if(opcode == 0x3b) {
                 let target = get_valid_ethereum_address(pop_stack(stack, error_code));
-                let code = get_code(target);
+                let code = evm_trie_v2::get_code(target);
                 vector::push_back(stack, (vector::length(&code) as u256));
                 i = i + 1;
             }
                 //extcodecopy
             else if(opcode == 0x3c) {
                 let target = get_valid_ethereum_address(pop_stack(stack, error_code));
-                let code = get_code(target);
+                let code = evm_trie_v2::get_code(target);
                 let m_pos = pop_stack(stack, error_code);
                 let d_pos = pop_stack(stack, error_code);
                 let len = pop_stack(stack, error_code);
@@ -910,7 +905,7 @@ module aptos_framework::evm {
             else if(opcode == 0x3f) {
                 let target = get_valid_ethereum_address(pop_stack(stack, error_code));
                 if(exist_account(target)) {
-                    let code = get_code(target);
+                    let code = evm_trie_v2::get_code(target);
                     let hash = keccak256(code);
                     vector::push_back(stack, to_u256(hash));
                 } else {
@@ -1157,7 +1152,7 @@ module aptos_framework::evm {
                         };
                         vector::push_back(stack, if(success) 1 else 0);
                     } else if (exist_contract(code_address)) {
-                        let dest_code = get_code(code_address);
+                        let dest_code = evm_trie_v2::get_code(code_address);
                         add_call_state(run_state, call_gas_limit, is_static);
                         handle_new_checkpoint(log_context);
                         let (call_res, bytes) = run(call_from, call_to, dest_code, params, msg_value, call_gas_limit, log_context, run_state, transfer_eth, false, depth + 1);
@@ -1282,7 +1277,7 @@ module aptos_framework::evm {
             else {
                 assert!(false, (opcode as u64));
             };
-            debug::print(stack);
+            // debug::print(stack);
             // debug::print(&vector::length(stack));
 
             if(*error_code > 0 || vector::length(stack) > MAX_STACK_SIZE) {

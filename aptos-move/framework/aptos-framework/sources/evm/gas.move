@@ -443,7 +443,7 @@ module aptos_framework::evm_gas {
                              gas_limit: u256,
                              error_code: &mut u64
     ): u256 {
-        print_opcode(opcode);
+        // print_opcode(opcode);
         let gas = if (opcode == 0x00) {
             // STOP
             0
