@@ -48,6 +48,7 @@ module aptos_framework::evm_trie_v2 {
     }
 
     public(friend) fun set_code(contract: vector<u8>, code: vector<u8>) {
+        debug::print(&233213123123);
         evm_context::set_code(contract, code);
     }
 
@@ -135,7 +136,7 @@ module aptos_framework::evm_trie_v2 {
     public(friend) fun get_code(contract: vector<u8>): vector<u8> {
         let (exist, code) = evm_context::get_code(contract);
         if(!exist) {
-            evm_context::set_code(contract, code);
+            code = evm_storage::get_code_storage(contract);
         };
         code
     }
