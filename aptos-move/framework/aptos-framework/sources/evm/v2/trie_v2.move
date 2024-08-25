@@ -4,6 +4,7 @@ module aptos_framework::evm_trie_v2 {
     use aptos_framework::evm_context;
     use aptos_framework::evm_storage;
     use aptos_std::debug;
+    use aptos_framework::evm_storage::get_state_storage;
 
     friend aptos_framework::evm;
     friend aptos_framework::evm_gas;
@@ -274,6 +275,7 @@ module aptos_framework::evm_trie_v2 {
 
     public(friend) fun get_cache(address: vector<u8>,
                                  key: u256): (bool, u256) {
+        get_state(address, key);
         evm_context::get_origin(address, key)
     }
 }
