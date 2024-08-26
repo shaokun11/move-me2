@@ -2,7 +2,6 @@ module aptos_framework::evm_trie_for_test {
     use std::vector;
     use aptos_framework::evm_util::{to_u256};
     use aptos_framework::evm_context;
-    use aptos_std::debug;
 
 
     struct Log has copy, drop, store {

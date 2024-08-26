@@ -3,8 +3,6 @@ module aptos_framework::evm_trie_v2 {
     use aptos_framework::evm_util::{to_u256, vector_slice};
     use aptos_framework::evm_context;
     use aptos_framework::evm_storage;
-    use aptos_std::debug;
-    use aptos_framework::evm_storage::get_state_storage;
 
     friend aptos_framework::evm;
     friend aptos_framework::evm_gas_v2;
