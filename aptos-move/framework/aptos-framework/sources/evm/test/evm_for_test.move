@@ -308,12 +308,12 @@ module aptos_framework::evm_for_test {
     }
 
     fun create(memory: &mut vector<u8>,
-                stack: &mut vector<u256>,
-                depth: u64,
-                current_address: vector<u8>,
-                run_state: &mut RunState,
-                trie: &mut Trie,
-                error_code: &mut u64) {
+               stack: &mut vector<u256>,
+               depth: u64,
+               current_address: vector<u8>,
+               run_state: &mut RunState,
+               trie: &mut Trie,
+               error_code: &mut u64) {
         let msg_value = pop_stack(stack, error_code);
         let pos = pop_stack(stack, error_code);
         let len = pop_stack(stack, error_code);
@@ -355,18 +355,18 @@ module aptos_framework::evm_for_test {
 
 
     fun run(
-            sender: vector<u8>,
-            to: vector<u8>,
-            code: vector<u8>,
-            data: vector<u8>,
-            value: u256,
-            gas_limit: u256,
-            trie: &mut Trie,
-            run_state: &mut RunState,
-            transfer_eth: bool,
-            is_create: bool,
-            depth: u64
-        ): (u8, vector<u8>) {
+        sender: vector<u8>,
+        to: vector<u8>,
+        code: vector<u8>,
+        data: vector<u8>,
+        value: u256,
+        gas_limit: u256,
+        trie: &mut Trie,
+        run_state: &mut RunState,
+        transfer_eth: bool,
+        is_create: bool,
+        depth: u64
+    ): (u8, vector<u8>) {
 
         add_warm_address(to, trie);
 
@@ -423,7 +423,7 @@ module aptos_framework::evm_for_test {
             if(opcode == 0x00) {
                 break
             }
-            // return
+                // return
             else if(opcode == 0xf3) {
                 let pos = pop_stack(stack, error_code);
                 let len = pop_stack(stack, error_code);
@@ -1098,12 +1098,12 @@ module aptos_framework::evm_for_test {
                 *error_code = ERROR_INVALID_OPCODE;
                 i = i + 1
             }
-            //     //blob blob hash
-            // else if(opcode == 0x49 || opcode == 0x4a || opcode == 0xff) {
-            //     assert!(false, OPCODE_UNIMPLEMENT);
-            //     // vector::push_back(stack, 0);
-            //     i = i + 1;
-            // }
+                //     //blob blob hash
+                // else if(opcode == 0x49 || opcode == 0x4a || opcode == 0xff) {
+                //     assert!(false, OPCODE_UNIMPLEMENT);
+                //     // vector::push_back(stack, 0);
+                //     i = i + 1;
+                // }
             else {
                 assert!(false, (opcode as u64));
             };

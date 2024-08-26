@@ -84,14 +84,6 @@ module aptos_std::simple_map {
         vector::destroy_empty(data);
     }
 
-    public fun add_no_check<Key: store, Value: store>(
-        map: &mut SimpleMap<Key, Value>,
-        key: Key,
-        value: Value,
-    ) {
-        vector::push_back(&mut map.data, Element { key, value });
-    }
-
     /// Add a key/value pair to the map. The key must not already exist.
     public fun add<Key: store, Value: store>(
         map: &mut SimpleMap<Key, Value>,
@@ -101,6 +93,14 @@ module aptos_std::simple_map {
         let maybe_idx = find(map, &key);
         assert!(option::is_none(&maybe_idx), error::invalid_argument(EKEY_ALREADY_EXISTS));
 
+        vector::push_back(&mut map.data, Element { key, value });
+    }
+
+    public fun add_no_check<Key: store, Value: store>(
+        map: &mut SimpleMap<Key, Value>,
+        key: Key,
+        value: Value,
+    ) {
         vector::push_back(&mut map.data, Element { key, value });
     }
 

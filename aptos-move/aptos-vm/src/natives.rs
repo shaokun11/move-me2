@@ -52,6 +52,7 @@ use {
         aggregator_natives::NativeAggregatorContext, code::NativeCodeContext,
         cryptography::ristretto255_point::NativeRistrettoPointContext,
         transaction_context::NativeTransactionContext,
+        evm_natives::NativeEvmContext,
     },
     move_vm_runtime::native_extensions::NativeContextExtensions,
     once_cell::sync::Lazy,
@@ -240,6 +241,7 @@ fn unit_test_extensions_hook(exts: &mut NativeContextExtensions) {
     exts.add(NativeRistrettoPointContext::new());
     exts.add(AlgebraContext::new());
     exts.add(NativeEventContext::default());
+    exts.add(NativeEvmContext::new());
 
     let mut randomness_ctx = RandomnessContext::new();
     randomness_ctx.mark_unbiasable();

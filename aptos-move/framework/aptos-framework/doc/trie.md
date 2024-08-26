@@ -673,7 +673,7 @@
     //         <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_remove">simple_map::remove</a>(&<b>mut</b> <a href="account.md#0x1_account">account</a>.storage, &key);
     //     }
     // } <b>else</b> {
-        <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_upsert">simple_map::upsert</a>(&<b>mut</b> <a href="account.md#0x1_account">account</a>.storage, key, value);
+    <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map_upsert">simple_map::upsert</a>(&<b>mut</b> <a href="account.md#0x1_account">account</a>.storage, key, value);
     // };
 }
 </code></pre>

@@ -171,6 +171,7 @@ owned.
 -  [Function `adjust_length`](#0x1_evm_util_adjust_length)
 -  [Function `u256_to_data`](#0x1_evm_util_u256_to_data)
 -  [Function `expand_to_pos`](#0x1_evm_util_expand_to_pos)
+-  [Function `read_memory`](#0x1_evm_util_read_memory)
 -  [Function `write_call_output`](#0x1_evm_util_write_call_output)
 -  [Function `copy_to_memory`](#0x1_evm_util_copy_to_memory)
 -  [Function `mstore`](#0x1_evm_util_mstore)
@@ -736,6 +737,33 @@ owned.
 
 </details>
 
+<a id="0x1_evm_util_read_memory"></a>
+
+## Function `read_memory`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_read_memory">read_memory</a>(memory: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, in_offset: u256, in_len: u256): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_read_memory">read_memory</a>(memory: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, in_offset: u256, in_len: u256): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt; {
+    <b>if</b>(in_len &gt; 0) {
+        <a href="util.md#0x1_evm_util_expand_to_pos">expand_to_pos</a>(memory, ((in_offset + in_len) <b>as</b> u64));
+    };
+    <a href="util.md#0x1_evm_util_vector_slice_u256">vector_slice_u256</a>(*memory, in_offset, in_len)
+}
+</code></pre>
+
+
+
+</details>
+
 <a id="0x1_evm_util_write_call_output"></a>
 
 ## Function `write_call_output`
@@ -784,15 +812,17 @@ owned.
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="util.md#0x1_evm_util_copy_to_memory">copy_to_memory</a>(memory: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, m_pos: u256, d_pos: u256, len: u256, data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;) {
-    <a href="util.md#0x1_evm_util_expand_to_pos">expand_to_pos</a>(memory, ((m_pos + len) <b>as</b> u64));
-    <b>let</b> i = 0;
-    <b>let</b> d_len =( <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&data) <b>as</b> u256);
+    <b>if</b>(len &gt; 0) {
+        <a href="util.md#0x1_evm_util_expand_to_pos">expand_to_pos</a>(memory, ((m_pos + len) <b>as</b> u64));
+        <b>let</b> i = 0;
+        <b>let</b> d_len =( <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&data) <b>as</b> u256);
 
-    <b>while</b> (i &lt; len) {
-        <b>let</b> bytes = <b>if</b>(d_pos &gt; <a href="util.md#0x1_evm_util_U64_MAX">U64_MAX</a> || d_pos + i &gt;= d_len) 0 <b>else</b> *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&data, ((d_pos + i) <b>as</b> u64));
-        *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow_mut">vector::borrow_mut</a>(memory, ((m_pos + i) <b>as</b> u64)) = bytes;
-        i = i + 1;
-    };
+        <b>while</b> (i &lt; len) {
+            <b>let</b> bytes = <b>if</b>(d_pos &gt; <a href="util.md#0x1_evm_util_U64_MAX">U64_MAX</a> || d_pos + i &gt;= d_len) 0 <b>else</b> *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&data, ((d_pos + i) <b>as</b> u64));
+            *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow_mut">vector::borrow_mut</a>(memory, ((m_pos + i) <b>as</b> u64)) = bytes;
+            i = i + 1;
+        };
+    }
 }
 </code></pre>
 
@@ -1112,6 +1142,10 @@ owned.
         <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"DIFFICULTY"));
     } <b>else</b> <b>if</b>(opcode == 0x45) {
         <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"GASLIMIT"));
+    } <b>else</b> <b>if</b>(opcode == 0x46) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"BASEFEE"));
+    } <b>else</b> <b>if</b>(opcode == 0x47) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"SELFBALANCE"));
     } <b>else</b> <b>if</b>(opcode == 0x48) {
         <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PREVRANDAO"));
     } <b>else</b> <b>if</b>(opcode == 0x50) {

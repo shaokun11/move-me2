@@ -259,4 +259,3 @@ module aptos_framework::evm_global_state_for_test {
         }
     }
 }
-

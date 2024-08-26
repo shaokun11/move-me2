@@ -82,8 +82,8 @@ module aptos_framework::evm_gas {
     }
 
     fun calc_mcopy_gas(stack: &vector<u256>,
-                        run_state: &mut RunState,
-                        gas_limit: u256,
+                       run_state: &mut RunState,
+                       gas_limit: u256,
                        error_code: &mut u64): u256 {
         let gas = 0;
         let len = vector::length(stack);
@@ -244,7 +244,7 @@ module aptos_framework::evm_gas {
     }
 
     fun calc_return_data_copy_gas(stack: &mut vector<u256>,
-                           run_state: &mut RunState, gas_limit: u256, error_code: &mut u64): u256 {
+                                  run_state: &mut RunState, gas_limit: u256, error_code: &mut u64): u256 {
         let len = vector::length(stack);
         if(len < 3) {
             *error_code = STACK_UNDERFLOW;
@@ -323,7 +323,7 @@ module aptos_framework::evm_gas {
     }
 
     fun calc_keccak256_gas(stack: &mut vector<u256>,
-                     run_state: &mut RunState, gas_limit: u256, error_code: &mut u64): u256 {
+                           run_state: &mut RunState, gas_limit: u256, error_code: &mut u64): u256 {
         let len = vector::length(stack);
         if(len < 2) {
             *error_code = STACK_UNDERFLOW;
@@ -342,7 +342,7 @@ module aptos_framework::evm_gas {
     }
 
     fun calc_log_gas(opcode: u8, stack: &mut vector<u256>,
-                           run_state: &mut RunState, gas_limit: u256, error_code: &mut u64): u256 {
+                     run_state: &mut RunState, gas_limit: u256, error_code: &mut u64): u256 {
         let topic_count = ((opcode - 0xa0) as u256);
         let len = vector::length(stack);
         if(len < 2) {
@@ -446,7 +446,7 @@ module aptos_framework::evm_gas {
                              trie: &mut Trie,
                              gas_limit: u256,
                              error_code: &mut u64
-                            ): u256 {
+    ): u256 {
         print_opcode(opcode);
         let gas = if (opcode == 0x00) {
             // STOP
@@ -684,4 +684,3 @@ module aptos_framework::evm_gas {
         gas
     }
 }
-

@@ -188,7 +188,7 @@ module aptos_framework::evm_trie {
         //         simple_map::remove(&mut account.storage, &key);
         //     }
         // } else {
-            simple_map::upsert(&mut account.storage, key, value);
+        simple_map::upsert(&mut account.storage, key, value);
         // };
     }
 

@@ -46,7 +46,6 @@ module aptos_framework::evm_precompile {
     fun ecrecover(calldata: vector<u8>, gas_limit: u256): (bool, vector<u8>, u256) {
         let message_hash = vector_slice(calldata, 0, 32);
         let v = to_u256(vector_slice(calldata, 32, 32));
-        debug::print(&v);
         if(v != 27 && v != 28) {
             return (true, x"", Ecrecover)
         };
@@ -64,8 +63,6 @@ module aptos_framework::evm_precompile {
     }
 
     public fun run_precompile(addr: vector<u8>, calldata: vector<u8>, gas_limit: u256): (bool, vector<u8>, u256)  {
-        debug::print(&addr);
-        debug::print(&calldata);
         if(addr == RCRECOVER) {
             ecrecover(calldata, gas_limit)
         } else if(addr == SHA256) {
@@ -146,10 +143,6 @@ module aptos_framework::evm_precompile {
         };
 
         let gas = multiplication_complexity * adj_exp_len / ModexpGquaddivisor;
-        debug::print(&848484);
-        debug::print(&multiplication_complexity);
-        debug::print(&adj_exp_len);
-        debug::print(&gas);
         if(gas < 200) {
             gas = 200;
         };

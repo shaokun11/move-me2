@@ -162,6 +162,13 @@ module aptos_framework::evm_util {
         };
     }
 
+    public fun read_memory(memory: &mut vector<u8>, in_offset: u256, in_len: u256): vector<u8> {
+        if(in_len > 0) {
+            expand_to_pos(memory, ((in_offset + in_len) as u64));
+        };
+        vector_slice_u256(*memory, in_offset, in_len)
+    }
+
     public fun write_call_output(memory: &mut vector<u8>, out_offset: u256, out_len: u256, ret_data: vector<u8>) {
         let data_len = vector::length(&ret_data);
         let out_len = (out_len as u64);
@@ -175,15 +182,17 @@ module aptos_framework::evm_util {
     }
 
     public fun copy_to_memory(memory: &mut vector<u8>, m_pos: u256, d_pos: u256, len: u256, data: vector<u8>) {
-        expand_to_pos(memory, ((m_pos + len) as u64));
-        let i = 0;
-        let d_len =( vector::length(&data) as u256);
+        if(len > 0) {
+            expand_to_pos(memory, ((m_pos + len) as u64));
+            let i = 0;
+            let d_len =( vector::length(&data) as u256);
 
-        while (i < len) {
-            let bytes = if(d_pos > U64_MAX || d_pos + i >= d_len) 0 else *vector::borrow(&data, ((d_pos + i) as u64));
-            *vector::borrow_mut(memory, ((m_pos + i) as u64)) = bytes;
-            i = i + 1;
-        };
+            while (i < len) {
+                let bytes = if(d_pos > U64_MAX || d_pos + i >= d_len) 0 else *vector::borrow(&data, ((d_pos + i) as u64));
+                *vector::borrow_mut(memory, ((m_pos + i) as u64)) = bytes;
+                i = i + 1;
+            };
+        }
     }
 
     public fun mstore(memory: &mut vector<u8>, pos: u64, data: vector<u8>) {
@@ -365,6 +374,10 @@ module aptos_framework::evm_util {
             debug::print(&utf8(b"DIFFICULTY"));
         } else if(opcode == 0x45) {
             debug::print(&utf8(b"GASLIMIT"));
+        } else if(opcode == 0x46) {
+            debug::print(&utf8(b"BASEFEE"));
+        } else if(opcode == 0x47) {
+            debug::print(&utf8(b"SELFBALANCE"));
         } else if(opcode == 0x48) {
             debug::print(&utf8(b"PREVRANDAO"));
         } else if(opcode == 0x50) {

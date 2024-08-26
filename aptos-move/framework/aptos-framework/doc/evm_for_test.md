@@ -1029,12 +1029,12 @@
 
 
 <pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_create">create</a>(memory: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
-            stack: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u256&gt;,
-            depth: u64,
-            current_address: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
-            run_state: &<b>mut</b> RunState,
-            trie: &<b>mut</b> Trie,
-            error_code: &<b>mut</b> u64) {
+           stack: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u256&gt;,
+           depth: u64,
+           current_address: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
+           run_state: &<b>mut</b> RunState,
+           trie: &<b>mut</b> Trie,
+           error_code: &<b>mut</b> u64) {
     <b>let</b> msg_value = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
     <b>let</b> pos = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
     <b>let</b> len = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
@@ -1115,18 +1115,18 @@
 
 
 <pre><code><b>fun</b> <a href="evm_for_test.md#0x1_evm_for_test_run">run</a>(
-        sender: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
-        <b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
-        <a href="code.md#0x1_code">code</a>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
-        data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
-        value: u256,
-        gas_limit: u256,
-        trie: &<b>mut</b> Trie,
-        run_state: &<b>mut</b> RunState,
-        transfer_eth: bool,
-        is_create: bool,
-        depth: u64
-    ): (u8, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;) {
+    sender: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
+    <b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
+    <a href="code.md#0x1_code">code</a>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
+    data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
+    value: u256,
+    gas_limit: u256,
+    trie: &<b>mut</b> Trie,
+    run_state: &<b>mut</b> RunState,
+    transfer_eth: bool,
+    is_create: bool,
+    depth: u64
+): (u8, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;) {
 
     add_warm_address(<b>to</b>, trie);
 
@@ -1183,7 +1183,7 @@
         <b>if</b>(opcode == 0x00) {
             <b>break</b>
         }
-        // <b>return</b>
+            // <b>return</b>
         <b>else</b> <b>if</b>(opcode == 0xf3) {
             <b>let</b> pos = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
             <b>let</b> len = <a href="evm_for_test.md#0x1_evm_for_test_pop_stack">pop_stack</a>(stack, error_code);
@@ -1858,12 +1858,12 @@
             *error_code = <a href="evm_for_test.md#0x1_evm_for_test_ERROR_INVALID_OPCODE">ERROR_INVALID_OPCODE</a>;
             i = i + 1
         }
-        //     //blob blob <a href="../../aptos-stdlib/../move-stdlib/doc/hash.md#0x1_hash">hash</a>
-        // <b>else</b> <b>if</b>(opcode == 0x49 || opcode == 0x4a || opcode == 0xff) {
-        //     <b>assert</b>!(<b>false</b>, OPCODE_UNIMPLEMENT);
-        //     // <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 0);
-        //     i = i + 1;
-        // }
+            //     //blob blob <a href="../../aptos-stdlib/../move-stdlib/doc/hash.md#0x1_hash">hash</a>
+            // <b>else</b> <b>if</b>(opcode == 0x49 || opcode == 0x4a || opcode == 0xff) {
+            //     <b>assert</b>!(<b>false</b>, OPCODE_UNIMPLEMENT);
+            //     // <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(stack, 0);
+            //     i = i + 1;
+            // }
         <b>else</b> {
             <b>assert</b>!(<b>false</b>, (opcode <b>as</b> u64));
         };

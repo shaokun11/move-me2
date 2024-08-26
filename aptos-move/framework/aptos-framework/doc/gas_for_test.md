@@ -377,8 +377,8 @@
 
 
 <pre><code><b>fun</b> <a href="gas_for_test.md#0x1_evm_gas_for_test_calc_mcopy_gas">calc_mcopy_gas</a>(stack: &<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u256&gt;,
-                    run_state: &<b>mut</b> RunState,
-                    gas_limit: u256,
+                   run_state: &<b>mut</b> RunState,
+                   gas_limit: u256,
                    error_code: &<b>mut</b> u64): u256 {
     <b>let</b> gas = 0;
     <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack);
@@ -679,7 +679,7 @@
 
 
 <pre><code><b>fun</b> <a href="gas_for_test.md#0x1_evm_gas_for_test_calc_return_data_copy_gas">calc_return_data_copy_gas</a>(stack: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u256&gt;,
-                       run_state: &<b>mut</b> RunState, gas_limit: u256, error_code: &<b>mut</b> u64): u256 {
+                              run_state: &<b>mut</b> RunState, gas_limit: u256, error_code: &<b>mut</b> u64): u256 {
     <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack);
     <b>if</b>(len &lt; 3) {
         *error_code = <a href="gas_for_test.md#0x1_evm_gas_for_test_STACK_UNDERFLOW">STACK_UNDERFLOW</a>;
@@ -838,7 +838,7 @@
 
 
 <pre><code><b>fun</b> <a href="gas_for_test.md#0x1_evm_gas_for_test_calc_keccak256_gas">calc_keccak256_gas</a>(stack: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u256&gt;,
-                 run_state: &<b>mut</b> RunState, gas_limit: u256, error_code: &<b>mut</b> u64): u256 {
+                       run_state: &<b>mut</b> RunState, gas_limit: u256, error_code: &<b>mut</b> u64): u256 {
     <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack);
     <b>if</b>(len &lt; 2) {
         *error_code = <a href="gas_for_test.md#0x1_evm_gas_for_test_STACK_UNDERFLOW">STACK_UNDERFLOW</a>;
@@ -877,7 +877,7 @@
 
 
 <pre><code><b>fun</b> <a href="gas_for_test.md#0x1_evm_gas_for_test_calc_log_gas">calc_log_gas</a>(opcode: u8, stack: &<b>mut</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u256&gt;,
-                       run_state: &<b>mut</b> RunState, gas_limit: u256, error_code: &<b>mut</b> u64): u256 {
+                 run_state: &<b>mut</b> RunState, gas_limit: u256, error_code: &<b>mut</b> u64): u256 {
     <b>let</b> topic_count = ((opcode - 0xa0) <b>as</b> u256);
     <b>let</b> len = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(stack);
     <b>if</b>(len &lt; 2) {
@@ -1101,7 +1101,7 @@
                          trie: &<b>mut</b> Trie,
                          gas_limit: u256,
                          error_code: &<b>mut</b> u64
-                        ): u256 {
+): u256 {
     print_opcode(opcode);
     <b>let</b> gas = <b>if</b> (opcode == 0x00) {
         // STOP
