@@ -196,7 +196,7 @@ impl Compatibility {
             ).with_message(format!("Module Update Failure: Public function/struct signature of new module differs from existing module in {:?}::{}", old_module.address, old_module.name)));
         }
         if self.check_struct_layout && !struct_layout {
-            println!("Module Update Failure: Struct layout of new module differs from existing modul in {:?}::{}", old_module.address, old_module.name)
+            println!("Module Update Failure: Struct layout of new module differs from existing modul in {:?}::{}", old_module.address, old_module.name);
             return Err(PartialVMError::new(
                 StatusCode::BACKWARD_INCOMPATIBLE_MODULE_UPDATE,
             ).with_message(format!("Module Update Failure: Struct layout of new module differs from existing modul in {:?}::{}", old_module.address, old_module.name)));
