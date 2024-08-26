@@ -27,6 +27,7 @@ module aptos_framework::evm {
     use aptos_framework::evm_log::{LogContext, Log};
     use aptos_framework::evm_log;
     use aptos_framework::evm_trie_v2;
+    use aptos_framework::evm_trie;
 
     friend aptos_framework::genesis;
 
@@ -90,7 +91,20 @@ module aptos_framework::evm {
         gas_usage: u256,
         exception: u64,
         message: vector<u8>,
-        logs: vector<Log>,
+        logs: vector<evm_trie::Log>,
+        version: u8,
+        extra: vector<u8>,
+        created_address: vector<u8>
+    }
+
+    #[event]
+    struct ExecResultEventV2 has drop, store {
+        from: vector<u8>,
+        to: vector<u8>,
+        gas_usage: u256,
+        exception: u64,
+        message: vector<u8>,
+        logs: vector<evm_log::Log>,
         version: u8,
         extra: vector<u8>,
         created_address: vector<u8>
@@ -135,9 +149,8 @@ module aptos_framework::evm {
         event::emit_event(&mut exec_resource.call_event, get_traces(run_state));
     }
 
-    fun emit_event(run_state: &RunState, gas_usage: u256, exception: u64, message: vector<u8>, created_address: vector<u8>, logs: vector<Log>) acquires ExecResource {
-        let exec_resource = borrow_global_mut<ExecResource>(@aptos_framework);
-        event::emit_event(&mut exec_resource.exec_event, ExecResultEvent {
+    fun emit_event(run_state: &RunState, gas_usage: u256, exception: u64, message: vector<u8>, created_address: vector<u8>, logs: vector<evm_log::Log>) {
+        event::emit(ExecResultEventV2 {
             gas_usage,
             exception,
             message,
@@ -150,7 +163,7 @@ module aptos_framework::evm {
         });
     }
 
-    fun handle_tx_failed(run_state: &RunState, exception: u64): (u64, u256, vector<u8>) acquires ExecResource {
+    fun handle_tx_failed(run_state: &RunState, exception: u64): (u64, u256, vector<u8>) {
         emit_event(run_state, 0, exception, x"", x"", vector[]);
         // emit_trace(run_state);
         (exception, 0, x"")
