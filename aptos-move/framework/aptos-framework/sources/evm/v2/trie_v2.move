@@ -7,7 +7,7 @@ module aptos_framework::evm_trie_v2 {
     use aptos_framework::evm_storage::get_state_storage;
 
     friend aptos_framework::evm;
-    friend aptos_framework::evm_gas;
+    friend aptos_framework::evm_gas_v2;
 
     public(friend) fun add_checkpoint() {
         evm_context::push_substate();

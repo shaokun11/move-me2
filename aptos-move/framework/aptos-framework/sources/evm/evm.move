@@ -10,7 +10,7 @@ module aptos_framework::evm {
     use aptos_framework::evm_arithmetic::{add, mul, sub, div, sdiv, mod, smod, add_mod, mul_mod, exp, slt, sgt, shr, sar};
     use aptos_framework::evm_global_state::{new_run_state, get_gas_price, get_coinbase, is_eip_1559, get_basefee, get_max_fee_per_gas, get_max_priority_fee_per_gas, get_block_gas_limit, add_gas_usage, get_gas_left, add_call_state, get_gas_refund, RunState, set_ret_bytes, get_is_static, clear_gas_refund, commit_call_state, revert_call_state, get_origin, get_ret_size, get_ret_bytes, get_timestamp, get_block_number, get_random, add_gas_left, get_sender, get_to, CallEvent, get_traces};
     use aptos_framework::evm_trie_v2::{init_new_trie, add_warm_address, get_balance, get_code_length, get_nonce, sub_balance, add_checkpoint, is_contract_or_created_account, set_code, add_nonce, add_balance, save, transfer, revert_checkpoint, commit_latest_checkpoint, exist_account, get_state, set_state, get_transient_storage, put_transient_storage, exist_contract, set_balance, new_account};
-    use aptos_framework::evm_gas::{calc_base_gas, max_call_gas, calc_exec_gas};
+    use aptos_framework::evm_gas_v2::{calc_base_gas, max_call_gas, calc_exec_gas};
     use aptos_framework::evm_precompile::{is_precompile_address, run_precompile};
     use aptos_framework::evm_storage::{get_code_storage, deposit_to, get_state_storage, withdraw_from};
     use aptos_framework::evm_storage;
