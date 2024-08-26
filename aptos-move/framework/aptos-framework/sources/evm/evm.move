@@ -24,7 +24,7 @@ module aptos_framework::evm {
     use aptos_framework::coin::register;
     use aptos_framework::aptos_coin::AptosCoin;
     use aptos_std::from_bcs::to_address;
-    use aptos_framework::evm_log::{LogContext, Log};
+    use aptos_framework::evm_log::{LogContext};
     use aptos_framework::evm_log;
     use aptos_framework::evm_trie_v2;
     use aptos_framework::evm_trie;

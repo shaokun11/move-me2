@@ -1,7 +1,6 @@
 module aptos_framework::evm_global_state_for_test {
     use std::vector;
     use aptos_framework::evm_util::{to_u256, to_32bit};
-    use aptos_std::debug;
 
     const TX_TYPE_NORMAL: u8 = 0;
     const TX_TYPE_1559: u8 = 1;
