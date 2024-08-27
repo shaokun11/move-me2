@@ -193,6 +193,7 @@ function binarySearchInsert(arr, item) {
 }
 async function sendTxTask() {
     let isSending = false;
+    let lastSendTime = Date.now();
     setInterval(async () => {
         if (isSending) {
             return;
@@ -208,6 +209,11 @@ async function sendTxTask() {
         }
         if (allTx.length === 0) {
             return;
+        }
+
+        if (Date.now() - lastSendTime >= 60 * 1000) {
+            lastSendTime = Date.now();
+            console.log('tx pool remain %s', allTx.length);
         }
         // set LOCKER
         isSending = true;
@@ -288,6 +294,7 @@ async function sendTxTask() {
                 }
             }
         }
+
         // release locker
         isSending = false;
     }, 500);
@@ -1176,4 +1183,8 @@ async function parseMoveTxPayload(info) {
     const args = info.payload.arguments;
     // return await workerPool.run(args[0], { name: 'parseTx' });
     return parseRawTx(args[0]);
+}
+
+export function getTxPool() {
+    return TX_MEMORY_POOL;
 }

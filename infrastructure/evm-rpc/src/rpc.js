@@ -24,6 +24,7 @@ import {
     getEvmSummary,
     getMaxPriorityFeePerGas,
     getErrorByHash,
+    getTxPool,
 } from './bridge.js';
 import JsonRpc from 'json-rpc-2.0';
 const { JSONRPCErrorException } = JsonRpc;
@@ -58,6 +59,9 @@ function checkCall(res) {
 }
 
 export const rpc = {
+    admin_getTxPool: async function () {
+        return getTxPool();
+    },
     admin_getEvmTxSummary: async function () {
         return getEvmSummary();
     },
