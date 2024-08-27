@@ -130,6 +130,7 @@ export async function sendRawTx(tx) {
         return res.result;
     }
     const info = parseRawTx(tx);
+    const price = getGasPriceFromTx(info);
     // also there could use tx hash as the key
     let key = info.from + ':' + info.nonce;
     const item = {
@@ -138,6 +139,7 @@ export async function sendRawTx(tx) {
         from: info.from,
         ts: Date.now(),
         key,
+        price
     };
     const checkIsSend = () => {
         if (PENDING_TX_SET.has(key)) {
@@ -153,7 +155,6 @@ export async function sendRawTx(tx) {
         if (existIndex !== -1) {
             const mTx = parseRawTx(fromTxArr[existIndex].tx);
             const mPrice = getGasPriceFromTx(mTx);
-            const price = getGasPriceFromTx(info);
             if (BigNumber(price).gt(mPrice)) {
                 item.ts = fromTxArr[existIndex].ts;
                 // delete the old tx
@@ -179,6 +180,7 @@ function binarySearchInsert(arr, item) {
     while (low < high) {
         const mid = Math.floor((low + high) / 2);
         // Now just sort the tx by the timestamp
+        // Maybe we can use the gas price to sort it
         if (arr[mid].ts < item.ts) {
             low = mid + 1;
         } else {
