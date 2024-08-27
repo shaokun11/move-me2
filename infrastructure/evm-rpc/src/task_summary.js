@@ -54,13 +54,6 @@ async function run(startVersion) {
     // get all address
     const address = [];
     txInfo.forEach(it => {
-        // const txResult = it.events.find(ele => ele.type === '0x1::evm::ExecResultEvent');
-        // if (txResult) {
-        //     address.push(txResult.data.from);
-        //     if (txResult.data.to !== '0x') {
-        //         address.push(txResult.data.to);
-        //     }
-        // }
         // If this evm account join the transaction , it's storage must be changed.
         // So we can trace it to found all the evm address
         const accounts = it.changes.filter(ele => ele.data?.type === '0x1::evm_storage::AccountStorage');

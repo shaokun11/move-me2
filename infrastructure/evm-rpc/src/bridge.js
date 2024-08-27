@@ -12,6 +12,7 @@ import {
     EVM_RAW_TX_URL,
     EVM_FAUCET_URL,
     EVM_NONCE_URL,
+    MEVM_EVENT,
 } from './const.js';
 import { parseRawTx, toHex, toNumber, toHexStrict } from './helper.js';
 import { getMoveHash, getBlockHeightByHash, getEvmLogs, getErrorTxMoveHash } from './db.js';
@@ -292,7 +293,7 @@ async function sendTxTask() {
 sendTxTask();
 
 function isSuccessTx(info) {
-    const txResult = info.events.find(it => it.type === '0x1::evm::ExecResultEvent');
+    const txResult = info.events.find(it => it.type.startsWith(MEVM_EVENT));
     return txResult.data.exception === '200';
 }
 
@@ -855,7 +856,6 @@ export async function getTransactionByHash(evm_hash) {
     const block = await client.getBlockByVersion(info.version);
     const txInfo = await parseMoveTxPayload(info);
     const transactionIndex = toHex(await getTransactionIndex(block.block_height, evm_hash));
-    // const txResult = info.events.find(it => it.type === '0x1::evm::ExecResultEvent');
     const gasInfo = {};
     if (txInfo.gasPrice) {
         gasInfo.gasPrice = toHex(txInfo.gasPrice);
@@ -906,7 +906,7 @@ export async function getTransactionReceipt(evm_hash) {
     const transactionIndex = toHex(await getTransactionIndex(block.block_height, evm_hash));
     // we could get it from indexer , but is also to parse it directly to reduce the request
     const logs = parseLogs(info, block.block_height, block.block_hash, evm_hash, transactionIndex);
-    const txResult = info.events.find(it => it.type === '0x1::evm::ExecResultEvent');
+    const txResult = info.events.find(it => it.type.startsWith(MEVM_EVENT));
     const status = isSuccessTx(info) ? '0x1' : '0x0';
     let contractAddress =
         txResult.data.created_address === '0x' ? null : move2ethAddress(txResult.data.created_address);
@@ -1150,7 +1150,7 @@ function parseLogs(info, blockNumber, blockHash, evm_hash, transactionIndex) {
     // this could from indexer get, but we could get them from the tx hash
     let logs = [];
     let events = info.events || [];
-    events = events.filter(it => it.type === '0x1::evm::ExecResultEvent');
+    events = events.filter(it => it.type.startsWith(MEVM_EVENT));
     if (events.length > 0) {
         const tx_logs = events[0].data.logs;
         for (let i = 0; i < tx_logs.length; i++) {
