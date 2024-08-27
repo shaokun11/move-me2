@@ -57,7 +57,7 @@ const PENDING_TX_SET = new Set();
  */
 const TX_MEMORY_POOL = {};
 const TX_EXPIRE_TIME = 1000 * 60 * 5; // 5 Minutes
-const ONE_ADDRESS_MAX_TX_COUNT = 10;
+const ONE_ADDRESS_MAX_TX_COUNT = 20;
 const TX_NONCE_FIRST_CHECK_TIME = {};
 
 async function initTxPool() {
@@ -139,7 +139,7 @@ export async function sendRawTx(tx) {
         from: info.from,
         ts: Date.now(),
         key,
-        price
+        price,
     };
     const checkIsSend = () => {
         if (PENDING_TX_SET.has(key)) {
@@ -179,9 +179,11 @@ function binarySearchInsert(arr, item) {
     let high = arr.length;
     while (low < high) {
         const mid = Math.floor((low + high) / 2);
-        // Now just sort the tx by the timestamp
-        // Maybe we can use the gas price to sort it
-        if (arr[mid].ts < item.ts) {
+        // Sort gasPrice first, then sort by timestamp
+        // price is hex string
+        const p1 = BigNumber(arr[mid].price);
+        const p2 = BigNumber(item.price);
+        if (p1.lt(p2) || (p1.eq(p2) && arr[mid].ts < item.ts)) {
             low = mid + 1;
         } else {
             high = mid;
@@ -936,7 +938,7 @@ export async function getTransactionReceipt(evm_hash) {
  * @throws Will throw an error if the account information cannot be retrieved.
  */
 export async function getNonce(sender) {
-    if(EVM_NONCE_URL) {
+    if (EVM_NONCE_URL) {
         const res = await postJsonRpc(EVM_NONCE_URL, 'eth_getTransactionCount', [sender]);
         return res.result;
     }
