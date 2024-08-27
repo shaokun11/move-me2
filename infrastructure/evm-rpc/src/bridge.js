@@ -132,6 +132,13 @@ export async function sendRawTx(tx) {
     const info = parseRawTx(tx);
     // also there could use tx hash as the key
     let key = info.from + ':' + info.nonce;
+    const item = {
+        nonce: info.nonce,
+        tx,
+        from: info.from,
+        ts: Date.now(),
+        key,
+    };
     const checkIsSend = () => {
         if (PENDING_TX_SET.has(key)) {
             throw 'transaction is in tx memory pool';
@@ -148,23 +155,14 @@ export async function sendRawTx(tx) {
             const mPrice = getGasPriceFromTx(mTx);
             const price = getGasPriceFromTx(info);
             if (BigNumber(price).gt(mPrice)) {
+                item.ts = fromTxArr[existIndex].ts;
                 // delete the old tx
                 fromTxArr.splice(existIndex, 1);
-                // } else if (BigNumber(price).eq(mPrice)) {
-                // is same price , do nothing
-                // return info.hash;
             } else {
                 throw 'replacement transaction underpriced';
             }
         }
     }
-    const item = {
-        nonce: info.nonce,
-        tx,
-        from: info.from,
-        ts: Date.now(),
-        key,
-    };
     if (!fromTxArr) {
         TX_MEMORY_POOL[info.from] = [item];
     } else {
