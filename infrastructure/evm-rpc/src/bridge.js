@@ -181,9 +181,10 @@ function binarySearchInsert(arr, item) {
         const mid = Math.floor((low + high) / 2);
         // Sort gasPrice first, then sort by timestamp
         // price is hex string
-        const p1 = BigNumber(arr[mid].price);
-        const p2 = BigNumber(item.price);
-        if (p1.lt(p2) || (p1.eq(p2) && arr[mid].ts < item.ts)) {
+        // const p1 = BigNumber(arr[mid].price);
+        // const p2 = BigNumber(item.price);
+        // if (p1.lt(p2) || (p1.eq(p2) && arr[mid].ts < item.ts)) {
+        if (arr[mid].ts < item.ts) {
             low = mid + 1;
         } else {
             high = mid;
