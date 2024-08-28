@@ -147,7 +147,7 @@ export class EvmProcessor extends TransactionsProcessor {
         hashArr.push(item);
         const evmEvent = "0x1::evm::ExecResultEvent"
         const events: any = userTransaction?.events?.filter((it) => {
-          return it.typeStr.startsWith(evmEvent);
+          return it.typeStr?.startsWith(evmEvent);
         });
         if (!events || events.length === 0) {
           continue;
