@@ -19,6 +19,7 @@ use move_vm_types::{
 };
 use smallvec::{smallvec, SmallVec};
 use std::collections::VecDeque;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 /***************************************************************************************************
  * native fun print
@@ -33,13 +34,19 @@ fn native_print(
     debug_assert!(ty_args.is_empty());
     debug_assert!(args.len() == 1);
 
+    let time = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_micros();
+
     if cfg!(feature = "testing") {
         let val = safely_pop_arg!(args, Struct);
         let bytes = val.unpack()?.next().unwrap();
 
         println!(
-            "[debug] {}",
+            "[debug] {} {}",
             std::str::from_utf8(&bytes.value_as::<Vec<u8>>()?).unwrap(),
+            time
         );
     }
 
