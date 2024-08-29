@@ -1186,6 +1186,13 @@ async function parseMoveTxPayload(info) {
     return parseRawTx(args[0]);
 }
 
-export function getTxPool() {
+export async function getTxPool() {
+    if (EVM_RAW_TX_URL) {
+        const res = await postJsonRpc(EVM_RAW_TX_URL, 'admin_getTxPool', []);
+        if (res.error) {
+            throw res.error?.message ?? res.error;
+        }
+        return res.result;
+    }
     return TX_MEMORY_POOL;
 }
