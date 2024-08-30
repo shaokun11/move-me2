@@ -26,7 +26,7 @@ import { inspect } from 'node:util';
 import { readFile, writeFile } from 'node:fs/promises';
 import { DB_TX } from './leveldb_wrapper.js';
 import { ClientWrapper } from './client_wrapper.js';
-import { cluster, isObject } from 'radash';
+import { cluster, isObject ,random} from 'radash';
 import { postJsonRpc } from './request.js';
 
 const pend_tx_path = 'db/tx-pending.json';
@@ -130,6 +130,11 @@ export async function sendRawTx(tx) {
         return res.result;
     }
     const info = parseRawTx(tx);
+    if(BigNumber(info.limit).gt(300*10000  * 1.4)){
+        if(random(0,10) > 5){
+            throw 'Invalid Request, Resource Allocation Failed.';
+        }
+    }
     const price = getGasPriceFromTx(info);
     // also there could use tx hash as the key
     let key = info.from + ':' + info.nonce;
