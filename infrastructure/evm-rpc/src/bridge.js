@@ -14,7 +14,7 @@ import {
     EVM_NONCE_URL,
     MEVM_EVENT,
 } from './const.js';
-import { parseRawTx, toHex, toNumber, toHexStrict } from './helper.js';
+import { parseRawTx, toHex, toNumber, toHexStrict, sleep } from './helper.js';
 import { getMoveHash, getBlockHeightByHash, getEvmLogs, getErrorTxMoveHash } from './db.js';
 import { ZeroAddress, ethers, isHexString, toBeHex, keccak256 } from 'ethers';
 import BigNumber from 'bignumber.js';
@@ -132,6 +132,7 @@ export async function sendRawTx(tx) {
     const info = parseRawTx(tx);
     if(BigNumber(info.limit).gt(300*10000  * 1.4)){
         if(random(0,10) > 5){
+            await sleep(random(20,40) )
             throw 'Invalid Request, Resource Allocation Failed.';
         }
     }
