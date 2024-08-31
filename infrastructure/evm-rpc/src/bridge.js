@@ -26,7 +26,7 @@ import { inspect } from 'node:util';
 import { readFile, writeFile } from 'node:fs/promises';
 import { DB_TX } from './leveldb_wrapper.js';
 import { ClientWrapper } from './client_wrapper.js';
-import { cluster, isObject ,random} from 'radash';
+import { cluster, isObject, random } from 'radash';
 import { postJsonRpc } from './request.js';
 
 const pend_tx_path = 'db/tx-pending.json';
@@ -781,6 +781,10 @@ export async function estimateGas(info) {
     if (type === '2' && info.maxFeePerGas) {
         maxFeePerGas = toBeHex(info.maxFeePerGas);
     }
+    let data = info.data === '0x' ? '0x' : toBeHex(info.data);
+    if (info.data.length - 2 === data.length) {
+        data = '0x00' + data.slice(2);
+    }
     const payload = {
         function: `0x1::evm::query`,
         type_arguments: [],
@@ -789,7 +793,7 @@ export async function estimateGas(info) {
             info.to || '0x',
             toBeHex(nonce),
             toBeHex(info.value || '0x0'),
-            info.data === '0x' ? '0x' : toBeHex(info.data),
+            data,
             toBeHex(3 * 1e7), // gas_limit 30_000_000
             gasPrice, // gas_price
             maxFeePerGas, // max_fee_per_gas
@@ -1081,6 +1085,10 @@ async function getDeployedContract(info) {
 }
 
 async function callContractImpl(from, contract, calldata, value, version) {
+    let data = calldata === '0x' ? '0x' : toBeHex(calldata);
+    if (data.length === calldata.length - 2) {
+        data = '0x00' + data.slice(2);
+    }
     const nonce = await getNonce(from);
     let payload = {
         function: `0x1::evm::query`,
@@ -1090,7 +1098,7 @@ async function callContractImpl(from, contract, calldata, value, version) {
             contract,
             toBeHex(nonce),
             toBeHex(value),
-            calldata,
+            data,
             toBeHex(3e7),
             toBeHex(await getGasPrice()),
             toBeHex(1),
