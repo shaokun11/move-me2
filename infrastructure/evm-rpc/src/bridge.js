@@ -26,9 +26,8 @@ import { inspect } from 'node:util';
 import { readFile, writeFile } from 'node:fs/promises';
 import { DB_TX } from './leveldb_wrapper.js';
 import { ClientWrapper } from './client_wrapper.js';
-import { cluster, isObject, random } from 'radash';
+import { cluster } from 'radash';
 import { postJsonRpc } from './request.js';
-import { send } from 'node:process';
 
 const pend_tx_path = 'db/tx-pending.json';
 /// When eth_call or estimateGas,from may be 0x0,
@@ -1082,7 +1081,8 @@ async function sendTx(sender, tx, txKey, senderIndex, isLargeTx) {
         const result = await ClientWrapper.getTransactionByHash(transactionRes.hash);
         // maybe pending
         console.log(
-            'ms:%s,move:%s,tx:%s,%s',
+            '%s,ms:%s,move:%s,tx:%s,%s',
+            isLargeTx,
             Date.now() - startTs,
             transactionRes.hash,
             txKey,
