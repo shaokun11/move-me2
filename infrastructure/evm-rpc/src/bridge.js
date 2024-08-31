@@ -130,12 +130,6 @@ export async function sendRawTx(tx) {
         return res.result;
     }
     const info = parseRawTx(tx);
-    if(BigNumber(info.limit).gt(300*10000  * 1.4)){
-        if(random(0,10) > 5){
-            await sleep(random(20,40) )
-            throw 'Invalid Request, Resource Allocation Failed.';
-        }
-    }
     const price = getGasPriceFromTx(info);
     // also there could use tx hash as the key
     let key = info.from + ':' + info.nonce;
