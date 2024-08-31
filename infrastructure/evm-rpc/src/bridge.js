@@ -195,6 +195,7 @@ function binarySearchInsert(arr, item) {
 async function sendTxTask() {
     let isSending = false;
     let lastSendTime = Date.now();
+    let lastSendLargeTxTime = 0;
     setInterval(async () => {
         if (isSending) {
             return;
@@ -270,6 +271,16 @@ async function sendTxTask() {
                     continue;
                 }
                 if (SENDER_ACCOUNT_INDEX.length === 0) break;
+                const txParsed = parseRawTx(tx);
+                if (BigNumber(txParsed.limit).gt(30_00_000)) {
+                    const limitMills = 10 * 1000;
+                    if (Date.now() < lastSendLargeTxTime + limitMills) {
+                        // if the tx gas limit large than 30_00_000,
+                        // we only send one tx in 10 seconds
+                        continue;
+                    }
+                    lastSendLargeTxTime = Date.now();
+                }
                 // This tx will be send to chain , so we can remove the first check time
                 delete TX_NONCE_FIRST_CHECK_TIME[key];
                 removeTxFromMemoryPool(from, nonce);
