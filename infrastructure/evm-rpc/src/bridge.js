@@ -273,7 +273,7 @@ async function sendTxTask() {
                 if (SENDER_ACCOUNT_INDEX.length === 0) break;
                 const txParsed = parseRawTx(tx);
                 if (BigNumber(txParsed.limit).gt(30_00_000)) {
-                    const limitMills = 10 * 1000;
+                    const limitMills = 20 * 1000;
                     if (Date.now() < lastSendLargeTxTime + limitMills) {
                         // this guarantee the one block only have one large tx and will not be dropped
                         continue;
