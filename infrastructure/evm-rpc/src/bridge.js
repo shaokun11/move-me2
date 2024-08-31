@@ -28,6 +28,7 @@ import { DB_TX } from './leveldb_wrapper.js';
 import { ClientWrapper } from './client_wrapper.js';
 import { cluster, isObject, random } from 'radash';
 import { postJsonRpc } from './request.js';
+import { send } from 'node:process';
 
 const pend_tx_path = 'db/tx-pending.json';
 /// When eth_call or estimateGas,from may be 0x0,
@@ -192,10 +193,13 @@ function binarySearchInsert(arr, item) {
     }
     return low;
 }
+const SEND_LARGE_TX_INFO = {
+    sendTime: 0,
+    isFinish: true,
+};
 async function sendTxTask() {
     let isSending = false;
     let lastSendTime = Date.now();
-    let lastSendLargeTxTime = 0;
     setInterval(async () => {
         if (isSending) {
             return;
@@ -271,14 +275,19 @@ async function sendTxTask() {
                     continue;
                 }
                 if (SENDER_ACCOUNT_INDEX.length === 0) break;
+                let isLargeTx = false;
                 const txParsed = parseRawTx(tx);
-                if (BigNumber(txParsed.limit).gt(30_00_000)) {
-                    const limitMills = 20 * 1000;
-                    if (Date.now() < lastSendLargeTxTime + limitMills) {
-                        // this guarantee the one block only have one large tx and will not be dropped
+                if (BigNumber(txParsed.limit).gt(25_00_000)) {
+                    isLargeTx = true;
+                    // is large tx
+                    if (!SEND_LARGE_TX_INFO.isFinish) {
+                        // not commit the last large tx
                         continue;
                     }
-                    lastSendLargeTxTime = Date.now();
+                    if (SEND_LARGE_TX_INFO.sendTime + 10 * 1000 > Date.now()) {
+                        // the more time to send small tx and make tx quickly
+                        continue;
+                    }
                 }
                 // This tx will be send to chain , so we can remove the first check time
                 delete TX_NONCE_FIRST_CHECK_TIME[key];
@@ -287,7 +296,7 @@ async function sendTxTask() {
                 const senderIndex = SENDER_ACCOUNT_INDEX.shift();
                 try {
                     const sender = GET_SENDER_ACCOUNT(senderIndex);
-                    await sendTx(sender, tx, key, senderIndex);
+                    await sendTx(sender, tx, key, senderIndex, isLargeTx);
                 } catch (error) {
                     // reset this tx info to the pool
                     PENDING_TX_SET.delete(key);
@@ -1019,7 +1028,7 @@ async function getAccountInfo(acc, block) {
     return ret;
 }
 
-async function sendTx(sender, tx, txKey, senderIndex) {
+async function sendTx(sender, tx, txKey, senderIndex, isLargeTx) {
     const payload = {
         function: `0x1::evm::send_tx`,
         type_arguments: [],
@@ -1036,6 +1045,9 @@ async function sendTx(sender, tx, txKey, senderIndex) {
     const signedTxn = await client.signTransaction(sender, txnRequest);
     const startTs = Date.now();
     const transactionRes = await client.submitTransaction(signedTxn);
+    if (isLargeTx) {
+        SEND_LARGE_TX_INFO.isFinish = false;
+    }
     const checkTxResult = async () => {
         let isRunning = false;
         let checkStart = Date.now();
@@ -1063,6 +1075,10 @@ async function sendTx(sender, tx, txKey, senderIndex) {
         });
         SENDER_ACCOUNT_INDEX.push(senderIndex);
         PENDING_TX_SET.delete(txKey);
+        if (isLargeTx) {
+            SEND_LARGE_TX_INFO.isFinish = true;
+            SEND_LARGE_TX_INFO.ts = Date.now();
+        }
         const result = await ClientWrapper.getTransactionByHash(transactionRes.hash);
         // maybe pending
         console.log(
