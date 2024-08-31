@@ -279,16 +279,15 @@ async function sendTxTask() {
                 if (BigNumber(txParsed.limit).gt(20_00_000)) {
                     isLargeTx = true;
                     // is large tx
-                    if (!SEND_LARGE_TX_INFO.isFinish) {
-                        // not commit the last large tx
-                        continue;
-                    }
-                    if (SEND_LARGE_TX_INFO.sendTime + 30 * 1000 > Date.now()) {
-                        // the more time to send small tx and make tx quickly
-                        continue;
-                    }
+                    // if (!SEND_LARGE_TX_INFO.isFinish) {
+                    //     // not commit the last large tx
+                    //     continue;
+                    // }
+                    // if (SEND_LARGE_TX_INFO.sendTime + 30 * 1000 > Date.now()) {
+                    //     // the more time to send small tx and make tx quickly
+                    //     continue;
+                    // }
                 }
-                console.log('%s,%s', key, isLargeTx);
                 // This tx will be send to chain , so we can remove the first check time
                 delete TX_NONCE_FIRST_CHECK_TIME[key];
                 removeTxFromMemoryPool(from, nonce);
