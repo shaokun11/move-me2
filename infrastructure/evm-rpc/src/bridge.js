@@ -283,7 +283,7 @@ async function sendTxTask() {
                         // not commit the last large tx
                         continue;
                     }
-                    if (SEND_LARGE_TX_INFO.sendTime + 10 * 1000 > Date.now()) {
+                    if (SEND_LARGE_TX_INFO.sendTime + 30 * 1000 > Date.now()) {
                         // the more time to send small tx and make tx quickly
                         continue;
                     }
