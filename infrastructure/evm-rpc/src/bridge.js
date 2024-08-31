@@ -275,8 +275,7 @@ async function sendTxTask() {
                 if (BigNumber(txParsed.limit).gt(30_00_000)) {
                     const limitMills = 10 * 1000;
                     if (Date.now() < lastSendLargeTxTime + limitMills) {
-                        // if the tx gas limit large than 30_00_000,
-                        // we only send one tx in 10 seconds
+                        // this guarantee the one block only have one large tx and will not be dropped
                         continue;
                     }
                     lastSendLargeTxTime = Date.now();
