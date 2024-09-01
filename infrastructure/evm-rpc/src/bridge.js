@@ -203,7 +203,7 @@ async function sendTxTask() {
         if (isSending) {
             return;
         }
-        if (SENDER_ACCOUNT_INDEX.length === 0) {
+        if (SENDER_ACCOUNT_INDEX.length > 3) {
             return;
         }
         let allTx = [];
@@ -225,7 +225,7 @@ async function sendTxTask() {
 
         // get the chain nonce
         const accMap = {};
-        const keysArr = cluster(allKeys, 30);
+        const keysArr = cluster(allKeys, 50);
         for (let keys of keysArr) {
             const info = await Promise.all(keys.map(key => getAccountInfo(key)));
             keys.forEach((k, i) => {
@@ -258,9 +258,10 @@ async function sendTxTask() {
                 continue;
             }
             // Now we simply sort the tx by the timestamp
-            let insertIndex = binarySearchInsert(sendTxArr, item);
-            sendTxArr.splice(insertIndex, 0, item);
+            // let insertIndex = binarySearchInsert(sendTxArr, item);
+            // sendTxArr.splice(insertIndex, 0, item);
         }
+        sendTxArr.sort((a, b) => a.ts - b.ts);
         if (sendTxArr.length > 0 && SENDER_ACCOUNT_INDEX.length > 0) {
             const size = sendTxArr.length;
             for (let i = 0; i < size; i++) {
