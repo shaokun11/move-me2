@@ -257,11 +257,11 @@ async function sendTxTask() {
                 continue;
             }
             // Now we simply sort the tx by the timestamp
-            // let insertIndex = binarySearchInsert(sendTxArr, item);
-            // sendTxArr.splice(insertIndex, 0, item);
-            sendTxArr.push(item);
+            let insertIndex = binarySearchInsert(sendTxArr, item);
+            sendTxArr.splice(insertIndex, 0, item);
+            // sendTxArr.push(item);
         }
-        sendTxArr.sort((a, b) => a.ts - b.ts);
+        // sendTxArr.sort((a, b) => a.ts - b.ts);
         if (sendTxArr.length > 0 && SENDER_ACCOUNT_INDEX.length > 0) {
             const size = sendTxArr.length;
             for (let i = 0; i < size; i++) {
@@ -320,7 +320,7 @@ async function sendTxTask() {
 
         // release locker
         isSending = false;
-    }, 500);
+    }, 1000);
 }
 sendTxTask();
 
