@@ -279,7 +279,7 @@ async function sendTxTask() {
                     // for we estimate the gas enlarge the gas limit to 140%
                     BigNumber(txParsed.limit).gt(25_00_000 * 1.4) &&
                     // not deploy contract
-                    !txParsed.to === ZeroAddress
+                    txParsed.to !== ZeroAddress
                 ) {
                     isLargeTx = true;
                     if (!SEND_LARGE_TX_INFO.isFinish) {
