@@ -37,6 +37,19 @@ The following RPC methods have been implemented to ensure interaction with Solid
 
 ### New Rpc for Move Evm
 
+- `admin_getTxPool`:Return the tx pool 
+
+```bash
+curl --location 'http://127.0.0.1:8998' \
+--header 'Content-Type: application/json' \
+--data '{
+    "id": "1",
+    "jsonrpc": "2.0",
+    "method": "admin_getTxPool",
+    "params": []
+}'
+```
+
 - `debug_getMoveHash`:Return the move evm hash by evm hash, this could use for query details at move explorer
 
 ```bash
