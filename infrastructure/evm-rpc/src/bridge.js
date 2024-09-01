@@ -203,7 +203,7 @@ async function sendTxTask() {
         if (isSending) {
             return;
         }
-        if (SENDER_ACCOUNT_INDEX.length > 3) {
+        if (SENDER_ACCOUNT_INDEX.length === 0) {
             return;
         }
         let allTx = [];
@@ -215,7 +215,6 @@ async function sendTxTask() {
         if (allTx.length === 0) {
             return;
         }
-
         if (Date.now() - lastSendTime >= 60 * 1000) {
             lastSendTime = Date.now();
             console.log('tx pool remain %s', allTx.length);
@@ -260,6 +259,7 @@ async function sendTxTask() {
             // Now we simply sort the tx by the timestamp
             // let insertIndex = binarySearchInsert(sendTxArr, item);
             // sendTxArr.splice(insertIndex, 0, item);
+            sendTxArr.push(item);
         }
         sendTxArr.sort((a, b) => a.ts - b.ts);
         if (sendTxArr.length > 0 && SENDER_ACCOUNT_INDEX.length > 0) {
