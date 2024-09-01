@@ -16,7 +16,7 @@ import {
 } from './const.js';
 import { parseRawTx, toHex, toNumber, toHexStrict, sleep } from './helper.js';
 import { getMoveHash, getBlockHeightByHash, getEvmLogs, getErrorTxMoveHash } from './db.js';
-import { ZeroAddress, ethers, isHexString, toBeHex, keccak256 } from 'ethers';
+import { ZeroAddress, ethers, isHexString, toBeHex, keccak256, isAddress } from 'ethers';
 import BigNumber from 'bignumber.js';
 import { toBuffer } from './helper.js';
 import { move2ethAddress } from './helper.js';
@@ -275,7 +275,12 @@ async function sendTxTask() {
                 if (SENDER_ACCOUNT_INDEX.length === 0) break;
                 let isLargeTx = false;
                 const txParsed = parseRawTx(tx);
-                if (BigNumber(txParsed.limit).gt(20_00_000)) {
+                if (
+                    // for we estimate the gas enlarge the gas limit to 140%
+                    BigNumber(txParsed.limit).gt(25_00_000 * 1.4) &&
+                    // not deploy contract
+                    !txParsed.to === ZeroAddress
+                ) {
                     isLargeTx = true;
                     if (!SEND_LARGE_TX_INFO.isFinish) {
                         // not commit the last large tx
