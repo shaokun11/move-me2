@@ -29,7 +29,7 @@ import { DB_TX } from './leveldb_wrapper.js';
 import { ClientWrapper } from './client_wrapper.js';
 import { cluster } from 'radash';
 import { postJsonRpc } from './request.js';
-
+import TimSort from 'timsort';
 const pend_tx_path = 'db/tx-pending.json';
 /// When eth_call or estimateGas,from may be 0x0,
 // Now the evm's 0x0 address cannot exist in the move, so we need to convert it to 0x1
@@ -200,7 +200,7 @@ async function sendTxTask() {
                 return;
             }
         }
-        
+
         let allTx = [];
         const allKeys = Object.keys(TX_MEMORY_POOL);
         for (let key of allKeys) {
@@ -252,11 +252,12 @@ async function sendTxTask() {
                 continue;
             }
             // Now we simply sort the tx by the timestamp
-            let insertIndex = binarySearchInsert(sendTxArr, item);
-            sendTxArr.splice(insertIndex, 0, item);
-            // sendTxArr.push(item);
+            // let insertIndex = binarySearchInsert(sendTxArr, item);
+            // sendTxArr.splice(insertIndex, 0, item);
+            sendTxArr.push(item);
         }
         // sendTxArr.sort((a, b) => a.ts - b.ts);
+        TimSort.sort(sendTxArr, (a, b) => a.ts - b.ts);
         if (sendTxArr.length > 0 && SENDER_ACCOUNT_INDEX.length > 0) {
             const size = sendTxArr.length;
             for (let i = 0; i < size; i++) {
@@ -315,7 +316,7 @@ async function sendTxTask() {
 
         // release locker
         isSending = false;
-    }, 1000);
+    }, 500);
 }
 
 function isSuccessTx(info) {
