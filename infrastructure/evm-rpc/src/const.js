@@ -72,7 +72,9 @@ export const DISABLE_EVM_ARCHIVE_NODE = process.env.DISABLE_EVM_ARCHIVE_NODE ===
 export const DISABLE_CACHE = process.env.DISABLE_CACHE === 'true';
 export const DISABLE_BATCH_FAUCET = process.env.DISABLE_BATCH_FAUCET === 'true';
 
-export const MEVM_EVENT = "0x1::evm::ExecResultEvent" // 0x1::evm::ExecResultEventV2
+export const MEVM_EVENT = '0x1::evm::ExecResultEvent'; // 0x1::evm::ExecResultEventV2
+
+export const IS_MAIN_NODE = !DISABLE_SEND_TX && !EVM_RAW_TX_URL;
 
 console.log({
     SERVER_PORT,
@@ -89,4 +91,5 @@ console.log({
     DISABLE_EVM_ARCHIVE_NODE,
     DISABLE_CACHE,
     DISABLE_BATCH_FAUCET,
+    IS_MAIN_NODE,
 });

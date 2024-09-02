@@ -3,7 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import JsonRpc from 'json-rpc-2.0';
 import { rpc } from './rpc.js';
-import { SERVER_PORT } from './const.js';
+import { IS_MAIN_NODE, SERVER_PORT } from './const.js';
 import { startBotTask } from './task_bot.js';
 import { startFaucetTask } from './task_faucet.js';
 import http from 'node:http';
@@ -64,5 +64,7 @@ app.set('trust proxy', true);
 app.listen(SERVER_PORT, () => {
     console.log('server start at http://127.0.0.1:' + SERVER_PORT);
     startBotTask();
-    startFaucetTask();
+    if (IS_MAIN_NODE) {
+        startFaucetTask();
+    }
 });

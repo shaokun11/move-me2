@@ -13,6 +13,7 @@ import {
     EVM_FAUCET_URL,
     EVM_NONCE_URL,
     MEVM_EVENT,
+    IS_MAIN_NODE,
 } from './const.js';
 import { parseRawTx, toHex, toNumber, toHexStrict, sleep } from './helper.js';
 import { getMoveHash, getBlockHeightByHash, getEvmLogs, getErrorTxMoveHash } from './db.js';
@@ -68,19 +69,6 @@ async function initTxPool() {
         });
     } catch (error) {}
 }
-
-await initTxPool();
-// restart the process , save the tx pool
-process.on('SIGINT', () => {
-    writeFile(
-        pend_tx_path,
-        JSON.stringify({
-            pool: TX_MEMORY_POOL,
-        }),
-    ).then(() => {
-        process.exit(0);
-    });
-});
 
 export async function getErrorByHash(hash) {
     if (!hash) {
@@ -322,7 +310,6 @@ async function sendTxTask() {
         isSending = false;
     }, 1000);
 }
-sendTxTask();
 
 function isSuccessTx(info) {
     const txResult = info.events.find(it => it.type.startsWith(MEVM_EVENT));
@@ -1232,4 +1219,20 @@ export async function getTxPool() {
         return res.result;
     }
     return TX_MEMORY_POOL;
+}
+
+if (IS_MAIN_NODE) {
+    await initTxPool();
+    // restart the process , save the tx pool
+    process.on('SIGINT', () => {
+        writeFile(
+            pend_tx_path,
+            JSON.stringify({
+                pool: TX_MEMORY_POOL,
+            }),
+        ).then(() => {
+            process.exit(0);
+        });
+    });
+    sendTxTask();
 }
