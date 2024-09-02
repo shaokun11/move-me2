@@ -194,6 +194,13 @@ async function sendTxTask() {
         if (SENDER_ACCOUNT_INDEX.length === 0) {
             return;
         }
+        if (SENDER_ACCOUNT_COUNT > 3 * 2) {
+            if (SENDER_ACCOUNT_INDEX.length < 3) {
+                // reduce the send tx speed
+                return;
+            }
+        }
+        
         let allTx = [];
         const allKeys = Object.keys(TX_MEMORY_POOL);
         for (let key of allKeys) {
