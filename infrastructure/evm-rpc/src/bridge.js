@@ -328,26 +328,25 @@ function isSuccessTx(info) {
     const txResult = info.events.find(it => it.type.startsWith(MEVM_EVENT));
     return txResult.data.exception === '200';
 }
-
+const txSummary = {
+    txCount: 0,
+    addressCount: 0,
+};
 export async function getEvmSummary() {
-    const ret = {
-        txCount: 0,
-        addressCount: 0,
-    };
     try {
         let res;
         if (EVM_SUMMARY_URL) {
             // for the async node, it could get this info  from base node
             res = await postJsonRpc(EVM_SUMMARY_URL, 'admin_getEvmTxSummary', []).then(res => res.result);
-            ret.addressCount = res.addressCount;
-            ret.txCount = res.txCount;
+            txSummary.addressCount = res.addressCount;
+            txSummary.txCount = res.txCount;
         } else {
             res = JSON.parse(await readFile('tx-summary.json', 'utf8'));
-            ret.addressCount = res.addrCount;
-            ret.txCount = res.txCount;
+            txSummary.addressCount = res.addrCount;
+            txSummary.txCount = res.txCount;
         }
     } catch (error) {}
-    return ret;
+    return txSummary;
 }
 
 export async function getMoveAddress(acc) {
