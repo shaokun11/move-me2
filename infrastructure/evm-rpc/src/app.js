@@ -2,9 +2,8 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import JsonRpc from 'json-rpc-2.0';
-import { fork } from 'node:child_process';
 import { rpc } from './rpc.js';
-import { DISABLE_EVM_SUMMARY_TASK, SERVER_PORT } from './const.js';
+import { SERVER_PORT } from './const.js';
 import { startBotTask } from './task_bot.js';
 import { startFaucetTask } from './task_faucet.js';
 import http from 'node:http';
@@ -66,8 +65,4 @@ app.listen(SERVER_PORT, () => {
     console.log('server start at http://127.0.0.1:' + SERVER_PORT);
     startBotTask();
     startFaucetTask();
-    // This not necessary for rpc, but it may use many memory, so we can run this in another process
-    if (!DISABLE_EVM_SUMMARY_TASK) {
-        fork('./src/task_summary.js');
-    }
 });
