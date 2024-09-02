@@ -201,11 +201,11 @@ async function sendTxTask() {
             }
         }
 
-        let allTx = [];
+        const allTx = [];
         const allKeys = Object.keys(TX_MEMORY_POOL);
         for (let key of allKeys) {
             const accTxArr = TX_MEMORY_POOL[key];
-            allTx = allTx.concat(accTxArr);
+            allTx.push(...accTxArr);
         }
         if (allTx.length === 0) {
             return;
