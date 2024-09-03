@@ -1,6 +1,6 @@
 import levelup from 'levelup';
 import leveldown from 'leveldown';
-import { DISABLE_CACHE } from './const.js';
+import { DISABLE_CACHE, REMOTE_CACHE_URL } from './const.js';
 
 class LevelDBWrapper {
     constructor(dbPath) {
@@ -31,37 +31,34 @@ class LevelDBWrapper {
             });
         });
     }
+}
 
-    async del(key) {
-        if (DISABLE_CACHE) return;
-        return new Promise((resolve, reject) => {
-            this.db.del(key, err => {
-                if (err) return reject(err);
-                resolve();
-            });
-        });
+class remoteLevelDBWrapper {
+    constructor(url) {
+        this.url = url;
     }
 
-    async batch(operations) {
-        if (DISABLE_CACHE) return;
-        return new Promise((resolve, reject) => {
-            this.db.batch(operations, err => {
-                if (err) return reject(err);
-                resolve();
-            });
-        });
+    async put(key, value) {
+        return fetch(this.url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                key,
+                value,
+            }),
+        }).then(res => res.text());
     }
 
-    async close() {
-        return new Promise((resolve, reject) => {
-            this.db.close(err => {
-                if (err) return reject(err);
-                resolve();
-            });
-        });
+    async get(key) {
+        return fetch(this.url + '?key=' + key).then(res => res.text());
     }
 }
-export const DB_TX = new LevelDBWrapper('db/tx');
+
+export const DB_TX = REMOTE_CACHE_URL
+    ? new remoteLevelDBWrapper(REMOTE_CACHE_URL)
+    : new LevelDBWrapper('db/tx');
 export default LevelDBWrapper;
 
 // let db = new LevelDBWrapper('./db/tx');

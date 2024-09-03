@@ -2,6 +2,7 @@ import 'dotenv/config.js';
 import { AptosClient, AptosAccount } from 'aptos';
 import { Client, fetchExchange } from '@urql/core';
 export const SERVER_PORT = process.env.SERVER_PORT || 8998;
+export const CACHE_SERVER_PORT = process.env.CACHE_SERVER_PORT || 8898;
 
 /**
  * NODE_URL is the URL of the node, fetched from environment variables
@@ -11,6 +12,7 @@ export const EVM_RAW_TX_URL = process.env.EVM_RAW_TX_URL;
 export const EVM_FAUCET_URL = process.env.EVM_FAUCET_URL;
 export const EVM_SUMMARY_URL = process.env.EVM_SUMMARY_URL;
 export const EVM_NONCE_URL = process.env.EVM_NONCE_URL;
+export const REMOTE_CACHE_URL = process.env.REMOTE_CACHE_URL;
 /**
  * EVM_SENDER is the sender's address, fetched from environment variables
  */
@@ -92,4 +94,5 @@ console.log({
     DISABLE_CACHE,
     DISABLE_BATCH_FAUCET,
     IS_MAIN_NODE,
+    REMOTE_CACHE_URL,
 });
