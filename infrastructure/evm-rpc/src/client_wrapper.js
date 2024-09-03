@@ -1,5 +1,5 @@
 import BigNumber from 'bignumber.js';
-import { client } from './const.js';
+import { client, NODE_URL } from './const.js';
 import { retry } from 'radash';
 BigNumber.config({ EXPONENTIAL_AT: 100 });
 export class ClientWrapper {
@@ -41,5 +41,28 @@ export class ClientWrapper {
             },
             run,
         );
+    }
+
+    static view(payload, ledger_version) {
+        const controller = new AbortController();
+        const signal = controller.signal;
+        const timeout = setTimeout(() => {
+            controller.abort();
+        }, 120 * 1000);
+        let url = NODE_URL + '/view';
+        if (ledger_version) {
+            url = NODE_URL + '/view?ledger_version=' + ledger_version;
+        }
+        return fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            signal: signal,
+            body: JSON.stringify(payload),
+        }).then(response => {
+            clearTimeout(timeout);
+            return response.json();
+        });
     }
 }

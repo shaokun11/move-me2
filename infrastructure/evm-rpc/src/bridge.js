@@ -612,7 +612,7 @@ export async function getStorageAt(addr, pos) {
         arguments: [addr, toHexStrict(pos)],
     };
     try {
-        let result = await client.view(payload);
+        let result = await ClientWrapper.view(payload);
         res = result[0];
     } catch (error) {
         // console.log('getStorageAt error', error);
@@ -800,7 +800,7 @@ export async function estimateGas(info) {
             type, //  if the tx type is 1 , only gas price is effect
         ],
     };
-    const result = await client.view(payload);
+    const result = await ClientWrapper.view(payload);
     const isSuccess = result[0] === '200';
     // We need do more check, but now we just simply enlarge it 140%
     // https://github.com/ethereum/go-ethereum/blob/b0f66e34ca2a4ea7ae23475224451c8c9a569826/eth/gasestimator/gasestimator.go#L52
@@ -1113,7 +1113,7 @@ async function callContractImpl(from, contract, calldata, value, version) {
             '1',
         ],
     };
-    const result = await client.view(payload, version);
+    const result = await ClientWrapper.view(payload, version);
     const isSuccess = result[0] === '200';
     const ret = {
         success: isSuccess,
