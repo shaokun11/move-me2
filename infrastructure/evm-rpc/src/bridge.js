@@ -298,7 +298,7 @@ async function sendTxTask() {
 
         // release locker
         isSending = false;
-    }, 1000);
+    }, 500);
 }
 
 function isSuccessTx(info) {
