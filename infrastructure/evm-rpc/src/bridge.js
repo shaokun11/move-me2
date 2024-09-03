@@ -60,7 +60,10 @@ const TX_MEMORY_POOL = {};
 const TX_EXPIRE_TIME = 1000 * 60 * 5; // 5 Minutes
 const ONE_ADDRESS_MAX_TX_COUNT = 20;
 const TX_NONCE_FIRST_CHECK_TIME = {};
-
+const SEND_LARGE_TX_INFO = {
+    sendTime: 0,
+    isFinish: true,
+};
 async function initTxPool() {
     try {
         const { pool } = JSON.parse(await readFile(pend_tx_path, 'utf8'));
@@ -162,28 +165,7 @@ export async function sendRawTx(tx) {
     }
     return info.hash;
 }
-function binarySearchInsert(arr, item) {
-    let low = 0;
-    let high = arr.length;
-    while (low < high) {
-        const mid = Math.floor((low + high) / 2);
-        // Sort gasPrice first, then sort by timestamp
-        // price is hex string
-        // const p1 = BigNumber(arr[mid].price);
-        // const p2 = BigNumber(item.price);
-        // if (p1.lt(p2) || (p1.eq(p2) && arr[mid].ts < item.ts)) {
-        if (arr[mid].ts < item.ts) {
-            low = mid + 1;
-        } else {
-            high = mid;
-        }
-    }
-    return low;
-}
-const SEND_LARGE_TX_INFO = {
-    sendTime: 0,
-    isFinish: true,
-};
+
 async function sendTxTask() {
     let isSending = false;
     let lastSendTime = Date.now();
@@ -200,19 +182,18 @@ async function sendTxTask() {
                 return;
             }
         }
-
         const allTx = [];
         const allKeys = Object.keys(TX_MEMORY_POOL);
         for (let key of allKeys) {
             const accTxArr = TX_MEMORY_POOL[key];
             allTx.push(...accTxArr);
         }
-        if (allTx.length === 0) {
-            return;
-        }
         if (Date.now() - lastSendTime >= 60 * 1000) {
             lastSendTime = Date.now();
             console.log('tx pool remain %s', allTx.length);
+        }
+        if (allTx.length === 0) {
+            return;
         }
         // set LOCKER
         isSending = true;
@@ -226,6 +207,7 @@ async function sendTxTask() {
                 accMap[k] = info[i];
             });
         }
+        await sleep(0.005);
         // find the tx nonce is equal to the chain nonce
         const sendTxArr = [];
         for (let item of allTx) {
@@ -251,16 +233,16 @@ async function sendTxTask() {
                 }
                 continue;
             }
-            // Now we simply sort the tx by the timestamp
-            // let insertIndex = binarySearchInsert(sendTxArr, item);
-            // sendTxArr.splice(insertIndex, 0, item);
             sendTxArr.push(item);
         }
+        await sleep(0.005);
         // sendTxArr.sort((a, b) => a.ts - b.ts);
+        // Now we simply sort the tx by the timestamp
         TimSort.sort(sendTxArr, (a, b) => a.ts - b.ts);
         if (sendTxArr.length > 0 && SENDER_ACCOUNT_INDEX.length > 0) {
             const size = sendTxArr.length;
             for (let i = 0; i < size; i++) {
+                await sleep(0.005);
                 if (sendTxArr.length === 0) break;
                 const txInfo = sendTxArr.shift();
                 const { key, tx, from, nonce } = txInfo;
@@ -316,7 +298,7 @@ async function sendTxTask() {
 
         // release locker
         isSending = false;
-    }, 500);
+    }, 1000);
 }
 
 function isSuccessTx(info) {
