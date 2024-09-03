@@ -200,14 +200,14 @@ async function sendTxTask() {
 
         // get the chain nonce
         const accMap = {};
-        const keysArr = cluster(allKeys, 50);
+        const keysArr = cluster(allKeys, 30);
         for (let keys of keysArr) {
             const info = await Promise.all(keys.map(key => getAccountInfo(key)));
+            await sleep(0.005);
             keys.forEach((k, i) => {
                 accMap[k] = info[i];
             });
         }
-        await sleep(0.005);
         // find the tx nonce is equal to the chain nonce
         const sendTxArr = [];
         for (let item of allTx) {
@@ -242,7 +242,6 @@ async function sendTxTask() {
         if (sendTxArr.length > 0 && SENDER_ACCOUNT_INDEX.length > 0) {
             const size = sendTxArr.length;
             for (let i = 0; i < size; i++) {
-                await sleep(0.005);
                 if (sendTxArr.length === 0) break;
                 const txInfo = sendTxArr.shift();
                 const { key, tx, from, nonce } = txInfo;
