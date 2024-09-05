@@ -1007,17 +1007,13 @@ async function getAccountInfo(acc, block) {
     return ret;
 }
 
-async function checkTxResult({
-    hash,
-    senderIndex,
-    txKey,
-    isLargeTx,
-    sender,
-    sequenceNumber,
-    checkMs,
-    expireTimeSec,
-}) {
+async function checkTxResult({ hash, senderIndex, txKey, isLargeTx, sender, sequenceNumber, expireTimeSec }) {
     let isRunning = false;
+    let checkMs = 200;
+    if (isLargeTx) {
+        SEND_LARGE_TX_INFO.isFinish = false;
+        checkMs = 1000;
+    }
     const checkStart = Date.now();
     await new Promise(resolve => {
         let intervalId = setInterval(async () => {
@@ -1075,11 +1071,6 @@ async function sendTx(sender, tx, txKey, senderIndex, isLargeTx) {
     });
     const signedTxn = await client.signTransaction(sender, txnRequest);
     const transactionRes = await client.submitTransaction(signedTxn);
-    let checkMs = 200;
-    if (isLargeTx) {
-        SEND_LARGE_TX_INFO.isFinish = false;
-        checkMs = 1000;
-    }
     // Need to check the tx result for log and return sender account to the pool
     const checkTxItem = {
         hash: transactionRes.hash,
@@ -1088,7 +1079,6 @@ async function sendTx(sender, tx, txKey, senderIndex, isLargeTx) {
         isLargeTx,
         sender: sender.address(),
         sequenceNumber: account.sequence_number,
-        checkMs,
         expireTimeSec: expire_time_sec,
     };
     checkTxResult(checkTxItem).catch(err => {
