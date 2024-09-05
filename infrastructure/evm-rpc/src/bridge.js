@@ -1007,6 +1007,58 @@ async function getAccountInfo(acc, block) {
     return ret;
 }
 
+async function checkTxResult({
+    hash,
+    senderIndex,
+    txKey,
+    isLargeTx,
+    sender,
+    sequenceNumber,
+    checkMs,
+    expireTimeSec,
+}) {
+    let isRunning = false;
+    const checkStart = Date.now();
+    await new Promise(resolve => {
+        let intervalId = setInterval(async () => {
+            if (isRunning) {
+                return;
+            }
+            isRunning = true;
+            try {
+                const accountNow = await client.getAccount(sender);
+                // if the sequence_number is changed, this account can reuse to send tx again
+                if (sequenceNumber !== accountNow.sequence_number) {
+                    clearInterval(intervalId);
+                    resolve();
+                }
+                if (Date.now() - checkStart > (expireTimeSec + 5) * 1000) {
+                    // maybe drop the tx for the tx expired
+                    clearInterval(intervalId);
+                    resolve();
+                }
+            } catch (error) {}
+            isRunning = false;
+        }, checkMs);
+    });
+    SENDER_ACCOUNT_INDEX.push(senderIndex);
+    PENDING_TX_SET.delete(txKey);
+    if (isLargeTx) {
+        SEND_LARGE_TX_INFO.isFinish = true;
+        SEND_LARGE_TX_INFO.ts = Date.now();
+    }
+    const result = await ClientWrapper.getTransactionByHash(hash);
+    // maybe pending
+    console.log(
+        '%s,ms:%s,move:%s,tx:%s,%s',
+        isLargeTx,
+        Date.now() - checkStart,
+        hash,
+        txKey,
+        result.success || 'pending',
+        result.vm_status || 'none',
+    );
+}
 async function sendTx(sender, tx, txKey, senderIndex, isLargeTx) {
     const payload = {
         function: `0x1::evm::send_tx`,
@@ -1022,57 +1074,25 @@ async function sendTx(sender, tx, txKey, senderIndex, isLargeTx) {
         expiration_timestamp_secs: Math.trunc(Date.now() / 1000) + expire_time_sec,
     });
     const signedTxn = await client.signTransaction(sender, txnRequest);
-    const startTs = Date.now();
     const transactionRes = await client.submitTransaction(signedTxn);
+    let checkMs = 200;
     if (isLargeTx) {
         SEND_LARGE_TX_INFO.isFinish = false;
+        checkMs = 1000;
     }
-    const checkTxResult = async () => {
-        let isRunning = false;
-        let checkStart = Date.now();
-        await new Promise(resolve => {
-            let intervalId = setInterval(async () => {
-                if (isRunning) {
-                    return;
-                }
-                isRunning = true;
-                try {
-                    const accountNow = await client.getAccount(sender.address());
-                    // if the sequence_number is changed, this account can reuse to send tx again
-                    if (account.sequence_number !== accountNow.sequence_number) {
-                        clearInterval(intervalId);
-                        resolve();
-                    }
-                    if (Date.now() - checkStart > (expire_time_sec + 5) * 1000) {
-                        // maybe drop the tx for the tx expired
-                        clearInterval(intervalId);
-                        resolve();
-                    }
-                } catch (error) {}
-                isRunning = false;
-            }, 200);
-        });
-        SENDER_ACCOUNT_INDEX.push(senderIndex);
-        PENDING_TX_SET.delete(txKey);
-        if (isLargeTx) {
-            SEND_LARGE_TX_INFO.isFinish = true;
-            SEND_LARGE_TX_INFO.ts = Date.now();
-        }
-        const result = await ClientWrapper.getTransactionByHash(transactionRes.hash);
-        // maybe pending
-        console.log(
-            '%s,ms:%s,move:%s,tx:%s,%s',
-            isLargeTx,
-            Date.now() - startTs,
-            transactionRes.hash,
-            txKey,
-            result.success || 'pending',
-            result.vm_status || 'none',
-        );
-    };
     // Need to check the tx result for log and return sender account to the pool
-    checkTxResult().catch(err => {
-        console.error('checkTxResult %s error %s', transactionRes.hash, err.message ?? err);
+    const checkTxItem = {
+        hash: transactionRes.hash,
+        senderIndex,
+        txKey,
+        isLargeTx,
+        sender: sender.address(),
+        sequenceNumber: account.sequence_number,
+        checkMs,
+        expireTimeSec: expire_time_sec,
+    };
+    checkTxResult(checkTxItem).catch(err => {
+        console.error('checkTxResult %s error %s', checkTxItem.hash, err.message ?? err);
     });
     return transactionRes.hash;
 }
