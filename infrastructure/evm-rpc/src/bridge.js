@@ -200,7 +200,7 @@ async function sendTxTask() {
 
         // get the chain nonce
         const accMap = {};
-        const keysArr = cluster(allKeys, 30);
+        const keysArr = cluster(allKeys, 50);
         for (let keys of keysArr) {
             const info = await Promise.all(keys.map(key => getAccountInfo(key)));
             await sleep(0.005);
@@ -298,7 +298,7 @@ async function sendTxTask() {
 
         // release locker
         isSending = false;
-    }, 1000);
+    }, 500);
 }
 
 function isSuccessTx(info) {
@@ -1050,7 +1050,7 @@ async function sendTx(sender, tx, txKey, senderIndex, isLargeTx) {
                     }
                 } catch (error) {}
                 isRunning = false;
-            }, 500);
+            }, 200);
         });
         SENDER_ACCOUNT_INDEX.push(senderIndex);
         PENDING_TX_SET.delete(txKey);
