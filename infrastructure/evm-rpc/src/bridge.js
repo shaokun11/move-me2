@@ -121,6 +121,9 @@ export async function sendRawTx(tx) {
         return res.result;
     }
     const info = parseRawTx(tx);
+    if (!BigNumber(info.chainId).eq(CHAIN_ID)) {
+        throw 'chainId error';
+    }
     const price = getGasPriceFromTx(info);
     // also there could use tx hash as the key
     let key = info.from + ':' + info.nonce;
