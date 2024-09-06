@@ -16,7 +16,7 @@ import {
     IS_MAIN_NODE,
 } from './const.js';
 import { parseRawTx, toHex, toNumber, toHexStrict, sleep } from './helper.js';
-import { getMoveHash, getBlockHeightByHash, getEvmLogs, getErrorTxMoveHash } from './db.js';
+import { getMoveHash, getBlockHeightByHash, getEvmLogs, getErrorTxMoveHash, getEvmHash } from './db.js';
 import { ZeroAddress, ethers, isHexString, toBeHex, keccak256, isAddress } from 'ethers';
 import BigNumber from 'bignumber.js';
 import { toBuffer } from './helper.js';
@@ -337,6 +337,17 @@ export async function get_move_hash(evm_hash) {
         throw 'query evm hash format error';
     }
     return getMoveHash(evm_hash);
+}
+
+export async function get_evm_hash(move_hash) {
+    if (move_hash?.length !== 66) {
+        throw 'query move hash format error';
+    }
+    try {
+        return await getEvmHash(move_hash);
+    } catch (error) {
+        return null;
+    }
 }
 
 export async function traceTransaction(hash) {

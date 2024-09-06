@@ -28,6 +28,31 @@ export async function getMoveHash(evm_hash) {
     return await retry({ times: 3, delay: 1000 }, run);
 }
 
+export async function getEvmHash(move_hash) {
+    const run = async function () {
+        const query = gql`
+            {
+                evm_move_hash(where:{
+                    move_hash:{
+                    _eq:"${move_hash}"
+                    }
+                }) {
+                    move_hash
+                    evm_hash
+                }
+            }
+        `;
+        const res = await indexer_client.query(query).toPromise();
+        if (res.data.evm_move_hash.length == 0) {
+            throw new Error('Transaction not found');
+        }
+        return res.data.evm_move_hash[0].evm_hash;
+    };
+    // We need to wait for the indexer to sync the transaction info to the database.
+    // Currently, the duration is 3 seconds is enough before running the query.
+    return await retry({ times: 3, delay: 1000 }, run);
+}
+
 export async function getBlockHeightByHash(block_hash) {
     const run = async function () {
         const query = gql`

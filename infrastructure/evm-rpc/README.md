@@ -65,6 +65,21 @@ curl --location 'http://127.0.0.1:8998' \
 }'
 ```
 
+- `debug_getEvmHash`:Return the evm hash by move hash, if the move tx not a evm transaction, it will return null
+
+```bash
+curl --location 'http://127.0.0.1:8998' \
+--header 'Content-Type: application/json' \
+--data '{
+    "id": "1",
+    "jsonrpc": "2.0",
+    "method": "debug_getEvmHash",
+    "params": [
+        "0x03c970aba8e9003504a113413ef9117c74b4933297e17c1435d98e19e4562508"
+    ]
+}'
+```
+
 - `debug_getErrorByHash`:Return the evm tx running fail detail info
 
 ```bash

@@ -17,6 +17,7 @@ import {
     getLogs,
     eth_feeHistory,
     get_move_hash,
+    get_evm_hash,
     traceTransaction,
     getMoveAddress,
     batch_faucet,
@@ -79,6 +80,9 @@ export const rpc = {
      */
     debug_getMoveHash: async function (args) {
         return get_move_hash(args[0]);
+    },
+    debug_getEvmHash: async function (args) {
+        return get_evm_hash(args[0]);
     },
 
     debug_getErrorByHash: async function (args) {
