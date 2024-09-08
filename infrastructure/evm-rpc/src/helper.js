@@ -5,10 +5,16 @@ import { HexString } from 'aptos';
 import { TransactionFactory } from '@ethereumjs/tx';
 
 export function parseRawTx(tx) {
-    const tx_ = Transaction.from(tx);
+    let tx_;
+    let tx2;
+    try {
+        tx_ = Transaction.from(tx);
+        // the ethers parse rsv is not correct , so we need to parse it again
+        tx2 = TransactionFactory.fromSerializedData(Buffer.from(tx.slice(2), 'hex'));
+    } catch (error) {
+        throw new Error('Invalid transaction');
+    }
     const txJson = tx_.toJSON();
-    // the ethers parse rsv is not correct , so we need to parse it again
-    const tx2 = TransactionFactory.fromSerializedData(Buffer.from(tx.slice(2), 'hex'));
     const from = tx_.from.toLowerCase();
     let gasPrice = null;
     let maxPriorityFeePerGas = null;
