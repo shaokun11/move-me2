@@ -1022,7 +1022,7 @@ async function getAccountInfo(acc, block) {
 }
 
 async function checkTxResult({ hash, senderIndex, txKey, isLargeTx, sender, sequenceNumber, expireTimeSec }) {
-    let checkMs = 200;
+    let checkMs = 100;
     if (isLargeTx) {
         checkMs = 1000;
     }
