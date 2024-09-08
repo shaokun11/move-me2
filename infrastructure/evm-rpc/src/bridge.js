@@ -1022,7 +1022,6 @@ async function getAccountInfo(acc, block) {
 }
 
 async function checkTxResult({ hash, senderIndex, txKey, isLargeTx, sender, sequenceNumber, expireTimeSec }) {
-    let isRunning = false;
     let checkMs = 200;
     if (isLargeTx) {
         SEND_LARGE_TX_INFO.isFinish = false;
@@ -1030,26 +1029,21 @@ async function checkTxResult({ hash, senderIndex, txKey, isLargeTx, sender, sequ
     }
     const checkStart = Date.now();
     await new Promise(resolve => {
-        let intervalId = setInterval(async () => {
-            if (isRunning) {
-                return;
-            }
-            isRunning = true;
+        const checkAccount = async () => {
             try {
+                if (Date.now() - checkStart > (expireTimeSec + 5) * 1000) {
+                    // maybe drop the tx for the tx expired
+                    return resolve();
+                }
                 const accountNow = await client.getAccount(sender);
                 // if the sequence_number is changed, this account can reuse to send tx again
                 if (sequenceNumber !== accountNow.sequence_number) {
-                    clearInterval(intervalId);
-                    resolve();
-                }
-                if (Date.now() - checkStart > (expireTimeSec + 5) * 1000) {
-                    // maybe drop the tx for the tx expired
-                    clearInterval(intervalId);
-                    resolve();
+                    return resolve();
                 }
             } catch (error) {}
-            isRunning = false;
-        }, checkMs);
+            setTimeout(checkAccount, checkMs);
+        };
+        checkAccount();
     });
     SENDER_ACCOUNT_INDEX.push(senderIndex);
     PENDING_TX_SET.delete(txKey);
@@ -1057,17 +1051,22 @@ async function checkTxResult({ hash, senderIndex, txKey, isLargeTx, sender, sequ
         SEND_LARGE_TX_INFO.isFinish = true;
         SEND_LARGE_TX_INFO.ts = Date.now();
     }
-    const result = await ClientWrapper.getTransactionByHash(hash);
-    // maybe pending
-    console.log(
-        '%s,ms:%s,move:%s,tx:%s,%s',
-        isLargeTx,
-        Date.now() - checkStart,
-        hash,
-        txKey,
-        result.success || 'pending',
-        result.vm_status || 'none',
-    );
+    await ClientWrapper.getTransactionByHash(hash)
+        .then(result => {
+            // maybe pending
+            console.log(
+                '%s,ms:%s,move:%s,tx:%s,%s',
+                isLargeTx,
+                Date.now() - checkStart,
+                hash,
+                txKey,
+                result.success || 'pending',
+                result.vm_status || 'none',
+            );
+        })
+        .catch(err => {
+            console.error('checkTxResult %s error %s', checkTxItem.hash, err.message ?? err);
+        });
 }
 async function sendTx(sender, tx, txKey, senderIndex, isLargeTx) {
     const payload = {
@@ -1095,9 +1094,7 @@ async function sendTx(sender, tx, txKey, senderIndex, isLargeTx) {
         sequenceNumber: account.sequence_number,
         expireTimeSec: expire_time_sec,
     };
-    checkTxResult(checkTxItem).catch(err => {
-        console.error('checkTxResult %s error %s', checkTxItem.hash, err.message ?? err);
-    });
+    checkTxResult(checkTxItem);
     return transactionRes.hash;
 }
 /**
