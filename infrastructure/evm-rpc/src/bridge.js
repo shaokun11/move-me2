@@ -1024,7 +1024,6 @@ async function getAccountInfo(acc, block) {
 async function checkTxResult({ hash, senderIndex, txKey, isLargeTx, sender, sequenceNumber, expireTimeSec }) {
     let checkMs = 200;
     if (isLargeTx) {
-        SEND_LARGE_TX_INFO.isFinish = false;
         checkMs = 1000;
     }
     const checkStart = Date.now();
@@ -1094,6 +1093,9 @@ async function sendTx(sender, tx, txKey, senderIndex, isLargeTx) {
         sequenceNumber: account.sequence_number,
         expireTimeSec: expire_time_sec,
     };
+    if (isLargeTx) {
+        SEND_LARGE_TX_INFO.isFinish = false;
+    }
     checkTxResult(checkTxItem);
     return transactionRes.hash;
 }
