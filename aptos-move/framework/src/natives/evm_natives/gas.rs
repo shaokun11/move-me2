@@ -19,13 +19,14 @@ const COLD_SLOAD_COST: u64 = 2100;
 const WARM_SLOAD_COST: u64 = 100;
 const CALL_STIPEND: u64 = 2300;
 
-const SSTORE_NOOP_GAS_EIP2200: u64 = 800;
+const SSTORE_NOOP_GAS_EIP2200: u64 = 100;
 const SSTORE_INIT_GAS_EIP2200: u64 = 20000;
 const SSTORE_CLEAN_GAS_EIP2200: u64 = 2900;
-const SSTORE_DIRTY_GAS_EIP2200: u64 = 800;
+const SSTORE_DIRTY_GAS_EIP2200: u64 = 100;
 const SSTORE_CLEAR_REFUND_EIP2200: u64 = 4800;
-const SSTORE_INIT_REFUND_EIP2200: u64 = 19200;
-const SSTORE_CLEAN_REFUND_EIP2200: u64 = 4200;
+const SSTORE_INIT_REFUND_EIP2200: u64 = 19900;
+const SSTORE_CLEAN_REFUND_EIP2200: u64 = 2800;
+const SSTORE_SENTRY_GAS_EIP2200: u64 = 2300;
 
 /// Calculate the additional gas cost for cold address access
 pub fn calc_cold_address_access(state: &mut State, address: H160) -> u64 {
@@ -410,6 +411,10 @@ fn calc_sstore_gas(
     address: &H160,
     runtime: &mut Runtime,
 ) -> (CallResult, u64) {
+    if runtime.get_gas_left() < SSTORE_SENTRY_GAS_EIP2200 {
+        return (CallResult::OutOfGas, 0);
+    };
+
     if machine.stack.len() < 2 {
         return (CallResult::Exception, 0);
     }

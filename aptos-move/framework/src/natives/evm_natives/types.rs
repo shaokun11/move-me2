@@ -127,6 +127,8 @@ impl fmt::Display for Opcode {
             Opcode::SELFBALANCE => write!(f, "SELFBALANCE"),
             Opcode::BASEFEE => write!(f, "BASEFEE"),
             Opcode::POP => write!(f, "POP"),
+			Opcode::TSTORE => write!(f, "TSTORE"),
+            Opcode::TLOAD => write!(f, "TLOAD"),
             Opcode::MLOAD => write!(f, "MLOAD"),
             Opcode::MSTORE => write!(f, "MSTORE"),
             Opcode::MSTORE8 => write!(f, "MSTORE8"),
