@@ -224,6 +224,7 @@
 
 
 <pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="trie_v2.md#0x1_evm_trie_v2_add_nonce">add_nonce</a>(contract: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;) {
+    <a href="trie_v2.md#0x1_evm_trie_v2_get_nonce">get_nonce</a>(contract);
     <a href="evm_context.md#0x1_evm_context_inc_nonce">evm_context::inc_nonce</a>(contract)
 }
 </code></pre>
@@ -248,6 +249,7 @@
 
 
 <pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="trie_v2.md#0x1_evm_trie_v2_add_balance">add_balance</a>(contract: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, value: u256) {
+    <a href="trie_v2.md#0x1_evm_trie_v2_get_balance">get_balance</a>(contract);
     <a href="evm_context.md#0x1_evm_context_add_balance">evm_context::add_balance</a>(contract, value)
 }
 </code></pre>
@@ -272,6 +274,7 @@
 
 
 <pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="trie_v2.md#0x1_evm_trie_v2_sub_balance">sub_balance</a>(contract: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, value: u256): bool {
+    <a href="trie_v2.md#0x1_evm_trie_v2_get_balance">get_balance</a>(contract);
     <a href="evm_context.md#0x1_evm_context_sub_balance">evm_context::sub_balance</a>(contract, value)
 }
 </code></pre>
@@ -296,6 +299,7 @@
 
 
 <pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="trie_v2.md#0x1_evm_trie_v2_set_balance">set_balance</a>(contract: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, value: u256) {
+    <a href="trie_v2.md#0x1_evm_trie_v2_get_balance">get_balance</a>(contract);
     <a href="evm_context.md#0x1_evm_context_set_balance">evm_context::set_balance</a>(contract, value)
 }
 </code></pre>
@@ -544,7 +548,6 @@
     <b>let</b> (exist, <a href="code.md#0x1_code">code</a>) = <a href="evm_context.md#0x1_evm_context_get_code">evm_context::get_code</a>(contract);
     <b>if</b>(!exist) {
         <a href="code.md#0x1_code">code</a> = <a href="storage.md#0x1_evm_storage_get_code_storage">evm_storage::get_code_storage</a>(contract);
-        <a href="evm_context.md#0x1_evm_context_set_code">evm_context::set_code</a>(contract, <a href="code.md#0x1_code">code</a>);
     };
     <a href="code.md#0x1_code">code</a>
 }
@@ -753,9 +756,10 @@
         <b>let</b> <b>address</b> = vector_slice(address_list, 32 * i, 32);
 
         <b>let</b> code_length = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&code_lengths, i);
-        <b>let</b> <a href="code.md#0x1_code">code</a> = vector_slice(address_list, code_index, code_length);
+        <b>let</b> <a href="code.md#0x1_code">code</a> = vector_slice(code_list, code_index, code_length);
         code_index = code_index + code_length;
         <a href="storage.md#0x1_evm_storage_save_account_code">evm_storage::save_account_code</a>(<b>address</b>, <a href="code.md#0x1_code">code</a>);
+
         i = i + 1;
     };
 
@@ -765,6 +769,7 @@
         <b>let</b> <b>address</b> = vector_slice(address_list, 32 * i, 32);
         <b>let</b> (keys, values) = <a href="evm_context.md#0x1_evm_context_get_storage_change_set">evm_context::get_storage_change_set</a>(<b>address</b>);
         <a href="storage.md#0x1_evm_storage_save_account_state">evm_storage::save_account_state</a>(<b>address</b>, keys, values);
+        i = i + 1;
     };
 }
 </code></pre>
@@ -838,6 +843,7 @@
 
 <pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="trie_v2.md#0x1_evm_trie_v2_get_cache">get_cache</a>(<b>address</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
                              key: u256): (bool, u256) {
+    <a href="trie_v2.md#0x1_evm_trie_v2_get_state">get_state</a>(<b>address</b>, key);
     <a href="evm_context.md#0x1_evm_context_get_origin">evm_context::get_origin</a>(<b>address</b>, key)
 }
 </code></pre>

@@ -418,6 +418,11 @@ impl U256 {
         Self(self.0.overflowing_mul(rhs.0).0)
     }
 
+
+    pub fn to_ethers_u256(self) -> PrimitiveU256 {
+        self.0
+    }
+
     /// Implementation of widenining multiply
     /// https://github.com/rust-random/rand/blob/master/src/distributions/utils.rs
     #[inline(always)]

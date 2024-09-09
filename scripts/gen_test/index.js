@@ -7,7 +7,7 @@ function generateEvmTest(addresses, codes, balances, nonces, storages, transacti
     let envContent = generateEnv(env);
     let storageContent = generateStorage(storages)
     let gas_price = transaction.maxPriorityFeePerGas ? `vector[${toData(transaction.maxFeePerGas)}, ${toData(transaction.maxPriorityFeePerGas)}]`: `vector[${toData(transaction.gasPrice)}]`
-    let tx_type = transaction.maxPriorityFeePerGas ? 1: 0
+    let tx_type = transaction.maxPriorityFeePerGas ? 2: 1
 
     templateCode = templateCode.replace('$env', `vector[${envContent}]`);
     templateCode = templateCode.replace('$storages', storageContent);
@@ -97,5 +97,5 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "precompsEIP2929Cancun"
-read("./src/GeneralStateTests/stPreCompiledContracts/precompsEIP2929Cancun.json", key, 126, 0, 0)
+let key = "static_Call50000"
+read("./src/GeneralStateTests/stStaticCall/static_Call50000.json", key, 0, 0, 0)

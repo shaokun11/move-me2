@@ -333,6 +333,7 @@
 
 <pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="storage.md#0x1_evm_storage_save_account_balance">save_account_balance</a>(<b>address</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, balance: u256) <b>acquires</b> <a href="storage.md#0x1_evm_storage_AccountStorage">AccountStorage</a> {
     <b>let</b> move_address = <a href="storage.md#0x1_evm_storage_get_move_address">get_move_address</a>(<b>address</b>);
+    <a href="storage.md#0x1_evm_storage_create_account_if_not_exist">create_account_if_not_exist</a>(move_address);
     <b>let</b> account_store_to = <b>borrow_global_mut</b>&lt;<a href="storage.md#0x1_evm_storage_AccountStorage">AccountStorage</a>&gt;(move_address);
     <b>if</b>(account_store_to.balance != balance) {
         account_store_to.balance = balance;
@@ -361,6 +362,7 @@
 
 <pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="storage.md#0x1_evm_storage_save_account_nonce">save_account_nonce</a>(<b>address</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, nonce: u256) <b>acquires</b> <a href="storage.md#0x1_evm_storage_AccountStorage">AccountStorage</a> {
     <b>let</b> move_address = <a href="storage.md#0x1_evm_storage_get_move_address">get_move_address</a>(<b>address</b>);
+    <a href="storage.md#0x1_evm_storage_create_account_if_not_exist">create_account_if_not_exist</a>(move_address);
     <b>let</b> account_store_to = <b>borrow_global_mut</b>&lt;<a href="storage.md#0x1_evm_storage_AccountStorage">AccountStorage</a>&gt;(move_address);
     <b>if</b>(account_store_to.nonce != nonce) {
         account_store_to.nonce = nonce;
@@ -389,6 +391,7 @@
 
 <pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="storage.md#0x1_evm_storage_save_account_code">save_account_code</a>(<b>address</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="code.md#0x1_code">code</a>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;) <b>acquires</b> <a href="storage.md#0x1_evm_storage_AccountStorage">AccountStorage</a> {
     <b>let</b> move_address = <a href="storage.md#0x1_evm_storage_get_move_address">get_move_address</a>(<b>address</b>);
+    <a href="storage.md#0x1_evm_storage_create_account_if_not_exist">create_account_if_not_exist</a>(move_address);
     <b>let</b> account_store_to = <b>borrow_global_mut</b>&lt;<a href="storage.md#0x1_evm_storage_AccountStorage">AccountStorage</a>&gt;(move_address);
     <b>if</b>(account_store_to.<a href="code.md#0x1_code">code</a> != <a href="code.md#0x1_code">code</a>) {
         account_store_to.<a href="code.md#0x1_code">code</a> = <a href="code.md#0x1_code">code</a>;

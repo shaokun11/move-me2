@@ -1142,6 +1142,10 @@ owned.
         <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"DIFFICULTY"));
     } <b>else</b> <b>if</b>(opcode == 0x45) {
         <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"GASLIMIT"));
+    } <b>else</b> <b>if</b>(opcode == 0x46) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"BASEFEE"));
+    } <b>else</b> <b>if</b>(opcode == 0x47) {
+        <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"SELFBALANCE"));
     } <b>else</b> <b>if</b>(opcode == 0x48) {
         <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"PREVRANDAO"));
     } <b>else</b> <b>if</b>(opcode == 0x50) {

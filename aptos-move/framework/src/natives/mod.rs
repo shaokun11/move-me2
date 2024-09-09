@@ -23,7 +23,7 @@ pub mod evm_natives;
 
 use crate::natives::cryptography::multi_ed25519;
 use aggregator_natives::{aggregator, aggregator_factory, aggregator_v2};
-use evm_natives::{evm, evm_for_test, evm_arithmetic, evm_util, evm_precompile, evm_context};
+use evm_natives::{evm, evm_for_test, evm_arithmetic, evm_util, evm_precompile, evm_context_v2};
 use aptos_native_interface::SafeNativeBuilder;
 use cryptography::ed25519;
 use move_core_types::account_address::AccountAddress;
@@ -86,7 +86,8 @@ pub fn all_natives(
     add_natives_from_module!("evm", evm::make_all(builder));
     add_natives_from_module!("evm_util", evm_util::make_all(builder));
     add_natives_from_module!("evm_for_test", evm_for_test::make_all(builder));
-    add_natives_from_module!("evm_context", evm_context::make_all(builder));
+    add_natives_from_module!("evm_for_test_v2", evm_for_test::make_all(builder));
+    add_natives_from_module!("evm_context_v2", evm_context_v2::make_all(builder));
     add_natives_from_module!("evm_arithmetic", evm_arithmetic::make_all(builder));
     add_natives_from_module!("evm_precompile", evm_precompile::make_all(builder));
     add_natives_from_module!("string_utils", string_utils::make_all(builder));

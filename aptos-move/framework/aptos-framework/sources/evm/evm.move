@@ -862,7 +862,7 @@ module aptos_framework::evm {
                 copy_to_memory(memory, m_pos, d_pos, len, data);
                 i = i + 1
             }
-                //codesizeF
+                //codesize
             else if(opcode == 0x38) {
                 vector::push_back(stack, (vector::length(&code) as u256));
                 i = i + 1
@@ -959,7 +959,7 @@ module aptos_framework::evm {
             }
                 //chainid
             else if(opcode == 0x46) {
-                vector::push_back(stack, 1);
+                vector::push_back(stack, (CHAIN_ID as u256));
                 i = i + 1
             }
                 //self balance
@@ -967,7 +967,7 @@ module aptos_framework::evm {
                 vector::push_back(stack, get_balance(to));
                 i = i + 1;
             }
-                //self balance
+                //basefee
             else if(opcode == 0x48) {
                 vector::push_back(stack, get_basefee(run_state));
                 i = i + 1;
@@ -1176,7 +1176,7 @@ module aptos_framework::evm {
                         };
                         vector::push_back(stack,  if(call_res == CALL_RESULT_SUCCESS) 1 else 0);
                     } else {
-                        if(msg_value > 0 && transfer_eth && !transfer(call_from, call_to, msg_value)) {
+                        if(transfer_eth && !transfer(call_from, call_to, msg_value)) {
                             vector::push_back(stack, 0);
                         } else {
                             vector::push_back(stack, 1);

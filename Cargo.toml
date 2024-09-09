@@ -574,6 +574,7 @@ jemalloc-sys = "0.5.4"
 json-patch = "0.2.6"
 jsonwebtoken = "8.1"
 jwt = "0.16.0"
+k256 = "0.13.3"
 lazy_static = "1.4.0"
 libc = "0.2.147"
 libfuzzer-sys = "0.4.6"
@@ -620,6 +621,7 @@ poem-openapi-derive = "=2.0.11"
 poseidon-ark = { git = "https://github.com/arnaucube/poseidon-ark.git", rev = "6d2487aa1308d9d3860a2b724c485d73095c1c68" }
 pprof = { version = "0.11", features = ["flamegraph", "protobuf-codec"] }
 pretty_assertions = "1.2.1"
+primitive-types = { version = "0.12", features = ["impl-serde", "rlp"]}
 procfs = "0.14.1"
 proc-macro2 = "1.0.38"
 project-root = "0.2.2"

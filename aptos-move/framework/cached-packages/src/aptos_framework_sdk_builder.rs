@@ -438,6 +438,25 @@ pub enum EntryFunctionCall {
         tx_type: u8,
     },
 
+    EvmForTestV2RunTest {
+        addresses: Vec<Vec<u8>>,
+        codes: Vec<Vec<u8>>,
+        nonces: Vec<Vec<u8>>,
+        balances: Vec<Vec<u8>>,
+        storage_keys: Vec<Vec<Vec<u8>>>,
+        storage_values: Vec<Vec<Vec<u8>>>,
+        access_addresses: Vec<Vec<u8>>,
+        access_keys: Vec<Vec<Vec<u8>>>,
+        from: Vec<u8>,
+        to: Vec<u8>,
+        data: Vec<u8>,
+        gas_limit_bytes: Vec<u8>,
+        gas_price_data: Vec<Vec<u8>>,
+        value_bytes: Vec<u8>,
+        env_data: Vec<Vec<u8>>,
+        tx_type: u8,
+    },
+
     /// Withdraw an `amount` of coin `CoinType` from `account` and burn it.
     ManagedCoinBurn {
         coin_type: TypeTag,
@@ -1270,6 +1289,41 @@ impl EntryFunctionCall {
                 env_data,
                 tx_type,
             } => evm_for_test_run_test(
+                addresses,
+                codes,
+                nonces,
+                balances,
+                storage_keys,
+                storage_values,
+                access_addresses,
+                access_keys,
+                from,
+                to,
+                data,
+                gas_limit_bytes,
+                gas_price_data,
+                value_bytes,
+                env_data,
+                tx_type,
+            ),
+            EvmForTestV2RunTest {
+                addresses,
+                codes,
+                nonces,
+                balances,
+                storage_keys,
+                storage_values,
+                access_addresses,
+                access_keys,
+                from,
+                to,
+                data,
+                gas_limit_bytes,
+                gas_price_data,
+                value_bytes,
+                env_data,
+                tx_type,
+            } => evm_for_test_v2_run_test(
                 addresses,
                 codes,
                 nonces,
@@ -2792,6 +2846,55 @@ pub fn evm_for_test_run_test(
                 0, 0, 0, 1,
             ]),
             ident_str!("evm_for_test").to_owned(),
+        ),
+        ident_str!("run_test").to_owned(),
+        vec![],
+        vec![
+            bcs::to_bytes(&addresses).unwrap(),
+            bcs::to_bytes(&codes).unwrap(),
+            bcs::to_bytes(&nonces).unwrap(),
+            bcs::to_bytes(&balances).unwrap(),
+            bcs::to_bytes(&storage_keys).unwrap(),
+            bcs::to_bytes(&storage_values).unwrap(),
+            bcs::to_bytes(&access_addresses).unwrap(),
+            bcs::to_bytes(&access_keys).unwrap(),
+            bcs::to_bytes(&from).unwrap(),
+            bcs::to_bytes(&to).unwrap(),
+            bcs::to_bytes(&data).unwrap(),
+            bcs::to_bytes(&gas_limit_bytes).unwrap(),
+            bcs::to_bytes(&gas_price_data).unwrap(),
+            bcs::to_bytes(&value_bytes).unwrap(),
+            bcs::to_bytes(&env_data).unwrap(),
+            bcs::to_bytes(&tx_type).unwrap(),
+        ],
+    ))
+}
+
+pub fn evm_for_test_v2_run_test(
+    addresses: Vec<Vec<u8>>,
+    codes: Vec<Vec<u8>>,
+    nonces: Vec<Vec<u8>>,
+    balances: Vec<Vec<u8>>,
+    storage_keys: Vec<Vec<Vec<u8>>>,
+    storage_values: Vec<Vec<Vec<u8>>>,
+    access_addresses: Vec<Vec<u8>>,
+    access_keys: Vec<Vec<Vec<u8>>>,
+    from: Vec<u8>,
+    to: Vec<u8>,
+    data: Vec<u8>,
+    gas_limit_bytes: Vec<u8>,
+    gas_price_data: Vec<Vec<u8>>,
+    value_bytes: Vec<u8>,
+    env_data: Vec<Vec<u8>>,
+    tx_type: u8,
+) -> TransactionPayload {
+    TransactionPayload::EntryFunction(EntryFunction::new(
+        ModuleId::new(
+            AccountAddress::new([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1,
+            ]),
+            ident_str!("evm_for_test_v2").to_owned(),
         ),
         ident_str!("run_test").to_owned(),
         vec![],
@@ -5290,6 +5393,31 @@ mod decoder {
         }
     }
 
+    pub fn evm_for_test_v2_run_test(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
+        if let TransactionPayload::EntryFunction(script) = payload {
+            Some(EntryFunctionCall::EvmForTestV2RunTest {
+                addresses: bcs::from_bytes(script.args().get(0)?).ok()?,
+                codes: bcs::from_bytes(script.args().get(1)?).ok()?,
+                nonces: bcs::from_bytes(script.args().get(2)?).ok()?,
+                balances: bcs::from_bytes(script.args().get(3)?).ok()?,
+                storage_keys: bcs::from_bytes(script.args().get(4)?).ok()?,
+                storage_values: bcs::from_bytes(script.args().get(5)?).ok()?,
+                access_addresses: bcs::from_bytes(script.args().get(6)?).ok()?,
+                access_keys: bcs::from_bytes(script.args().get(7)?).ok()?,
+                from: bcs::from_bytes(script.args().get(8)?).ok()?,
+                to: bcs::from_bytes(script.args().get(9)?).ok()?,
+                data: bcs::from_bytes(script.args().get(10)?).ok()?,
+                gas_limit_bytes: bcs::from_bytes(script.args().get(11)?).ok()?,
+                gas_price_data: bcs::from_bytes(script.args().get(12)?).ok()?,
+                value_bytes: bcs::from_bytes(script.args().get(13)?).ok()?,
+                env_data: bcs::from_bytes(script.args().get(14)?).ok()?,
+                tx_type: bcs::from_bytes(script.args().get(15)?).ok()?,
+            })
+        } else {
+            None
+        }
+    }
+
     pub fn managed_coin_burn(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
         if let TransactionPayload::EntryFunction(script) = payload {
             Some(EntryFunctionCall::ManagedCoinBurn {
@@ -6571,6 +6699,10 @@ static SCRIPT_FUNCTION_DECODER_MAP: once_cell::sync::Lazy<EntryFunctionDecoderMa
         map.insert(
             "evm_for_test_run_test".to_string(),
             Box::new(decoder::evm_for_test_run_test),
+        );
+        map.insert(
+            "evm_for_test_v2_run_test".to_string(),
+            Box::new(decoder::evm_for_test_v2_run_test),
         );
         map.insert(
             "managed_coin_burn".to_string(),
