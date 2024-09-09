@@ -739,7 +739,7 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
             let src_offset = pop_stack!(machine.stack);
             let length = pop_stack!(machine.stack);
 
-            machine.memory.resize_offset(std::cmp::max(dest_offset, src_offset), U256::from(32)).map_err(|_| ExecutionError::MemoryError)?;
+            machine.memory.resize_offset(std::cmp::max(dest_offset, src_offset), length).map_err(|_| ExecutionError::MemoryError)?;
 
             if length == U256::zero() {
                 return Ok(());
