@@ -97,5 +97,5 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "transStorageReset"
-read("./src/GeneralStateTests/Cancun/stEIP1153-transientStorage/transStorageReset.json", key, 0, 0, 0)
+let key = "MCOPY"
+read("./src/GeneralStateTests/Cancun/stEIP5656-MCOPY/MCOPY.json", key, 18, 0, 0)

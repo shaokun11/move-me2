@@ -565,7 +565,7 @@ pub fn calc_exec_gas(state: &mut State, opcode: Opcode, address: &H160, machine:
             }
             
             // Calculate gas for writing to destination memory
-            let (write_result, write_gas) = calc_memory_copy_gas(machine, dest_offset, length, gas_limit, 3, 2);
+            let (write_result, write_gas) = calc_memory_copy_gas(machine, dest_offset, length, gas_limit, 3, 3);
             if write_result != CallResult::Success {
                 return (write_result, write_gas);
             }

@@ -140,6 +140,7 @@ impl fmt::Display for Opcode {
             Opcode::MSIZE => write!(f, "MSIZE"),
             Opcode::GAS => write!(f, "GAS"),
             Opcode::JUMPDEST => write!(f, "JUMPDEST"),
+			Opcode::MCOPY => write!(f, "MCOPY"),
             Opcode::PUSH0 => write!(f, "PUSH0"),
             Opcode::PUSH1 => write!(f, "PUSH1"),
             Opcode::PUSH2 => write!(f, "PUSH2"),
