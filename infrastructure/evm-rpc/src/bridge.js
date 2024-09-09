@@ -245,7 +245,6 @@ async function sendTxTask() {
         if (sendTxArr.length > 0 && SENDER_ACCOUNT_INDEX.length > 0) {
             const size = sendTxArr.length;
             for (let i = 0; i < size; i++) {
-                await sleep(0.005);
                 if (sendTxArr.length === 0) break;
                 const txInfo = sendTxArr.shift();
                 const { key, tx, from, nonce } = txInfo;
@@ -278,10 +277,11 @@ async function sendTxTask() {
                 removeTxFromMemoryPool(from, nonce);
                 PENDING_TX_SET.add(key);
                 const senderIndex = SENDER_ACCOUNT_INDEX.shift();
-                try {
-                    const sender = GET_SENDER_ACCOUNT(senderIndex);
-                    await sendTx(sender, tx, key, senderIndex, isLargeTx);
-                } catch (error) {
+                const sender = GET_SENDER_ACCOUNT(senderIndex);
+                if (isLargeTx) {
+                    SEND_LARGE_TX_INFO.isFinish = false;
+                }
+                sendTx(sender, tx, key, senderIndex, isLargeTx).catch(error => {
                     // reset this tx info to the pool
                     PENDING_TX_SET.delete(key);
                     const fromAcc = TX_MEMORY_POOL[from];
@@ -293,12 +293,14 @@ async function sendTxTask() {
                     }
                     // put the sender back to the pool
                     SENDER_ACCOUNT_INDEX.push(senderIndex);
+                    if (isLargeTx) {
+                        SEND_LARGE_TX_INFO.isFinish = true;
+                    }
                     // maybe tx can't be send to the chain
                     console.warn('evm:%s,error %s ', key, error.message ?? error);
-                }
+                });
             }
         }
-
         // release locker
         isSending = false;
     }, 500);
@@ -1022,6 +1024,7 @@ async function getAccountInfo(acc, block) {
 }
 
 async function checkTxResult({ hash, senderIndex, txKey, isLargeTx, sender, sequenceNumber, expireTimeSec }) {
+    // now we found many tx commit will greater than 200ms
     let checkMs = 200;
     if (isLargeTx) {
         checkMs = 1000;
@@ -1093,9 +1096,6 @@ async function sendTx(sender, tx, txKey, senderIndex, isLargeTx) {
         sequenceNumber: account.sequence_number,
         expireTimeSec: expire_time_sec,
     };
-    if (isLargeTx) {
-        SEND_LARGE_TX_INFO.isFinish = false;
-    }
     checkTxResult(checkTxItem);
     return transactionRes.hash;
 }
