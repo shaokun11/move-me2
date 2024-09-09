@@ -28,18 +28,17 @@ module aptos_framework::evm_test {
     public fun test_run() {
 
         let from = x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b";
-        let to = x"1000000000000000000000000000000000000000";
-        let data = x"000000000000000000000000bbbf5374fce5edbc8e2a8697c15331677e6ebf0b";
-        let env = vector[u256_to_data(0x0a),x"b94f5374fce5edbc8e2a8697c15331677e6ebf0b",u256_to_data(0x020000),u256_to_data(0x00),u256_to_data(0x174876e800),u256_to_data(0x01),x"0000000000000000000000000000000000000000000000000000000000020000",u256_to_data(0x03e8)];
-        let gas_limit = u256_to_data(0x14f46b0400);
-        let gas_price = vector[u256_to_data(0x0a)];
-        let value = u256_to_data(0x0a);
-        let tx_type = 1;
+        let to = x"a00000000000000000000000000000000000000a";
+        let data = x"3f371692";
+        let env = vector[u256_to_data(0x0a),x"2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",u256_to_data(0x020000),u256_to_data(0x00),u256_to_data(0x10000000000000),u256_to_data(0x01),x"0000000000000000000000000000000000000000000000000000000000020000",u256_to_data(0x03e8)];
+        let gas_limit = u256_to_data(0x061a80);
+        let gas_price = vector[u256_to_data(0x07d0), u256_to_data(0x00)];
+        let value = u256_to_data(0x00);
+        let tx_type = 2;
 
         let storage_maps = simple_map::new<vector<u8>, simple_map::SimpleMap<vector<u8>, vector<u8>>>();
         let (storage_keys, storage_values) = (vector::empty<vector<vector<u8>>>(), vector::empty<vector<vector<u8>>>());
-        simple_map::add(&mut storage_maps, x"aaaf5374fce5edbc8e2a8697c15331677e6ebf0b", init_storage(vector[0x00], vector[0x01]
-));simple_map::add(&mut storage_maps, x"baaf5374fce5edbc8e2a8697c15331677e6ebf0b", init_storage(vector[0x00], vector[0x01]
+        simple_map::add(&mut storage_maps, x"a00000000000000000000000000000000000000a", init_storage(vector[0x00], vector[0xffff]
 ));
         // simple_map::add(&mut storage_maps, x"a00000000000000000000000000000000000000a", init_storage(vector[0x02], vector[0xffff]));
 
@@ -48,10 +47,10 @@ module aptos_framework::evm_test {
         
 
 
-        let addresses = vector[x"1000000000000000000000000000000000000000", x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b", x"aaaf5374fce5edbc8e2a8697c15331677e6ebf0b", x"baaf5374fce5edbc8e2a8697c15331677e6ebf0b", x"bbbf5374fce5edbc8e2a8697c15331677e6ebf0b", x"cccf5374fce5edbc8e2a8697c15331677e6ebf0b"];
-        let balance_table = vector[0x00, 0xffffffffffffffffffffffffffffffff, 0x1b58, 0x1b58, 0x0fffffffffffff, 0x0fffffffffffff];
-        let codes = vector[x"6000600060006000346000355af1600055600160015500", x"", x"60005460005200", x"60005460005500", x"5b61c3506080511015603e576000600061c350600073baaf5374fce5edbc8e2a8697c15331677e6ebf0b620186a0fa6000556001608051016080526000565b60805160015500", x"5b61c3506080511015603e576000600061c350600073aaaf5374fce5edbc8e2a8697c15331677e6ebf0b620186a0fa6000556001608051016080526000565b60805160205500"];
-        let nonce_table = vector[0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+        let addresses = vector[x"a00000000000000000000000000000000000000a", x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b"];
+        let balance_table = vector[0x0de0b6b3a7640000, 0x3635c9adc5dea00000];
+        let codes = vector[x"5f3560e01c80633f371692146030578063611e535a14602757630172927514602357005b603d565b50602e6037565b005b50602e6046565b60035f5d565b5f5c5f5260205ff35b60025f5d63308f29ad60e11b5f525f806020813061fffffa5f555f5c600155630172927560e01b5f5260205f8181305afa6002555f5160035556", x""];
+        let nonce_table = vector[0x00, 0x00];
         let i = 0;
         let balances = vector::empty<vector<u8>>();
         let nonces = vector::empty<vector<u8>>();

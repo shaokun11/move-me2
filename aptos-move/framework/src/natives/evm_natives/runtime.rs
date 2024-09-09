@@ -1,3 +1,4 @@
+
 pub struct Runtime {
     checkpoints: Vec<RunState>
 }
@@ -10,7 +11,15 @@ impl Runtime {
     }
 
     pub fn new_checkpoint(&mut self, gas_limit: u64, is_static: bool) {
-        self.checkpoints.push(RunState::new(gas_limit, is_static));
+        if self.checkpoints.len() > 0 {
+            let last_state = self.checkpoints.last().unwrap();
+            let is_static = last_state.is_static || is_static;
+            let gas_refund = last_state.gas_refund;
+            self.checkpoints.push(RunState::new(gas_limit, is_static, gas_refund));
+        } else {
+            self.checkpoints.push(RunState::new(gas_limit, is_static, 0));
+        }
+        
     }
 
     pub fn revert_checkpoint(&mut self) {
@@ -88,10 +97,11 @@ pub struct RunState {
     is_static: bool
 }
 
+
 impl RunState {
-    pub fn new(gas_limit: u64, is_static: bool) -> Self {
+    pub fn new(gas_limit: u64, is_static: bool, gas_refund: u64) -> Self {
         Self {
-            gas_refund: 0,
+            gas_refund,
             gas_left: gas_limit,
             gas_limit,
             is_static,

@@ -143,8 +143,6 @@ pub fn new_tx(state: &mut State, run_args: &mut RunArgs, tx_args: &TransactArgs,
         }
     }
 
-    println!("{}", 12);
-
     let gas_refund = runtime.get_gas_refund();
     let gas_left = runtime.get_gas_left();
     let mut gas_usage = tx_args.gas_limit.as_u64().saturating_sub(gas_left);
@@ -167,7 +165,7 @@ pub fn new_tx(state: &mut State, run_args: &mut RunArgs, tx_args: &TransactArgs,
 
     // println!()
     let exec_cost = gas_usage - base_cost;
-    println!("Execution cost: {:?}", exec_cost);
+    println!("Execution cost: {:?} {:?} {:?}", exec_cost, gas_usage, gas_refund);
     println!("Created address: {:?}", created_address);
     println!("Ret value {:?}", message);
     exception
@@ -185,8 +183,6 @@ fn precompile(run_args: &RunArgs, runtime: &mut Runtime, state: &mut State, gas_
     if gas > gas_limit {
         gas = gas_limit;
     }
-
-    println!("{:?} {:?}", call_result, gas);
     
     runtime.add_gas_usage(gas);
 
