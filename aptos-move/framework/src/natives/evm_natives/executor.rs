@@ -420,13 +420,7 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
         Opcode::BYTE => {
             let n = pop_stack!(machine.stack);
             let x = pop_stack!(machine.stack);
-            let result = if n < U256::from(32) {
-                let byte_index: usize = n.as_usize();
-                U256::from(x.byte(byte_index))
-            } else {
-                U256::zero()
-            };
-            machine.stack.push(result)
+            machine.stack.push(arithmetic::byte(n, x))
         },
         Opcode::SHL => {
             let shift = pop_stack!(machine.stack);
