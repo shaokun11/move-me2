@@ -239,7 +239,7 @@ fn calculate_modexp_gas(base_len: usize, exp_len: usize, mod_len: usize, exp_hea
     );
 
     // Check if modulus is even (last byte's least significant bit is 0)
-    let mod_is_even = mod_len > 0 && (exp_head[mod_len - 1] & 1 == 0);
+    let mod_is_even = mod_len > 0 && exp_head.len() >= mod_len && (exp_head[mod_len - 1] & 1 == 0);
     
     gas_cost.saturating_mul(if mod_is_even { 20 } else { 1 })
 }
