@@ -17,6 +17,7 @@ use ethers::utils::{keccak256, get_create2_address, get_contract_address};
 fn calc_base_cost(data: &[u8], access_list_address_len: u64, access_list_slot_len: u64) -> u64 {
     let zero_data_len = (data.iter().filter(|v| **v == 0).count()) as u64;
 	let non_zero_data_len = (data.len() as u64) - zero_data_len;
+    println!("zero data {} {}", zero_data_len, non_zero_data_len);
     let data_cost = zero_data_len * gas_cost::DATA_ZERO_COST + non_zero_data_len * gas_cost::DATA_NOT_ZERO_COST;
     let access_list_cost = access_list_address_len * gas_cost::ACCESS_LIST_ADDRESS +
                             access_list_slot_len * gas_cost::ACCESS_LIST_SLOT;
@@ -171,7 +172,7 @@ pub fn new_tx(state: &mut State, run_args: &mut RunArgs, tx_args: &TransactArgs,
 
     // println!()
     let exec_cost = gas_usage - base_cost;
-    println!("Execution cost: {:?} {:?} {:?}", exec_cost, gas_usage, gas_refund);
+    println!("Execution cost: {:?} {:?} {:?} {:?}", base_cost, exec_cost, gas_usage, gas_refund);
     println!("Created address: {:?}", created_address);
     println!("Ret value {:?}", message);
     exception

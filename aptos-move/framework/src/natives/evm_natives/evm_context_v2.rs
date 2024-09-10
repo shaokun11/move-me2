@@ -177,17 +177,14 @@ fn native_execute_tx(
 
     let env = parse_env(env_data);
     let code;
-    let calldata;
     let ctx = context.extensions_mut().get_mut::<NativeEvmContext>();
 
     let (is_create, address) = if to.len() == 0 {
-        code = data;
-        calldata = vec![];
+        code = data.clone();
         (true, H160::zero())
     } else {
         let addr = H160::from_slice(&to);
         code = ctx.state.get_code(addr);
-        calldata = data;
         (false, addr)
     };
     let caller = H160::from_slice(&from);
@@ -198,7 +195,7 @@ fn native_execute_tx(
         address,
         gas_price,
         value,
-        data: calldata,
+        data,
         code,
         is_create
     };
