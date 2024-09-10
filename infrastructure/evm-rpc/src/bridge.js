@@ -653,15 +653,14 @@ function getGasPriceFromTx(tx) {
         }
     } else if (tx.type === '0x0' || tx.type === '0x1') {
         gasPrice = tx.gasPrice;
+        if (BigNumber(gasPrice).lt(BLOCK_BASE_FEE)) {
+            throw 'gasPrice must be greater than or equal to baseFee';
+        }
     } else {
         throw 'not support transaction type';
     }
-    if (!gasPrice || BigNumber(gasPrice).lt(BLOCK_BASE_FEE)) {
-        throw 'gasPrice must be greater than or equal to baseFee';
-    }
     return gasPrice;
 }
-
 // 1. `gasprice` should be greater than or equal to `basefee` (for regular transactions).
 // 2. `max_fee_per_gas` should be greater than or equal to `basefee` (for EIP-1559 transactions).
 // 3. `max_fee_per_gas` should be greater than or equal to `max_priority_fee_per_gas` (for EIP-1559 transactions).
