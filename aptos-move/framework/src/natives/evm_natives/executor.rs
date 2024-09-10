@@ -105,6 +105,7 @@ pub fn new_tx(state: &mut State, run_args: &mut RunArgs, tx_args: &TransactArgs,
             let gas_left = runtime.get_gas_left();
             handle_new_checkpoint(state, &mut runtime, gas_left, false);
             run_args.address = evm_contract;
+            run_args.data = vec![];
             result = run(state, &mut runtime, run_args, env, true, 0);
 
             match result.0 {
@@ -1013,7 +1014,7 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
 
 fn create_internal(args: &RunArgs, machine: &mut Machine, state: &mut State, runtime: &mut Runtime, env: &Environment, depth: usize) -> Result<(), ExecutionError> {
     machine.set_ret_bytes(vec![]);
-    if args.data.len() > limit::INIT_CODE_SIZE {
+    if args.code.len() > limit::INIT_CODE_SIZE {
         return Err(ExecutionError::InitCodeSizeExceed)
     }
 
