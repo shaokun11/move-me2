@@ -97,5 +97,5 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "src/GeneralStateTestsFiller/Pyspecs/cancun/eip1153_tstore/test_tstorage_selfdestruct.py::test_reentrant_selfdestructing_call[fork_Cancun-state_test-tload_after_inner_selfdestruct_new_contract]"
-read("./src/GeneralStateTests/Pyspecs/cancun/eip1153_tstore/reentrant_selfdestructing_call.json", key, 0, 0, 0)
+let key = "src/GeneralStateTestsFiller/Pyspecs/cancun/eip1153_tstore/test_tstorage_execution_contexts.py::test_subcall[fork_Cancun-state_test-call_with_tload_stack_underflow]"
+read("./src/GeneralStateTests/Pyspecs/cancun/eip1153_tstore/subcall.json", key, 0, 0, 0)

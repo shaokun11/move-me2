@@ -203,7 +203,7 @@ fn precompile(run_args: &RunArgs, runtime: &mut Runtime, state: &mut State, gas_
 
 macro_rules! pop_stack {
     ($stack:expr) => {
-        $stack.pop().unwrap_or(U256::zero())
+        $stack.pop()?
     };
 }
 
