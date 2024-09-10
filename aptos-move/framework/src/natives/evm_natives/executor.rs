@@ -121,6 +121,9 @@ pub fn new_tx(state: &mut State, run_args: &mut RunArgs, tx_args: &TransactArgs,
                 CallResult::Exception => {
                     exception = TxResult::ExceptionExecuteRevert;
                 }
+                CallResult::Exit => {
+                    exception = TxResult::ExecptionExit;
+                }
             }
         }
     } else {
@@ -136,6 +139,9 @@ pub fn new_tx(state: &mut State, run_args: &mut RunArgs, tx_args: &TransactArgs,
             CallResult::Success => {}
             CallResult::OutOfGas => {
                 exception = TxResult::ExceptionOutOfGas;
+            }
+            CallResult::Exit => {
+                exception = TxResult::ExecptionExit;
             }
             _ => {
                 exception = TxResult::ExceptionExecuteRevert;
@@ -252,6 +258,9 @@ fn run(state: &mut State, runtime: &mut Runtime, args: &RunArgs, env: &Environme
             }
             Ok(_) => {
 
+            }
+            Err(ExecutionError::Exit) => {
+                return (CallResult::Exit, machine.get_ret_value());
             }
             Err(err) => {
                 println!("Step result: Unexpected error - {:?}", err);
@@ -841,6 +850,10 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                 handle_new_checkpoint(state, runtime, call_gas_limit, is_static);
 
                 let (result, bytes) = run(state, runtime, &new_args, env, transfer_eth, depth + 1);
+                if result == CallResult::Exit {
+                    return Err(ExecutionError::Exit);
+                }
+                
                 if result == CallResult::Success || result == CallResult::Revert {
                     machine.set_ret_bytes(bytes.clone());
                     machine.memory.copy_large(ret_pos, U256::zero(), ret_len, &bytes.clone())?;
@@ -987,8 +1000,13 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
             let _data = machine.memory.get(offset.as_usize(), size.as_usize());
             // state.add_log(args.address, vec![topic1, topic2, topic3, topic4], data);
             Ok(())
+        },
+        Opcode::INVALID => {
+            Err(ExecutionError::InvalidOpcode)
         }
-        _ => Err(ExecutionError::InvalidOpcode),
+
+
+        _ => Err(ExecutionError::Exit),
     }
 }
 
@@ -1036,6 +1054,9 @@ fn create_internal(args: &RunArgs, machine: &mut Machine, state: &mut State, run
         CallResult::Revert => {
             machine.set_ret_bytes(bytes);
             machine.stack.push(U256::zero())
+        }
+        CallResult::Exit => {
+            return Err(ExecutionError::Exit);
         }
         _ => {
             machine.stack.push(U256::zero())

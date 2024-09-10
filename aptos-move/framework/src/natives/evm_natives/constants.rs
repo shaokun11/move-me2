@@ -27,7 +27,8 @@ pub enum CallResult {
     Success,
     Revert,
     OutOfGas,
-    Exception
+    Exception,
+    Exit
 }
 
 #[derive(Debug)]
@@ -43,6 +44,7 @@ pub enum TxResult {
     ExceptionOutOfGas = 208,
     ExceptionExecuteRevert = 209,
     ExceptionInsufficientBalanceToWithdraw = 210,
+    ExecptionExit = 211
 }
 
 pub mod limit {

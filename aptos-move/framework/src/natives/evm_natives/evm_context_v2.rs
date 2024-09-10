@@ -1,13 +1,12 @@
 use crate::natives::evm_natives::{
-    state::State,
-    types::{Environment, RunArgs, TransactArgs},
-    constants::TxType,
-    executor::new_tx,
-    utils::bytes_to_h160
+    constants::{TxResult, TxType}, executor::new_tx, state::State, types::{Environment, RunArgs, TransactArgs}, utils::bytes_to_h160
 };
 
+use move_binary_format::errors::PartialVMError;
+use aptos_types::vm_status::StatusCode;
+
 use aptos_native_interface::{
-    safely_pop_arg, SafeNativeContext, SafeNativeBuilder, RawSafeNative, SafeNativeResult
+    safely_pop_arg, SafeNativeContext, SafeNativeBuilder, RawSafeNative, SafeNativeResult, SafeNativeError
 };
 use move_vm_types::{
     loaded_data::runtime_types::Type,
@@ -212,6 +211,13 @@ fn native_execute_tx(
     };
 
     let result = new_tx(&mut ctx.state, run_args, &tx_args, &env, TxType::from(tx_type), access_list_address_len, access_list_slot_len);
+    match result {
+        TxResult::ExecptionExit => {
+            return Err(SafeNativeError::InvariantViolation(PartialVMError::new(StatusCode::EVM_CONTRACT_ERROR).with_message("Unimplmented".to_string())));
+        }
+        _ => {}
+    }
+    
     print!("result {:?}", result);
     Ok(smallvec![])
 }

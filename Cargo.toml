@@ -778,6 +778,7 @@ move-vm-types = { path = "third_party/move/move-vm/types" }
 debug = true
 overflow-checks = true
 opt-level = "z"
+lto = "thin"
 
 # The performance build is not currently recommended
 # for production deployments. It has not been widely tested.

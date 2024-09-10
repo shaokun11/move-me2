@@ -22,7 +22,8 @@ pub enum ExecutionError {
     InvalidNonce,
     InvalidCreated,
     Revert,
-	NotSupported
+	NotSupported,
+	Exit
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
