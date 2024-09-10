@@ -97,5 +97,5 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "MCOPY_memory_expansion_cost"
+let key = "eip198_modexp_precompile/test_modexp.py::test_modexp[fork_Cancun-state_test-EIP-198-case1]"
 read("./src/GeneralStateTests/Cancun/stEIP5656-MCOPY/MCOPY_memory_expansion_cost.json", key, 14, 0, 0)
