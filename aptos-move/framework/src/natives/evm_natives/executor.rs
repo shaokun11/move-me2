@@ -184,6 +184,7 @@ fn precompile(run_args: &RunArgs, runtime: &mut Runtime, state: &mut State, gas_
         gas = gas_limit;
     }
     
+    println!("precompile result {:?} {:?}", call_result, gas);
     runtime.add_gas_usage(gas);
 
     if call_result == CallResult::Success && transfer_eth && run_args.value > U256::zero() {
@@ -865,21 +866,18 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
             let init_code = machine.memory.get(offset.as_usize(), size.as_usize());
             let new_address = get_contract_address(args.address, state.get_nonce(args.address));
 
-            state.new_account(new_address, init_code.clone(), value, U256::one());
-            state.inc_nonce(args.caller);
-
             let new_args = RunArgs {
                 origin: args.origin,
                 caller: args.address,
                 address: new_address,
                 value: value,
-                code: init_code.clone(),
+                code: init_code,
                 data: Vec::new(),
                 gas_price: args.gas_price,
                 is_create: true,
             };
 
-            create_internal(new_address, &new_args, machine, state, runtime, env, depth)?;
+            create_internal(&new_args, machine, state, runtime, env, depth)?;
 
             Ok(())
         }
@@ -892,9 +890,6 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
             let init_code = machine.memory.get(offset.as_usize(), size.as_usize());
             let new_address = get_create2_address(args.address, u256_to_bytes(salt), init_code.clone());
 
-            state.new_account(new_address, init_code.clone(), value, U256::one());
-            state.inc_nonce(args.caller);
-
             let new_args = RunArgs {
                 origin: args.origin,
                 caller: args.address,
@@ -906,7 +901,7 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                 is_create: true,
             };
 
-            create_internal(new_address, &new_args, machine, state, runtime, env, depth)?;
+            create_internal(&new_args, machine, state, runtime, env, depth)?;
 
             Ok(())
         }
@@ -995,7 +990,7 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
     }
 }
 
-fn create_internal(created_address: H160, args: &RunArgs, machine: &mut Machine, state: &mut State, runtime: &mut Runtime, env: &Environment, depth: usize) -> Result<(), ExecutionError> {
+fn create_internal(args: &RunArgs, machine: &mut Machine, state: &mut State, runtime: &mut Runtime, env: &Environment, depth: usize) -> Result<(), ExecutionError> {
     machine.set_ret_bytes(vec![]);
     if args.data.len() > limit::INIT_CODE_SIZE {
         return Err(ExecutionError::InitCodeSizeExceed)
@@ -1009,21 +1004,21 @@ fn create_internal(created_address: H160, args: &RunArgs, machine: &mut Machine,
         return Err(ExecutionError::DepthOverflow);
     }
 
-    if state.get_balance(args.address) < args.value {
+    if state.get_balance(args.caller) < args.value {
         return Err(ExecutionError::InsufficientBalance);
     }
 
-    if state.get_nonce(args.address) > U256::from(u64::MAX) {
+    if state.get_nonce(args.caller) > U256::from(u64::MAX) {
         return Err(ExecutionError::InvalidNonce);
     }
 
-    state.inc_nonce(args.address);
-    state.add_warm_address(created_address);
+    state.inc_nonce(args.caller);
+    state.add_warm_address(args.address);
 
     let gas_left = runtime.get_gas_left();
     let (call_gas_limit, _) = max_call_gas(gas_left, gas_left, args.value, false);
 
-    if state.is_contract_or_created_account(created_address) {
+    if state.is_contract_or_created_account(args.address) {
         runtime.add_gas_usage(call_gas_limit);
         return Err(ExecutionError::InvalidCreated);
     }
@@ -1033,8 +1028,8 @@ fn create_internal(created_address: H160, args: &RunArgs, machine: &mut Machine,
     
     match create_res {
         CallResult::Success => {
-            state.set_code(created_address, bytes);
-            machine.stack.push(h160_to_u256(created_address))
+            state.set_code(args.address, bytes);
+            machine.stack.push(h160_to_u256(args.address))
         }
         CallResult::Revert => {
             machine.set_ret_bytes(bytes);

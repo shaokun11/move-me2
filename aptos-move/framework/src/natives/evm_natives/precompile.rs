@@ -7,7 +7,7 @@ use k256::ecdsa::{RecoveryId, Signature, VerifyingKey};
 use sha3::{Digest, Keccak256};
 use sha2::Sha256;
 use ripemd::Ripemd160;
-use num::{BigUint, Zero, One};
+use num::{BigUint, FromPrimitive, ToPrimitive, Zero, One};
 use bn::{pairing_batch, AffineG1, AffineG2, Fq, Fr, Fq2, Group, Gt, G1, G2};
 
 const ECADD_GAS: u64 = 150;
@@ -143,57 +143,86 @@ fn identity(data: &[u8]) -> (CallResult, u64, Vec<u8>) {
     (CallResult::Success, gas_cost, data.to_vec())
 }
 
+fn read_input(source: &[u8], target: &mut [u8], source_offset: &mut usize) {
+    // We move the offset by the len of the target, regardless of what we
+    // actually copy.
+    let offset = *source_offset;
+    *source_offset += target.len();
+
+    // Out of bounds, nothing to copy.
+    if source.len() <= offset {
+        return;
+    }
+
+    // Find len to copy up to target len, but not out of bounds.
+    let len = core::cmp::min(target.len(), source.len() - offset);
+    target[..len].copy_from_slice(&source[offset..][..len]);
+}
+
 fn mod_exp(data: &[u8], gas_limit: u64) -> (CallResult, u64, Vec<u8>) {
     const MIN_GAS_COST: u64 = 200;
+
+    let mut input_offset = 0;
+
     // Ensure we have at least 96 bytes of data, padding with zeros if necessary
-    let mut input = vec![0u8; 96];
-    input[..std::cmp::min(data.len(), 96)].copy_from_slice(&data[..std::cmp::min(data.len(), 96)]);
+    let mut base_len_buf = [0u8; 32];
+	read_input(data, &mut base_len_buf, &mut input_offset);
+	let mut exp_len_buf = [0u8; 32];
+	read_input(data, &mut exp_len_buf, &mut input_offset);
+	let mut mod_len_buf = [0u8; 32];
+	read_input(data, &mut mod_len_buf, &mut input_offset);
 
-    let base_len = U256::from_big_endian(&input[0..32]);
-    let exp_len = U256::from_big_endian(&input[32..64]);
-    let mod_len = U256::from_big_endian(&input[64..96]);
+    let max_size_big = BigUint::from_u32(1024).expect("can't create BigUint");
 
-    // Check if lengths are valid
-    if base_len > U256::from(u32::MAX) || exp_len > U256::from(u32::MAX) || mod_len > U256::from(u32::MAX) {
-        return (CallResult::OutOfGas, 0, Vec::new());
-    }
+	let base_len_big = BigUint::from_bytes_be(&base_len_buf);
+	if base_len_big > max_size_big {
+		return (CallResult::OutOfGas, 0, Vec::new());
+	}
 
-    let base_len = base_len.as_u64() as usize;
-    let exp_len = exp_len.as_u64() as usize;
-    let mod_len = mod_len.as_u64() as usize;
+	let exp_len_big = BigUint::from_bytes_be(&exp_len_buf);
+	if exp_len_big > max_size_big {
+		return (CallResult::OutOfGas, 0, Vec::new());
+	}
 
-    if input.len() < 96 + base_len {
-        input.resize(96 + base_len, 0);
-    }
+	let mod_len_big = BigUint::from_bytes_be(&mod_len_buf);
+	if mod_len_big > max_size_big {
+		return (CallResult::OutOfGas, 0, Vec::new());
+	}
 
-    // Calculate gas cost
-    let gas_cost = calculate_modexp_gas(base_len, exp_len, mod_len, &input[96 + base_len..]);
 
+    let base_len = base_len_big.to_usize().unwrap();
+    let exp_len = exp_len_big.to_usize().unwrap();
+    let mod_len = mod_len_big.to_usize().unwrap();
+    
     if base_len == 0 && mod_len == 0 {
         return (CallResult::Success, MIN_GAS_COST, Vec::new());
     }
 
+    let mut base_buf = vec![0u8; base_len];
+	read_input(data, &mut base_buf, &mut input_offset);
+	let base = BigUint::from_bytes_be(&base_buf);
+
+	let mut exp_buf = vec![0u8; exp_len];
+	read_input(data, &mut exp_buf, &mut input_offset);
+	let exponent = BigUint::from_bytes_be(&exp_buf);
+
+	let mut mod_buf = vec![0u8; mod_len];
+	read_input(data, &mut mod_buf, &mut input_offset);
+	let modulus = BigUint::from_bytes_be(&mod_buf);
+
+    let gas_cost = calculate_modexp_gas(base_len, exp_len, mod_len, &exp_buf);
     // Check if gas cost exceeds gas limit
     if gas_cost > gas_limit {
         return (CallResult::OutOfGas, 0, Vec::new());
     }
 
-    // Extend input if necessary
-    if input.len() < 96 + base_len + exp_len + mod_len {
-        input.resize(96 + base_len + exp_len + mod_len, 0);
-    }
-
-    
-
-    let base = BigUint::from_bytes_be(&input[96..96 + base_len]);
-    let exp = BigUint::from_bytes_be(&input[96 + base_len..96 + base_len + exp_len]);
-    let modulus = BigUint::from_bytes_be(&input[96 + base_len + exp_len..96 + base_len + exp_len + mod_len]);
+    println!("mod exp {} {} {} {}", base_len, exp_len, mod_len, gas_cost);
 
     // Perform modular exponentiation
     let result = if modulus.is_zero() || modulus.is_one() {
         vec![0u8; mod_len]
     } else {
-        let result = base.modpow(&exp, &modulus);
+        let result = base.modpow(&exponent, &modulus);
         let result_bytes = result.to_bytes_be();
         if result_bytes.len() < mod_len {
             let mut padded = vec![0u8; mod_len - result_bytes.len()];
@@ -232,16 +261,19 @@ fn calculate_modexp_gas(base_len: usize, exp_len: usize, mod_len: usize, exp_hea
 
     let multiplication_complexity = calculate_multiplication_complexity(base_len as u64, mod_len as u64);
     let iteration_count = std::cmp::max(calculate_iteration_count(exp_len, exp_head), 1);
-    
+
+    println!("123 {} {}", multiplication_complexity, iteration_count);
     let gas_cost = std::cmp::max(
         MIN_GAS_COST,
         multiplication_complexity.saturating_mul(iteration_count) / 3
     );
 
-    // Check if modulus is even (last byte's least significant bit is 0)
-    let mod_is_even = mod_len > 0 && exp_head.len() >= mod_len && (exp_head[mod_len - 1] & 1 == 0);
+    gas_cost
+
+    // // Check if modulus is even (last byte's least significant bit is 0)
+    // let mod_is_even = mod_len > 0 && exp_head.len() >= mod_len && (exp_head[mod_len - 1] & 1 == 0);
     
-    gas_cost.saturating_mul(if mod_is_even { 20 } else { 1 })
+    // gas_cost.saturating_mul(if mod_is_even { 20 } else { 1 })
 }
 
 fn ecadd(input: &[u8], gas_limit: u64) -> (CallResult, u64, Vec<u8>) {
