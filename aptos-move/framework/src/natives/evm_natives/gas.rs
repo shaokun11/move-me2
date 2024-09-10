@@ -14,7 +14,6 @@ const EXP_BYTE: u64 = 50;
 const CREATE_BASE_GAS: u64 = 32000;
 const INIT_CODE_WORD_COST: u64 = 2;
 const SHA3_PER_WORD_GAS: u64 = 6;
-const SHA3_BASE_GAS: u64 = 30;
 const COLD_SLOAD_COST: u64 = 2100;
 const WARM_SLOAD_COST: u64 = 100;
 const CALL_STIPEND: u64 = 2300;
@@ -374,7 +373,7 @@ fn calc_create2_gas(
     let init_code_cost = words * U256::from(INIT_CODE_WORD_COST);
 
     // Additional cost for SHA3 operation (used to compute the contract address)
-    let sha3_gas = words * U256::from(SHA3_PER_WORD_GAS) + U256::from(SHA3_BASE_GAS);
+    let sha3_gas = words * U256::from(SHA3_PER_WORD_GAS);
 
     // Total initial gas is memory expansion gas + CREATE2 base cost + init code cost + SHA3 cost
     let total_gas = U256::from(mem_gas)
