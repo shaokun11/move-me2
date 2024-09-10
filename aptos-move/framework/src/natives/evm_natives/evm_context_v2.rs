@@ -211,15 +211,9 @@ fn native_execute_tx(
     };
 
     let result = new_tx(&mut ctx.state, run_args, &tx_args, &env, TxType::from(tx_type), access_list_address_len, access_list_slot_len);
-    match result {
-        TxResult::ExecptionExit => {
-            return Err(SafeNativeError::InvariantViolation(PartialVMError::new(StatusCode::EVM_CONTRACT_ERROR).with_message("Unimplmented".to_string())));
-        }
-        _ => {}
-    }
-    
     print!("result {:?}", result);
-    Ok(smallvec![])
+    
+    Ok(smallvec![Value::u64(result as u64)])
 }
 
 

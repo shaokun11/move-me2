@@ -100,16 +100,19 @@ module aptos_framework::evm_for_test_v2 {
         debug::print(&value);
         let gas_price;
         let env = parse_env(&env_data);
+        let result;
         if(tx_type == TX_TYPE_NORMAL) {
             gas_price = to_u256(*vector::borrow(&gas_price_data, 0));
-            evm_context_v2::execute_tx(env, from, to, value, data, gas_limit, gas_price, 0, 0, address_list_address_len, access_list_slot_len, tx_type);
+            result = evm_context_v2::execute_tx(env, from, to, value, data, gas_limit, gas_price, 0, 0, address_list_address_len, access_list_slot_len, tx_type);
         } else {
             gas_price = get_base_fee_per_gas(&env) + to_u256(*vector::borrow(&gas_price_data, 1));
             let max_fee_per_gas = to_u256(*vector::borrow(&gas_price_data, 0));
             let max_priority_fee_per_gas = to_u256(*vector::borrow(&gas_price_data, 1));
             gas_price = if(gas_price > max_fee_per_gas) max_fee_per_gas else gas_price;
-            evm_context_v2::execute_tx(env, from, to, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_fee_per_gas, address_list_address_len, access_list_slot_len, tx_type);
+            result = evm_context_v2::execute_tx(env, from, to, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_fee_per_gas, address_list_address_len, access_list_slot_len, tx_type);
         };
+
+        assert!(result <= 210, result);
 
         let state_root = evm_context_v2::calculate_root();
         // let exec_cost = gas_usage - base_cost;
