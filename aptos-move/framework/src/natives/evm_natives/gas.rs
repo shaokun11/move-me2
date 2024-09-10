@@ -470,7 +470,7 @@ pub fn calc_create_storage_gas(code_size: usize) -> u64 {
     200 * code_size as u64
 }
 
-pub fn max_call_gas(gas_left: u64, gas_limit: u64, value: U256, need_stipend: bool) ->(u64, u64) {
+pub fn max_call_gas(gas_left: U256, gas_limit: U256, value: U256, need_stipend: bool) ->(u64, u64) {
     let gas_allow = gas_left - gas_left / 64;
     let mut gas_limit = if gas_limit > gas_allow { gas_allow } else { gas_limit };
     let mut gas_stipend = 0;
@@ -478,7 +478,7 @@ pub fn max_call_gas(gas_left: u64, gas_limit: u64, value: U256, need_stipend: bo
         gas_stipend = gas_stipend + CALL_STIPEND;
         gas_limit = gas_limit + CALL_STIPEND;
     };
-    (gas_limit, gas_stipend)
+    (gas_limit.as_u64(), gas_stipend)
 }
 
 pub fn calc_exec_gas(state: &mut State, opcode: Opcode, address: &H160, machine: &mut Machine, runtime: &mut Runtime) -> (CallResult, u64) {

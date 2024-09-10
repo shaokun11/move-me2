@@ -792,7 +792,7 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                 Opcode::DELEGATECALL => args.value,
                 _ => U256::zero()
             };
-            let (call_gas_limit, gas_stipend) = max_call_gas(gas_left, gas.as_u64(), msg_value, need_stipend);
+            let (call_gas_limit, gas_stipend) = max_call_gas(U256::from(gas_left), gas, msg_value, need_stipend);
             if gas_stipend > 0 {
                 runtime.add_gas_left(gas_stipend);
             };
@@ -1036,7 +1036,7 @@ fn create_internal(args: &RunArgs, machine: &mut Machine, state: &mut State, run
     state.add_warm_address(args.address);
 
     let gas_left = runtime.get_gas_left();
-    let (call_gas_limit, _) = max_call_gas(gas_left, gas_left, args.value, false);
+    let (call_gas_limit, _) = max_call_gas(U256::from(gas_left), U256::from(gas_left), args.value, false);
 
     if state.is_contract_or_created_account(args.address) {
         runtime.add_gas_usage(call_gas_limit);
