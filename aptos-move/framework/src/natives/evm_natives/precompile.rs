@@ -162,6 +162,10 @@ fn mod_exp(data: &[u8], gas_limit: u64) -> (CallResult, u64, Vec<u8>) {
     let exp_len = exp_len.as_u64() as usize;
     let mod_len = mod_len.as_u64() as usize;
 
+    if input.len() < 96 + base_len {
+        input.resize(96 + base_len, 0);
+    }
+
     // Calculate gas cost
     let gas_cost = calculate_modexp_gas(base_len, exp_len, mod_len, &input[96 + base_len..]);
 
