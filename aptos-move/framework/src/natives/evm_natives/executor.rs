@@ -275,6 +275,8 @@ fn run(state: &mut State, runtime: &mut Runtime, args: &RunArgs, env: &Environme
             handle_unexpect_revert(state, runtime);
             return (CallResult::Exception, vec![]);
         }
+
+
     }
 
     handle_commit(state, runtime);
@@ -851,9 +853,9 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                 };
             } else {
                 output = if transfer_eth && !state.transfer(call_from, call_to, msg_value) {
-                    U256::one()
-                } else {
                     U256::zero()
+                } else {
+                    U256::one()
                 };
             }
             machine.stack.push(output)
