@@ -236,6 +236,7 @@ fn run(state: &mut State, runtime: &mut Runtime, args: &RunArgs, env: &Environme
         machine.add_pc(1);
         if gas_result != CallResult::Success {
             handle_unexpect_revert(state, runtime);
+            println!("gas result {:?}", gas_result);
             return (gas_result, machine.get_ret_value());
         }
         

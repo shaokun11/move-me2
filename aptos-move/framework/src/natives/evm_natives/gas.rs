@@ -27,7 +27,7 @@ const SSTORE_CLEAR_REFUND_EIP2200: u64 = 4800;
 const SSTORE_INIT_REFUND_EIP2200: u64 = 19900;
 const SSTORE_CLEAN_REFUND_EIP2200: u64 = 2800;
 const SSTORE_SENTRY_GAS_EIP2200: u64 = 2300;
-
+		
 /// Calculate the additional gas cost for cold address access
 pub fn calc_cold_address_access(state: &mut State, address: H160) -> u64 {
     if state.is_cold_address(address) && !is_precompile_address(address) {
@@ -39,6 +39,10 @@ pub fn calc_cold_address_access(state: &mut State, address: H160) -> u64 {
 
 /// Calculate the gas cost for memory expansion
 pub fn calc_memory_expand(machine: &mut Machine, offset: U256, size: U256, gas_limit: u64) -> (CallResult, u64) {
+    if size == U256::zero() {
+        return (CallResult::Success, 0);
+    }
+    
     let current_words = machine.get_memory_word_size();
     let new_words = match offset.checked_add(size) {
         Some(end) => {

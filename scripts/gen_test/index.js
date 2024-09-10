@@ -98,4 +98,4 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
 }
 
 let key = "MCOPY_memory_expansion_cost"
-read("./src/GeneralStateTests/Cancun/stEIP5656-MCOPY/MCOPY_memory_expansion_cost.json", key, 0, 0, 0)
+read("./src/GeneralStateTests/Cancun/stEIP5656-MCOPY/MCOPY_memory_expansion_cost.json", key, 14, 0, 0)
