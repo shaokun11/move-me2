@@ -97,5 +97,5 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "random"
-read("./src/GeneralStateTests/VMTests/vmTests/random.json", key, 3, 0, 0)
+let key = "callNonConst"
+read("./src/GeneralStateTests/stArgsZeroOneBalance/callNonConst.json", key, 0, 0, 1)

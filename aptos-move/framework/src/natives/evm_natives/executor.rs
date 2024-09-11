@@ -187,9 +187,12 @@ fn precompile(run_args: &RunArgs, runtime: &mut Runtime, state: &mut State, gas_
     }
 
 
-    let (call_result, mut gas, ret_val) = run_precompile(code_address, run_args.data.clone(), gas_limit);
-    if call_result != CallResult::Success || gas > gas_limit  {
+    let (mut call_result, mut gas, ret_val) = run_precompile(code_address, run_args.data.clone(), gas_limit);
+    if call_result != CallResult::Success {
         gas = gas_limit;
+    } else if gas > gas_limit  {
+        gas = gas_limit;
+        call_result = CallResult::OutOfGas;
     }
     
     println!("precompile result {:?} {:?}", call_result, gas);
