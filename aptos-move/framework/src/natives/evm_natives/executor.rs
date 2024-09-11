@@ -464,8 +464,6 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                 if machine.pc + i < args.code.len() {
                     let byte = args.code[machine.pc + i];
                     value = (value << 8) | U256::from(byte);
-                } else {
-                    return Err(ExecutionError::OutOfBounds);
                 }
             }
             machine.add_pc(push_size);
