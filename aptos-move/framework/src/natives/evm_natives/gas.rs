@@ -136,7 +136,7 @@ fn calc_exp_gas(machine: &Machine) -> (CallResult, u64) {
     let exponent = machine.stack.peek(1).unwrap_or_default();
 
     if exponent.is_zero() {
-        return (CallResult::Success, 0);
+        return (CallResult::Success, 10);
     }
 
     let byte_length = u256_bytes_length(exponent);
