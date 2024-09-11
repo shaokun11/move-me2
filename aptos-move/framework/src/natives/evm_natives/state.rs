@@ -230,22 +230,6 @@ impl State {
 	    is_cold
 	}
 
-	pub fn is_cold_slot(
-		&mut self,
-		address: H160,
-		index: U256
-	) -> bool {
-		let mut is_cold_slot = !self.accessed.contains(&(address, Some(index)));
-		match self.substate.known_origin(address, index) {
-			Some(_) => {
-	            is_cold_slot = false;
-	        },
-	        None => {}
-		}
-
-	    is_cold_slot
-	}
-
 	pub fn get_transient_storage(
 		&mut self,
 		address: H160,

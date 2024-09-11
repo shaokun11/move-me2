@@ -97,5 +97,5 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "exp"
-read("./src/GeneralStateTests/VMTests/vmArithmeticTest/exp.json", key, 4, 0, 0)
+let key = "fib"
+read("./src/GeneralStateTests/VMTests/vmArithmeticTest/fib.json", key, 0, 0, 0)

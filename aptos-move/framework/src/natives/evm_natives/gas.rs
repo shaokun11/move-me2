@@ -399,8 +399,9 @@ fn calc_sload_gas(
     }
 
     let key = machine.stack.peek(0).unwrap_or_default();
+    let(is_cold_slot, _) = state.get_origin(*address, key);
 
-    if state.is_cold_slot(*address, key) {
+    if is_cold_slot {
         (CallResult::Success, COLD_SLOAD_COST)
     } else {
         (CallResult::Success, WARM_SLOAD_COST)
