@@ -1044,7 +1044,8 @@ async function checkTxResult({ hash, senderIndex, txKey, isLargeTx, sender, sequ
             } catch (error) {}
             setTimeout(checkAccount, checkMs);
         };
-        checkAccount();
+        // the first time check after half of the checkMs
+        setTimeout(checkAccount, Math.trunc(checkMs / 2));
     });
     SENDER_ACCOUNT_INDEX.push(senderIndex);
     PENDING_TX_SET.delete(txKey);
