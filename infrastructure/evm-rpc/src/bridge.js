@@ -57,7 +57,7 @@ const PENDING_TX_SET = new Set();
  *
  */
 const TX_MEMORY_POOL = {};
-const TX_EXPIRE_TIME = 1000 * 60 * 5; // 5 Minutes
+const TX_EXPIRE_TIME = 1000 * 60 * 30;
 const ONE_ADDRESS_MAX_TX_COUNT = 20;
 const TX_NONCE_FIRST_CHECK_TIME = {};
 const SEND_LARGE_TX_INFO = {
