@@ -240,7 +240,7 @@ fn execute(state: &mut State, runtime: &mut Runtime, env: &Environment, call_fra
                 let machine = &mut frame.machine;
                 let args = &frame.args;
                 if machine.pc >= args.code.len() {
-                    break;
+                    Err(ExecutionError::Stop(machine.get_ret_value()))
                 } else {
                     let opcode = Opcode(args.code[machine.pc]);
                     machine.pc += 1;
