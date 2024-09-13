@@ -3,7 +3,7 @@ use crate::natives::evm_natives::{
 };
 
 use aptos_native_interface::{
-    safely_pop_arg, SafeNativeContext, SafeNativeBuilder, RawSafeNative, SafeNativeResult, SafeNativeError
+    safely_pop_arg, SafeNativeContext, SafeNativeBuilder, RawSafeNative, SafeNativeResult
 };
 use move_vm_types::{
     loaded_data::runtime_types::Type,

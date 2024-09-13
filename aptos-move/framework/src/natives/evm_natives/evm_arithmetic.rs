@@ -1,15 +1,13 @@
-use crate::natives::evm_natives::{
-    helpers::{move_u256_to_evm_u256, evm_u256_to_move_u256}
-};
+use crate::natives::evm_natives::helpers::{move_u256_to_evm_u256, evm_u256_to_move_u256};
 
 use aptos_native_interface::{
     safely_pop_arg, SafeNativeContext, SafeNativeBuilder, RawSafeNative, SafeNativeResult
 };
 use move_vm_types::{
     loaded_data::runtime_types::Type,
-    values::{Value}
+    values::Value
 };
-use move_core_types::{u256::U256 as move_u256};
+use move_core_types::u256::U256 as move_u256;
 use move_vm_runtime::native_functions::NativeFunction;
 use std::collections::VecDeque;
 use smallvec::{smallvec, SmallVec};
