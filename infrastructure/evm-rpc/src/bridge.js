@@ -179,6 +179,7 @@ export async function sendRawTx(tx) {
 async function sendTxTask() {
     let isSending = false;
     let lastSendTime = Date.now();
+    const slowly = () => sleep(0.002);
     setInterval(async () => {
         if (isSending) {
             return;
@@ -213,7 +214,7 @@ async function sendTxTask() {
         const keysArr = cluster(allKeys, 50);
         for (let keys of keysArr) {
             const info = await Promise.all(keys.map(key => getAccountInfo(key)));
-            await sleep(0.005);
+            await slowly();
             keys.forEach((k, i) => {
                 accMap[k] = info[i];
             });
@@ -245,13 +246,14 @@ async function sendTxTask() {
             }
             sendTxArr.push(item);
         }
-        await sleep(0.005);
+        await slowly();
         // sendTxArr.sort((a, b) => a.ts - b.ts);
         // Now we simply sort the tx by the timestamp
         TimSort.sort(sendTxArr, (a, b) => a.ts - b.ts);
         if (sendTxArr.length > 0 && SENDER_ACCOUNT_INDEX.length > 0) {
             const size = sendTxArr.length;
             for (let i = 0; i < size; i++) {
+                await slowly();
                 if (sendTxArr.length === 0) break;
                 const txInfo = sendTxArr.shift();
                 const { key, tx, from, nonce } = txInfo;
