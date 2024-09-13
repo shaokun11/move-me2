@@ -274,9 +274,11 @@ async function sendTxTask() {
                         // not commit the last large tx
                         continue;
                     }
-                    if (Date.now() - SEND_LARGE_TX_INFO.sendTime < 10 * 1000) {
-                        // the more time to send small tx and make tx quickly
-                        continue;
+                    if (sendTxArr.length > 100) {
+                        if (Date.now() - SEND_LARGE_TX_INFO.sendTime < 10 * 1000) {
+                            // the more time to send small tx and make tx quickly
+                            continue;
+                        }
                     }
                     if (sendTxArr.length > 200) {
                         if (isLimitContract(txParsed.to)) {
