@@ -251,19 +251,30 @@ fn execute(state: &mut State, runtime: &mut Runtime, env: &Environment, call_fra
 
             match result {
                 Err(ExecutionError::Stop(value)) => {
-                    handle_commit(state, runtime);
                     let finished_frame = call_frames.pop().unwrap();
                     if let Some(last_frame) = call_frames.last_mut() {
                         let machine = &mut last_frame.machine;
                         match finished_frame.frame_type {
                             FrameType::Create => {
+                                let deployed_code_size = machine.get_ret_value().len();
+                                let out_of_gas = !runtime.add_gas_usage(200 * value.len() as u64);
+                                if out_of_gas {
+                                    handle_unexpect_revert(state, runtime);
+                                    break;
+                                }
+                                if deployed_code_size > limit::INIT_CODE_SIZE || (deployed_code_size > 0 && value[0] == 0xef){
+                                    handle_unexpect_revert(state, runtime);
+                                    break;
+                                }
                                 state.set_code(finished_frame.args.address, value);
                                 machine.stack.push(h160_to_u256(finished_frame.args.address))?;
+                                handle_commit(state, runtime);
                             }
                             FrameType::SubCall => {
                                 machine.stack.push(U256::one())?;
                                 machine.memory.copy_large(machine.ret_pos, U256::zero(), machine.ret_len, &value)?;
                                 machine.set_ret_bytes(value);
+                                handle_commit(state, runtime);
                             }
                             _ => {
                                 return Ok(value);
