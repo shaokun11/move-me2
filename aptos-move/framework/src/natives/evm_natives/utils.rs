@@ -1,5 +1,4 @@
 use primitive_types::{H160, U256};
-use move_core_types::u256::U256 as move_u256;
 
 pub fn get_word_count(bytes_size: U256) -> U256 {
     let mut word_count = bytes_size / 32;

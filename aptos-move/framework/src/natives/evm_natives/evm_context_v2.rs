@@ -1,9 +1,6 @@
 use crate::natives::evm_natives::{
-    constants::{TxResult, TxType}, executor::new_tx, state::State, types::{Environment, RunArgs, TransactArgs}, utils::bytes_to_h160
+    constants::TxType, executor::new_tx, state::State, types::{Environment, RunArgs, TransactArgs}, utils::bytes_to_h160
 };
-
-use move_binary_format::errors::PartialVMError;
-use aptos_types::vm_status::StatusCode;
 
 use aptos_native_interface::{
     safely_pop_arg, SafeNativeContext, SafeNativeBuilder, RawSafeNative, SafeNativeResult, SafeNativeError
@@ -18,6 +15,7 @@ use move_core_types::u256::U256 as move_u256;
 use primitive_types::{H160, H256, U256};
 use better_any::{Tid, TidAble};
 use std::collections::VecDeque;
+use ethers::utils::get_contract_address;
 
 
 /// Cached emitted module events.
@@ -178,26 +176,29 @@ fn native_execute_tx(
     let env = parse_env(env_data);
     let code;
     let ctx = context.extensions_mut().get_mut::<NativeEvmContext>();
-
-    let (is_create, address) = if to.len() == 0 {
+    let caller = H160::from_slice(&from);
+    let (is_create, address, calldata) = if to.len() == 0 {
         code = data.clone();
-        (true, H160::zero())
+        (true, get_contract_address(caller, ctx.state.get_nonce(caller)), vec![])
     } else {
         let addr = H160::from_slice(&to);
         code = ctx.state.get_code(addr);
-        (false, addr)
+         
+        (false, addr, data)
     };
-    let caller = H160::from_slice(&from);
+    
 
-    let run_args = &mut RunArgs {
+    let run_args = RunArgs {
         origin: caller,
         caller,
         address,
         gas_price,
         value,
-        data,
+        data: calldata,
         code,
-        is_create
+        is_create,
+        transfer_eth: true,
+        depth: 0
     };
     let tx_args = TransactArgs {
         gas_limit,

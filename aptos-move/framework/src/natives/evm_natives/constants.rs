@@ -44,7 +44,8 @@ pub enum TxResult {
     ExceptionOutOfGas = 208,
     ExceptionExecuteRevert = 209,
     ExceptionInsufficientBalanceToWithdraw = 210,
-    ExecptionExit = 211
+    ExecptionUnexpectError = 211,
+    ExecptionExit = 301
 }
 
 pub mod limit {

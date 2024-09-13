@@ -92,7 +92,7 @@ fn native_execute_tx(
     };
     let caller = H160::from_slice(&from);
 
-    let run_args = &mut RunArgs {
+    let run_args = RunArgs {
         origin: caller,
         caller,
         address,
@@ -100,7 +100,9 @@ fn native_execute_tx(
         value,
         data: calldata,
         code,
-        is_create
+        is_create,
+        transfer_eth: true,
+        depth: 0
     };
     let tx_args = TransactArgs {
         gas_limit,

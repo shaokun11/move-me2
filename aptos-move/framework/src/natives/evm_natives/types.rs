@@ -1,12 +1,18 @@
 // Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
-
 use primitive_types::{H160, H256, U256};
 use std::fmt;
 
 #[derive(Debug)]
+pub enum FrameType {
+    MainCall,
+    SubCall,
+    Create
+}
+
+#[derive(Debug)]
 pub enum ExecutionError {
-	Stop,
+	Stop(Vec<u8>),
     StackOverflow,
     DepthOverflow,
     StackUnderflow,
@@ -21,8 +27,11 @@ pub enum ExecutionError {
     InitCodeSizeExceed,
     InvalidNonce,
     InvalidCreated,
-    Revert,
+    Revert(Vec<u8>),
 	NotSupported,
+	OutOfGas,
+	Create(RunArgs),
+	SubCall(RunArgs),
 	Exit
 }
 
@@ -548,7 +557,11 @@ pub struct RunArgs {
 	/// Transaction gas price.
 	pub gas_price: U256,
 	/// Create contract
-	pub is_create: bool
+	pub is_create: bool,
+	/// Should transfer eth
+	pub transfer_eth: bool,
+	/// Depth
+	pub depth: usize
 }
 #[derive(Clone, Debug)]
 pub struct TransactArgs {
