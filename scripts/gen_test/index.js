@@ -97,5 +97,5 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "src/GeneralStateTestsFiller/Pyspecs/byzantium/eip198_modexp_precompile/test_modexp.py::test_modexp[fork_Cancun-state_test-EIP-198-case1]"
-read("./src/GeneralStateTests/Pyspecs/byzantium/eip198_modexp_precompile/modexp.json", key, 0, 0, 0)
+let key = "15_tstoreCannotBeDosd"
+read("./src/GeneralStateTests/Cancun/stEIP1153-transientStorage/15_tstoreCannotBeDosd.json", key, 0, 0, 0)

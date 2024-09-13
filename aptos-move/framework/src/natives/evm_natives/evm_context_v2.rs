@@ -16,6 +16,7 @@ use primitive_types::{H160, H256, U256};
 use better_any::{Tid, TidAble};
 use std::collections::VecDeque;
 use ethers::utils::get_contract_address;
+use std::time::Instant;
 
 
 /// Cached emitted module events.
@@ -208,8 +209,13 @@ fn native_execute_tx(
         tx_type,
     };
 
+    let start_time = Instant::now();
+
     let result = new_tx(&mut ctx.state, run_args, &tx_args, &env, TxType::from(tx_type), access_list_address_len, access_list_slot_len);
-    print!("result {:?}", result);
+    println!("result {:?}", result);
+
+    let duration = start_time.elapsed();
+    println!("run time: {:?}", duration);
     
     Ok(smallvec![Value::u64(result as u64)])
 }

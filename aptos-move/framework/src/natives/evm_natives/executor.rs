@@ -14,6 +14,8 @@ use crate::natives::evm_natives::{
 use primitive_types::{H160, U256};
 use ethers::utils::{get_contract_address, get_create2_address, keccak256};
 
+const PRINT_LOG: bool = false;
+
 struct CallFrame {
     machine: Machine,
     args: RunArgs,
@@ -244,7 +246,10 @@ fn execute(state: &mut State, runtime: &mut Runtime, env: &Environment, call_fra
                 } else {
                     let opcode = Opcode(args.code[machine.pc]);
                     machine.pc += 1;
-                    println!("{:?}", machine.stack.data());
+                    if PRINT_LOG {
+                        println!("{:?}", machine.stack.data());
+                    }
+                    
                     step(opcode, &frame.args, machine, state, runtime, env)
                 }
             };
@@ -346,9 +351,12 @@ fn execute(state: &mut State, runtime: &mut Runtime, env: &Environment, call_fra
 fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State, runtime: &mut Runtime, env: &Environment) -> Result<(), ExecutionError> {
     let (gas_result, gas_cost) = calc_exec_gas(state, opcode, &args.address, machine, runtime);
 
-    println!("opcode {} {} {}", opcode, machine.pc, args.depth);
-    println!("gas_cost {}", gas_cost);
-    println!("gas_left {:?}", runtime.get_gas_left());
+    if PRINT_LOG {
+        println!("opcode {} {} {}", opcode, machine.pc, args.depth);
+        println!("gas_cost {}", gas_cost);
+        println!("gas_left {:?}", runtime.get_gas_left());
+    }
+    
     
     let out_of_gas = !runtime.add_gas_usage(gas_cost);
     if out_of_gas || gas_result != CallResult::Success  {
