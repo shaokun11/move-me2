@@ -179,7 +179,7 @@ export async function sendRawTx(tx) {
 async function sendTxTask() {
     let isSending = false;
     let lastSendTime = Date.now();
-    const slowly = () => sleep(0.002);
+    const slowly = () => sleep(0.005);
     setInterval(async () => {
         if (isSending) {
             return;
