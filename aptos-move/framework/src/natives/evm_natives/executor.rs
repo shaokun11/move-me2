@@ -341,7 +341,6 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
     
     let out_of_gas = !runtime.add_gas_usage(gas_cost);
     if out_of_gas || gas_result != CallResult::Success  {
-        handle_unexpect_revert(state, runtime);
         println!("Out of gas");
         return Err(ExecutionError::OutOfGas);
     } else {
