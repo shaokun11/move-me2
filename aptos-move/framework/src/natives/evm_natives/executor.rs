@@ -254,14 +254,16 @@ fn execute(state: &mut State, runtime: &mut Runtime, env: &Environment, call_fra
                     handle_commit(state, runtime);
                     let finished_frame = call_frames.pop().unwrap();
                     if let Some(last_frame) = call_frames.last_mut() {
+                        let machine = &mut last_frame.machine;
                         match finished_frame.frame_type {
                             FrameType::Create => {
                                 state.set_code(finished_frame.args.address, value);
-                                last_frame.machine.stack.push(h160_to_u256(finished_frame.args.address))?;
+                                machine.stack.push(h160_to_u256(finished_frame.args.address))?;
                             }
                             FrameType::SubCall => {
-                                last_frame.machine.set_ret_bytes(value);
-                                last_frame.machine.stack.push(U256::one())?;
+                                machine.stack.push(U256::one())?;
+                                machine.memory.copy_large(machine.ret_pos, U256::zero(), machine.ret_len, &value)?;
+                                machine.set_ret_bytes(value);
                             }
                             _ => {
                                 return Ok(value);
@@ -273,10 +275,16 @@ fn execute(state: &mut State, runtime: &mut Runtime, env: &Environment, call_fra
                 Err(ExecutionError::Revert(value)) => {
                     let finished_frame = call_frames.pop().unwrap();
                     if let Some(last_frame) = call_frames.last_mut() {
+                        let machine = &mut last_frame.machine;
                         match finished_frame.frame_type {
-                            FrameType::Create | FrameType::SubCall => {
-                                last_frame.machine.set_ret_bytes(value);
-                                last_frame.machine.stack.push(U256::zero())?;
+                            FrameType::Create => {
+                                machine.set_ret_bytes(value);
+                                machine.stack.push(U256::zero())?;
+                            }
+                            FrameType::SubCall => {
+                                machine.stack.push(U256::zero())?;
+                                machine.memory.copy_large(machine.ret_pos, U256::zero(), machine.ret_len, &value)?;
+                                machine.set_ret_bytes(value);
                             }
                             _ => {
                                 return Ok(value);
@@ -884,6 +892,8 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                     }
     
                 } else if state.get_code_length(call_to) > 0 {
+                    machine.ret_pos = ret_pos;
+                    machine.ret_len = ret_len;
                     handle_new_call(state, runtime, &new_args, call_gas_limit, is_static);
                     return Err(ExecutionError::SubCall(new_args));
                 } else {

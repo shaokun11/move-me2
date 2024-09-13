@@ -4,6 +4,7 @@ use crate::natives::evm_natives::{
     types::Valids
 };
 
+use primitive_types::U256;
 
 pub struct Machine {
     pub highest_memory_cost: u64,
@@ -13,6 +14,8 @@ pub struct Machine {
     pub stack: Stack,
     pub ret_bytes: Vec<u8>,
     pub ret_value: Vec<u8>,
+    pub ret_pos: U256,
+    pub ret_len: U256,
     pub valids: Valids
 }
 
@@ -26,6 +29,8 @@ impl Machine {
             stack: Stack::new(stack_size_limit),
             ret_bytes: vec![],
             ret_value: vec![],
+            ret_len: U256::zero(),
+            ret_pos: U256::zero(),
             valids: Valids::new(code)
         }
     }

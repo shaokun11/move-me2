@@ -97,5 +97,5 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "invalidDiffPlaces"
-read("./src/GeneralStateTests/stBadOpcode/invalidDiffPlaces.json", key, 34, 0, 0)
+let key = "13_tloadStaticCall"
+read("./src/GeneralStateTests/Cancun/stEIP1153-transientStorage/13_tloadStaticCall.json", key, 0, 0, 0)
