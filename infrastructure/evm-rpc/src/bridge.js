@@ -60,9 +60,12 @@ const TX_MEMORY_POOL = {};
 const TX_EXPIRE_TIME = 1000 * 60 * 30;
 const ONE_ADDRESS_MAX_TX_COUNT = 20;
 const TX_NONCE_FIRST_CHECK_TIME = {};
+const LIMIT_CONTRACTS = ['0xd06758a08a78ef28f56b4efa35ac87ef21d56f15'];
 const SEND_LARGE_TX_INFO = {
-    sendTime: 0,
+    sendTime: Date.now(),
     isFinish: true,
+    limitAccIsFinish: true,
+    limitAccSendTime: Date.now(),
 };
 async function initTxPool() {
     try {
@@ -105,6 +108,10 @@ function removeTxFromMemoryPool(from, nonce) {
     if (TX_MEMORY_POOL[from]?.length === 0) {
         delete TX_MEMORY_POOL[from];
     }
+}
+
+function isLimitContract(addr) {
+    return LIMIT_CONTRACTS.includes(addr.toLowerCase());
 }
 
 export async function sendRawTx(tx) {
@@ -271,6 +278,14 @@ async function sendTxTask() {
                         // the more time to send small tx and make tx quickly
                         continue;
                     }
+                    if (isLimitContract(txParsed.to)) {
+                        if (!SEND_LARGE_TX_INFO.limitAccIsFinish) {
+                            continue;
+                        }
+                        if (Date.now() - SEND_LARGE_TX_INFO.limitAccSendTime < 60 * 1000) {
+                            continue;
+                        }
+                    }
                 }
                 // This tx will be send to chain , so we can remove the first check time
                 delete TX_NONCE_FIRST_CHECK_TIME[key];
@@ -280,8 +295,13 @@ async function sendTxTask() {
                 const sender = GET_SENDER_ACCOUNT(senderIndex);
                 if (isLargeTx) {
                     SEND_LARGE_TX_INFO.isFinish = false;
+                    // SEND_LARGE_TX_INFO.sendTime = Date.now();
+                    if (isLimitContract(txParsed.to)) {
+                        SEND_LARGE_TX_INFO.limitAccIsFinish = false;
+                        // SEND_LARGE_TX_INFO.limitAccSendTime = Date.now();
+                    }
                 }
-                sendTx(sender, tx, key, senderIndex, isLargeTx).catch(error => {
+                sendTx(sender, tx, key, senderIndex, isLargeTx, txParsed.to).catch(error => {
                     // reset this tx info to the pool
                     PENDING_TX_SET.delete(key);
                     const fromAcc = TX_MEMORY_POOL[from];
@@ -295,6 +315,9 @@ async function sendTxTask() {
                     SENDER_ACCOUNT_INDEX.push(senderIndex);
                     if (isLargeTx) {
                         SEND_LARGE_TX_INFO.isFinish = true;
+                        if (isLimitContract(txParsed.to)) {
+                            SEND_LARGE_TX_INFO.limitAccIsFinish = true;
+                        }
                     }
                     // maybe tx can't be send to the chain
                     console.warn('evm:%s,error %s ', key, error.message ?? error);
@@ -1022,7 +1045,16 @@ async function getAccountInfo(acc, block) {
     return ret;
 }
 
-async function checkTxResult({ hash, senderIndex, txKey, isLargeTx, sender, sequenceNumber, expireTimeSec }) {
+async function checkTxResult({
+    hash,
+    senderIndex,
+    txKey,
+    isLargeTx,
+    sender,
+    sequenceNumber,
+    expireTimeSec,
+    to,
+}) {
     // now we found many tx commit will greater than 200ms
     let checkMs = 200;
     if (isLargeTx) {
@@ -1051,8 +1083,13 @@ async function checkTxResult({ hash, senderIndex, txKey, isLargeTx, sender, sequ
     PENDING_TX_SET.delete(txKey);
     if (isLargeTx) {
         SEND_LARGE_TX_INFO.isFinish = true;
-        SEND_LARGE_TX_INFO.ts = Date.now();
+        SEND_LARGE_TX_INFO.sendTime = Date.now();
+        if (isLimitContract(to)) {
+            SEND_LARGE_TX_INFO.limitAccIsFinish = true;
+            SEND_LARGE_TX_INFO.limitAccSendTime = Date.now();
+        }
     }
+
     await ClientWrapper.getTransactionByHash(hash)
         .then(result => {
             // maybe pending
@@ -1062,6 +1099,7 @@ async function checkTxResult({ hash, senderIndex, txKey, isLargeTx, sender, sequ
                 Date.now() - checkStart,
                 hash,
                 txKey,
+                to,
                 result.success || 'pending',
                 result.vm_status || 'none',
             );
@@ -1070,7 +1108,7 @@ async function checkTxResult({ hash, senderIndex, txKey, isLargeTx, sender, sequ
             console.error('checkTxResult %s error %s', checkTxItem.hash, err.message ?? err);
         });
 }
-async function sendTx(sender, tx, txKey, senderIndex, isLargeTx) {
+async function sendTx(sender, tx, txKey, senderIndex, isLargeTx, to) {
     const payload = {
         function: `0x1::evm::send_tx`,
         type_arguments: [],
@@ -1095,6 +1133,7 @@ async function sendTx(sender, tx, txKey, senderIndex, isLargeTx) {
         sender: sender.address(),
         sequenceNumber: account.sequence_number,
         expireTimeSec: expire_time_sec,
+        to,
     };
     checkTxResult(checkTxItem);
     return transactionRes.hash;
