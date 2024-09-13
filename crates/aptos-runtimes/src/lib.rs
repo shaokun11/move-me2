@@ -48,8 +48,7 @@ where
         // Limit concurrent blocking tasks from spawn_blocking(), in case, for example, too many
         // Rest API calls overwhelm the node.
         .max_blocking_threads(MAX_BLOCKING_THREADS)
-        .enable_all()
-        .thread_stack_size(4 * 1024);
+        .enable_all();
     if let Some(num_worker_threads) = num_worker_threads {
         builder.worker_threads(num_worker_threads);
     }
