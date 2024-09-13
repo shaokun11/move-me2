@@ -278,12 +278,14 @@ async function sendTxTask() {
                         // the more time to send small tx and make tx quickly
                         continue;
                     }
-                    if (isLimitContract(txParsed.to)) {
-                        if (!SEND_LARGE_TX_INFO.limitAccIsFinish) {
-                            continue;
-                        }
-                        if (Date.now() - SEND_LARGE_TX_INFO.limitAccSendTime < 60 * 1000) {
-                            continue;
+                    if (sendTxArr.length > 200) {
+                        if (isLimitContract(txParsed.to)) {
+                            if (!SEND_LARGE_TX_INFO.limitAccIsFinish) {
+                                continue;
+                            }
+                            if (Date.now() - SEND_LARGE_TX_INFO.limitAccSendTime < 60 * 1000) {
+                                continue;
+                            }
                         }
                     }
                 }
