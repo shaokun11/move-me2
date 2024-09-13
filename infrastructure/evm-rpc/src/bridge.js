@@ -794,10 +794,7 @@ export async function estimateGas(info) {
     if (type === '2' && info.maxFeePerGas) {
         maxFeePerGas = toBeHex(info.maxFeePerGas);
     }
-    let data = info.data === '0x' ? '0x' : toBeHex(info.data);
-    if (info.data.length - 2 === data.length) {
-        data = '0x00' + data.slice(2);
-    }
+    const data = info.data;
     const payload = {
         function: `0x1::evm::query`,
         type_arguments: [],
@@ -1114,10 +1111,7 @@ async function getDeployedContract(info) {
 }
 
 async function callContractImpl(from, contract, calldata, value, version) {
-    let data = calldata === '0x' ? '0x' : toBeHex(calldata);
-    if (data.length === calldata.length - 2) {
-        data = '0x00' + data.slice(2);
-    }
+    const data = !calldata ? '0x' : calldata;
     const nonce = await getNonce(from);
     let payload = {
         function: `0x1::evm::query`,
