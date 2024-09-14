@@ -205,7 +205,7 @@ async function sendTxTask() {
         }
         if (Date.now() - lastSendTime >= 60 * 1000) {
             lastSendTime = Date.now();
-            console.log('tx pool remain %s', allTx.length);
+            console.log('tx pool remain %s,', allTx.length, allKeys.length);
         }
         if (allTx.length === 0) {
             return;
@@ -224,7 +224,7 @@ async function sendTxTask() {
                 });
             }
         };
-        if (allKeys.length > 2000 && ACC_NONCE_INFO.updateTime + 60 * 1000 >= Date.now()) {
+        if (allKeys.length > 500 && ACC_NONCE_INFO.updateTime + 60 * 1000 >= Date.now()) {
             accMap = ACC_NONCE_INFO.data;
         } else {
             await getNonce();
@@ -241,6 +241,7 @@ async function sendTxTask() {
             if (!currAccInfo) {
                 // maybe use the cache , so we need to get it again
                 currAccInfo = await getAccountInfo(from);
+                accMap[from] = currAccInfo;
             }
             // The chain nonce greater than the tx nonce ,it will be drop
             if (parseInt(currAccInfo.nonce) > parseInt(nonce)) {
