@@ -97,7 +97,6 @@ module aptos_framework::evm_for_test_v2 {
         let (address_list_address_len, access_list_slot_len) = pre_init(addresses, codes, nonces, balances, storage_keys, storage_values, access_addresses, access_keys);
         let gas_limit = to_u256(gas_limit_bytes);
         let value = to_u256(value_bytes);
-        debug::print(&value);
         let gas_price;
         let env = parse_env(&env_data);
         let result;

@@ -11,6 +11,7 @@ use trie;
 use core::mem;
 use primitive_types::{H160, H256, U256};
 use ethers::utils::keccak256;
+use crate::log_debug;
 
 fn rlp_encode(balance: U256, code: Vec<u8>, nonce: U256, storage_root: H256) -> Vec<u8> {
 	let mut stream = RlpStream::new_list(4);
@@ -384,7 +385,7 @@ impl State {
 	pub fn calculate_test_state_root(&self) -> Vec<u8> {
 	    let mut keys: Vec<H160> = Vec::new();
 
-	    println!(" storage {:?}", self.substate.storages);
+	    log_debug!(" storage {:?}", self.substate.storages);
 
 	    keys.extend(self.substate.balances.keys().cloned());
 	    keys.extend(self.substate.codes.keys().cloned());
@@ -417,7 +418,7 @@ impl State {
 	            None => calculate_storage_root(&BTreeMap::new())
 	        };
 
-	        println!("acconts {:?} {:?} {:?} {:?}", address, balance, nonce, storage_root);
+	        log_debug!("accounts {:?} {:?} {:?} {:?}", address, balance, nonce, storage_root);
 
 	        let hashed_addr = keccak256(&address.to_fixed_bytes());
 	        root_map.insert(hashed_addr.to_vec(), rlp_encode(balance, code, nonce, storage_root));

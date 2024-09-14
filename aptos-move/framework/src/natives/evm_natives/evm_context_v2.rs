@@ -1,6 +1,6 @@
-use crate::natives::evm_natives::{
+use crate::{log_debug, natives::evm_natives::{
     constants::TxType, executor::new_tx, state::State, types::{Environment, RunArgs, TransactArgs}, utils::bytes_to_h160
-};
+}};
 
 use aptos_native_interface::{
     safely_pop_arg, SafeNativeContext, SafeNativeBuilder, RawSafeNative, SafeNativeResult
@@ -212,10 +212,10 @@ fn native_execute_tx(
     let start_time = Instant::now();
 
     let result = new_tx(&mut ctx.state, run_args, &tx_args, &env, TxType::from(tx_type), access_list_address_len, access_list_slot_len);
-    println!("result {:?}", result);
+    log_debug!("result {:?}", result);
 
     let duration = start_time.elapsed();
-    println!("run time: {:?}", duration);
+    log_debug!("run time: {:?}", duration);
     
     Ok(smallvec![Value::u64(result as u64)])
 }

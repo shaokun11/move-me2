@@ -1,5 +1,15 @@
 use primitive_types::{H160, U256};
 
+#[macro_export]
+macro_rules! log_debug {
+    ($($arg:tt)*) => {
+        #[cfg(debug_assertions)]
+        {
+            println!($($arg)*);
+        }
+    };
+}
+
 pub fn get_word_count(bytes_size: U256) -> U256 {
     let mut word_count = bytes_size / 32;
     if bytes_size % 32 != U256::zero() {

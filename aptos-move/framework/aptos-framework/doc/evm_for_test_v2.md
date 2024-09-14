@@ -209,7 +209,6 @@
     <b>let</b> (address_list_address_len, access_list_slot_len) = <a href="evm_for_test_v2.md#0x1_evm_for_test_v2_pre_init">pre_init</a>(addresses, codes, nonces, balances, storage_keys, storage_values, access_addresses, access_keys);
     <b>let</b> gas_limit = to_u256(gas_limit_bytes);
     <b>let</b> value = to_u256(value_bytes);
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&value);
     <b>let</b> gas_price;
     <b>let</b> env = parse_env(&env_data);
     <b>let</b> result;

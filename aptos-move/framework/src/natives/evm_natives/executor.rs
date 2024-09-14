@@ -1,20 +1,10 @@
 
-use crate::natives::evm_natives::{
-    state::State,
-    types::{Environment, RunArgs, TransactArgs, Opcode, ExecutionError, FrameType},
-    constants::{gas_cost, limit, CallResult, TxResult, TxType},
-    runtime::Runtime,
-    precompile::{is_precompile_address, run_precompile},
-    machine::Machine,
-    gas::{calc_exec_gas, max_call_gas},
-    arithmetic,
-    utils::{h160_to_u256, u256_to_bytes}
-};
+use crate::{log_debug, natives::evm_natives::{
+    arithmetic, constants::{gas_cost, limit, CallResult, TxResult, TxType}, gas::{calc_exec_gas, max_call_gas}, machine::Machine, precompile::{is_precompile_address, run_precompile}, runtime::Runtime, state::State, types::{Environment, ExecutionError, FrameType, Opcode, RunArgs, TransactArgs}, utils::{h160_to_u256, u256_to_bytes}
+}};
 
 use primitive_types::{H160, U256};
 use ethers::utils::{get_contract_address, get_create2_address, keccak256};
-
-const PRINT_LOG: bool = false;
 
 struct CallFrame {
     machine: Machine,
@@ -35,7 +25,7 @@ impl CallFrame {
 fn calc_base_cost(data: &[u8], access_list_address_len: u64, access_list_slot_len: u64) -> u64 {
     let zero_data_len = (data.iter().filter(|v| **v == 0).count()) as u64;
 	let non_zero_data_len = (data.len() as u64) - zero_data_len;
-    println!("zero data {} {}", zero_data_len, non_zero_data_len);
+    log_debug!("zero data {} {}", zero_data_len, non_zero_data_len);
     let data_cost = zero_data_len * gas_cost::DATA_ZERO_COST + non_zero_data_len * gas_cost::DATA_NOT_ZERO_COST;
     let access_list_cost = access_list_address_len * gas_cost::ACCESS_LIST_ADDRESS +
                             access_list_slot_len * gas_cost::ACCESS_LIST_SLOT;
@@ -193,11 +183,10 @@ pub fn new_tx(state: &mut State, run_args: RunArgs, tx_args: &TransactArgs, env:
     
     state.add_balance(run_args.caller, tx_args.gas_price.saturating_mul(U256::from(gas_left + gas_refund)));
 
-    // println!()
     let exec_cost = gas_usage - base_cost;
-    println!("Execution cost: {:?} {:?} {:?} {:?}", base_cost, exec_cost, gas_usage, gas_refund);
-    println!("Created address: {:?}", created_address);
-    println!("Ret value {:?}", message);
+    log_debug!("Execution cost: {:?} {:?} {:?} {:?}", base_cost, exec_cost, gas_usage, gas_refund);
+    log_debug!("Created address: {:?}", created_address);
+    log_debug!("Ret value {:?}", message);
     exception
 }
 
@@ -217,7 +206,7 @@ fn precompile(run_args: &RunArgs, runtime: &mut Runtime, state: &mut State, gas_
         call_result = CallResult::OutOfGas;
     }
     
-    println!("precompile result {:?} {:?}", call_result, gas);
+    log_debug!("precompile result {:?} {:?}", call_result, gas);
     runtime.add_gas_usage(gas);
 
     if call_result == CallResult::Success && transfer_eth && run_args.value > U256::zero() {
@@ -246,9 +235,7 @@ fn execute(state: &mut State, runtime: &mut Runtime, env: &Environment, call_fra
                 } else {
                     let opcode = Opcode(args.code[machine.pc]);
                     machine.pc += 1;
-                    if PRINT_LOG {
-                        println!("{:?}", machine.stack.data());
-                    }
+                    log_debug!("{:?}", machine.stack.data());
                     
                     step(opcode, &frame.args, machine, state, runtime, env)
                 }
@@ -284,7 +271,10 @@ fn execute(state: &mut State, runtime: &mut Runtime, env: &Environment, call_fra
                             _ => {
                                 return Ok(value);
                             }
-                        }   
+                        }
+                    } else {
+                        handle_commit(state, runtime);
+                        return Ok(value);
                     }
                     break;
                 }
@@ -321,7 +311,7 @@ fn execute(state: &mut State, runtime: &mut Runtime, env: &Environment, call_fra
                     return Err(ExecutionError::Exit);
                 }
                 Err(err) => {
-                    println!("Step result: Unexpected error - {:?}", err);
+                    log_debug!("Step result: Unexpected error - {:?}", err);
                     handle_unexpect_revert(state, runtime);
                     let finished_frame = call_frames.pop().unwrap();
                     if let Some(last_frame) = call_frames.last_mut() {
@@ -351,16 +341,14 @@ fn execute(state: &mut State, runtime: &mut Runtime, env: &Environment, call_fra
 fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State, runtime: &mut Runtime, env: &Environment) -> Result<(), ExecutionError> {
     let (gas_result, gas_cost) = calc_exec_gas(state, opcode, &args.address, machine, runtime);
 
-    if PRINT_LOG {
-        println!("opcode {} {} {}", opcode, machine.pc, args.depth);
-        println!("gas_cost {}", gas_cost);
-        println!("gas_left {:?}", runtime.get_gas_left());
-    }
+    log_debug!("opcode {} {} {}", opcode, machine.pc, args.depth);
+    log_debug!("gas_cost {}", gas_cost);
+    log_debug!("gas_left {:?}", runtime.get_gas_left());
     
     
     let out_of_gas = !runtime.add_gas_usage(gas_cost);
     if out_of_gas || gas_result != CallResult::Success  {
-        println!("Out of gas");
+        log_debug!("Out of gas");
         return Err(ExecutionError::OutOfGas);
     } else {
         match opcode {
