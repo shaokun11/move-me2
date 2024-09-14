@@ -871,10 +871,6 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                 }
                 let output;
     
-                if args.depth >= limit::DEPTH_SIZE {
-                    return Err(ExecutionError::DepthOverflow);
-                } 
-    
                 let dest_code = state.get_code(code_address);
                 let is_contract_call = dest_code.len() > 0;
                 let new_args = RunArgs {
@@ -903,7 +899,7 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                 } else if is_contract_call {
                     machine.ret_pos = ret_pos;
                     machine.ret_len = ret_len;
-                    if state.get_balance(new_args.caller) < new_args.value {
+                    if args.depth >= limit::DEPTH_SIZE || state.get_balance(new_args.caller) < new_args.value {
                         output = U256::zero()
                     } else {
                         handle_new_call(state, runtime, &new_args, call_gas_limit, is_static);
@@ -1062,24 +1058,13 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
 
 fn create_internal(args: &RunArgs, machine: &mut Machine, state: &mut State, runtime: &mut Runtime) -> Result<(), ExecutionError> {
     machine.set_ret_bytes(vec![]);
-    if args.code.len() > limit::INIT_CODE_SIZE {
-        return Err(ExecutionError::InitCodeSizeExceed)
-    }
 
-    if runtime.get_is_static() {
-        return Err(ExecutionError::StaticStateChange)
-    }
-
-    if args.depth >= limit::DEPTH_SIZE {
-        return Err(ExecutionError::DepthOverflow);
-    }
-
-    if state.get_balance(args.caller) < args.value {
-        return Err(ExecutionError::InsufficientBalance);
-    }
-
-    if state.get_nonce(args.caller) > U256::from(u64::MAX) {
-        return Err(ExecutionError::InvalidNonce);
+    if state.get_balance(args.caller) < args.value || 
+        args.code.len() > limit::INIT_CODE_SIZE ||
+        runtime.get_is_static() ||
+        args.depth >= limit::DEPTH_SIZE || 
+        state.get_nonce(args.caller) > U256::from(u64::MAX) {
+        return machine.stack.push(U256::zero());
     }
 
     state.inc_nonce(args.caller);
