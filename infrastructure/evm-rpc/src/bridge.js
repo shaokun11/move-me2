@@ -1114,7 +1114,8 @@ async function checkTxResult({
         .then(result => {
             // maybe pending
             console.log(
-                '%s,ms:%s,move:%s,tx:%s,%s',
+                '%s, %s,ms:%s,move:%s,tx:%s,%s',
+                senderIndex,
                 isLargeTx,
                 Date.now() - checkStart,
                 hash,
