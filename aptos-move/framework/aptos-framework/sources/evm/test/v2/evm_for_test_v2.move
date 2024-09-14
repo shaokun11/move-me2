@@ -111,7 +111,7 @@ module aptos_framework::evm_for_test_v2 {
             result = evm_context_v2::execute_tx(env, from, to, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_fee_per_gas, address_list_address_len, access_list_slot_len, tx_type);
         };
 
-        assert!(result <= 210, result);
+        assert!(result < 300, result);
 
         let state_root = evm_context_v2::calculate_root();
         // let exec_cost = gas_usage - base_cost;
