@@ -290,8 +290,10 @@ fn ecadd(input: &[u8], gas_limit: u64) -> (CallResult, u64, Vec<u8>) {
         return (CallResult::OutOfGas, 0, Vec::new());
     }
 
-    let mut padded_input = vec![0u8; 128];
-    padded_input[..input.len()].copy_from_slice(input);
+    let expected_len = 128;
+    let mut padded_input = vec![0u8; expected_len];
+    let len = std::cmp::min(input.len(), expected_len);
+    padded_input[..len].copy_from_slice(&input[..len]);
 
     // Parse the input into two points
     let mut buf = [0u8; 32];
@@ -337,8 +339,11 @@ fn ecmul(input: &[u8], gas_limit: u64) -> (CallResult, u64, Vec<u8>) {
         return (CallResult::OutOfGas, 0, Vec::new());
     }
 
-    let mut padded_input = vec![0u8; 96];
-    padded_input[..input.len()].copy_from_slice(input);
+    let expected_len = 96;
+    let mut padded_input = vec![0u8; expected_len];
+    let len = std::cmp::min(input.len(), expected_len);
+    padded_input[..len].copy_from_slice(&input[..len]);
+
 
     // Parse the input point and scalar
     let mut buf = [0u8; 32];
@@ -378,8 +383,11 @@ fn ecpairing(input: &[u8], gas_limit: u64) -> (CallResult, u64, Vec<u8>) {
         return (CallResult::OutOfGas, 0, Vec::new());
     }
 
-    let mut padded_input = vec![0u8; point_count * 192];
-    padded_input[..input.len()].copy_from_slice(input);
+    let expected_len = point_count * 192;
+    let mut padded_input = vec![0u8; expected_len];
+    let len = std::cmp::min(input.len(), expected_len);
+    padded_input[..len].copy_from_slice(&input[..len]);
+
 
     let mut pairs = vec![];
 
@@ -428,8 +436,11 @@ fn ecpairing(input: &[u8], gas_limit: u64) -> (CallResult, u64, Vec<u8>) {
 }
 
 fn blake2f(input: &[u8], gas_limit: u64) -> (CallResult, u64, Vec<u8>) {
-    let mut padded_input = vec![0u8; 213];
-    padded_input[..input.len()].copy_from_slice(input);
+    let expected_len = 213;
+    let mut padded_input = vec![0u8; expected_len];
+    let len = std::cmp::min(input.len(), expected_len);
+    padded_input[..len].copy_from_slice(&input[..len]);
+
 
     let mut rounds_buf = [0u8; 4];
     rounds_buf.copy_from_slice(&padded_input[0..4]);
