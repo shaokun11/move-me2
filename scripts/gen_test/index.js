@@ -97,5 +97,5 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "Call1024BalanceTooLow"
-read("./src/GeneralStateTests/stCallCreateCallCodeTest/Call1024BalanceTooLow.json", key, 0, 0, 0)
+let key = "callOutput3"
+read("./src/GeneralStateTests/stCallCreateCallCodeTest/callOutput3.json", key, 0, 0, 0)

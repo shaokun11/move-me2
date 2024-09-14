@@ -67,7 +67,7 @@ impl Machine {
         self.ret_value.clone()
     }
 
-    pub fn set_ret_calue(&mut self, bytes: Vec<u8>) {
+    pub fn set_ret_value(&mut self, bytes: Vec<u8>) {
         self.ret_value = bytes;
     }
 

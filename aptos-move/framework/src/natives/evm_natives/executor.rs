@@ -260,7 +260,9 @@ fn execute(state: &mut State, runtime: &mut Runtime, env: &Environment, call_fra
                             }
                             FrameType::SubCall => {
                                 machine.stack.push(U256::one())?;
-                                machine.memory.copy_large(machine.ret_pos, U256::zero(), machine.ret_len, &value)?;
+                                if value.len() > 0 {
+                                    machine.memory.copy_large(machine.ret_pos, U256::zero(), machine.ret_len, &value)?;
+                                }
                                 machine.set_ret_bytes(value);
                                 handle_commit(state, runtime);
                             }
@@ -970,7 +972,7 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                 handle_normal_revert(state, runtime);
     
                 let revert_data = machine.memory.get(offset.as_usize(), size.as_usize());
-                machine.set_ret_calue(revert_data.clone());
+                machine.set_ret_value(revert_data.clone());
     
                 Err(ExecutionError::Revert(revert_data))
             }
