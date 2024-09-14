@@ -860,6 +860,7 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                     Opcode::CALLCODE => (args.address, args.address),
                     _ => (args.caller, args.address),
                 };
+
                 let is_precompile = is_precompile_address(evm_dest_addr);
                 let transfer_eth = (opcode == Opcode::CALL || opcode == Opcode::CALLCODE) && msg_value != U256::zero();
                 machine.set_ret_bytes(vec![]);
@@ -873,6 +874,7 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                 } 
     
                 let dest_code = state.get_code(code_address);
+                let is_contract_call = dest_code.len() > 0;
                 let new_args = RunArgs {
                     origin: args.origin,
                     caller: call_from,
@@ -885,6 +887,7 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                     transfer_eth,
                     depth: args.depth + 1
                 };
+
                 
     
                 if is_precompile {
@@ -897,7 +900,7 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                         U256::zero()
                     }
     
-                } else if state.get_code_length(call_to) > 0 {
+                } else if is_contract_call {
                     machine.ret_pos = ret_pos;
                     machine.ret_len = ret_len;
                     handle_new_call(state, runtime, &new_args, call_gas_limit, is_static);
@@ -1101,8 +1104,8 @@ fn after_created(state: &mut State, runtime: &mut Runtime, created_address: H160
         handle_unexpect_revert(state, runtime);
         return Err(ExecutionError::InitCodeSizeExceed);
     }
-    state.set_code(created_address, code.clone());
     handle_commit(state, runtime);
+    state.set_code(created_address, code.clone());
     Ok(code)
 }
 
