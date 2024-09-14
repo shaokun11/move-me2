@@ -224,7 +224,7 @@ async function sendTxTask() {
                 });
             }
         };
-        if (allKeys.length > 2000 && ACC_NONCE_INFO.updateTime + 60 * 1000 >= Date.now()) {
+        if (allKeys.length > 2000 && ACC_NONCE_INFO.updateTime + 30 * 1000 >= Date.now()) {
             accMap = ACC_NONCE_INFO.data;
         } else {
             await getNonce();
@@ -1134,7 +1134,7 @@ async function sendTx(sender, tx, txKey, senderIndex, isLargeTx, to) {
         type_arguments: [],
         arguments: [toBuffer(tx)],
     };
-    const expire_time_sec = 600;
+    const expire_time_sec = 150;
     const account = await client.getAccount(sender.address());
     const txnRequest = await client.generateTransaction(sender.address(), payload, {
         max_gas_amount: 2 * 1e6, // Now it is the max value
