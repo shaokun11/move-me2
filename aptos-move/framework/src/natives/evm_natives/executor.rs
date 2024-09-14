@@ -300,10 +300,12 @@ fn execute(state: &mut State, runtime: &mut Runtime, env: &Environment, call_fra
                     break;
                 }
                 Err(ExecutionError::Create(args)) => {
+                    log_debug!("new sub create {:?}", args);
                     call_frames.push(CallFrame::new(limit::STACK_SIZE, args, FrameType::Create));
                     break;
                 }
                 Err(ExecutionError::SubCall(args)) => {
+                    log_debug!("new sub call {:?}", args);
                     call_frames.push(CallFrame::new(limit::STACK_SIZE, args, FrameType::SubCall));
                     break;
                 }
@@ -887,8 +889,6 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                     transfer_eth,
                     depth: args.depth + 1
                 };
-
-                
     
                 if is_precompile {
                     let (call_result, bytes) = precompile(&new_args, runtime, state, call_gas_limit, transfer_eth, code_address);
@@ -903,8 +903,12 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                 } else if is_contract_call {
                     machine.ret_pos = ret_pos;
                     machine.ret_len = ret_len;
-                    handle_new_call(state, runtime, &new_args, call_gas_limit, is_static);
-                    return Err(ExecutionError::SubCall(new_args));
+                    if state.get_balance(new_args.caller) < new_args.value {
+                        output = U256::zero()
+                    } else {
+                        handle_new_call(state, runtime, &new_args, call_gas_limit, is_static);
+                        return Err(ExecutionError::SubCall(new_args));
+                    }
                 } else {
                     output = if transfer_eth && !state.transfer(call_from, call_to, msg_value) {
                         U256::zero()
