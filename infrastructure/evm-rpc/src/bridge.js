@@ -68,7 +68,7 @@ const SEND_LARGE_TX_INFO = {
     limitAccSendTime: Date.now(),
 };
 const ACC_NONCE_INFO = {
-    updateTime: Date.now(),
+    updateTime: 0,
     data: {},
 };
 async function initTxPool() {
@@ -224,11 +224,12 @@ async function sendTxTask() {
                 });
             }
         };
-        if (allKeys.length > 200 && ACC_NONCE_INFO.updateTime + 60 * 1000 >= Date.now()) {
+        const limitKey = 200;
+        if (allKeys.length > limitKey && ACC_NONCE_INFO.updateTime + 60 * 1000 >= Date.now()) {
             accMap = ACC_NONCE_INFO.data;
         } else {
             await getNonce();
-            if (allKeys.length > 2000) {
+            if (allKeys.length > limitKey) {
                 ACC_NONCE_INFO.updateTime = Date.now();
                 ACC_NONCE_INFO.data = accMap;
             }
