@@ -97,5 +97,5 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "Create2OnDepth1023"
-read("./src/GeneralStateTests/stCreate2/Create2OnDepth1023.json", key, 0, 0, 0)
+let key = "create2callPrecompiles"
+read("./src/GeneralStateTests/stCreate2/create2callPrecompiles.json", key, 0, 0, 0)

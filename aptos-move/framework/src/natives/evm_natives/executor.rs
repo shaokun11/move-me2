@@ -206,7 +206,7 @@ fn precompile(run_args: &RunArgs, runtime: &mut Runtime, state: &mut State, gas_
         call_result = CallResult::OutOfGas;
     }
     
-    log_debug!("precompile result {:?} {:?}", call_result, gas);
+    log_debug!("precompile result {:?} {:?} {:?}", call_result, gas, ret_val);
     runtime.add_gas_usage(gas);
 
     if call_result == CallResult::Success && transfer_eth && run_args.value > U256::zero() {

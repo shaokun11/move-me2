@@ -3,7 +3,6 @@ use crate::natives::evm_natives::{
     constants::CallResult,
     eip152
 };
-use k256::ecdsa::{RecoveryId, Signature, VerifyingKey};
 use sha3::{Digest, Keccak256};
 use sha2::Sha256;
 use ripemd::Ripemd160;
@@ -39,7 +38,8 @@ pub fn run_precompile(code_address: H160, calldata: Vec<u8>, gas_limit: u64) -> 
 fn ecrecover(data: &[u8]) -> (CallResult, u64, Vec<u8>) {
     const COST_BASE: u64 = 3000;
     let mut input = [0u8; 128];
-    input[..std::cmp::min(data.len(), 128)].copy_from_slice(&data[..std::cmp::min(data.len(), 128)]);
+    let len = std::cmp::min(data.len(), 128);
+    input[..len].copy_from_slice(&data[..len]);
 
     // Check if the input is valid
     if input[32..63] != [0u8; 31] || ![27, 28].contains(&input[63]) {
@@ -54,28 +54,37 @@ fn ecrecover(data: &[u8]) -> (CallResult, u64, Vec<u8>) {
     sig[0..32].copy_from_slice(&input[64..96]); // r
     sig[32..64].copy_from_slice(&input[96..128]); // s
 
-    // Parse the signature
-    let sig = match Signature::from_bytes((&sig[..]).into()) {
-        Ok(s) => s,
+    
+    let msg = match libsecp256k1::Message::parse_slice(&msg) {
+        Ok(msg) => msg,
+        Err(_) => {
+            return (CallResult::Success, COST_BASE, vec![0u8; 32])
+        },
+    };
+
+    // NOTE(Gas): O(1) cost
+    let rid = match libsecp256k1::RecoveryId::parse(input[63] - 27) {
+        Ok(rid) => rid,
         Err(_) => return (CallResult::Success, COST_BASE, vec![0u8; 32]),
     };
 
-    // Get the recovery ID
-    let recid = match RecoveryId::from_byte(input[63] - 27) {
-        Some(id) => id,
-        None => return (CallResult::Success, COST_BASE, vec![0u8; 32]),
+    // NOTE(Gas): O(1) deserialization cost
+    // which seems to be 64 bytes, so O(1) cost for all intents and purposes.
+    let signature = match libsecp256k1::Signature::parse_standard_slice(&sig) {
+        Ok(sig) => sig,
+        Err(_) => return (CallResult::Success, COST_BASE, vec![0u8; 32])
     };
 
-    // Recover the public key
-    let pubkey = match VerifyingKey::recover_from_prehash(&msg[..], &sig, recid) {
-        Ok(key) => key,
-        Err(_) => return (CallResult::Success, COST_BASE, vec![0u8; 32]),
+    // NOTE(Gas): O(1) cost: a size-2 multi-scalar multiplication
+    let pubkey = match libsecp256k1::recover(&msg, &signature, &rid) {
+        Ok(pk) => pk,
+        Err(_) => return (CallResult::Success, COST_BASE, vec![0u8; 32])
     };
 
     // Compute the Ethereum address from the public key
-    let mut address = H256::from_slice(Keccak256::digest(&pubkey.to_encoded_point(false).as_bytes()[1..]).as_slice());
+    let mut address = H256::from_slice(Keccak256::digest(&pubkey.serialize()[1..].to_vec()).as_slice());
     address.0[0..12].copy_from_slice(&[0u8; 12]);
-
+        
     let mut output = [0u8; 32];
     output.copy_from_slice(&address.0);
 
