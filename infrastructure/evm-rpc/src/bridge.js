@@ -68,7 +68,7 @@ const SEND_LARGE_TX_INFO = {
     limitAccSendTime: Date.now(),
 };
 const ACC_NONCE_INFO = {
-    updateTime: 0,
+    updateTime: Date.now(),
     data: {},
 };
 async function initTxPool() {
