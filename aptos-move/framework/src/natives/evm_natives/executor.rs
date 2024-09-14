@@ -112,7 +112,6 @@ pub fn new_tx(state: &mut State, run_args: RunArgs, tx_args: &TransactArgs, env:
     if run_args.is_create {
         if state.is_contract_or_created_account(run_args.address) {
             runtime.add_gas_usage(tx_args.gas_limit.as_u64());
-            return TxResult::ExceptionCreateContractCodeSizeExceed;
         } else {
             let gas_left = runtime.get_gas_left();
             handle_new_call(state, &mut runtime, &run_args, gas_left, false);
@@ -188,6 +187,7 @@ pub fn new_tx(state: &mut State, run_args: RunArgs, tx_args: &TransactArgs, env:
     log_debug!("Execution cost: {:?} {:?} {:?} {:?}", base_cost, exec_cost, gas_usage, gas_refund);
     log_debug!("Created address: {:?}", created_address);
     log_debug!("Ret value {:?}", message);
+    // log_debug!("State {:?}", state);
     exception
 }
 
