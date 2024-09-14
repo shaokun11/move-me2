@@ -102,7 +102,7 @@ pub fn new_tx(state: &mut State, run_args: RunArgs, tx_args: &TransactArgs, env:
 
     state.sub_balance(run_args.caller, tx_args.gas_limit.saturating_mul(tx_args.gas_price));
     runtime.add_gas_usage(base_cost);
-    let mut created_address = H160::zero();
+    let created_address = H160::zero();
     let mut exception = TxResult::ExceptionNone;
     let mut message = Vec::new();
     let ret_value;
@@ -183,8 +183,7 @@ pub fn new_tx(state: &mut State, run_args: RunArgs, tx_args: &TransactArgs, env:
     
     state.add_balance(run_args.caller, tx_args.gas_price.saturating_mul(U256::from(gas_left + gas_refund)));
 
-    let exec_cost = gas_usage - base_cost;
-    log_debug!("Execution cost: {:?} {:?} {:?} {:?}", base_cost, exec_cost, gas_usage, gas_refund);
+    log_debug!("Execution cost: {:?} {:?} {:?} {:?}", base_cost, gas_usage - base_cost, gas_usage, gas_refund);
     log_debug!("Created address: {:?}", created_address);
     log_debug!("Ret value {:?}", message);
     // log_debug!("State {:?}", state);
@@ -901,7 +900,7 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                 } else if is_contract_call {
                     machine.ret_pos = ret_pos;
                     machine.ret_len = ret_len;
-                    if args.depth >= limit::DEPTH_SIZE || state.get_balance(new_args.caller) < new_args.value {
+                    if args.depth > limit::DEPTH_SIZE || state.get_balance(new_args.caller) < new_args.value {
                         output = U256::zero()
                     } else {
                         handle_new_call(state, runtime, &new_args, call_gas_limit, is_static);
@@ -1064,7 +1063,7 @@ fn create_internal(args: &RunArgs, machine: &mut Machine, state: &mut State, run
     if state.get_balance(args.caller) < args.value || 
         args.code.len() > limit::INIT_CODE_SIZE ||
         runtime.get_is_static() ||
-        args.depth >= limit::DEPTH_SIZE || 
+        args.depth > limit::DEPTH_SIZE || 
         state.get_nonce(args.caller) >= U256::from(u64::MAX) {
         return machine.stack.push(U256::zero());
     }
