@@ -225,7 +225,11 @@ async function sendTxTask() {
             }
         };
         const limitKeyCount = 200;
-        if (allKeys.length > limitKeyCount && ACC_NONCE_INFO.updateTime + 60 * 1000 >= Date.now()) {
+        let limitKeyTime = 60 * 1000;
+        if (allKeys.length > 1000) {
+            limitKeyTime = 5 * 60 * 1000;
+        }
+        if (allKeys.length > limitKeyCount && ACC_NONCE_INFO.updateTime + limitKeyTime >= Date.now()) {
             accMap = ACC_NONCE_INFO.data;
         } else {
             await getNonce();
