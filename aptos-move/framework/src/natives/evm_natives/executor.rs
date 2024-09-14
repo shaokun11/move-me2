@@ -254,7 +254,7 @@ fn execute(state: &mut State, runtime: &mut Runtime, env: &Environment, call_fra
                                         machine.stack.push(h160_to_u256(finished_frame.args.address))?;
                                     }
                                     _ => {
-
+                                        machine.stack.push(U256::zero())?;
                                     }
                                 } 
                             }

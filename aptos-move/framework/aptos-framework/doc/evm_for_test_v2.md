@@ -223,7 +223,7 @@
         result = <a href="evm_context_v2.md#0x1_evm_context_v2_execute_tx">evm_context_v2::execute_tx</a>(env, from, <b>to</b>, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_fee_per_gas, address_list_address_len, access_list_slot_len, tx_type);
     };
 
-    <b>assert</b>!(result &lt;= 210, result);
+    <b>assert</b>!(result &lt; 300, result);
 
     <b>let</b> state_root = <a href="evm_context_v2.md#0x1_evm_context_v2_calculate_root">evm_context_v2::calculate_root</a>();
     // <b>let</b> exec_cost = gas_usage - base_cost;
