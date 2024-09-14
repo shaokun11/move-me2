@@ -67,6 +67,10 @@ const SEND_LARGE_TX_INFO = {
     limitAccIsFinish: true,
     limitAccSendTime: Date.now(),
 };
+const ACC_NONCE_INFO = {
+    updateTime: 0,
+    data: {},
+};
 async function initTxPool() {
     try {
         const { pool } = JSON.parse(await readFile(pend_tx_path, 'utf8'));
@@ -208,16 +212,23 @@ async function sendTxTask() {
         }
         // set LOCKER
         isSending = true;
-
         // get the chain nonce
-        const accMap = {};
-        const keysArr = cluster(allKeys, 50);
-        for (let keys of keysArr) {
-            const info = await Promise.all(keys.map(key => getAccountInfo(key)));
-            await slowly();
-            keys.forEach((k, i) => {
-                accMap[k] = info[i];
-            });
+        let accMap = {};
+        if (allTx.length > 2000) {
+            if (ACC_NONCE_INFO.updateTime + 60 * 1000 < Date.now()) {
+                accMap = ACC_NONCE_INFO.data;
+            } else {
+                const keysArr = cluster(allKeys, 50);
+                for (let keys of keysArr) {
+                    const info = await Promise.all(keys.map(key => getAccountInfo(key)));
+                    await slowly();
+                    keys.forEach((k, i) => {
+                        accMap[k] = info[i];
+                    });
+                }
+                ACC_NONCE_INFO.updateTime = Date.now();
+                ACC_NONCE_INFO.data = accMap;
+            }
         }
         // find the tx nonce is equal to the chain nonce
         const sendTxArr = [];
