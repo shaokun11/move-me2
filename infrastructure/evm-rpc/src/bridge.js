@@ -224,12 +224,12 @@ async function sendTxTask() {
                 });
             }
         };
-        const limitKey = 200;
-        if (allKeys.length > limitKey && ACC_NONCE_INFO.updateTime + 60 * 1000 >= Date.now()) {
+        const limitKeyCount = 200;
+        if (allKeys.length > limitKeyCount && ACC_NONCE_INFO.updateTime + 60 * 1000 >= Date.now()) {
             accMap = ACC_NONCE_INFO.data;
         } else {
             await getNonce();
-            if (allKeys.length > limitKey) {
+            if (allKeys.length > limitKeyCount) {
                 ACC_NONCE_INFO.updateTime = Date.now();
                 ACC_NONCE_INFO.data = accMap;
             }
