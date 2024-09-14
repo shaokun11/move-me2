@@ -1065,7 +1065,7 @@ fn create_internal(args: &RunArgs, machine: &mut Machine, state: &mut State, run
         args.code.len() > limit::INIT_CODE_SIZE ||
         runtime.get_is_static() ||
         args.depth >= limit::DEPTH_SIZE || 
-        state.get_nonce(args.caller) > U256::from(u64::MAX) {
+        state.get_nonce(args.caller) >= U256::from(u64::MAX) {
         return machine.stack.push(U256::zero());
     }
 
