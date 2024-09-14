@@ -97,5 +97,5 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "03_tloadAfterStoreIs0"
-read("./src/GeneralStateTests/Cancun/stEIP1153-transientStorage/03_tloadAfterStoreIs0.json", key, 0, 0, 0)
+let key = "src/GeneralStateTestsFiller/Pyspecs/shanghai/eip3860_initcode/test_initcode.py::test_contract_creating_tx[fork_Cancun-state_test-max_size_ones]"
+read("./src/GeneralStateTests/Pyspecs/shanghai/eip3860_initcode/contract_creating_tx.json", key, 0, 0, 0)

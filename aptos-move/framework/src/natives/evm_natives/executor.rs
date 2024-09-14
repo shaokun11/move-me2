@@ -42,8 +42,11 @@ pub fn new_tx(state: &mut State, run_args: RunArgs, tx_args: &TransactArgs, env:
     state.add_warm_address(run_args.caller);
     state.add_warm_address(env.block_coinbase);
     
-    let data_size = run_args.data.len();
-    let mut base_cost = calc_base_cost(&run_args.data, access_list_address_len, access_list_slot_len);
+    let (mut base_cost, data_size) = if run_args.is_create {
+        (calc_base_cost(&run_args.code, access_list_address_len, access_list_slot_len), run_args.code.len())
+    } else {
+        (calc_base_cost(&run_args.data, access_list_address_len, access_list_slot_len), run_args.data.len())
+    };
 
     // Check if gas_limit * gas_price + value overflows
     let up_cost = match tx_args.gas_price.checked_mul(tx_args.gas_limit) {
@@ -116,8 +119,6 @@ pub fn new_tx(state: &mut State, run_args: RunArgs, tx_args: &TransactArgs, env:
             // result = run(state, &mut runtime, run_args, env, true, 0);
             match execute(state, &mut runtime, env, call_frames) {
                 Ok(value) => {
-                    created_address = run_args.address;
-                    state.set_code(run_args.address, value.clone());
                     ret_value = value;
                 }
                 Err(ExecutionError::OutOfGas) => {
@@ -248,19 +249,14 @@ fn execute(state: &mut State, runtime: &mut Runtime, env: &Environment, call_fra
                         let machine = &mut last_frame.machine;
                         match finished_frame.frame_type {
                             FrameType::Create => {
-                                let deployed_code_size = machine.get_ret_value().len();
-                                let out_of_gas = !runtime.add_gas_usage(200 * value.len() as u64);
-                                if out_of_gas {
-                                    handle_unexpect_revert(state, runtime);
-                                    break;
-                                }
-                                if deployed_code_size > limit::INIT_CODE_SIZE || (deployed_code_size > 0 && value[0] == 0xef){
-                                    handle_unexpect_revert(state, runtime);
-                                    break;
-                                }
-                                state.set_code(finished_frame.args.address, value);
-                                machine.stack.push(h160_to_u256(finished_frame.args.address))?;
-                                handle_commit(state, runtime);
+                                match after_created(state, runtime, finished_frame.args.address, value) {
+                                    Ok(_) => {
+                                        machine.stack.push(h160_to_u256(finished_frame.args.address))?;
+                                    }
+                                    _ => {
+
+                                    }
+                                } 
                             }
                             FrameType::SubCall => {
                                 machine.stack.push(U256::one())?;
@@ -273,8 +269,12 @@ fn execute(state: &mut State, runtime: &mut Runtime, env: &Environment, call_fra
                             }
                         }
                     } else {
-                        handle_commit(state, runtime);
-                        return Ok(value);
+                        if finished_frame.args.is_create {
+                            return after_created(state, runtime, finished_frame.args.address, value)
+                        } else {
+                            handle_commit(state, runtime);
+                            return Ok(value);
+                        }
                     }
                     break;
                 }
@@ -1088,6 +1088,22 @@ fn create_internal(args: &RunArgs, machine: &mut Machine, state: &mut State, run
 
     handle_new_call(state, runtime, args, call_gas_limit, false);
     Err(ExecutionError::Create(args.clone()))
+}
+
+fn after_created(state: &mut State, runtime: &mut Runtime, created_address: H160, code: Vec<u8>) -> Result<Vec<u8>, ExecutionError> {
+    let deployed_code_size = code.len();
+    let out_of_gas = !runtime.add_gas_usage(200 * deployed_code_size as u64);
+    if out_of_gas {
+        handle_unexpect_revert(state, runtime);
+        return Err(ExecutionError::OutOfGas);
+    }
+    if deployed_code_size > limit::DEPLOY_CODE_SIZE || (deployed_code_size > 0 && code[0] == 0xef){
+        handle_unexpect_revert(state, runtime);
+        return Err(ExecutionError::InitCodeSizeExceed);
+    }
+    state.set_code(created_address, code.clone());
+    handle_commit(state, runtime);
+    Ok(code)
 }
 
 fn handle_new_call(state: &mut State, runtime: &mut Runtime, args: &RunArgs, gas_limit: u64, is_static: bool) {
