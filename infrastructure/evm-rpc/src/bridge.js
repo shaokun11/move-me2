@@ -224,7 +224,7 @@ async function sendTxTask() {
                 });
             }
         };
-        if (allKeys.length > 2000 && ACC_NONCE_INFO.updateTime + 30 * 1000 >= Date.now()) {
+        if (allKeys.length > 2000 && ACC_NONCE_INFO.updateTime + 60 * 1000 >= Date.now()) {
             accMap = ACC_NONCE_INFO.data;
         } else {
             await getNonce();
@@ -237,7 +237,11 @@ async function sendTxTask() {
         const sendTxArr = [];
         for (let item of allTx) {
             const { key, from, nonce } = item;
-            const currAccInfo = accMap[from];
+            let currAccInfo = accMap[from];
+            if (!currAccInfo) {
+                // maybe use the cache , so we need to get it again
+                currAccInfo = await getAccountInfo(from);
+            }
             // The chain nonce greater than the tx nonce ,it will be drop
             if (parseInt(currAccInfo.nonce) > parseInt(nonce)) {
                 removeTxFromMemoryPool(from, nonce);
