@@ -214,18 +214,21 @@ async function sendTxTask() {
         isSending = true;
         // get the chain nonce
         let accMap = {};
-        if (allTx.length > 2000) {
-            if (ACC_NONCE_INFO.updateTime + 60 * 1000 < Date.now()) {
-                accMap = ACC_NONCE_INFO.data;
-            } else {
-                const keysArr = cluster(allKeys, 50);
-                for (let keys of keysArr) {
-                    const info = await Promise.all(keys.map(key => getAccountInfo(key)));
-                    await slowly();
-                    keys.forEach((k, i) => {
-                        accMap[k] = info[i];
-                    });
-                }
+        const getNonce = async () => {
+            const keysArr = cluster(allKeys, 50);
+            for (let keys of keysArr) {
+                const info = await Promise.all(keys.map(key => getAccountInfo(key)));
+                await slowly();
+                keys.forEach((k, i) => {
+                    accMap[k] = info[i];
+                });
+            }
+        };
+        if (allKeys.length > 2000 && ACC_NONCE_INFO.updateTime + 60 * 1000 >= Date.now()) {
+            accMap = ACC_NONCE_INFO.data;
+        } else {
+            await getNonce();
+            if (allKeys.length > 2000) {
                 ACC_NONCE_INFO.updateTime = Date.now();
                 ACC_NONCE_INFO.data = accMap;
             }
