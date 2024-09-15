@@ -192,12 +192,6 @@ async function sendTxTask() {
         if (SENDER_ACCOUNT_INDEX.length === 0) {
             return;
         }
-        if (SENDER_ACCOUNT_COUNT > 3 * 2) {
-            if (SENDER_ACCOUNT_INDEX.length < 3) {
-                // reduce the send tx speed
-                return;
-            }
-        }
         const allTx = [];
         const allKeys = Object.keys(TX_MEMORY_POOL);
         for (let key of allKeys) {
@@ -213,8 +207,6 @@ async function sendTxTask() {
         }
         // set LOCKER
         isSending = true;
-        let accMap = {};
-
         const getNonce = async allKeys_ => {
             const accMap_ = {};
             const keysArr = cluster(allKeys_, 50);
@@ -232,20 +224,18 @@ async function sendTxTask() {
             const newAccMap = await getNonce(keys);
             ACC_NONCE_INFO.updateTime = Date.now();
             Object.assign(ACC_NONCE_INFO.data, newAccMap);
-            accMap = ACC_NONCE_INFO.data;
         };
 
-        if (ACC_NONCE_INFO.updateTime > 0) {
-            accMap = ACC_NONCE_INFO.data;
-            const moreKeys = allKeys.filter(it => !accMap[it]);
+        if (ACC_NONCE_INFO.updateTime === 0) {
+            // the first time to get the nonce
+            await updateAccMap(allKeys);
+        } else {
+            const moreKeys = allKeys.filter(it => !ACC_NONCE_INFO.data[it]);
             if (moreKeys.length > 0) {
                 await updateAccMap(moreKeys);
             }
-        } else {
-            // the first time to get the nonce
-            await updateAccMap(allKeys);
         }
-
+        const accMap = ACC_NONCE_INFO.data;
         // find the tx nonce is equal to the chain nonce
         const sendTxArr = [];
         for (let item of allTx) {
@@ -281,7 +271,6 @@ async function sendTxTask() {
         if (sendTxArr.length > 0 && SENDER_ACCOUNT_INDEX.length > 0) {
             const size = sendTxArr.length;
             for (let i = 0; i < size; i++) {
-                await slowly();
                 if (sendTxArr.length === 0) break;
                 const txInfo = sendTxArr.shift();
                 const { key, tx, from, nonce } = txInfo;
@@ -335,7 +324,7 @@ async function sendTxTask() {
                         // SEND_LARGE_TX_INFO.limitAccSendTime = Date.now();
                     }
                 }
-                sendTx(sender, tx, key, senderIndex, isLargeTx, txParsed.to).catch(error => {
+                await sendTx(sender, tx, key, senderIndex, isLargeTx, txParsed.to).catch(error => {
                     // reset this tx info to the pool
                     PENDING_TX_SET.delete(key);
                     const fromAcc = TX_MEMORY_POOL[from];
