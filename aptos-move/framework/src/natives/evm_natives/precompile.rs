@@ -30,7 +30,7 @@ pub fn run_precompile(code_address: H160, calldata: Vec<u8>, gas_limit: u64) -> 
         6 => ecadd(&calldata, gas_limit),
         7 => ecmul(&calldata, gas_limit),
         8 => ecpairing(&calldata, gas_limit),
-        9 => blake2f(&calldata, gas_limit),
+        9 => blake2f(&calldata),
         _ => (CallResult::Exception, gas_limit, Vec::new()),
     }
 }
@@ -450,53 +450,67 @@ fn ecpairing(input: &[u8], gas_limit: u64) -> (CallResult, u64, Vec<u8>) {
     (CallResult::Success, gas, output)
 }
 
-fn blake2f(input: &[u8], gas_limit: u64) -> (CallResult, u64, Vec<u8>) {
+fn blake2f(input: &[u8]) -> (CallResult, u64, Vec<u8>) {
     let expected_len = 213;
-    let mut padded_input = vec![0u8; expected_len];
-    let len = std::cmp::min(input.len(), expected_len);
-    padded_input[..len].copy_from_slice(&input[..len]);
 
-
-    let mut rounds_buf = [0u8; 4];
-    rounds_buf.copy_from_slice(&padded_input[0..4]);
-    let rounds = u32::from_be_bytes(rounds_buf);
-
-    let gas_cost = u64::from(rounds) * BLAKE2_F_GAS;
-
-    if gas_cost > gas_limit {
-        return (CallResult::OutOfGas, 0, Vec::new());
+    if input.len() < expected_len {
+        return (CallResult::Exception, 0, Vec::new());;
     }
 
+    let result;
+
+    let mut rounds_buf: [u8; 4] = [0; 4];
+    rounds_buf.copy_from_slice(&input[0..4]);
+    let rounds: u32 = u32::from_be_bytes(rounds_buf);
+
+    let gas_cost: u64 = rounds as u64;
+
+// we use from_le_bytes below to effectively swap byte order to LE if architecture is BE
+    let mut h_buf: [u8; 64] = [0; 64];
+    h_buf.copy_from_slice(&input[4..68]);
     let mut h = [0u64; 8];
-    for (i, state_word) in h.iter_mut().enumerate() {
-        let mut temp = [0u8; 8];
-        temp.copy_from_slice(&padded_input[4 + i * 8..12 + i * 8]);
+    let mut ctr = 0;
+    for state_word in &mut h {
+        let mut temp: [u8; 8] = Default::default();
+        temp.copy_from_slice(&h_buf[(ctr * 8)..(ctr + 1) * 8]);
         *state_word = u64::from_le_bytes(temp);
+        ctr += 1;
     }
 
+    let mut m_buf: [u8; 128] = [0; 128];
+    m_buf.copy_from_slice(&input[68..196]);
     let mut m = [0u64; 16];
-    for (i, msg_word) in m.iter_mut().enumerate() {
-        let mut temp = [0u8; 8];
-        temp.copy_from_slice(&padded_input[68 + i * 8..76 + i * 8]);
+    ctr = 0;
+    for msg_word in &mut m {
+        let mut temp: [u8; 8] = Default::default();
+        temp.copy_from_slice(&m_buf[(ctr * 8)..(ctr + 1) * 8]);
         *msg_word = u64::from_le_bytes(temp);
+        ctr += 1;
     }
 
-    let mut t_0_buf = [0u8; 8];
-    t_0_buf.copy_from_slice(&padded_input[196..204]);
+    let mut t_0_buf: [u8; 8] = [0; 8];
+    t_0_buf.copy_from_slice(&input[196..204]);
     let t_0 = u64::from_le_bytes(t_0_buf);
 
-    let mut t_1_buf = [0u8; 8];
-    t_1_buf.copy_from_slice(&padded_input[204..212]);
+    let mut t_1_buf: [u8; 8] = [0; 8];
+    t_1_buf.copy_from_slice(&input[204..212]);
     let t_1 = u64::from_le_bytes(t_1_buf);
 
-    let f = padded_input[212] != 0;
+    let f = if input[212] == 1 {
+        true
+    } else if input[212] == 0 {
+        false
+    } else {
+        return (CallResult::Success, gas_cost, Vec::new());
+    };
+
 
     eip152::compress(&mut h, m, [t_0, t_1], f, rounds as usize);
-
-    let mut output = Vec::with_capacity(64);
-    for state_word in &h {
-        output.extend_from_slice(&state_word.to_le_bytes());
+    let mut output_buf = [0u8; u64::BITS as usize];
+    for (i, state_word) in h.iter().enumerate() {
+        output_buf[i * 8..(i + 1) * 8].copy_from_slice(&state_word.to_le_bytes());
     }
+    result = output_buf.to_vec();
 
-    (CallResult::Success, gas_cost, output)
+    (CallResult::Success, gas_cost, result)
 }
