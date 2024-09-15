@@ -1083,7 +1083,7 @@ fn create_internal(args: &RunArgs, machine: &mut Machine, state: &mut State, run
 
     if state.is_contract_or_created_account(args.address) {
         runtime.add_gas_usage(call_gas_limit);
-        return Err(ExecutionError::InvalidCreated);
+        return machine.stack.push(U256::zero());
     }
 
     handle_new_call(state, runtime, args, call_gas_limit, false);

@@ -97,5 +97,5 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "create2checkFieldsInInitcode"
-read("./src/GeneralStateTests/stCreate2/create2checkFieldsInInitcode.json", key, 3, 0, 0)
+let key = "create2collisionCode"
+read("./src/GeneralStateTests/stCreate2/create2collisionCode.json", key, 0, 0, 0)
