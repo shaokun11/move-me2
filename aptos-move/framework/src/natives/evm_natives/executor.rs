@@ -27,11 +27,12 @@ impl CallFrame {
 fn calc_base_cost(data: &[u8], access_list_address_len: u64, access_list_slot_len: u64) -> u64 {
     let zero_data_len = (data.iter().filter(|v| **v == 0).count()) as u64;
 	let non_zero_data_len = (data.len() as u64) - zero_data_len;
-    log_debug!("zero data {} {}", zero_data_len, non_zero_data_len);
     let data_cost = zero_data_len * gas_cost::DATA_ZERO_COST + non_zero_data_len * gas_cost::DATA_NOT_ZERO_COST;
     let access_list_cost = access_list_address_len * gas_cost::ACCESS_LIST_ADDRESS +
                             access_list_slot_len * gas_cost::ACCESS_LIST_SLOT;
-    
+                            
+    log_debug!("zero data {} {} {} {} {} {}", zero_data_len, non_zero_data_len, access_list_address_len, access_list_slot_len, data_cost, access_list_cost);
+ 
     data_cost + access_list_cost + gas_cost::TX_BASE
 }
 
@@ -352,7 +353,7 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
 
     log_debug!("opcode {} {} {}", opcode, machine.pc, args.depth);
     log_debug!("gas_cost {}", gas_cost);
-    log_debug!("gas_left {:x}", runtime.get_gas_left());
+    log_debug!("gas_left 0x{:x}", runtime.get_gas_left());
     
     
     let out_of_gas = !runtime.add_gas_usage(gas_cost);

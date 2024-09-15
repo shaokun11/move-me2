@@ -161,8 +161,8 @@ fn native_execute_tx(
     mut args: VecDeque<Value>,
 ) -> SafeNativeResult<SmallVec<[Value; 1]>> {
     let tx_type = safely_pop_arg!(args, u8);
-    let access_list_address_len = safely_pop_arg!(args, u64);
     let access_list_slot_len = safely_pop_arg!(args, u64);
+    let access_list_address_len = safely_pop_arg!(args, u64);
     let max_priority_fee_per_gas: U256 = safely_pop_arg!(args, move_u256).to_ethers_u256();
     let max_fee_per_gas: U256 = safely_pop_arg!(args, move_u256).to_ethers_u256();
     let gas_price: U256 = safely_pop_arg!(args, move_u256).to_ethers_u256();
