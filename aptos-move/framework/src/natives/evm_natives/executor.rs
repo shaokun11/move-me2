@@ -919,6 +919,10 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                 let value = pop_stack!(machine.stack);
                 let offset = pop_stack!(machine.stack);
                 let size = pop_stack!(machine.stack);
+
+                if runtime.get_is_static() {
+                    return Err(ExecutionError::StaticStateChange);
+                }
     
                 let init_code = machine.memory.get(offset.as_usize(), size.as_usize());
                 let new_address = get_contract_address(args.address, state.get_nonce(args.address));
@@ -944,6 +948,10 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                 let offset = pop_stack!(machine.stack);
                 let size = pop_stack!(machine.stack);
                 let salt = pop_stack!(machine.stack);
+
+                if runtime.get_is_static() {
+                    return Err(ExecutionError::StaticStateChange);
+                }
     
                 let init_code = machine.memory.get(offset.as_usize(), size.as_usize());
                 let new_address = get_create2_address(args.address, u256_to_bytes(salt), init_code.clone());
@@ -1062,7 +1070,6 @@ fn create_internal(args: &RunArgs, machine: &mut Machine, state: &mut State, run
 
     if state.get_balance(args.caller) < args.value || 
         args.code.len() > limit::INIT_CODE_SIZE ||
-        runtime.get_is_static() ||
         args.depth > limit::DEPTH_SIZE || 
         state.get_nonce(args.caller) >= U256::from(u64::MAX) {
         return machine.stack.push(U256::zero());

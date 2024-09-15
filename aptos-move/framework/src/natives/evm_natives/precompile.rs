@@ -7,7 +7,7 @@ use sha3::{Digest, Keccak256};
 use sha2::Sha256;
 use ripemd::Ripemd160;
 use num::{BigUint, FromPrimitive, ToPrimitive, Zero, One};
-use bn::{pairing_batch, AffineG1, AffineG2, Fq, Fr, Fq2, Group, Gt, G1, G2};
+use bn::{pairing_batch, AffineG1, AffineG2, Fq, Fq2, Group, Gt, G1, G2};
 
 const ECADD_GAS: u64 = 150;
 const ECMUL_GAS: u64 = 6000;
