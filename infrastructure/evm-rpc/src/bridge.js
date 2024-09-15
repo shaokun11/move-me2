@@ -183,6 +183,7 @@ export async function sendRawTx(tx) {
 async function sendTxTask() {
     let isSending = false;
     let lastSendTime = Date.now();
+    // reduce cpu usage
     const slowly = () => sleep(0.005);
     setInterval(async () => {
         if (isSending) {
