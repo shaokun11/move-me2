@@ -2,7 +2,7 @@
 use std::u64;
 
 use crate::{log_debug, natives::evm_natives::{
-    arithmetic, constants::{gas_cost, limit, CallResult, TxResult, TxType}, gas::{calc_exec_gas, max_call_gas}, machine::Machine, precompile::{is_precompile_address, run_precompile}, runtime::Runtime, state::State, types::{Environment, ExecutionError, FrameType, Opcode, RunArgs, TransactArgs}, utils::{bytes_to_h160, h160_to_u256, u256_to_bytes}
+    arithmetic, constants::{gas_cost, limit, CallResult, TxResult, TxType}, gas::{calc_exec_gas, max_call_gas}, machine::Machine, precompile::{is_precompile_address, run_precompile}, runtime::Runtime, state::State, types::{Environment, ExecutionError, FrameType, Opcode, RunArgs, TransactArgs}, utils::{h160_to_u256, u256_to_bytes}
 }};
 
 use primitive_types::{H160, U256};
@@ -625,9 +625,6 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                 let len = pop_stack!(machine.stack);
     
                 machine.memory.resize_offset(memory_offset, len)?;
-                if len == U256::zero() {
-                    return Ok(());
-                }
     
                 let code = state.get_code(address);
                 machine.memory.copy_large(memory_offset, code_offset, len, &code)

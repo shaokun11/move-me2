@@ -295,13 +295,15 @@ impl State {
 		&mut self,
 		address: H160
 	) -> H256 {
-		match self.substate.known_code(address) {
-	        Some(value) => {
-	            let hash = keccak256(&value);
-	            H256::from_slice(&hash)
-	        },
-	        None => H256::zero()
-	    }
+		if !self.exist(address) {
+			H256::zero()
+		} else {
+			let code = match self.substate.known_code(address) {
+				Some(value) => value,
+				None => vec![]
+			};
+			H256::from_slice(&keccak256(&code))
+		}
 	}
 
 	pub fn get_balance(
