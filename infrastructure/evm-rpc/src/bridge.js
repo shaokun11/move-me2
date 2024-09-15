@@ -224,19 +224,13 @@ async function sendTxTask() {
                 });
             }
         };
-        const limitKeyCount = 200;
-        let limitKeyTime = 60 * 1000;
-        if (allKeys.length > 1000) {
-            limitKeyTime = 5 * 60 * 1000;
-        }
-        if (allKeys.length > limitKeyCount && ACC_NONCE_INFO.updateTime + limitKeyTime >= Date.now()) {
+        if (ACC_NONCE_INFO.updateTime > 0) {
             accMap = ACC_NONCE_INFO.data;
         } else {
+            // the first time to get the nonce
             await getNonce();
-            if (allKeys.length > limitKeyCount) {
-                ACC_NONCE_INFO.updateTime = Date.now();
-                ACC_NONCE_INFO.data = accMap;
-            }
+            ACC_NONCE_INFO.updateTime = Date.now();
+            ACC_NONCE_INFO.data = accMap;
         }
         // find the tx nonce is equal to the chain nonce
         const sendTxArr = [];
@@ -1120,7 +1114,8 @@ async function checkTxResult({
             SEND_LARGE_TX_INFO.limitAccSendTime = Date.now();
         }
     }
-
+    const from = txKey.split(':')[0];
+    delete ACC_NONCE_INFO.data[from];
     await ClientWrapper.getTransactionByHash(hash)
         .then(result => {
             // maybe pending
