@@ -213,7 +213,7 @@ async function sendTxTask() {
         // set LOCKER
         isSending = true;
         let accMap = {};
-        
+
         const getNonce = async allKeys_ => {
             const accMap_ = {};
             const keysArr = cluster(allKeys_, 50);
@@ -230,7 +230,7 @@ async function sendTxTask() {
         const updateAccMap = async keys => {
             const newAccMap = await getNonce(keys);
             ACC_NONCE_INFO.updateTime = Date.now();
-            ACC_NONCE_INFO.data = { ...accMap, ...newAccMap };
+            Object.assign(ACC_NONCE_INFO.data, newAccMap);
             accMap = ACC_NONCE_INFO.data;
         };
 
