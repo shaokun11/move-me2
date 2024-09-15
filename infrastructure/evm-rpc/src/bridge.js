@@ -243,6 +243,7 @@ async function sendTxTask() {
             let currAccInfo = accMap[from];
             if (!currAccInfo) {
                 await updateAccMap([from]);
+                continue;
             }
             // The chain nonce greater than the tx nonce ,it will be drop
             if (parseInt(currAccInfo.nonce) > parseInt(nonce)) {
