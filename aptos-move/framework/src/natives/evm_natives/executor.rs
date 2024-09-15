@@ -1,4 +1,6 @@
 
+use std::u64;
+
 use crate::{log_debug, natives::evm_natives::{
     arithmetic, constants::{gas_cost, limit, CallResult, TxResult, TxType}, gas::{calc_exec_gas, max_call_gas}, machine::Machine, precompile::{is_precompile_address, run_precompile}, runtime::Runtime, state::State, types::{Environment, ExecutionError, FrameType, Opcode, RunArgs, TransactArgs}, utils::{h160_to_u256, u256_to_bytes}
 }};
@@ -98,6 +100,10 @@ pub fn new_tx(state: &mut State, run_args: RunArgs, tx_args: &TransactArgs, env:
 
     if tx_args.gas_limit.as_u64() < base_cost {
         return TxResult::ExceptionOutOfGas;
+    }
+
+    if state.get_nonce(run_args.caller) >= U256::from(u64::MAX) {
+        return TxResult::ExceptionInvalidNonce;
     }
 
     state.sub_balance(run_args.caller, tx_args.gas_limit.saturating_mul(tx_args.gas_price));
