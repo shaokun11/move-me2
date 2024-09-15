@@ -98,4 +98,4 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
 }
 
 let key = "create2callPrecompiles"
-read("./src/GeneralStateTests/stCreate2/create2callPrecompiles.json", key, 0, 0, 0)
+read("./src/GeneralStateTests/stCreate2/create2callPrecompiles.json", key, 5, 0, 0)

@@ -285,6 +285,41 @@ fn calculate_modexp_gas(base_len: usize, exp_len: usize, mod_len: usize, exp_hea
     // gas_cost.saturating_mul(if mod_is_even { 20 } else { 1 })
 }
 
+fn read_point_input(source: &[u8], target: &mut [u8], offset: usize) {
+	// Out of bounds, nothing to copy.
+	if source.len() <= offset {
+		return;
+	}
+
+	// Find len to copy up to target len, but not out of bounds.
+	let len = core::cmp::min(target.len(), source.len() - offset);
+	target[..len].copy_from_slice(&source[offset..][..len]);
+}
+
+fn read_point(input: &[u8], start_inx: usize) -> Result<bn::G1, CallResult> {
+	let mut px_buf = [0u8; 32];
+    let mut py_buf = [0u8; 32];
+    read_point_input(input, &mut px_buf, start_inx);
+    read_point_input(input, &mut py_buf, start_inx + 32);
+
+    let px = Fq::from_slice(&px_buf).map_err(|_| CallResult::Exception)?;
+    let py = Fq::from_slice(&py_buf).map_err(|_| CallResult::Exception)?;
+
+    Ok(if px == Fq::zero() && py == Fq::zero() {
+        G1::zero()
+    } else {
+        AffineG1::new(px, py).map_err(|_| CallResult::Exception)?.into()
+    })
+}
+
+fn read_fr(input: &[u8], start_inx: usize) -> Result<bn::Fr, CallResult> {
+    let mut buf = [0u8; 32];
+    read_point_input(input, &mut buf, start_inx);
+
+    let ret = bn::Fr::from_slice(&buf).map_err(|_| CallResult::Exception)?;
+    Ok(ret)
+}
+
 fn ecadd(input: &[u8], gas_limit: u64) -> (CallResult, u64, Vec<u8>) {
     if gas_limit < ECADD_GAS {
         return (CallResult::OutOfGas, 0, Vec::new());
@@ -296,36 +331,21 @@ fn ecadd(input: &[u8], gas_limit: u64) -> (CallResult, u64, Vec<u8>) {
     padded_input[..len].copy_from_slice(&input[..len]);
 
     // Parse the input into two points
-    let mut buf = [0u8; 32];
-
-    buf.copy_from_slice(&padded_input[0..32]);
-    let x1 = Fq::from_slice(&buf).unwrap_or(Fq::zero());
-
-    buf.copy_from_slice(&padded_input[32..64]);
-    let y1 = Fq::from_slice(&buf).unwrap_or(Fq::zero());
-
-    buf.copy_from_slice(&padded_input[64..96]);
-    let x2 = Fq::from_slice(&buf).unwrap_or(Fq::zero());
-
-    buf.copy_from_slice(&padded_input[96..128]);
-    let y2 = Fq::from_slice(&buf).unwrap_or(Fq::zero());
-
-    // Create affine points
-    let p1 = if x1.is_zero() && y1.is_zero() {
-        G1::zero()
-    } else {
-        AffineG1::new(x1, y1).map(Into::into).unwrap_or(G1::zero())
+    let p1 = match read_point(&padded_input, 0) {
+        Ok(point) => point,
+        Err(e) => return (e, 0, Vec::new()),
     };
 
-    let p2 = if x2.is_zero() && y2.is_zero() {
-        G1::zero()
-    } else {
-        AffineG1::new(x2, y2).map(Into::into).unwrap_or(G1::zero())
+    let p2 = match read_point(&padded_input, 64) {
+        Ok(point) => point,
+        Err(e) => return (e, 0, Vec::new()),
     };
 
     // Perform the addition
-    let result = AffineG1::from_jacobian(p1 + p2).unwrap_or_else(|| AffineG1::new(Fq::zero(), Fq::zero()).unwrap());
-
+    let result = match AffineG1::from_jacobian(p1 + p2) {
+        Some(res) => res,
+        None => return (CallResult::Exception, 0, Vec::new()),
+    };
     // Encode the result
     let mut output = vec![0u8; 64];
     result.x().to_big_endian(&mut output[0..32]).unwrap();
@@ -344,28 +364,23 @@ fn ecmul(input: &[u8], gas_limit: u64) -> (CallResult, u64, Vec<u8>) {
     let len = std::cmp::min(input.len(), expected_len);
     padded_input[..len].copy_from_slice(&input[..len]);
 
+    // Parse the input point
+    let p = match read_point(&padded_input, 0) {
+        Ok(point) => point,
+        Err(e) => return (e, 0, Vec::new()),
+    };
 
-    // Parse the input point and scalar
-    let mut buf = [0u8; 32];
-
-    buf.copy_from_slice(&padded_input[0..32]);
-    let x = Fq::from_slice(&buf).unwrap_or(Fq::zero());
-
-    buf.copy_from_slice(&padded_input[32..64]);
-    let y = Fq::from_slice(&buf).unwrap_or(Fq::zero());
-
-    buf.copy_from_slice(&padded_input[64..96]);
-    let scalar = Fr::from_slice(&buf).unwrap_or(Fr::zero());
-
-    // Create affine point
-    let p = if x.is_zero() && y.is_zero() {
-        G1::zero()
-    } else {
-        AffineG1::new(x, y).map(Into::into).unwrap_or(G1::zero())
+    // Parse the scalar
+    let scalar = match read_fr(&padded_input, 64) {
+        Ok(s) => s,
+        Err(e) => return (e, 0, Vec::new()),
     };
 
     // Perform the scalar multiplication
-    let result = AffineG1::from_jacobian(p * scalar).unwrap_or_else(|| AffineG1::new(Fq::zero(), Fq::zero()).unwrap());
+    let result = match AffineG1::from_jacobian(p * scalar) {
+        Some(res) => res,
+        None => return (CallResult::Exception, 0, Vec::new()),
+    };
 
     // Encode the result
     let mut output = vec![0u8; 64];

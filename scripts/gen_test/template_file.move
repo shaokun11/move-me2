@@ -2,7 +2,6 @@
 module aptos_framework::evm_test {
 
     use aptos_framework::evm_for_test_v2::run_test;
-    use aptos_framework::account::create_account_for_test;
     use aptos_framework::evm_util::u256_to_data;
     use aptos_std::simple_map;
     use aptos_std::simple_map::SimpleMap;
