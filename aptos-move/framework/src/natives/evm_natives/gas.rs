@@ -415,7 +415,7 @@ fn calc_sstore_gas(
     address: &H160,
     runtime: &mut Runtime,
 ) -> (CallResult, u64) {
-    if runtime.get_gas_left() < SSTORE_SENTRY_GAS_EIP2200 {
+    if runtime.get_gas_left() <= SSTORE_SENTRY_GAS_EIP2200 {
         return (CallResult::OutOfGas, 0);
     };
 

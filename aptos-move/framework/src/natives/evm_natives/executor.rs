@@ -352,7 +352,7 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
 
     log_debug!("opcode {} {} {}", opcode, machine.pc, args.depth);
     log_debug!("gas_cost {}", gas_cost);
-    log_debug!("gas_left {:?}", runtime.get_gas_left());
+    log_debug!("gas_left {:x}", runtime.get_gas_left());
     
     
     let out_of_gas = !runtime.add_gas_usage(gas_cost);
