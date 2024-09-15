@@ -97,5 +97,5 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "extcodehashEmpty_Paris"
-read("./src/GeneralStateTests/stExtCodeHash/extcodehashEmpty_Paris.json", key, 0, 0, 0)
+let key = "bufferSrcOffset"
+read("./src/GeneralStateTests/stMemoryTest/bufferSrcOffset.json", key, 76, 0, 0)

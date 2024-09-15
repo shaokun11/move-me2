@@ -642,8 +642,9 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                 if len == U256::zero() {
                     return Ok(());
                 }
-    
-                if return_data_offset + len > U256::from(machine.ret_bytes.len()) {
+
+                let total_offset = return_data_offset.checked_add(len);
+                if total_offset.is_none() || total_offset.unwrap() > U256::from(machine.ret_bytes.len()) {
                     return Err(ExecutionError::OutOfBounds);
                 }
     

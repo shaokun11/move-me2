@@ -552,11 +552,21 @@ pub fn calc_exec_gas(state: &mut State, opcode: Opcode, address: &H160, machine:
             let offset = machine.stack.peek(0).unwrap_or_default();
             calc_memory_copy_gas(machine, offset, U256::from(1), gas_limit, 3, 0)
         },
-        Opcode::CALLDATACOPY | Opcode::CODECOPY | Opcode::RETURNDATACOPY => {
+        Opcode::CALLDATACOPY | Opcode::CODECOPY => {
             let memory_offset = machine.stack.peek(0).unwrap_or_default();
             let length = machine.stack.peek(2).unwrap_or_default();
             calc_memory_copy_gas(machine, memory_offset, length, gas_limit, 3, 3)
         },
+        Opcode::RETURNDATACOPY => {
+            let memory_offset = machine.stack.peek(0).unwrap_or_default();
+            let data_size = machine.stack.peek(1).unwrap_or_default();
+            let length = machine.stack.peek(2).unwrap_or_default();
+
+            if data_size > U256::from(machine.get_ret_size()) {
+                return (CallResult::OutOfGas, 0);
+            }
+            calc_memory_copy_gas(machine, memory_offset, length, gas_limit, 3, 3)
+        }
         Opcode::MCOPY => {
             let dest_offset = machine.stack.peek(0).unwrap_or_default();
             let source_offset = machine.stack.peek(1).unwrap_or_default();
