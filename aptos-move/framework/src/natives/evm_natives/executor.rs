@@ -906,7 +906,7 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                 } else if is_contract_call {
                     machine.ret_pos = ret_pos;
                     machine.ret_len = ret_len;
-                    if args.depth > limit::DEPTH_SIZE || state.get_balance(new_args.caller) < new_args.value {
+                    if new_args.depth > limit::DEPTH_SIZE || state.get_balance(new_args.caller) < new_args.value {
                         output = U256::zero()
                     } else {
                         handle_new_call(state, runtime, &new_args, call_gas_limit, is_static);
