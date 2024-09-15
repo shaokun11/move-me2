@@ -97,5 +97,5 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "addressOpcodes"
-read("./src/GeneralStateTests/stEIP2930/addressOpcodes.json", key, 0, 0, 0)
+let key = "mergeTest"
+read("./src/GeneralStateTests/stExample/mergeTest.json", key, 0, 0, 0)

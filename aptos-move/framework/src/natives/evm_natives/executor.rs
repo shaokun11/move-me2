@@ -2,7 +2,7 @@
 use std::u64;
 
 use crate::{log_debug, natives::evm_natives::{
-    arithmetic, constants::{gas_cost, limit, CallResult, TxResult, TxType}, gas::{calc_exec_gas, max_call_gas}, machine::Machine, precompile::{is_precompile_address, run_precompile}, runtime::Runtime, state::State, types::{Environment, ExecutionError, FrameType, Opcode, RunArgs, TransactArgs}, utils::{h160_to_u256, u256_to_bytes}
+    arithmetic, constants::{gas_cost, limit, CallResult, TxResult, TxType}, gas::{calc_exec_gas, max_call_gas}, machine::Machine, precompile::{is_precompile_address, run_precompile}, runtime::Runtime, state::State, types::{Environment, ExecutionError, FrameType, Opcode, RunArgs, TransactArgs}, utils::{bytes_to_h160, h160_to_u256, u256_to_bytes}
 }};
 
 use primitive_types::{H160, U256};
@@ -31,7 +31,7 @@ fn calc_base_cost(data: &[u8], access_list_address_len: u64, access_list_slot_le
     let access_list_cost = access_list_address_len * gas_cost::ACCESS_LIST_ADDRESS +
                             access_list_slot_len * gas_cost::ACCESS_LIST_SLOT;
                             
-    log_debug!("zero data {} {} {} {} {} {}", zero_data_len, non_zero_data_len, access_list_address_len, access_list_slot_len, data_cost, access_list_cost);
+    log_debug!("zero data {} {} {} {} {} {}", zero_data_len, non_zero_data_len, data_cost, access_list_address_len, access_list_slot_len, access_list_cost);
  
     data_cost + access_list_cost + gas_cost::TX_BASE
 }
@@ -671,7 +671,7 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                 machine.stack.push(env.block_number.into())
             },
             Opcode::DIFFICULTY => {
-                machine.stack.push(env.block_difficulty.into())
+                machine.stack.push(U256::from_big_endian(&env.block_random))
             },
             Opcode::GASLIMIT => {
                 machine.stack.push(env.block_gas_limit.into())

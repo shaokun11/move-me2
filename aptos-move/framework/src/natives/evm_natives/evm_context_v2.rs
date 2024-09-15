@@ -137,7 +137,7 @@ fn parse_env(env_data: Struct) -> Environment {
     let _block_excess_blob_gas: U256 = fields.pop().unwrap().value_as::<move_u256>().unwrap().to_ethers_u256();
     let block_base_fee_per_gas: U256 = fields.pop().unwrap().value_as::<move_u256>().unwrap().to_ethers_u256();
     let block_gas_limit: U256 = fields.pop().unwrap().value_as::<move_u256>().unwrap().to_ethers_u256();
-    let block_random = H256::from_slice(&fields.pop().unwrap().value_as::<Vec<u8>>().unwrap());
+    let block_random = fields.pop().unwrap().value_as::<Vec<u8>>().unwrap();
     let block_difficulty: U256 = fields.pop().unwrap().value_as::<move_u256>().unwrap().to_ethers_u256();
     let block_timestamp: U256 = fields.pop().unwrap().value_as::<move_u256>().unwrap().to_ethers_u256();
     let block_coinbase = H160::from_slice(&fields.pop().unwrap().value_as::<Vec<u8>>().unwrap());
