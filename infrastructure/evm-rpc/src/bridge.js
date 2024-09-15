@@ -241,7 +241,9 @@ async function sendTxTask() {
         for (let item of allTx) {
             const { key, from, nonce } = item;
             let currAccInfo = accMap[from];
-            if (!currAccInfo) continue;
+            if (!currAccInfo) {
+                await updateAccMap([from]);
+            }
             // The chain nonce greater than the tx nonce ,it will be drop
             if (parseInt(currAccInfo.nonce) > parseInt(nonce)) {
                 removeTxFromMemoryPool(from, nonce);
