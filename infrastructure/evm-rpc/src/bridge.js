@@ -212,37 +212,44 @@ async function sendTxTask() {
         }
         // set LOCKER
         isSending = true;
-        // get the chain nonce
         let accMap = {};
-        const getNonce = async () => {
-            const keysArr = cluster(allKeys, 50);
+        
+        const getNonce = async allKeys_ => {
+            const accMap_ = {};
+            const keysArr = cluster(allKeys_, 50);
             for (let keys of keysArr) {
                 const info = await Promise.all(keys.map(key => getAccountInfo(key)));
                 await slowly();
                 keys.forEach((k, i) => {
-                    accMap[k] = info[i];
+                    accMap_[k] = info[i];
                 });
             }
+            return accMap_;
         };
+
+        const updateAccMap = async keys => {
+            const newAccMap = await getNonce(keys);
+            ACC_NONCE_INFO.updateTime = Date.now();
+            ACC_NONCE_INFO.data = { ...accMap, ...newAccMap };
+            accMap = ACC_NONCE_INFO.data;
+        };
+
         if (ACC_NONCE_INFO.updateTime > 0) {
             accMap = ACC_NONCE_INFO.data;
+            const moreKeys = allKeys.filter(it => !accMap[it]);
+            if (moreKeys.length > 0) {
+                await updateAccMap(moreKeys);
+            }
         } else {
             // the first time to get the nonce
-            await getNonce();
-            ACC_NONCE_INFO.updateTime = Date.now();
-            ACC_NONCE_INFO.data = accMap;
+            await updateAccMap(allKeys);
         }
+
         // find the tx nonce is equal to the chain nonce
         const sendTxArr = [];
         for (let item of allTx) {
             const { key, from, nonce } = item;
             let currAccInfo = accMap[from];
-            if (!currAccInfo) {
-                // maybe use the cache , so we need to get it again
-                currAccInfo = await getAccountInfo(from);
-                accMap[from] = currAccInfo;
-                ACC_NONCE_INFO.data[from] = currAccInfo;
-            }
             // The chain nonce greater than the tx nonce ,it will be drop
             if (parseInt(currAccInfo.nonce) > parseInt(nonce)) {
                 removeTxFromMemoryPool(from, nonce);
