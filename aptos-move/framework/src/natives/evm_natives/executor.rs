@@ -926,6 +926,12 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                 if runtime.get_is_static() {
                     return Err(ExecutionError::StaticStateChange);
                 }
+
+                let init_code = if let Ok(offset_usize) = offset.try_into() {
+                    machine.memory.get(offset_usize, size.as_usize())
+                } else {
+                    Vec::new() // 如果转换失败，init_code 为空
+                };
     
                 let init_code = machine.memory.get(offset.as_usize(), size.as_usize());
                 let new_address = get_contract_address(args.address, state.get_nonce(args.address));
@@ -960,7 +966,11 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                     return Err(ExecutionError::StaticStateChange);
                 }
     
-                let init_code = machine.memory.get(offset.as_usize(), size.as_usize());
+                let init_code = if let Ok(offset_usize) = offset.try_into() {
+                    machine.memory.get(offset_usize, size.as_usize())
+                } else {
+                    Vec::new() // 如果转换失败，init_code 为空
+                };
                 let new_address = get_create2_address(args.address, u256_to_bytes(salt), init_code.clone());
                 
                 if init_code.len() > limit::INIT_CODE_SIZE {
