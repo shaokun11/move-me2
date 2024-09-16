@@ -139,6 +139,8 @@ export async function sendRawTx(tx) {
         ts: Date.now(),
         key,
         price,
+        to: info.to,
+        limit: info.limit,
     };
     const checkIsSend = () => {
         if (PENDING_TX_SET.has(key)) {
@@ -176,8 +178,6 @@ export async function sendRawTx(tx) {
 
 async function sendTxTask() {
     let isSending = false;
-    // reduce cpu usage
-    const slowly = () => sleep(0.005);
     setInterval(async () => {
         if (isSending) {
             return;
@@ -214,7 +214,6 @@ async function sendTxTask() {
             const keysArr = cluster(allKeys_, 50);
             for (let keys of keysArr) {
                 const info = await Promise.all(keys.map(key => getAccountInfo(key)));
-                await slowly();
                 keys.forEach((k, i) => {
                     accMap_[k] = info[i];
                 });
@@ -281,7 +280,6 @@ async function sendTxTask() {
         if (sendTxArr.length > 0 && SENDER_ACCOUNT_INDEX.length > 0) {
             const sendTxCount = Math.max(SENDER_ACCOUNT_INDEX.length, sendTxArr.length);
             for (let i = 0; i < sendTxCount; i++) {
-                await slowly();
                 if (sendTxArr.length === 0) {
                     break;
                 }
@@ -296,12 +294,11 @@ async function sendTxTask() {
                     break;
                 }
                 let isLargeTx = false;
-                const txParsed = parseRawTx(tx);
                 if (
                     // for we estimate the gas enlarge the gas limit to 140%
-                    BigNumber(txParsed.limit).gt(25_00_000 * 1.4) &&
+                    BigNumber(txInfo.limit).gt(25_00_000 * 1.4) &&
                     // not deploy contract
-                    txParsed.to !== ZeroAddress
+                    txInfo.to !== ZeroAddress
                 ) {
                     isLargeTx = true;
                     if (!SEND_LARGE_TX_INFO.isFinish) {
@@ -329,7 +326,7 @@ async function sendTxTask() {
                     SEND_LARGE_TX_INFO.lastSendTime = Date.now();
                 }
 
-                await sendTx(sender, tx, key, senderIndex, isLargeTx, txParsed.to)
+                await sendTx(sender, tx, key, senderIndex, isLargeTx, txInfo.to)
                     .then(() => {
                         logInfo.realSendCount++;
                     })
