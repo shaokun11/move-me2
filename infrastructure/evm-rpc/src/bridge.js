@@ -175,7 +175,6 @@ export async function sendRawTx(tx) {
 
 async function sendTxTask() {
     let isSending = false;
-    let lastSendTime = Date.now();
     // reduce cpu usage
     const slowly = () => sleep(0.005);
     setInterval(async () => {
@@ -191,15 +190,22 @@ async function sendTxTask() {
             const accTxArr = TX_MEMORY_POOL[key];
             allTx.push(...accTxArr);
         }
-        if (Date.now() - lastSendTime >= 60 * 1000) {
-            lastSendTime = Date.now();
-            console.log('tx pool remain %s,', allTx.length, allKeys.length);
-        }
         if (allTx.length === 0) {
             return;
         }
         // set LOCKER
         isSending = true;
+        const logInfo = {
+            poolTxCount: allTx.length,
+            poolSenderCount: allKeys.length,
+            allTxCount: 0,
+            idleSenderCount: 0,
+            largeTxPendingCount: 0,
+            largeTxLimitCount: 0,
+            realSendCount: 0,
+            nonceDuration: Date.now(),
+            roundDuration: Date.now(),
+        };
         const getNonce = async allKeys_ => {
             const accMap_ = {};
             const keysArr = cluster(allKeys_, 50);
@@ -218,7 +224,6 @@ async function sendTxTask() {
             ACC_NONCE_INFO.updateTime = Date.now();
             Object.assign(ACC_NONCE_INFO.data, newAccMap);
         };
-
         if (ACC_NONCE_INFO.updateTime === 0) {
             // the first time to get the nonce
             await updateAccMap(allKeys);
@@ -229,6 +234,7 @@ async function sendTxTask() {
             }
         }
         const accMap = ACC_NONCE_INFO.data;
+        logInfo.nonceDuration = Date.now() - logInfo.nonceDuration;
         // find the tx nonce is equal to the chain nonce
         const sendTxArr = [];
         const extraAccountInfo = [];
@@ -264,14 +270,17 @@ async function sendTxTask() {
         if (extraAccountInfo.length > 0) {
             await updateAccMap(extraAccountInfo);
         }
-        // sendTxArr.sort((a, b) => a.ts - b.ts);
         // Now we simply sort the tx by the timestamp
         TimSort.sort(sendTxArr, (a, b) => a.ts - b.ts);
+        logInfo.allTxCount = sendTxArr.length;
+        logInfo.idleSenderCount = SENDER_ACCOUNT_INDEX.length;
         if (sendTxArr.length > 0 && SENDER_ACCOUNT_INDEX.length > 0) {
-            const size = sendTxArr.length;
-            for (let i = 0; i < size; i++) {
+            const sendTxCount = Math.max(SENDER_ACCOUNT_INDEX.length, sendTxArr.length);
+            for (let i = 0; i < sendTxCount; i++) {
                 await slowly();
-                if (sendTxArr.length === 0) break;
+                if (sendTxArr.length === 0) {
+                    break;
+                }
                 const txInfo = sendTxArr.shift();
                 const { key, tx, from, nonce } = txInfo;
                 if (PENDING_TX_SET.has(key)) {
@@ -279,7 +288,9 @@ async function sendTxTask() {
                     removeTxFromMemoryPool(from, nonce);
                     continue;
                 }
-                if (SENDER_ACCOUNT_INDEX.length === 0) break;
+                if (SENDER_ACCOUNT_INDEX.length === 0) {
+                    break;
+                }
                 let isLargeTx = false;
                 const txParsed = parseRawTx(tx);
                 if (
@@ -291,11 +302,13 @@ async function sendTxTask() {
                     isLargeTx = true;
                     if (!SEND_LARGE_TX_INFO.isFinish) {
                         // not commit the last large tx
+                        logInfo.largeTxPendingCount++;
                         continue;
                     }
-                    if (size > 100) {
-                        if (SEND_LARGE_TX_INFO.sendTime + 60 * 1000 >= Date.now()) {
+                    if (sendTxCount > 200) {
+                        if (SEND_LARGE_TX_INFO.sendTime + 30 * 1000 >= Date.now()) {
                             // the more time to send small tx and make tx quickly
+                            logInfo.largeTxLimitCount++;
                             continue;
                         }
                     }
@@ -310,6 +323,7 @@ async function sendTxTask() {
                     SEND_LARGE_TX_INFO.isFinish = false;
                     SEND_LARGE_TX_INFO.lastSendTime = Date.now();
                 }
+                logInfo.realSendCount++;
                 await sendTx(sender, tx, key, senderIndex, isLargeTx, txParsed.to).catch(error => {
                     // reset this tx info to the pool
                     PENDING_TX_SET.delete(key);
@@ -331,7 +345,8 @@ async function sendTxTask() {
                 });
             }
         }
-        // release locker
+        logInfo.roundDuration = Date.now() - logInfo.roundDuration;
+        console.log('======== round info =========', logInfo);
         isSending = false;
     }, 1000);
 }
