@@ -30,7 +30,6 @@ import { ClientWrapper } from './client_wrapper.js';
 import { cluster } from 'radash';
 import { postJsonRpc } from './request.js';
 import TimSort from 'timsort';
-import { log } from 'node:console';
 const pend_tx_path = 'db/tx-pending.json';
 /// When eth_call or estimateGas,from may be 0x0,
 // Now the evm's 0x0 address cannot exist in the move, so we need to convert it to 0x1
@@ -194,6 +193,7 @@ async function sendTxTask() {
         if (allTx.length === 0) {
             return;
         }
+        const slowly = () => sleep(0.005);
         // set LOCKER
         isSending = true;
         const logInfo = {
@@ -284,6 +284,11 @@ async function sendTxTask() {
                     break;
                 }
                 const txInfo = sendTxArr.shift();
+                if (!txInfo.to) {
+                    const parseTx = parseRawTx(txInfo.tx);
+                    txInfo.to = parseTx.to;
+                    txInfo.limit = parseTx.limit;
+                }
                 const { key, tx, from, nonce } = txInfo;
                 if (PENDING_TX_SET.has(key)) {
                     // it has send to chain but not finish
@@ -350,7 +355,7 @@ async function sendTxTask() {
                         console.warn('evm:%s,error %s ', key, error.message ?? error);
                     });
             }
-            await sleep(0.005);
+            await slowly();
         }
         logInfo.sendTxDuration = Date.now() - logInfo.sendTxDuration;
         logInfo.roundDuration = Date.now() - logInfo.roundDuration;
