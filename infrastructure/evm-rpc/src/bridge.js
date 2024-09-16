@@ -237,11 +237,12 @@ async function sendTxTask() {
         const accMap = ACC_NONCE_INFO.data;
         // find the tx nonce is equal to the chain nonce
         const sendTxArr = [];
+        const extraAccountInfo = [];
         for (let item of allTx) {
             const { key, from, nonce } = item;
             let currAccInfo = accMap[from];
             if (!currAccInfo) {
-                await updateAccMap([from]);
+                extraAccountInfo.push(from);
                 continue;
             }
             // The chain nonce greater than the tx nonce ,it will be drop
@@ -266,7 +267,9 @@ async function sendTxTask() {
             }
             sendTxArr.push(item);
         }
-        await slowly();
+        if (extraAccountInfo.length > 0) {
+            await updateAccMap(extraAccountInfo);
+        }
         // sendTxArr.sort((a, b) => a.ts - b.ts);
         // Now we simply sort the tx by the timestamp
         TimSort.sort(sendTxArr, (a, b) => a.ts - b.ts);
