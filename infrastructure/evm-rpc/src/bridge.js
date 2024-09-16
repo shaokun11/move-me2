@@ -350,6 +350,7 @@ async function sendTxTask() {
                         console.warn('evm:%s,error %s ', key, error.message ?? error);
                     });
             }
+            await sleep(0.005);
         }
         logInfo.sendTxDuration = Date.now() - logInfo.sendTxDuration;
         logInfo.roundDuration = Date.now() - logInfo.roundDuration;
@@ -1132,7 +1133,7 @@ async function checkTxResult({
             );
         })
         .catch(err => {
-            console.error('checkTxResult %s error %s', checkTxItem.hash, err.message ?? err);
+            console.error('checkTxResult %s error %s', hash, err.message ?? err);
         });
 }
 async function sendTx(sender, tx, txKey, senderIndex, isLargeTx, to) {
