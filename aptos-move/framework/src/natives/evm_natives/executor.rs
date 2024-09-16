@@ -1016,10 +1016,10 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                 let offset = pop_stack!(machine.stack);
                 let size = pop_stack!(machine.stack);
                 
-                handle_normal_revert(state, runtime);
-                
                 machine.memory.resize_offset(offset, size)?;
                 let revert_data = machine.memory.get(u256_to_usize(offset)?, u256_to_usize(size)?);
+                
+                handle_normal_revert(state, runtime);
                 machine.set_ret_value(revert_data.clone());
     
                 Err(ExecutionError::Revert(revert_data))
