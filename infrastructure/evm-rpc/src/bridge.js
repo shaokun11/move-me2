@@ -317,7 +317,7 @@ async function sendTxTask() {
                         continue;
                     }
                     if (sendTxCount > 200) {
-                        if (SEND_LARGE_TX_INFO.sendTime + 30 * 1000 >= Date.now()) {
+                        if (SEND_LARGE_TX_INFO.sendTime + 10 * 1000 >= Date.now()) {
                             // the more time to send small tx and make tx quickly
                             logInfo.largeTxLimitCount++;
                             continue;
