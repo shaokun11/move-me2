@@ -64,7 +64,6 @@ const LIMIT_CONTRACTS = ['0xd06758a08a78ef28f56b4efa35ac87ef21d56f15'];
 const SEND_LARGE_TX_INFO = {
     sendTime: Date.now(),
     isFinish: true,
-    limitAccIsFinish: true,
     limitAccSendTime: Date.now(),
 };
 const ACC_NONCE_INFO = {
@@ -298,17 +297,12 @@ async function sendTxTask() {
                         continue;
                     }
                     if (size > 100) {
-                        if (Date.now() - SEND_LARGE_TX_INFO.sendTime < 10 * 1000) {
+                        if (SEND_LARGE_TX_INFO.sendTime + 10 * 1000 >= Date.now()) {
                             // the more time to send small tx and make tx quickly
                             continue;
                         }
-                    }
-                    if (size > 200) {
                         if (isLimitContract(txParsed.to)) {
-                            if (!SEND_LARGE_TX_INFO.limitAccIsFinish) {
-                                continue;
-                            }
-                            if (Date.now() - SEND_LARGE_TX_INFO.limitAccSendTime < 60 * 1000) {
+                            if (SEND_LARGE_TX_INFO.limitAccSendTime + 60 * 1000 >= Date.now()) {
                                 continue;
                             }
                         }
@@ -322,11 +316,7 @@ async function sendTxTask() {
                 const sender = GET_SENDER_ACCOUNT(senderIndex);
                 if (isLargeTx) {
                     SEND_LARGE_TX_INFO.isFinish = false;
-                    // SEND_LARGE_TX_INFO.sendTime = Date.now();
-                    if (isLimitContract(txParsed.to)) {
-                        SEND_LARGE_TX_INFO.limitAccIsFinish = false;
-                        // SEND_LARGE_TX_INFO.limitAccSendTime = Date.now();
-                    }
+                    console.log('send large tx %s time: %s', senderIndex, Date.now());
                 }
                 await sendTx(sender, tx, key, senderIndex, isLargeTx, txParsed.to).catch(error => {
                     // reset this tx info to the pool
@@ -342,8 +332,9 @@ async function sendTxTask() {
                     SENDER_ACCOUNT_INDEX.push(senderIndex);
                     if (isLargeTx) {
                         SEND_LARGE_TX_INFO.isFinish = true;
+                        SEND_LARGE_TX_INFO.lastSendTime = Date.now();
                         if (isLimitContract(txParsed.to)) {
-                            SEND_LARGE_TX_INFO.limitAccIsFinish = true;
+                            SEND_LARGE_TX_INFO.limitAccSendTime = Date.now();
                         }
                     }
                     // maybe tx can't be send to the chain
@@ -1112,13 +1103,12 @@ async function checkTxResult({
         SEND_LARGE_TX_INFO.isFinish = true;
         SEND_LARGE_TX_INFO.sendTime = Date.now();
         if (isLimitContract(to)) {
-            SEND_LARGE_TX_INFO.limitAccIsFinish = true;
             SEND_LARGE_TX_INFO.limitAccSendTime = Date.now();
         }
     }
     const from = txKey.split(':')[0];
     delete ACC_NONCE_INFO.data[from];
-    await ClientWrapper.getTransactionByHash(hash)
+    ClientWrapper.getTransactionByHash(hash)
         .then(result => {
             // maybe pending
             console.log(
