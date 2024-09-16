@@ -1,8 +1,10 @@
+use std::u32;
+
 use primitive_types::{H160, H256, U256};
-use crate::natives::evm_natives::{
+use crate::{log_debug, natives::evm_natives::{
     constants::CallResult,
     eip152
-};
+}};
 use sha3::{Digest, Keccak256};
 use sha2::Sha256;
 use ripemd::Ripemd160;
@@ -180,31 +182,32 @@ fn mod_exp(data: &[u8], gas_limit: u64) -> (CallResult, u64, Vec<u8>) {
 	let mut mod_len_buf = [0u8; 32];
 	read_input(data, &mut mod_len_buf, &mut input_offset);
 
-    let max_size_big = BigUint::from_u32(1024).expect("can't create BigUint");
+    
+
+    let max_size_big = BigUint::from_u32(u32::MAX).expect("can't create BigUint");
 
 	let base_len_big = BigUint::from_bytes_be(&base_len_buf);
-	if base_len_big > max_size_big {
-		return (CallResult::OutOfGas, 0, Vec::new());
-	}
-
 	let exp_len_big = BigUint::from_bytes_be(&exp_len_buf);
-	if exp_len_big > max_size_big {
-		return (CallResult::OutOfGas, 0, Vec::new());
-	}
-
 	let mod_len_big = BigUint::from_bytes_be(&mod_len_buf);
-	if mod_len_big > max_size_big {
+
+
+    if base_len_big == BigUint::zero() && mod_len_big == BigUint::zero() {
+        return (CallResult::Success, MIN_GAS_COST, Vec::new());
+    }
+
+    log_debug!("1 {:?} {:?} {:?}", base_len_big, exp_len_big, mod_len_big);
+
+    if base_len_big > max_size_big || exp_len_big > max_size_big || mod_len_big > max_size_big {
 		return (CallResult::OutOfGas, 0, Vec::new());
 	}
-
 
     let base_len = base_len_big.to_usize().unwrap();
     let exp_len = exp_len_big.to_usize().unwrap();
     let mod_len = mod_len_big.to_usize().unwrap();
+
+    log_debug!("2 {} {} {}", base_len, exp_len, mod_len);
     
-    if base_len == 0 && mod_len == 0 {
-        return (CallResult::Success, MIN_GAS_COST, Vec::new());
-    }
+    
 
     let mut base_buf = vec![0u8; base_len];
 	read_input(data, &mut base_buf, &mut input_offset);
