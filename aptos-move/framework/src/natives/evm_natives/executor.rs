@@ -923,7 +923,7 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                 } else if is_contract_call {
                     machine.ret_pos = out_offset;
                     machine.ret_len = out_len;
-                    if new_args.depth > limit::DEPTH_SIZE || state.get_balance(new_args.caller) < new_args.value {
+                    if new_args.depth > limit::DEPTH_SIZE || (transfer_eth && state.get_balance(new_args.caller) < new_args.value) {
                         output = U256::zero()
                     } else {
                         handle_new_call(state, runtime, &new_args, call_gas_limit, is_static);
@@ -1017,8 +1017,9 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                 let size = pop_stack!(machine.stack);
                 
                 handle_normal_revert(state, runtime);
-    
-                let revert_data = machine.memory.get(offset.as_usize(), size.as_usize());
+                
+                machine.memory.resize_offset(offset, size)?;
+                let revert_data = machine.memory.get(u256_to_usize(offset)?, u256_to_usize(size)?);
                 machine.set_ret_value(revert_data.clone());
     
                 Err(ExecutionError::Revert(revert_data))
