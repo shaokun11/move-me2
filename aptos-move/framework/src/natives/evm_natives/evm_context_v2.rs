@@ -12,7 +12,7 @@ use move_vm_types::{
 use move_vm_runtime::native_functions::NativeFunction;
 use smallvec::{smallvec, SmallVec};
 use move_core_types::u256::U256 as move_u256;
-use primitive_types::{H160, H256, U256};
+use primitive_types::{H160, U256};
 use better_any::{Tid, TidAble};
 use std::collections::VecDeque;
 use ethers::utils::get_contract_address;

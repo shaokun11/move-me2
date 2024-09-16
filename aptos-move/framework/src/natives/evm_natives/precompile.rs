@@ -453,7 +453,7 @@ fn blake2f(input: &[u8]) -> (CallResult, u64, Vec<u8>) {
     let expected_len = 213;
 
     if input.len() != expected_len {
-        return (CallResult::Exception, 0, Vec::new());;
+        return (CallResult::Exception, 0, Vec::new());
     }
 
     let result;
@@ -500,7 +500,7 @@ fn blake2f(input: &[u8]) -> (CallResult, u64, Vec<u8>) {
     } else if input[212] == 0 {
         false
     } else {
-        return (CallResult::Success, gas_cost, Vec::new());
+        return (CallResult::Exception, 0, Vec::new());
     };
 
 

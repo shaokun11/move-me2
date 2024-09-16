@@ -1,6 +1,6 @@
 // Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
-use primitive_types::{H160, H256, U256};
+use primitive_types::{H160, U256};
 use std::fmt;
 
 #[derive(Debug)]

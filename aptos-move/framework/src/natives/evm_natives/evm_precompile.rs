@@ -1,18 +1,16 @@
-use crate::natives::evm_natives::{
-    eip152
-};
+use crate::natives::evm_natives::eip152;
 
 use aptos_native_interface::{
     safely_pop_arg, SafeNativeContext, SafeNativeBuilder, RawSafeNative, SafeNativeResult
 };
 use move_vm_types::{
     loaded_data::runtime_types::Type,
-    values::{Value}
+    values::Value
 };
 use move_vm_runtime::native_functions::NativeFunction;
 use std::collections::VecDeque;
 use smallvec::{smallvec, SmallVec};
-use ethers::types::{U256};
+use ethers::types::U256;
 use num::{BigUint, Zero, One};
 use bn::{pairing_batch, AffineG1, AffineG2, Fq, Fq2, Group, Gt, G1, G2};
 
