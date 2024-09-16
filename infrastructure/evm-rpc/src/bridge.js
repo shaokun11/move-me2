@@ -319,6 +319,8 @@ async function sendTxTask() {
                 const sender = GET_SENDER_ACCOUNT(senderIndex);
                 if (isLargeTx) {
                     SEND_LARGE_TX_INFO.isFinish = false;
+                    SEND_LARGE_TX_INFO.lastSendTime = Date.now();
+                    SEND_LARGE_TX_INFO.limitAccSendTime = Date.now();
                     console.log('send large tx %s time: %s', senderIndex, Date.now());
                 }
                 await sendTx(sender, tx, key, senderIndex, isLargeTx, txParsed.to).catch(error => {
