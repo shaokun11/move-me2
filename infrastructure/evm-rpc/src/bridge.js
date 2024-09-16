@@ -30,6 +30,7 @@ import { ClientWrapper } from './client_wrapper.js';
 import { cluster } from 'radash';
 import { postJsonRpc } from './request.js';
 import TimSort from 'timsort';
+import { log } from 'node:console';
 const pend_tx_path = 'db/tx-pending.json';
 /// When eth_call or estimateGas,from may be 0x0,
 // Now the evm's 0x0 address cannot exist in the move, so we need to convert it to 0x1
@@ -203,7 +204,9 @@ async function sendTxTask() {
             largeTxPendingCount: 0,
             largeTxLimitCount: 0,
             realSendCount: 0,
+            sendLargeTxCount: 0,
             nonceDuration: Date.now(),
+            sendTxDuration: Date.now(),
             roundDuration: Date.now(),
         };
         const getNonce = async allKeys_ => {
@@ -274,6 +277,7 @@ async function sendTxTask() {
         TimSort.sort(sendTxArr, (a, b) => a.ts - b.ts);
         logInfo.allTxCount = sendTxArr.length;
         logInfo.idleSenderCount = SENDER_ACCOUNT_INDEX.length;
+        logInfo.sendTxDuration = Date.now();
         if (sendTxArr.length > 0 && SENDER_ACCOUNT_INDEX.length > 0) {
             const sendTxCount = Math.max(SENDER_ACCOUNT_INDEX.length, sendTxArr.length);
             for (let i = 0; i < sendTxCount; i++) {
@@ -320,31 +324,37 @@ async function sendTxTask() {
                 const senderIndex = SENDER_ACCOUNT_INDEX.shift();
                 const sender = GET_SENDER_ACCOUNT(senderIndex);
                 if (isLargeTx) {
+                    logInfo.sendLargeTxCount++;
                     SEND_LARGE_TX_INFO.isFinish = false;
                     SEND_LARGE_TX_INFO.lastSendTime = Date.now();
                 }
-                logInfo.realSendCount++;
-                await sendTx(sender, tx, key, senderIndex, isLargeTx, txParsed.to).catch(error => {
-                    // reset this tx info to the pool
-                    PENDING_TX_SET.delete(key);
-                    const fromAcc = TX_MEMORY_POOL[from];
-                    if (fromAcc) {
-                        // put it back to the pool
-                        fromAcc.push(txInfo);
-                    } else {
-                        TX_MEMORY_POOL[from] = [txInfo];
-                    }
-                    // put the sender back to the pool
-                    SENDER_ACCOUNT_INDEX.push(senderIndex);
-                    if (isLargeTx) {
-                        SEND_LARGE_TX_INFO.isFinish = true;
-                        SEND_LARGE_TX_INFO.lastSendTime = Date.now();
-                    }
-                    // maybe tx can't be send to the chain
-                    console.warn('evm:%s,error %s ', key, error.message ?? error);
-                });
+
+                await sendTx(sender, tx, key, senderIndex, isLargeTx, txParsed.to)
+                    .then(() => {
+                        logInfo.realSendCount++;
+                    })
+                    .catch(error => {
+                        // reset this tx info to the pool
+                        PENDING_TX_SET.delete(key);
+                        const fromAcc = TX_MEMORY_POOL[from];
+                        if (fromAcc) {
+                            // put it back to the pool
+                            fromAcc.push(txInfo);
+                        } else {
+                            TX_MEMORY_POOL[from] = [txInfo];
+                        }
+                        // put the sender back to the pool
+                        SENDER_ACCOUNT_INDEX.push(senderIndex);
+                        if (isLargeTx) {
+                            SEND_LARGE_TX_INFO.isFinish = true;
+                            SEND_LARGE_TX_INFO.lastSendTime = Date.now();
+                        }
+                        // maybe tx can't be send to the chain
+                        console.warn('evm:%s,error %s ', key, error.message ?? error);
+                    });
             }
         }
+        logInfo.sendTxDuration = Date.now() - logInfo.sendTxDuration;
         logInfo.roundDuration = Date.now() - logInfo.roundDuration;
         console.log('======== round info =========', JSON.stringify(logInfo));
         isSending = false;
