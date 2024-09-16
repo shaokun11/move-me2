@@ -319,6 +319,15 @@ fn read_fr(input: &[u8], start_inx: usize) -> Result<bn::Fr, CallResult> {
     Ok(ret)
 }
 
+fn read_fq(input: &[u8], start_inx: usize) -> Result<bn::Fq, String> {
+    let mut buf = [0u8; 32];
+    read_point_input(input, &mut buf, start_inx);
+
+    let ret = bn::Fq::from_slice(&buf)
+        .map_err(|_| "Invalid field element")?;
+    Ok(ret)
+}
+
 fn ecadd(input: &[u8], gas_limit: u64) -> (CallResult, u64, Vec<u8>) {
     if gas_limit < ECADD_GAS {
         return (CallResult::OutOfGas, 0, Vec::new());
@@ -390,63 +399,71 @@ fn ecmul(input: &[u8], gas_limit: u64) -> (CallResult, u64, Vec<u8>) {
 }
 
 fn ecpairing(input: &[u8], gas_limit: u64) -> (CallResult, u64, Vec<u8>) {
-    let point_count = (input.len() + 191) / 192; // Round up
-    let gas = ECPAIRING_BASE_GAS + (point_count as u64 * ECPAIRING_PER_POINT_GAS);
 
-    if gas > gas_limit {
-        return (CallResult::OutOfGas, 0, Vec::new());
-    }
+    let (gas, ret_val) = if input.is_empty() {
+        (ECPAIRING_BASE_GAS, U256::one())
+    } else {
+        if input.len() % 192 > 0 {
+            return (CallResult::Exception, 0, Vec::new())
+        }
 
-    let expected_len = point_count * 192;
-    let mut padded_input = vec![0u8; expected_len];
-    let len = std::cmp::min(input.len(), expected_len);
-    padded_input[..len].copy_from_slice(&input[..len]);
+        let elements = input.len() / 192;
+        let gas_cost: u64 = ECPAIRING_BASE_GAS
+            + (elements as u64 * ECPAIRING_PER_POINT_GAS);
 
+        if gas_limit < gas_cost {
+            return (CallResult::OutOfGas, 0, Vec::new());
+        }
 
-    let mut pairs = vec![];
+        let mut vals = Vec::new();
+        for idx in 0..elements {
+            let a_x = read_fq(&input, idx * 192);
+            let a_y = read_fq(&input, idx * 192 + 32);
+            let b_a_y = read_fq(&input, idx * 192 + 64);
+            let b_a_x = read_fq(&input, idx * 192 + 96);
+            let b_b_y = read_fq(&input, idx * 192 + 128);
+            let b_b_x = read_fq(&input, idx * 192 + 160);
+            if !a_x.is_ok() || !a_y.is_ok() || !b_a_x.is_ok() || !b_a_y.is_ok() || !b_b_x.is_ok() || !b_b_y.is_ok() {
+                return (CallResult::Exception, 0, Vec::new())
+            }
+            let a_x = a_x.unwrap();
+            let a_y = a_y.unwrap();
+            let b_a = Fq2::new(b_a_x.unwrap(), b_a_y.unwrap());
+            let b_b = Fq2::new(b_b_x.unwrap(), b_b_y.unwrap());
+            let b = if b_a.is_zero() && b_b.is_zero() {
+                G2::zero()
+            } else {
+                let result = AffineG2::new(b_a, b_b);
+                if !result.is_ok() {
+                    return (CallResult::Exception, 0, Vec::new())
+                }
+                G2::from(result.unwrap())
+            };
+            let a = if a_x.is_zero() && a_y.is_zero() {
+                G1::zero()
+            } else {
+                let result = AffineG1::new(a_x, a_y);
+                if !result.is_ok() {
+                    return (CallResult::Exception, 0, Vec::new())
+                }
+                G1::from(result.unwrap())
+            };
+            vals.push((a, b));
+        }
 
-    for chunk in padded_input.chunks(192) {
-        let mut buf = [0u8; 32];
+        let mul = pairing_batch(&vals);
 
-        buf.copy_from_slice(&chunk[0..32]);
-        let ax = Fq::from_slice(&buf).unwrap_or(Fq::zero());
-        buf.copy_from_slice(&chunk[32..64]);
-        let ay = Fq::from_slice(&buf).unwrap_or(Fq::zero());
-        let a = if ax.is_zero() && ay.is_zero() {
-            G1::zero()
+        if mul == Gt::one() {
+            (gas_cost, U256::one())
         } else {
-            AffineG1::new(ax, ay).map(Into::into).unwrap_or(G1::zero())
-        };
+            (gas_cost, U256::zero())
+        }
+    };
 
-        buf.copy_from_slice(&chunk[64..96]);
-        let bx_re = Fq::from_slice(&buf).unwrap_or(Fq::zero());
-        buf.copy_from_slice(&chunk[96..128]);
-        let bx_im = Fq::from_slice(&buf).unwrap_or(Fq::zero());
-        buf.copy_from_slice(&chunk[128..160]);
-        let by_re = Fq::from_slice(&buf).unwrap_or(Fq::zero());
-        buf.copy_from_slice(&chunk[160..192]);
-        let by_im = Fq::from_slice(&buf).unwrap_or(Fq::zero());
+    let mut buf = [0u8; 32];
+    ret_val.to_big_endian(&mut buf);
 
-        let b = if bx_re.is_zero() && bx_im.is_zero() && by_re.is_zero() && by_im.is_zero() {
-            G2::zero()
-        } else {
-            AffineG2::new(
-                Fq2::new(bx_re, bx_im),
-                Fq2::new(by_re, by_im),
-            ).map(Into::into).unwrap_or(G2::zero())
-        };
-
-        pairs.push((a, b));
-    }
-
-    let result = pairing_batch(&pairs);
-
-    let mut output = vec![0u8; 32];
-    if result == Gt::one() {
-        output[31] = 1;
-    }
-
-    (CallResult::Success, gas, output)
+    (CallResult::Success, gas, buf.to_vec())
 }
 
 fn blake2f(input: &[u8]) -> (CallResult, u64, Vec<u8>) {
