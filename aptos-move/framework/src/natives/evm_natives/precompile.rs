@@ -13,7 +13,6 @@ const ECADD_GAS: u64 = 150;
 const ECMUL_GAS: u64 = 6000;
 const ECPAIRING_BASE_GAS: u64 = 45000;
 const ECPAIRING_PER_POINT_GAS: u64 = 34000;
-const BLAKE2_F_GAS: u64 = 1;
 
 pub fn is_precompile_address(address: H160) -> bool {
     let num = U256::from(address.as_bytes());
@@ -453,7 +452,7 @@ fn ecpairing(input: &[u8], gas_limit: u64) -> (CallResult, u64, Vec<u8>) {
 fn blake2f(input: &[u8]) -> (CallResult, u64, Vec<u8>) {
     let expected_len = 213;
 
-    if input.len() < expected_len {
+    if input.len() != expected_len {
         return (CallResult::Exception, 0, Vec::new());;
     }
 
