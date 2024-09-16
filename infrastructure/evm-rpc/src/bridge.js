@@ -241,6 +241,11 @@ async function sendTxTask() {
         const sendTxArr = [];
         const extraAccountInfo = [];
         for (let item of allTx) {
+            if (!item.to) {
+                const parseTx = parseRawTx(item.tx);
+                item.to = parseTx.to;
+                item.limit = parseTx.limit;
+            }
             const { key, from, nonce } = item;
             let currAccInfo = accMap[from];
             if (!currAccInfo) {
@@ -284,11 +289,6 @@ async function sendTxTask() {
                     break;
                 }
                 const txInfo = sendTxArr.shift();
-                if (!txInfo.to) {
-                    const parseTx = parseRawTx(txInfo.tx);
-                    txInfo.to = parseTx.to;
-                    txInfo.limit = parseTx.limit;
-                }
                 const { key, tx, from, nonce } = txInfo;
                 if (PENDING_TX_SET.has(key)) {
                     // it has send to chain but not finish
