@@ -66,6 +66,7 @@ const SEND_LARGE_TX_INFO = {
 };
 const ACC_NONCE_INFO = {
     updateTime: 0,
+    resetTime: 0,
     data: {},
 };
 async function initTxPool() {
@@ -226,9 +227,13 @@ async function sendTxTask() {
             ACC_NONCE_INFO.updateTime = Date.now();
             Object.assign(ACC_NONCE_INFO.data, newAccMap);
         };
+        if (Date.now() - ACC_NONCE_INFO.resetTime > 1000 * 60 * 5) {
+            ACC_NONCE_INFO.updateTime = 0;
+        }
         if (ACC_NONCE_INFO.updateTime === 0) {
             // the first time to get the nonce
             await updateAccMap(allKeys);
+            ACC_NONCE_INFO.resetTime = Date.now();
         } else {
             const moreKeys = allKeys.filter(it => !ACC_NONCE_INFO.data[it]);
             if (moreKeys.length > 0) {
