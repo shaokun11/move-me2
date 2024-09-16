@@ -190,7 +190,6 @@ fn mod_exp(data: &[u8], gas_limit: u64) -> (CallResult, u64, Vec<u8>) {
 	let exp_len_big = BigUint::from_bytes_be(&exp_len_buf);
 	let mod_len_big = BigUint::from_bytes_be(&mod_len_buf);
 
-
     if base_len_big == BigUint::zero() && mod_len_big == BigUint::zero() {
         return (CallResult::Success, MIN_GAS_COST, Vec::new());
     }
@@ -206,8 +205,6 @@ fn mod_exp(data: &[u8], gas_limit: u64) -> (CallResult, u64, Vec<u8>) {
     let mod_len = mod_len_big.to_usize().unwrap();
 
     log_debug!("2 {} {} {}", base_len, exp_len, mod_len);
-    
-    
 
     let mut base_buf = vec![0u8; base_len];
 	read_input(data, &mut base_buf, &mut input_offset);
@@ -263,10 +260,12 @@ fn calculate_modexp_gas(base_len: usize, exp_len: usize, mod_len: usize, exp_hea
             0
         } else if exp_len <= 32 {
             let exp = BigUint::from_bytes_be(exp_head);
-            exp.bits() - 1
+            let len = exp.bits();
+            if len > 0 {len - 1} else {0}
         } else {
             let exp_head = BigUint::from_bytes_be(&exp_head[..32]);
-            (8 * (exp_len as u64 - 32)) + exp_head.bits() - 1
+            let len = (8 * (exp_len as u64 - 32)) + exp_head.bits();
+            if exp_head.bits() > 0 {len - 1} else {len}
         }
     }
 

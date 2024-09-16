@@ -98,4 +98,4 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
 }
 
 let key = "modexp"
-read("./src/GeneralStateTests/stPreCompiledContracts/modexp.json", key, 29, 0, 0)
+read("./src/GeneralStateTests/stPreCompiledContracts/modexp.json", key, 27, 0, 0)
