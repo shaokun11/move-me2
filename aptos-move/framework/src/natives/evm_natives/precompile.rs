@@ -16,7 +16,7 @@ const ECPAIRING_PER_POINT_GAS: u64 = 34000;
 
 pub fn is_precompile_address(address: H160) -> bool {
     let num = U256::from(address.as_bytes());
-    num >= U256::from(1) && num < U256::from(10)
+    num >= U256::from(1) && num <= U256::from(10)
 }
 
 pub fn run_precompile(code_address: H160, calldata: Vec<u8>, gas_limit: u64) -> (CallResult, u64, Vec<u8>) {
