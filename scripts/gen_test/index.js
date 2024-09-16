@@ -97,5 +97,5 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "CallIdentity_6_inputShorterThanOutput"
-read("./src/GeneralStateTests/stPreCompiledContracts2/CallIdentity_6_inputShorterThanOutput.json", key, 0, 0, 0)
+let key = "Create1000Byzantium"
+read("./src/GeneralStateTests/stQuadraticComplexityTest/Create1000Byzantium.json", key, 0, 1, 0)

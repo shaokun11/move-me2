@@ -942,6 +942,10 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                     transfer_eth: true,
                     depth: args.depth + 1
                 };
+
+                if init_code.len() > limit::INIT_CODE_SIZE {
+                    return Err(ExecutionError::InitCodeSizeExceed);
+                }
     
                 create_internal(&new_args, machine, state, runtime)?;
                 Ok(())
@@ -958,7 +962,11 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
     
                 let init_code = machine.memory.get(offset.as_usize(), size.as_usize());
                 let new_address = get_create2_address(args.address, u256_to_bytes(salt), init_code.clone());
-    
+                
+                if init_code.len() > limit::INIT_CODE_SIZE {
+                    return Err(ExecutionError::InitCodeSizeExceed);
+                }
+
                 let new_args = RunArgs {
                     origin: args.origin,
                     caller: args.address,
@@ -1072,7 +1080,6 @@ fn create_internal(args: &RunArgs, machine: &mut Machine, state: &mut State, run
     machine.set_ret_bytes(vec![]);
 
     if state.get_balance(args.caller) < args.value || 
-        args.code.len() > limit::INIT_CODE_SIZE ||
         args.depth > limit::DEPTH_SIZE || 
         state.get_nonce(args.caller) >= U256::from(u64::MAX) {
         return machine.stack.push(U256::zero());

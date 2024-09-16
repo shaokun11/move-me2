@@ -27,12 +27,12 @@ module aptos_framework::evm_test {
     public fun test_run() {
 
         let from = x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b";
-        let to = x"095e7baea6a6c7c4c2dfeb977efac326af552d87";
+        let to = x"bbbf5374fce5edbc8e2a8697c15331677e6ebf0b";
         let data = x"";
-        let env = vector[u256_to_data(0x0a),x"2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",u256_to_data(0x020000),u256_to_data(0x00),u256_to_data(0x05f5e100),u256_to_data(0x01),x"0000000000000000000000000000000000000000000000000000000000020000",u256_to_data(0x03e8)];
-        let gas_limit = u256_to_data(0x989680);
+        let env = vector[u256_to_data(0x0a),x"b94f5374fce5edbc8e2a8697c15331677e6ebf0b",u256_to_data(0x020000),u256_to_data(0x00),u256_to_data(0x0200999600),u256_to_data(0x01),x"0000000000000000000000000000000000000000000000000000000000020000",u256_to_data(0x03e8)];
+        let gas_limit = u256_to_data(0x0ee6b280);
         let gas_price = vector[u256_to_data(0x0a)];
-        let value = u256_to_data(0x0186a0);
+        let value = u256_to_data(0x0a);
         let tx_type = 1;
 
         let storage_maps = simple_map::new<vector<u8>, simple_map::SimpleMap<vector<u8>, vector<u8>>>();
@@ -45,9 +45,9 @@ module aptos_framework::evm_test {
         
 
 
-        let addresses = vector[x"095e7baea6a6c7c4c2dfeb977efac326af552d87", x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b"];
-        let balance_table = vector[0x01312d00, 0x0de0b6b3a7640000];
-        let codes = vector[x"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff600052611234602052604060006020600060006004610258f15060205160005500", x""];
+        let addresses = vector[x"a94f5374fce5edbc8e2a8697c15331677e6ebf0b", x"bbbf5374fce5edbc8e2a8697c15331677e6ebf0b"];
+        let balance_table = vector[0xffffffffffffffffffffffffffffffff, 0x0fffffffffffff];
+        let codes = vector[x"", x"5b6103e8608051101560235761c35060006001f06000556001608051016080526000565b60805160015500"];
         let nonce_table = vector[0x00, 0x00];
         let i = 0;
         let balances = vector::empty<vector<u8>>();
