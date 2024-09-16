@@ -1031,7 +1031,11 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                     return Err(ExecutionError::StaticStateChange);
                 }
     
-                let _data = machine.memory.get(offset.as_usize(), size.as_usize());
+                let _data = if size == U256::zero() {
+                    vec![]
+                } else {
+                    machine.memory.get(u256_to_usize(offset)?, u256_to_usize(size)?)
+                };
                 //state.add_log(args.address, vec![], data);
                 Ok(())
             }
@@ -1044,7 +1048,11 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                     return Err(ExecutionError::StaticStateChange);
                 }
     
-                let _data = machine.memory.get(offset.as_usize(), size.as_usize());
+                let _data = if size == U256::zero() {
+                    vec![]
+                } else {
+                    machine.memory.get(u256_to_usize(offset)?, u256_to_usize(size)?)
+                };
                 // state.add_log(args.address, vec![topic1], data);
                 Ok(())
             }
@@ -1058,7 +1066,11 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                     return Err(ExecutionError::StaticStateChange);
                 }
     
-                let _data = machine.memory.get(offset.as_usize(), size.as_usize());
+                let _data = if size == U256::zero() {
+                    vec![]
+                } else {
+                    machine.memory.get(u256_to_usize(offset)?, u256_to_usize(size)?)
+                };
                 // state.add_log(args.address, vec![topic1, topic2], data);
                 Ok(())
             }
@@ -1073,7 +1085,11 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                     return Err(ExecutionError::StaticStateChange);
                 }
     
-                let _data = machine.memory.get(offset.as_usize(), size.as_usize());
+                let _data = if size == U256::zero() {
+                    vec![]
+                } else {
+                    machine.memory.get(u256_to_usize(offset)?, u256_to_usize(size)?)
+                };
                 // state.add_log(args.address, vec![topic1, topic2, topic3], data);
                 Ok(())
             }
@@ -1089,7 +1105,11 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                     return Err(ExecutionError::StaticStateChange);
                 }
     
-                let _data = machine.memory.get(offset.as_usize(), size.as_usize());
+                let _data = if size == U256::zero() {
+                    vec![]
+                } else {
+                    machine.memory.get(u256_to_usize(offset)?, u256_to_usize(size)?)
+                };
                 // state.add_log(args.address, vec![topic1, topic2, topic3, topic4], data);
                 Ok(())
             },
