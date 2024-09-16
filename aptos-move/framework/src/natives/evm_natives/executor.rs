@@ -1,5 +1,5 @@
 
-use std::u64;
+use std::{cmp, u64};
 
 use crate::{log_debug, natives::evm_natives::{
     arithmetic, constants::{gas_cost, limit, CallResult, TxResult, TxType}, gas::{calc_exec_gas, max_call_gas}, machine::Machine, precompile::{is_precompile_address, run_precompile}, runtime::Runtime, state::State, types::{Environment, ExecutionError, FrameType, Opcode, RunArgs, TransactArgs}, utils::{h160_to_u256, u256_to_bytes}
@@ -266,9 +266,7 @@ fn execute(state: &mut State, runtime: &mut Runtime, env: &Environment, call_fra
                             }
                             FrameType::SubCall => {
                                 machine.stack.push(U256::one())?;
-                                if value.len() > 0 {
-                                    machine.memory.copy_large(machine.ret_pos, U256::zero(), machine.ret_len, &value)?;
-                                }
+                                machine.memory.copy_large(machine.ret_pos, U256::zero(), std::cmp::min(machine.ret_len, U256::from(value.len())), &value)?;
                                 machine.set_ret_bytes(value);
                                 handle_commit(state, runtime);
                             }
@@ -896,7 +894,7 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                     let (call_result, bytes) = precompile(&new_args, runtime, state, call_gas_limit, transfer_eth, code_address);
                     output = if call_result == CallResult::Success {
                         machine.set_ret_bytes(bytes.clone());
-                        machine.memory.copy_large(ret_pos, U256::zero(), ret_len, &bytes)?;
+                        machine.memory.copy_large(ret_pos, U256::zero(), std::cmp::min(ret_len, U256::from(bytes.len())), &bytes)?;
                         U256::one()
                     } else {
                         U256::zero()

@@ -44,7 +44,7 @@ fn ecrecover(data: &[u8]) -> (CallResult, u64, Vec<u8>) {
 
     // Check if the input is valid
     if input[32..63] != [0u8; 31] || ![27, 28].contains(&input[63]) {
-        return (CallResult::Success, COST_BASE, vec![0u8; 32]);
+        return (CallResult::Success, COST_BASE, vec![]);
     }
 
     let mut msg = [0u8; 32];
@@ -59,27 +59,27 @@ fn ecrecover(data: &[u8]) -> (CallResult, u64, Vec<u8>) {
     let msg = match libsecp256k1::Message::parse_slice(&msg) {
         Ok(msg) => msg,
         Err(_) => {
-            return (CallResult::Success, COST_BASE, vec![0u8; 32])
+            return (CallResult::Success, COST_BASE, Vec::new())
         },
     };
 
     // NOTE(Gas): O(1) cost
     let rid = match libsecp256k1::RecoveryId::parse(input[63] - 27) {
         Ok(rid) => rid,
-        Err(_) => return (CallResult::Success, COST_BASE, vec![0u8; 32]),
+        Err(_) => return (CallResult::Success, COST_BASE, Vec::new()),
     };
 
     // NOTE(Gas): O(1) deserialization cost
     // which seems to be 64 bytes, so O(1) cost for all intents and purposes.
     let signature = match libsecp256k1::Signature::parse_standard_slice(&sig) {
         Ok(sig) => sig,
-        Err(_) => return (CallResult::Success, COST_BASE, vec![0u8; 32])
+        Err(_) => return (CallResult::Success, COST_BASE, Vec::new())
     };
 
     // NOTE(Gas): O(1) cost: a size-2 multi-scalar multiplication
     let pubkey = match libsecp256k1::recover(&msg, &signature, &rid) {
         Ok(pk) => pk,
-        Err(_) => return (CallResult::Success, COST_BASE, vec![0u8; 32])
+        Err(_) => return (CallResult::Success, COST_BASE, Vec::new())
     };
 
     // Compute the Ethereum address from the public key
@@ -335,33 +335,25 @@ fn ecadd(input: &[u8], gas_limit: u64) -> (CallResult, u64, Vec<u8>) {
         return (CallResult::OutOfGas, 0, Vec::new());
     }
 
-    let expected_len = 128;
-    let mut padded_input = vec![0u8; expected_len];
-    let len = std::cmp::min(input.len(), expected_len);
-    padded_input[..len].copy_from_slice(&input[..len]);
+    let p1 = read_point(&input, 0);
+    let p2 = read_point(&input, 64);
 
-    // Parse the input into two points
-    let p1 = match read_point(&padded_input, 0) {
-        Ok(point) => point,
-        Err(e) => return (e, 0, Vec::new()),
-    };
+    if !p1.is_ok() || !p2.is_ok() {
+        return (CallResult::Exception, 0, Vec::new())
+    }
 
-    let p2 = match read_point(&padded_input, 64) {
-        Ok(point) => point,
-        Err(e) => return (e, 0, Vec::new()),
-    };
+    let mut buf = [0u8; 64];
+    if let Some(sum) = AffineG1::from_jacobian(p1.unwrap() + p2.unwrap()) {
+    // point not at infinity
+        if let Err(_) = sum.x().to_big_endian(&mut buf[0..32]) {
+            return (CallResult::Exception, 0, Vec::new())
+        }
+        if let Err(_) = sum.y().to_big_endian(&mut buf[32..64]) {
+            return (CallResult::Exception, 0, Vec::new())
+        }
+    }
 
-    // Perform the addition
-    let result = match AffineG1::from_jacobian(p1 + p2) {
-        Some(res) => res,
-        None => return (CallResult::Exception, 0, Vec::new()),
-    };
-    // Encode the result
-    let mut output = vec![0u8; 64];
-    result.x().to_big_endian(&mut output[0..32]).unwrap();
-    result.y().to_big_endian(&mut output[32..64]).unwrap();
-
-    (CallResult::Success, ECADD_GAS, output)
+    (CallResult::Success, ECADD_GAS, buf.to_vec())
 }
 
 fn ecmul(input: &[u8], gas_limit: u64) -> (CallResult, u64, Vec<u8>) {
@@ -369,35 +361,25 @@ fn ecmul(input: &[u8], gas_limit: u64) -> (CallResult, u64, Vec<u8>) {
         return (CallResult::OutOfGas, 0, Vec::new());
     }
 
-    let expected_len = 96;
-    let mut padded_input = vec![0u8; expected_len];
-    let len = std::cmp::min(input.len(), expected_len);
-    padded_input[..len].copy_from_slice(&input[..len]);
+    let p = read_point(&input, 0);
+    let fr = read_fr(&input, 64);
 
-    // Parse the input point
-    let p = match read_point(&padded_input, 0) {
-        Ok(point) => point,
-        Err(e) => return (e, 0, Vec::new()),
-    };
+    if !p.is_ok() || !fr.is_ok() {
+        return (CallResult::Exception, 0, Vec::new())
+    }
 
-    // Parse the scalar
-    let scalar = match read_fr(&padded_input, 64) {
-        Ok(s) => s,
-        Err(e) => return (e, 0, Vec::new()),
-    };
+    let mut buf = [0u8; 64];
+    if let Some(sum) = AffineG1::from_jacobian(p.unwrap() * fr.unwrap()) {
+    // point not at infinity
+        if let Err(_) = sum.x().to_big_endian(&mut buf[0..32]) {
+            return (CallResult::Exception, 0, Vec::new())
+        }
+        if let Err(_) = sum.y().to_big_endian(&mut buf[32..64]) {
+            return (CallResult::Exception, 0, Vec::new())
+        }
+    }
 
-    // Perform the scalar multiplication
-    let result = match AffineG1::from_jacobian(p * scalar) {
-        Some(res) => res,
-        None => return (CallResult::Exception, 0, Vec::new()),
-    };
-
-    // Encode the result
-    let mut output = vec![0u8; 64];
-    result.x().to_big_endian(&mut output[0..32]).unwrap();
-    result.y().to_big_endian(&mut output[32..64]).unwrap();
-
-    (CallResult::Success, ECMUL_GAS, output)
+    (CallResult::Success, ECMUL_GAS, buf.to_vec())
 }
 
 fn ecpairing(input: &[u8], gas_limit: u64) -> (CallResult, u64, Vec<u8>) {
