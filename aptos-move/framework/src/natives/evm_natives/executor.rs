@@ -933,7 +933,6 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                     Vec::new() // 如果转换失败，init_code 为空
                 };
     
-                let init_code = machine.memory.get(offset.as_usize(), size.as_usize());
                 let new_address = get_contract_address(args.address, state.get_nonce(args.address));
     
                 let new_args = RunArgs {
