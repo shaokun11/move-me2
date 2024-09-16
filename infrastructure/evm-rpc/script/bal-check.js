@@ -43,11 +43,21 @@ const evm_sender = {
         "0x0d8eada04779c748a2f5c1403c83ef550c10571cf322f6e6c66680d2cac02356",
         "0xff4912c74bbf608c542e21769d7004ae295c40e2badf4e994e8528b823867aaa",
         "0xa180d7d7fb9f00e60a610041fb0e6213c6932d12f6f16d9d1f58cbc178f7d475",
+        "0xf27bfe035a6607debfa055772758e324100146db7967c9c1152bb90c4c904a81",
+        "0x14c170f445c9f21a48b778364701793437c3d5a72dfcf377bbebb2f5b8dd1141",
+        "0x91cfa9ed4cf561a1186426e753b61e5b6d62fdecb13049d269a6673cb65c0f1e",
+        "0x6bf5125f632d9cb538266ec7ed97488a9e918f829e649885f4a71fbcb0ad3922",
+        "0x9f37a2c3707f7705deaacc88ed81b970087fac6ccb8916b0c13af25a840fe3d9",
+        "0xe353b0472ff6aaf104d678b29c35f8b844879ae0233a099e6fb43e2fbb6a1360",
+        "0xa3dbe553979bd346c520792dc81c91dc25856e344f3ab2e8522b204cb35a89d5",
+        "0x670c8a19ee19a48abd4a795237b60960ec642e018c325c2b8421f9ce3fcb0521",
+        "0x0639a5bfe22e8c13a2b5470570d9e3c09b4d86c56f81544632d9d10c26dad955",
+        "0xd118dcf83cbda0ca5ad45af14e9e03e931b5f2537bd487b8305be69e5ac1cf26",
         /**********        for sync node-1 sender                          */
         '0xdaee19bf07c589088947f5aaeeb2ac83755c60e8abcee84696be50a6c90aa4b5',
         '0x4ff4cfeacf38acec73e9a31e2cf17f607ca867606468cd54f01eb5fe04c111fb',
     ],
-    threshold: 100 * 1e8,
+    threshold: 1000 * 1e8,
     amount: 10000 * 1e8,
 };
 
@@ -56,7 +66,7 @@ const faucet_sender = {
         '0xa4ca13309eb1b74344928a3ba008ce2cba9dacaac2354a83cd2021f4a78ce455', // base node 1 evm
         '0x43f1fa2559bb529ea189b4d582532306be79a5fe7b33a4f1fffc29b33aa18e42', // move
     ],
-    threshold: 100 * 1e8,
+    threshold: 1000 * 1e8,
     amount: 100000 * 1e8,
 };
 
@@ -64,7 +74,7 @@ const bot_sender = {
     sender: [
         '0x84c0c08fa39d89989dc7a790ef97add425e82e203d4a2e1c19630d66b5d37d1a', // for move bot
     ],
-    threshold: 100 * 1e8,
+    threshold: 1000 * 1e8,
     amount: 10000 * 1e8,
 };
 const url = 'http://localhost:8080';
