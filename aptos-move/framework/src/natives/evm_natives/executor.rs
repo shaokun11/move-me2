@@ -1,8 +1,14 @@
 
-use std::{cmp, u64};
-
 use crate::{log_debug, natives::evm_natives::{
-    arithmetic, constants::{gas_cost, limit, CallResult, TxResult, TxType}, gas::{calc_exec_gas, max_call_gas}, machine::Machine, precompile::{is_precompile_address, run_precompile}, runtime::Runtime, state::State, types::{Environment, ExecutionError, FrameType, Opcode, RunArgs, TransactArgs}, utils::{h160_to_u256, u256_to_bytes}
+    arithmetic,
+    constants::{gas_cost, limit, CallResult, TxResult, TxType},
+    gas::{calc_exec_gas, max_call_gas}, 
+    machine::Machine, 
+    precompile::{is_precompile_address, run_precompile}, 
+    runtime::Runtime, 
+    state::State, 
+    types::{Environment, ExecutionError, FrameType, Opcode, RunArgs, TransactArgs}, 
+    utils::{h160_to_u256, u256_to_bytes, u256_to_usize}
 }};
 
 use primitive_types::{H160, U256};
@@ -851,15 +857,29 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                 if gas_stipend > 0 {
                     runtime.add_gas_left(gas_stipend);
                 };
-                let m_pos = pop_stack!(machine.stack);
-                let m_len = pop_stack!(machine.stack);
-                let ret_pos = pop_stack!(machine.stack);
-                let ret_len = pop_stack!(machine.stack);
-    
-                let m_pos_usize: usize = m_pos.try_into().map_err(|_| ExecutionError::ConversionError)?;
-                let m_len_usize: usize = m_len.try_into().map_err(|_| ExecutionError::ConversionError)?;
-    
-                let params = machine.memory.get(m_pos_usize, m_len_usize);
+
+                let in_offset = pop_stack!(machine.stack);
+                let in_len = pop_stack!(machine.stack);
+                let out_offset = pop_stack!(machine.stack);
+                let out_len = pop_stack!(machine.stack);
+                let in_end = in_offset
+                    .checked_add(in_len)
+                    .ok_or(ExecutionError::InvalidRange)?;
+                let out_end = out_offset
+                    .checked_add(out_len)
+                    .ok_or(ExecutionError::InvalidRange)?;
+
+                let in_offset_len = if in_len == U256::zero() {
+                    None
+                } else {
+                    Some((u256_to_usize(in_offset)?, u256_to_usize(in_len)?))
+                };
+
+                machine.memory.resize_end(std::cmp::max(in_end, out_end))?;
+
+                let input = in_offset_len
+                .map(|(in_offset, in_len)| machine.memory.get(in_offset, in_len))
+                .unwrap_or(Vec::new());
                 let code_address = evm_dest_addr;
                 let (call_from, call_to) = match opcode {
                     Opcode::CALL | Opcode::STATICCALL => (args.address, evm_dest_addr),
@@ -883,7 +903,7 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                     address: call_to,
                     value: msg_value,
                     code: dest_code,
-                    data: params,
+                    data: input,
                     gas_price: args.gas_price,
                     is_create: false,
                     transfer_eth,
@@ -894,15 +914,15 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                     let (call_result, bytes) = precompile(&new_args, runtime, state, call_gas_limit, transfer_eth, code_address);
                     output = if call_result == CallResult::Success {
                         machine.set_ret_bytes(bytes.clone());
-                        machine.memory.copy_large(ret_pos, U256::zero(), std::cmp::min(ret_len, U256::from(bytes.len())), &bytes)?;
+                        machine.memory.copy_large(out_offset, U256::zero(), std::cmp::min(out_len, U256::from(bytes.len())), &bytes)?;
                         U256::one()
                     } else {
                         U256::zero()
                     }
     
                 } else if is_contract_call {
-                    machine.ret_pos = ret_pos;
-                    machine.ret_len = ret_len;
+                    machine.ret_pos = out_offset;
+                    machine.ret_len = out_len;
                     if new_args.depth > limit::DEPTH_SIZE || state.get_balance(new_args.caller) < new_args.value {
                         output = U256::zero()
                     } else {

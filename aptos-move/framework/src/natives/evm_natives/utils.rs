@@ -1,4 +1,5 @@
 use primitive_types::{H160, U256};
+use crate::natives::evm_natives::types::ExecutionError;
 
 #[macro_export]
 macro_rules! log_debug {
@@ -46,4 +47,11 @@ pub fn u256_to_address(value: U256) -> H160 {
 pub fn bytes_to_h160(bytes: &Vec<u8>) -> H160 {
 	let end_slice = &bytes[bytes.len() - 20..];
     H160::from_slice(end_slice)
+}
+
+pub fn u256_to_usize(v: U256) -> Result<usize, ExecutionError> {
+	if v > U256::from(usize::MAX) {
+		return Err(ExecutionError::ConversionError);
+	}
+	Ok(v.as_usize())
 }
