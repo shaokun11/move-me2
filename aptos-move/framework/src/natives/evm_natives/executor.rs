@@ -11,6 +11,7 @@ use crate::{log_debug, natives::evm_natives::{
     utils::{h160_to_u256, u256_to_bytes, u256_to_usize}
 }};
 
+use move_vm_runtime::data_cache::TransactionDataCache;
 use primitive_types::{H160, U256};
 use ethers::utils::{get_contract_address, get_create2_address, keccak256};
 
@@ -43,7 +44,7 @@ fn calc_base_cost(data: &[u8], access_list_address_len: u64, access_list_slot_le
 }
 
 
-pub fn new_tx(state: &mut State, run_args: RunArgs, tx_args: &TransactArgs, env: &Environment, tx_type: TxType, access_list_address_len: u64, access_list_slot_len: u64) -> TxResult {
+pub fn new_tx(state: &mut State, data_cache: Option<&mut TransactionDataCache>, run_args: RunArgs, tx_args: &TransactArgs, env: &Environment, tx_type: TxType, access_list_address_len: u64, access_list_slot_len: u64) -> TxResult {
     
     let mut runtime = Runtime::new();
     runtime.new_checkpoint(tx_args.gas_limit.as_u64(), false);

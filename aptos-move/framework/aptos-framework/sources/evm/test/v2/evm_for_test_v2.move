@@ -5,13 +5,15 @@ module aptos_framework::evm_for_test_v2 {
     use aptos_framework::event;
     use aptos_std::debug;
     use aptos_framework::evm_util::to_u256;
+    use aptos_framework::evm_storage::AccountStorage;
 
     const TX_TYPE_NORMAL: u8 = 1;
     const TX_TYPE_1559: u8 = 2;
 
     #[event]
     struct ExecResultEvent has drop, store {
-        state_root: vector<u8>
+        state_root: vector<u8>,
+        execute_time: u256
     }
 
     public fun pre_init(addresses: vector<vector<u8>>,
@@ -71,9 +73,10 @@ module aptos_framework::evm_for_test_v2 {
     }
 
 
-    fun emit_event(state_root: vector<u8>) {
+    fun emit_event(state_root: vector<u8>, execute_time: u256) {
         event::emit(ExecResultEvent {
-            state_root
+            state_root,
+            execute_time
         });
 
     }
@@ -99,16 +102,16 @@ module aptos_framework::evm_for_test_v2 {
         let value = to_u256(value_bytes);
         let gas_price;
         let env = parse_env(&env_data);
-        let result;
+        let (result, execute_time);
         if(tx_type == TX_TYPE_NORMAL) {
             gas_price = to_u256(*vector::borrow(&gas_price_data, 0));
-            result = evm_context_v2::execute_tx(env, from, to, value, data, gas_limit, gas_price, 0, 0, address_list_address_len, access_list_slot_len, tx_type);
+            (result, execute_time) = evm_context_v2::execute_tx(env, from, to, value, data, gas_limit, gas_price, 0, 0, address_list_address_len, access_list_slot_len, tx_type);
         } else {
             gas_price = get_base_fee_per_gas(&env) + to_u256(*vector::borrow(&gas_price_data, 1));
             let max_fee_per_gas = to_u256(*vector::borrow(&gas_price_data, 0));
             let max_priority_fee_per_gas = to_u256(*vector::borrow(&gas_price_data, 1));
             gas_price = if(gas_price > max_fee_per_gas) max_fee_per_gas else gas_price;
-            result = evm_context_v2::execute_tx(env, from, to, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_fee_per_gas, address_list_address_len, access_list_slot_len, tx_type);
+            (result, execute_time) = evm_context_v2::execute_tx(env, from, to, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_fee_per_gas, address_list_address_len, access_list_slot_len, tx_type);
         };
 
         assert!(result < 300, result);
@@ -116,6 +119,7 @@ module aptos_framework::evm_for_test_v2 {
         let state_root = evm_context_v2::calculate_root();
         // let exec_cost = gas_usage - base_cost;
         debug::print(&state_root);
-        emit_event(state_root);
+        debug::print(&execute_time);
+        emit_event(state_root, execute_time);
     }
 }

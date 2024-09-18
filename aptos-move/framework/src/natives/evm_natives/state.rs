@@ -13,6 +13,10 @@ use primitive_types::{H160, H256, U256};
 use ethers::utils::keccak256;
 use crate::log_debug;
 
+use move_core_types::account_address::AccountAddress;
+use move_vm_types::loaded_data::runtime_types::Type;
+
+
 fn rlp_encode(balance: U256, code: Vec<u8>, nonce: U256, storage_root: H256) -> Vec<u8> {
 	let mut stream = RlpStream::new_list(4);
 	let code_hash = keccak256(&code).to_vec();
@@ -22,6 +26,7 @@ fn rlp_encode(balance: U256, code: Vec<u8>, nonce: U256, storage_root: H256) -> 
 	stream.append(&code_hash);
 	stream.out().to_vec()
 }
+
 
 fn calculate_storage_root(storages: &BTreeMap<U256, U256>) -> H256 {
 	let mut m = HashMap::new();
@@ -38,17 +43,18 @@ fn calculate_storage_root(storages: &BTreeMap<U256, U256>) -> H256 {
 	H256::from_slice(&trie::build(&m).0)
 }
 
-#[derive(Default, Debug)]
+#[derive(Default)]
 pub struct State {
-	substate: Box<Substate>,
+    substate: Box<Substate>,
     accessed: BTreeSet<(H160, Option<U256>)>,
+	storage_type: Option<Type>,
 }
-
 impl State {
 	pub fn new() -> Self {
         Self {
             substate: Box::new(Substate::new()),
-            accessed: BTreeSet::new()
+            accessed: BTreeSet::new(),
+			storage_type: None
         }
     }
 
@@ -66,6 +72,13 @@ impl State {
 			self.set_balance(contract, balance);
 			self.set_nonce(contract, nonce);
 		}
+	}
+
+	pub fn set_storage_type(
+		&mut self,
+		storage_type: Type
+	) {
+		self.storage_type = Some(storage_type);
 	}
 
 	pub fn set_code (
@@ -433,7 +446,7 @@ impl State {
 
 }
 
-#[derive(Default, Debug)]
+#[derive(Default)]
 struct Substate {
     parent: Option<Box<Substate>>,
     balances: BTreeMap<H160, U256>,

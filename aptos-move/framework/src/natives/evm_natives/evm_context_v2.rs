@@ -1,5 +1,9 @@
 use crate::{log_debug, natives::evm_natives::{
-    constants::TxType, executor::new_tx, state::State, types::{Environment, RunArgs, TransactArgs}, utils::bytes_to_h160
+    constants::TxType,
+    executor::new_tx, 
+    state::State,
+    types::{Environment, RunArgs, TransactArgs}, 
+    utils::bytes_to_h160
 }};
 
 use aptos_native_interface::{
@@ -9,26 +13,27 @@ use move_vm_types::{
     loaded_data::runtime_types::Type,
     values::{Value, Struct}
 };
+use move_vm_runtime::data_cache::TransactionDataCache;
 use move_vm_runtime::native_functions::NativeFunction;
+use move_vm_runtime::native_functions::NativeContext;
 use smallvec::{smallvec, SmallVec};
 use move_core_types::u256::U256 as move_u256;
 use primitive_types::{H160, U256};
-use better_any::{Tid, TidAble};
 use std::collections::VecDeque;
 use ethers::utils::get_contract_address;
 use std::time::Instant;
 
+use better_any::{Tid, TidAble};
 
-/// Cached emitted module events.
 #[derive(Default, Tid)]
 pub struct NativeEvmContext {
-    state: State
+    pub state: State,
 }
 
-impl NativeEvmContext {
+impl<'a> NativeEvmContext {
     pub fn new() -> Self {
         Self {
-            state: State::new()
+            state: State::new(),
         }
     }
 }
@@ -157,7 +162,7 @@ fn parse_env(env_data: Struct) -> Environment {
 
 fn native_execute_tx(
     context: &mut SafeNativeContext,
-    _ty_args: Vec<Type>,
+    mut _ty_args: Vec<Type>,
     mut args: VecDeque<Value>,
 ) -> SafeNativeResult<SmallVec<[Value; 1]>> {
     let tx_type = safely_pop_arg!(args, u8);
@@ -173,21 +178,33 @@ fn native_execute_tx(
     let from = safely_pop_arg!(args, Vec<u8>);
     let env_data = safely_pop_arg!(args, Struct);
 
-
+    // let type_ = ty_args.pop().unwrap();
     let env = parse_env(env_data);
+
+    // let ctx_state = &mut State::new();
+
+    // 现在可以安全地获取 `data_store_mut`
+    // let data_store = context.data_store_mut(); // `extensions` 的可变借用在此结束
+
+    // 现在可以安全地获取 `data_store`
+    // let data_store = context.data_store();
+ 
+    let ctx_state = &mut context.extensions_mut().get_mut::<NativeEvmContext>().state;// 获取 data_cache 的可变引用
     let code;
-    let ctx = context.extensions_mut().get_mut::<NativeEvmContext>();
+
+    // let ctx_state = &mut extensions.get_mut::<NativeEvmContext>().state;
+    // drop(extensions);
+
     let caller = H160::from_slice(&from);
     let (is_create, address, calldata) = if to.len() == 0 {
         code = data.clone();
-        (true, get_contract_address(caller, ctx.state.get_nonce(caller)), vec![])
+        (true, get_contract_address(caller, ctx_state.get_nonce(caller)), vec![])
     } else {
         let addr = H160::from_slice(&to);
-        code = ctx.state.get_code(addr);
+        code = ctx_state.get_code(addr);
          
         (false, addr, data)
     };
-    
 
     let run_args = RunArgs {
         origin: caller,
@@ -211,12 +228,16 @@ fn native_execute_tx(
 
     let start_time = Instant::now();
 
-    let result = new_tx(&mut ctx.state, run_args, &tx_args, &env, TxType::from(tx_type), access_list_address_len, access_list_slot_len);
+    let result = new_tx(ctx_state, None, run_args, &tx_args, &env, TxType::from(tx_type), access_list_address_len, access_list_slot_len);
     log_debug!("result {:?}", result);
-
-    log_debug!("run time: {:?}", start_time.elapsed());
+    let elapsed = start_time.elapsed();
+    log_debug!("run time: {:?}", elapsed);
+    let total_nanos = elapsed.as_secs()
+        .saturating_mul(1_000_000_000)
+        .saturating_add(u64::from(elapsed.subsec_nanos()));
+    let elapsed_u256 = move_u256::from(total_nanos);
     
-    Ok(smallvec![Value::u64(result as u64)])
+    Ok(smallvec![Value::u64(result as u64), Value::u256(elapsed_u256)])
 }
 
 

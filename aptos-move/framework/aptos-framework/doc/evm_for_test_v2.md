@@ -44,6 +44,12 @@
 <dd>
 
 </dd>
+<dt>
+<code>execute_time: u256</code>
+</dt>
+<dd>
+
+</dd>
 </dl>
 
 
@@ -154,7 +160,7 @@
 
 
 
-<pre><code><b>fun</b> <a href="evm_for_test_v2.md#0x1_evm_for_test_v2_emit_event">emit_event</a>(state_root: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)
+<pre><code><b>fun</b> <a href="evm_for_test_v2.md#0x1_evm_for_test_v2_emit_event">emit_event</a>(state_root: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, execute_time: u256)
 </code></pre>
 
 
@@ -163,9 +169,10 @@
 <summary>Implementation</summary>
 
 
-<pre><code><b>fun</b> <a href="evm_for_test_v2.md#0x1_evm_for_test_v2_emit_event">emit_event</a>(state_root: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;) {
+<pre><code><b>fun</b> <a href="evm_for_test_v2.md#0x1_evm_for_test_v2_emit_event">emit_event</a>(state_root: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, execute_time: u256) {
     <a href="event.md#0x1_event_emit">event::emit</a>(<a href="evm_for_test_v2.md#0x1_evm_for_test_v2_ExecResultEvent">ExecResultEvent</a> {
-        state_root
+        state_root,
+        execute_time
     });
 
 }
@@ -211,16 +218,16 @@
     <b>let</b> value = to_u256(value_bytes);
     <b>let</b> gas_price;
     <b>let</b> env = parse_env(&env_data);
-    <b>let</b> result;
+    <b>let</b> (result, execute_time);
     <b>if</b>(tx_type == <a href="evm_for_test_v2.md#0x1_evm_for_test_v2_TX_TYPE_NORMAL">TX_TYPE_NORMAL</a>) {
         gas_price = to_u256(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&gas_price_data, 0));
-        result = <a href="evm_context_v2.md#0x1_evm_context_v2_execute_tx">evm_context_v2::execute_tx</a>(env, from, <b>to</b>, value, data, gas_limit, gas_price, 0, 0, address_list_address_len, access_list_slot_len, tx_type);
+        (result, execute_time) = <a href="evm_context_v2.md#0x1_evm_context_v2_execute_tx">evm_context_v2::execute_tx</a>(env, from, <b>to</b>, value, data, gas_limit, gas_price, 0, 0, address_list_address_len, access_list_slot_len, tx_type);
     } <b>else</b> {
         gas_price = get_base_fee_per_gas(&env) + to_u256(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&gas_price_data, 1));
         <b>let</b> max_fee_per_gas = to_u256(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&gas_price_data, 0));
         <b>let</b> max_priority_fee_per_gas = to_u256(*<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&gas_price_data, 1));
         gas_price = <b>if</b>(gas_price &gt; max_fee_per_gas) max_fee_per_gas <b>else</b> gas_price;
-        result = <a href="evm_context_v2.md#0x1_evm_context_v2_execute_tx">evm_context_v2::execute_tx</a>(env, from, <b>to</b>, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_fee_per_gas, address_list_address_len, access_list_slot_len, tx_type);
+        (result, execute_time) = <a href="evm_context_v2.md#0x1_evm_context_v2_execute_tx">evm_context_v2::execute_tx</a>(env, from, <b>to</b>, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_fee_per_gas, address_list_address_len, access_list_slot_len, tx_type);
     };
 
     <b>assert</b>!(result &lt; 300, result);
@@ -228,7 +235,7 @@
     <b>let</b> state_root = <a href="evm_context_v2.md#0x1_evm_context_v2_calculate_root">evm_context_v2::calculate_root</a>();
     // <b>let</b> exec_cost = gas_usage - base_cost;
     <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&state_root);
-    <a href="evm_for_test_v2.md#0x1_evm_for_test_v2_emit_event">emit_event</a>(state_root);
+    <a href="evm_for_test_v2.md#0x1_evm_for_test_v2_emit_event">emit_event</a>(state_root, execute_time);
 }
 </code></pre>
 

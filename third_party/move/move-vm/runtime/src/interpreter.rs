@@ -56,7 +56,7 @@ macro_rules! set_err_info {
 ///
 /// An `Interpreter` instance is a stand alone execution context for a function.
 /// It mimics execution on a single thread, with an call stack and an operand stack.
-pub(crate) struct Interpreter {
+pub struct Interpreter {
     /// Operand stack, where Move `Value`s are stored for stack operations.
     operand_stack: Stack,
     /// The stack of active functions.

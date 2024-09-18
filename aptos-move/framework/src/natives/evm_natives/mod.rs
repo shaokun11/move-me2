@@ -3,7 +3,6 @@
 
 pub mod evm;
 pub mod evm_for_test;
-pub mod evm_context;
 pub mod evm_context_v2;
 pub mod evm_hash_map;
 pub mod evm_arithmetic;

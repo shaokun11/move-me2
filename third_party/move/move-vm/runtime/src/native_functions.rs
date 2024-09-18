@@ -18,7 +18,7 @@ use move_core_types::{
     vm_status::StatusCode,
 };
 use move_vm_types::{
-    loaded_data::runtime_types::Type, natives::function::NativeResult, values::Value,
+    loaded_data::runtime_types::Type, natives::function::NativeResult, values::{GlobalValue, Value},
 };
 use std::{
     collections::{HashMap, VecDeque},
@@ -94,11 +94,11 @@ impl NativeFunctions {
 }
 
 pub struct NativeContext<'a, 'b, 'c> {
-    interpreter: &'a mut Interpreter,
-    data_store: &'a mut TransactionDataCache<'c>,
-    resolver: &'a Resolver<'a>,
-    extensions: &'a mut NativeContextExtensions<'b>,
-    gas_balance: InternalGas,
+    pub interpreter: &'a mut Interpreter,
+    pub data_store: &'a mut TransactionDataCache<'c>,
+    pub resolver: &'a Resolver<'a>,
+    pub extensions: &'a mut NativeContextExtensions<'b>,
+    pub gas_balance: InternalGas,
 }
 
 impl<'a, 'b, 'c> NativeContext<'a, 'b, 'c> {
@@ -124,6 +124,22 @@ impl<'a, 'b, 'c> NativeContext<'a, 'b, 'c> {
         self.interpreter
             .debug_print_stack_trace(buf, self.resolver.loader())
     }
+
+    pub fn load_resource(
+        &mut self,
+        address: AccountAddress,
+        type_: &Type,
+    ) -> VMResult<(&mut GlobalValue, Option<NumBytes>)> {
+        let (value, num_bytes) = self.data_store
+            .load_resource(
+                self.resolver.loader(),
+                address,
+                type_,
+                self.resolver.module_store(),
+            ).map_err(|err| err.finish(Location::Undefined))?;
+        Ok((value, num_bytes))
+    }
+
 
     pub fn exists_at(
         &mut self,
@@ -171,6 +187,10 @@ impl<'a, 'b, 'c> NativeContext<'a, 'b, 'c> {
 
     pub fn extensions_mut(&mut self) -> &mut NativeContextExtensions<'b> {
         self.extensions
+    }
+
+    pub fn data_store_mut(&mut self) -> &mut TransactionDataCache<'c> {
+        self.data_store
     }
 
     /// Get count stack frames, including the one of the called native function. This

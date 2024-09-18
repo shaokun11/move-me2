@@ -81,7 +81,7 @@ fn load_module_impl(
 /// The Move VM takes a `DataStore` in input and this is the default and correct implementation
 /// for a data store related to a transaction. Clients should create an instance of this type
 /// and pass it to the Move VM.
-pub(crate) struct TransactionDataCache<'r> {
+pub struct TransactionDataCache<'r> {
     remote: &'r dyn MoveResolver<PartialVMError>,
     account_map: BTreeMap<AccountAddress, AccountDataCache>,
 
@@ -199,7 +199,7 @@ impl<'r> TransactionDataCache<'r> {
     // Retrieves data from the local cache or loads it from the remote cache into the local cache.
     // All operations on the global data are based on this API and they all load the data
     // into the cache.
-    pub(crate) fn load_resource(
+    pub(crate) fn  load_resource(
         &mut self,
         loader: &Loader,
         addr: AccountAddress,
