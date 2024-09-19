@@ -81,7 +81,7 @@ fn load_module_impl(
 /// The Move VM takes a `DataStore` in input and this is the default and correct implementation
 /// for a data store related to a transaction. Clients should create an instance of this type
 /// and pass it to the Move VM.
-pub struct TransactionDataCache<'r> {
+pub(crate) struct TransactionDataCache<'r> {
     remote: &'r dyn MoveResolver<PartialVMError>,
     account_map: BTreeMap<AccountAddress, AccountDataCache>,
 

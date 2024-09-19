@@ -5,13 +5,17 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     vec::Vec,
 };
+use aptos_native_interface::SafeNativeContext;
 use ethers::utils::rlp::{RlpStream, Encodable};
 use std::collections::HashMap;
 use trie;
 use core::mem;
 use primitive_types::{H160, H256, U256};
+use move_core_types::u256::U256 as move_u256;
 use ethers::utils::keccak256;
 use crate::log_debug;
+use move_vm_types::values::{StructRef, Value, Reference};
+use aptos_table_natives::{NativeTableContext, get_table_handle};
 
 use move_core_types::account_address::AccountAddress;
 use move_vm_types::loaded_data::runtime_types::Type;
@@ -43,6 +47,68 @@ fn calculate_storage_root(storages: &BTreeMap<U256, U256>) -> H256 {
 	H256::from_slice(&trie::build(&m).0)
 }
 
+fn to_move_address(evm_address: H160) -> AccountAddress {
+	let mut padded_address = [0u8; 32];
+    padded_address[12..32].copy_from_slice(evm_address.as_bytes());
+	AccountAddress::from_bytes(padded_address).unwrap()
+}
+
+fn read_table(
+	state_ref: &StructRef,
+	key: Value,
+	context: &mut Option<&mut SafeNativeContext>
+) -> U256 {
+	if let Some(context) = context.as_deref_mut() {
+		let table_context = context.extensions().get::<NativeTableContext>();
+		let mut table_data = table_context.table_data.borrow_mut();
+		
+		let handle = match get_table_handle(state_ref) {
+			Ok(h) => h,
+			Err(err) => {
+				log_debug!("err1 {:?}", err);
+				return U256::zero()
+			},
+		};
+	
+		let table = match table_data.get_or_create_table(context, handle, &Type::U256, &Type::U256) {
+			Ok(t) => t,
+			Err(err) => {
+				log_debug!("err2 {:?}", err);
+				return U256::zero()
+			},
+		};
+	
+		let key_bytes = key.simple_serialize(&table.key_layout).unwrap_or_default();
+	
+		let (gv, _) = match table.get_or_create_global_value(table_context, key_bytes) {
+			Ok(v) => v,
+			Err(err) => {
+				log_debug!("err3 {:?}", err);
+				return U256::zero()
+			},
+		};
+
+		if !gv.exists().unwrap_or(false) {
+            return U256::zero();
+        }
+	
+		match gv.borrow_global() {
+			Ok(ref_val) => {
+				let slot_ref = ref_val.value_as::<StructRef>().unwrap();
+				return slot_ref.borrow_field(0).unwrap().value_as::<Reference>().unwrap().read_ref().unwrap().value_as::<move_u256>().unwrap().to_ethers_u256();
+			}
+			Err(err) => {
+				log_debug!("err4 {:?}", err);
+				return U256::zero()
+			},
+		}
+	} else {
+		return U256::zero()
+	}
+
+	
+}
+
 #[derive(Default)]
 pub struct State {
     substate: Box<Substate>,
@@ -58,14 +124,157 @@ impl State {
         }
     }
 
+	pub fn get_resource(
+		&self,
+		context: &mut Option<&mut SafeNativeContext>,
+		address: H160,
+	) -> Option<Value> {
+		if let Some(storage_type) = &self.storage_type {
+			if let Some(context) = context.as_deref_mut() {
+				let account_address = to_move_address(address);
+				match context.load_resource(account_address, storage_type) {
+					Ok((global_value, _)) => {
+						// 检查资源是否存在
+						if global_value.exists().unwrap_or(false) {
+							match global_value.borrow_global() {
+								Ok(value) => Some(value),
+								Err(_) => None,
+							}
+						} else {
+							None
+						}
+					},
+					Err(_) => {
+						None
+					},
+				}
+			} else {
+				None
+			}
+		} else {
+			None
+		}
+	}
+
+	fn exist_account_storage(&mut self, evm_address: H160, context: &mut Option<&mut SafeNativeContext>) -> bool {
+		if let Some(storage_type) = &self.storage_type  {
+			if let Some(context) = context {
+				match context.load_resource(to_move_address(evm_address), storage_type) {
+					Ok((value, _)) => {
+						value.exists().unwrap_or(false)
+					},
+					Err(_) => {
+						false
+					},
+				}
+			} else {
+				false
+			}
+		} else {
+            false
+        }
+	}
+
+	pub fn get_state_storage(
+		&self,
+		address: H160,
+		key: U256,
+		context: &mut Option<&mut SafeNativeContext>,
+	) -> U256 {
+		if let Some(resource) = self.get_resource(context, address) {
+			if let Ok(account_ref) = resource.value_as::<StructRef>() {
+				if let Ok(field) = account_ref.borrow_field(3) {
+					if let Ok(table_ref) = field.value_as::<StructRef>() {
+						return read_table(&table_ref, Value::u256(move_u256::from(key)), context)
+					}
+				}
+			}
+		}
+		return U256::zero()
+	}
+
+	pub fn get_balance_storage(
+		&self,
+		address: H160,
+		context: &mut Option<&mut SafeNativeContext>,
+	) -> U256 {
+		match self.get_resource(context, address) {
+			Some(resource) => {
+				let account_ref = resource.value_as::<StructRef>().unwrap();
+				match account_ref.borrow_field(0).unwrap().value_as::<Reference>().unwrap().read_ref() {
+					Ok(value) => {
+						log_debug!("value {:?}", value);
+						return value.value_as::<move_u256>().unwrap().to_ethers_u256()
+					}
+					Err(err) => {
+						log_debug!("err {:?}", err);
+						return U256::zero()
+					}
+				}
+			}
+			None => {
+				return U256::zero()
+			}
+		};
+	}
+
+	pub fn get_nonce_storage(
+		&self,
+		address: H160,
+		context: &mut Option<&mut SafeNativeContext>,
+	) -> U256 {
+		match self.get_resource(context, address) {
+			Some(resource) => {
+				let account_ref = resource.value_as::<StructRef>().unwrap();
+				match account_ref.borrow_field(1).unwrap().value_as::<Reference>().unwrap().read_ref() {
+					Ok(value) => {
+						return value.value_as::<move_u256>().unwrap().to_ethers_u256()
+					}
+					Err(err) => {
+						log_debug!("err {:?}", err);
+						return U256::zero()
+					}
+				}
+			}
+			None => {
+				return U256::zero()
+			}
+		};
+	}
+
+	pub fn get_code_storage(
+		&self,
+		address: H160,
+		context: &mut Option<&mut SafeNativeContext>,
+	) -> Vec<u8> {
+		match self.get_resource(context, address) {
+			Some(resource) => {
+				let account_ref = resource.value_as::<StructRef>().unwrap();
+				match account_ref.borrow_field(1).unwrap().value_as::<Reference>().unwrap().read_ref() {
+					Ok(value) => {
+						return value.value_as::<Vec<u8>>().unwrap()
+					}
+					Err(err) => {
+						log_debug!("err {:?}", err);
+						return vec![]
+					}
+				}
+			}
+			None => {
+				return vec![]
+			}
+		};
+	}
+
 	pub fn new_account(
 		&mut self,
 		contract: H160,
 		code: Vec<u8>,
 		balance: U256,
-		nonce: U256
+		nonce: U256,
+		context: &mut Option<&mut SafeNativeContext>
 	) {
-		if self.exist(contract) {
+		if self.exist(contract, context) {
 			self.set_nonce(contract, U256::one());
 		} else {
 			self.set_code(contract, code);
@@ -206,11 +415,12 @@ impl State {
 	pub fn exist(
 		&mut self,
 		address: H160,
+		context: &mut Option<&mut SafeNativeContext>
 	) -> bool {
 		match self.substate.known_exists(address) {
 	        Some(_) => true,
 	        // to do get from storage
-	        None => false
+	        None => self.exist_account_storage(address, context)
 	    }
 	}
 
@@ -222,14 +432,15 @@ impl State {
 		self.substate.known_storage_empty(address)
 	}
 
-	pub fn is_contract_or_created_account(&mut self, address: H160) -> bool {
-        if !self.exist(address) {
-            false
-        } else {
-            self.get_code_length(address) > 0 
-                || self.get_nonce(address) > U256::zero() 
-                || !self.storage_empty(address)
-        }
+	pub fn is_contract_or_created_account(&mut self, address: H160, context: &mut Option<&mut SafeNativeContext>) -> bool {
+		if !self.exist(address, context) {
+			false
+		} else {
+			self.get_code_length(address, context) > 0 
+						|| self.get_nonce(address, context) > U256::zero() 
+						|| !self.storage_empty(address)
+		}
+        
     }
 
 	pub fn is_cold_address(
@@ -286,67 +497,83 @@ impl State {
 
 	pub fn get_code(
 		&mut self,
-		address: H160
+		address: H160,
+		context: &mut Option<&mut SafeNativeContext>
 	) -> Vec<u8> {
 		match self.substate.known_code(address) {
 	        Some(value) => value,
-	        None => vec![]
+	        None => {
+				let code = self.get_code_storage(address, context);
+				self.set_code(address, code.clone());
+				code
+			}
 	    }
 	}
 
 	pub fn get_code_length(
 		&mut self,
-		address: H160
+		address: H160,
+		context: &mut Option<&mut SafeNativeContext>
 	) -> u64 {
-		match self.substate.known_code(address) {
-	        Some(value) => value.len() as u64,
-	        None => 0
-	    }
+		self.get_code(address, context).len() as u64
 	}
 
 	pub fn get_code_hash(
 		&mut self,
-		address: H160
+		address: H160,
+		context: &mut Option<&mut SafeNativeContext>
 	) -> H256 {
-		if !self.exist(address) {
+		if !self.exist(address, context) {
 			H256::zero()
 		} else {
-			let code = match self.substate.known_code(address) {
-				Some(value) => value,
-				None => vec![]
-			};
+			let code = self.get_code(address, context);
 			H256::from_slice(&keccak256(&code))
 		}
 	}
 
 	pub fn get_balance(
 		&mut self,
-		address: H160
+		address: H160,
+		context: &mut Option<&mut SafeNativeContext>
 	) -> U256 {
 		match self.substate.known_balance(address) {
 	        Some(value) => value,
-	        None => U256::zero()
+	        None => {
+				let balance = self.get_balance_storage(address, context);
+				self.set_balance(address, balance);
+				balance
+			}
 	    }
 	}
 
 	pub fn get_nonce(
 		&mut self,
-		address: H160
+		address: H160,
+		context: &mut Option<&mut SafeNativeContext>
 	) -> U256 {
 		match self.substate.known_nonce(address) {
 	        Some(value) => value,
-	        None => U256::zero()
+	        None => {
+				let nonce = self.get_nonce_storage(address, context);
+				self.set_nonce(address, nonce);
+				nonce
+			}
 	    }
 	}
 
 	pub fn get_storage(
 		&mut self,
 		address: H160,
-		index: U256
+		index: U256,
+		context: &mut Option<&mut SafeNativeContext>
 	) -> U256 {
 		match self.substate.known_storage(address, index) {
 	        Some(value) => value,
-	        None => U256::zero()
+	        None => {
+				let value = self.get_state_storage(address, index, context);
+				self.set_storage(address, index, value);
+				value
+			}
 	    }
 	}
 

@@ -1,13 +1,8 @@
 use crate::natives::evm_natives::{
-    state::State,
-    types::Opcode,
-    constants::{gas_cost, CallResult},
-    machine::Machine,
-    runtime::Runtime,
-    utils::{u256_bytes_length, u256_to_address},
-    precompile::is_precompile_address
+    constants::{gas_cost, CallResult}, machine::Machine, precompile::is_precompile_address, runtime::Runtime, state::State, types::Opcode, utils::{u256_bytes_length, u256_to_address}
 };
 use primitive_types::{H160, U256};
+use aptos_native_interface::SafeNativeContext;
 
 
 const EXP_BYTE: u64 = 50;
@@ -148,6 +143,7 @@ fn calc_call_gas(
     opcode: Opcode,
     machine: &mut Machine,
     state: &mut State,
+    context: &mut Option<&mut SafeNativeContext>,
     gas_limit: u64,
 ) -> (CallResult, u64) {
     let address_index = 1;
@@ -188,7 +184,7 @@ fn calc_call_gas(
             extra_gas = extra_gas.saturating_add(9000);
 
             // Check if the account exists
-            if !state.exist(address) && (opcode == Opcode::CALL) {
+            if !state.exist(address, context) && (opcode == Opcode::CALL) {
                 extra_gas = extra_gas.saturating_add(25000);
             }
         }
@@ -412,6 +408,7 @@ fn calc_sload_gas(
 fn calc_sstore_gas(
     machine: &Machine,
     state: &mut State,
+    context: &mut Option<&mut SafeNativeContext>,
     address: &H160,
     runtime: &mut Runtime,
 ) -> (CallResult, u64) {
@@ -427,7 +424,7 @@ fn calc_sstore_gas(
     let new = machine.stack.peek(1).unwrap_or_default();
 
     let (is_cold_slot, origin) = state.get_origin(*address, key);
-    let current = state.get_storage(*address, key);
+    let current = state.get_storage(*address, key, context);
 
     let cold_cost = if is_cold_slot { COLD_SLOAD_COST } else { 0 };
     let mut gas_cost = cold_cost;
@@ -482,7 +479,7 @@ pub fn max_call_gas(gas_left: U256, gas_limit: U256, value: U256, need_stipend: 
     (gas_limit.as_u64(), gas_stipend)
 }
 
-pub fn calc_exec_gas(state: &mut State, opcode: Opcode, address: &H160, machine: &mut Machine, runtime: &mut Runtime) -> (CallResult, u64) {
+pub fn calc_exec_gas(state: &mut State, context: &mut Option<&mut SafeNativeContext>, opcode: Opcode, address: &H160, machine: &mut Machine, runtime: &mut Runtime) -> (CallResult, u64) {
     let gas_limit = runtime.get_gas_left();
     match opcode {
         Opcode::STOP => (CallResult::Success, 0),
@@ -587,7 +584,7 @@ pub fn calc_exec_gas(state: &mut State, opcode: Opcode, address: &H160, machine:
             (CallResult::Success, read_gas + write_gas)
         },
         Opcode::CALL | Opcode::CALLCODE | Opcode::DELEGATECALL | Opcode::STATICCALL => {
-            calc_call_gas(opcode, machine, state, gas_limit)
+            calc_call_gas(opcode, machine, state, context, gas_limit)
         },
         Opcode::BALANCE | Opcode::EXTCODESIZE | Opcode::EXTCODEHASH => {
             let address = u256_to_address(machine.stack.peek(0).unwrap_or_default());
@@ -602,7 +599,7 @@ pub fn calc_exec_gas(state: &mut State, opcode: Opcode, address: &H160, machine:
         Opcode::CREATE => calc_create_gas(machine, gas_limit),
         Opcode::CREATE2 => calc_create2_gas(machine, gas_limit),
         Opcode::SLOAD => calc_sload_gas(machine, state, address),
-        Opcode::SSTORE => calc_sstore_gas(machine, state, address, runtime),
+        Opcode::SSTORE => calc_sstore_gas(machine, state, context, address, runtime),
         Opcode::RETURN | Opcode::REVERT => {
             let offset = machine.stack.peek(0).unwrap_or_default();
             let size = machine.stack.peek(1).unwrap_or_default();

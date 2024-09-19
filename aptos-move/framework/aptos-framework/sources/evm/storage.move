@@ -12,6 +12,7 @@ module aptos_framework::evm_storage {
 
     friend aptos_framework::evm_trie;
     friend aptos_framework::evm_trie_v2;
+    friend aptos_framework::evm_for_test_v2;
     friend aptos_framework::evm;
 
     const CONVERT_BASE: u256 = 10000000000;

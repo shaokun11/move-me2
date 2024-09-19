@@ -45,9 +45,9 @@ use std::{
 /// extension.
 #[derive(Tid)]
 pub struct NativeTableContext<'a> {
-    resolver: &'a dyn TableResolver,
-    txn_hash: [u8; 32],
-    table_data: RefCell<TableData>,
+    pub resolver: &'a dyn TableResolver,
+    pub txn_hash: [u8; 32],
+    pub table_data: RefCell<TableData>,
 }
 
 // See stdlib/Error.move
@@ -65,7 +65,7 @@ const _NOT_EMPTY: u64 = (102 << 8) + _ECATEGORY_INVALID_STATE as u64;
 /// A structure representing mutable data of the NativeTableContext. This is in a RefCell
 /// of the overall context so we can mutate while still accessing the overall context.
 #[derive(Default)]
-struct TableData {
+pub struct TableData {
     new_tables: BTreeMap<TableHandle, TableInfo>,
     removed_tables: BTreeSet<TableHandle>,
     tables: BTreeMap<TableHandle, Table>,
@@ -80,9 +80,9 @@ struct LayoutInfo {
 }
 
 /// A structure representing a single table.
-struct Table {
+pub struct Table {
     handle: TableHandle,
-    key_layout: MoveTypeLayout,
+    pub key_layout: MoveTypeLayout,
     value_layout_info: LayoutInfo,
     content: BTreeMap<Vec<u8>, GlobalValue>,
 }
@@ -166,7 +166,7 @@ impl<'a> NativeTableContext<'a> {
 impl TableData {
     /// Gets or creates a new table in the TableData. This initializes information about
     /// the table, like the type layout for keys and values.
-    fn get_or_create_table(
+    pub fn get_or_create_table(
         &mut self,
         context: &SafeNativeContext,
         handle: TableHandle,
@@ -202,7 +202,7 @@ impl LayoutInfo {
 }
 
 impl Table {
-    fn get_or_create_global_value(
+    pub fn get_or_create_global_value(
         &mut self,
         context: &NativeTableContext,
         key: Vec<u8>,
@@ -519,7 +519,7 @@ fn native_drop_unchecked_box(
 // =========================================================================================
 // Helpers
 
-fn get_table_handle(table: &StructRef) -> PartialVMResult<TableHandle> {
+pub fn get_table_handle(table: &StructRef) -> PartialVMResult<TableHandle> {
     let handle = table
         .borrow_field(HANDLE_FIELD_INDEX)?
         .value_as::<Reference>()?

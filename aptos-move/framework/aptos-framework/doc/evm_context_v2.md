@@ -5,12 +5,15 @@
 
 
 
+-  [Function `get_balance_storage_for_test`](#0x1_evm_context_v2_get_balance_storage_for_test)
+-  [Function `get_state_storage_for_test`](#0x1_evm_context_v2_get_state_storage_for_test)
 -  [Function `calculate_root`](#0x1_evm_context_v2_calculate_root)
 -  [Function `set_code`](#0x1_evm_context_v2_set_code)
 -  [Function `set_account`](#0x1_evm_context_v2_set_account)
 -  [Function `set_storage`](#0x1_evm_context_v2_set_storage)
 -  [Function `add_always_warm_address`](#0x1_evm_context_v2_add_always_warm_address)
 -  [Function `add_always_warm_slot`](#0x1_evm_context_v2_add_always_warm_slot)
+-  [Function `execute_tx_for_test`](#0x1_evm_context_v2_execute_tx_for_test)
 -  [Function `execute_tx`](#0x1_evm_context_v2_execute_tx)
 
 
@@ -18,6 +21,50 @@
 </code></pre>
 
 
+
+<a id="0x1_evm_context_v2_get_balance_storage_for_test"></a>
+
+## Function `get_balance_storage_for_test`
+
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="evm_context_v2.md#0x1_evm_context_v2_get_balance_storage_for_test">get_balance_storage_for_test</a>&lt;Storage&gt;(<b>address</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): u256
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>native</b> <b>fun</b> <a href="evm_context_v2.md#0x1_evm_context_v2_get_balance_storage_for_test">get_balance_storage_for_test</a>&lt;Storage&gt;(<b>address</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;): u256;
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_context_v2_get_state_storage_for_test"></a>
+
+## Function `get_state_storage_for_test`
+
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="evm_context_v2.md#0x1_evm_context_v2_get_state_storage_for_test">get_state_storage_for_test</a>&lt;Storage&gt;(<b>address</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, index: u256): u256
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>native</b> <b>fun</b> <a href="evm_context_v2.md#0x1_evm_context_v2_get_state_storage_for_test">get_state_storage_for_test</a>&lt;Storage&gt;(<b>address</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, index: u256): u256;
+</code></pre>
+
+
+
+</details>
 
 <a id="0x1_evm_context_v2_calculate_root"></a>
 
@@ -151,13 +198,13 @@
 
 </details>
 
-<a id="0x1_evm_context_v2_execute_tx"></a>
+<a id="0x1_evm_context_v2_execute_tx_for_test"></a>
 
-## Function `execute_tx`
+## Function `execute_tx_for_test`
 
 
 
-<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="evm_context_v2.md#0x1_evm_context_v2_execute_tx">execute_tx</a>(env: <a href="env_for_test.md#0x1_env_for_test_Env">env_for_test::Env</a>, from: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, value: u256, data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_limit: u256, gas_price: u256, max_fee_per_gas: u256, max_priority_fee_per_gas: u256, access_list_address_len: u64, access_list_slot_len: u64, tx_type: u8): (u64, u256)
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="evm_context_v2.md#0x1_evm_context_v2_execute_tx_for_test">execute_tx_for_test</a>(env: <a href="env_for_test.md#0x1_env_for_test_Env">env_for_test::Env</a>, from: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, value: u256, data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_limit: u256, gas_price: u256, max_fee_per_gas: u256, max_priority_fee_per_gas: u256, access_list_address_len: u64, access_list_slot_len: u64, tx_type: u8): (u64, u256)
 </code></pre>
 
 
@@ -166,8 +213,32 @@
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b>(<b>friend</b>) <b>native</b> <b>fun</b> <a href="evm_context_v2.md#0x1_evm_context_v2_execute_tx">execute_tx</a>(env: Env, from: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, value: u256, data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_limit: u256,
+<pre><code><b>public</b>(<b>friend</b>) <b>native</b> <b>fun</b> <a href="evm_context_v2.md#0x1_evm_context_v2_execute_tx_for_test">execute_tx_for_test</a>(env: Env, from: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, value: u256, data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_limit: u256,
                       gas_price: u256, max_fee_per_gas: u256, max_priority_fee_per_gas: u256, access_list_address_len: u64,
+                                     access_list_slot_len: u64, tx_type: u8): (u64, u256);
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_context_v2_execute_tx"></a>
+
+## Function `execute_tx`
+
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="evm_context_v2.md#0x1_evm_context_v2_execute_tx">execute_tx</a>&lt;Storage&gt;(env: <a href="env_for_test.md#0x1_env_for_test_Env">env_for_test::Env</a>, from: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, value: u256, data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_limit: u256, gas_price: u256, max_fee_per_gas: u256, max_priority_fee_per_gas: u256, access_list_address_len: u64, access_list_slot_len: u64, tx_type: u8): (u64, u256)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>native</b> <b>fun</b> <a href="evm_context_v2.md#0x1_evm_context_v2_execute_tx">execute_tx</a>&lt;Storage&gt;(env: Env, from: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, value: u256, data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_limit: u256,
+                                     gas_price: u256, max_fee_per_gas: u256, max_priority_fee_per_gas: u256, access_list_address_len: u64,
                                      access_list_slot_len: u64, tx_type: u8): (u64, u256);
 </code></pre>
 

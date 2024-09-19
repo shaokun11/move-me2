@@ -1,5 +1,5 @@
 
-use crate::{log_debug, natives::evm_natives::{
+use crate::{log_debug, natives::{aggregator_natives::context, evm_natives::{
     arithmetic,
     constants::{gas_cost, limit, CallResult, TxResult, TxType},
     gas::{calc_exec_gas, max_call_gas}, 
@@ -9,9 +9,9 @@ use crate::{log_debug, natives::evm_natives::{
     state::State, 
     types::{Environment, ExecutionError, FrameType, Opcode, RunArgs, TransactArgs}, 
     utils::{h160_to_u256, u256_to_bytes, u256_to_usize}
-}};
+}}};
 
-use move_vm_runtime::data_cache::TransactionDataCache;
+use aptos_native_interface::SafeNativeContext;
 use primitive_types::{H160, U256};
 use ethers::utils::{get_contract_address, get_create2_address, keccak256};
 
@@ -44,7 +44,7 @@ fn calc_base_cost(data: &[u8], access_list_address_len: u64, access_list_slot_le
 }
 
 
-pub fn new_tx(state: &mut State, data_cache: Option<&mut TransactionDataCache>, run_args: RunArgs, tx_args: &TransactArgs, env: &Environment, tx_type: TxType, access_list_address_len: u64, access_list_slot_len: u64) -> TxResult {
+pub fn new_tx(state: &mut State, context: &mut Option<&mut SafeNativeContext>, run_args: RunArgs, tx_args: &TransactArgs, env: &Environment, tx_type: TxType, access_list_address_len: u64, access_list_slot_len: u64) -> TxResult {
     
     let mut runtime = Runtime::new();
     runtime.new_checkpoint(tx_args.gas_limit.as_u64(), false);
@@ -97,12 +97,11 @@ pub fn new_tx(state: &mut State, data_cache: Option<&mut TransactionDataCache>, 
 
     
 
-    let from_balance = state.get_balance(run_args.caller);
-    if from_balance < up_cost {
+    if state.get_balance(run_args.caller, context) < up_cost {
         return TxResult::ExceptionInsufficientBalanceToSendTx;
     }
 
-    if state.get_code_length(run_args.caller) > 0 {
+    if state.get_code_length(run_args.caller, context) > 0 {
         return TxResult::ExceptionSenderNotEOA;
     }
 
@@ -110,7 +109,7 @@ pub fn new_tx(state: &mut State, data_cache: Option<&mut TransactionDataCache>, 
         return TxResult::ExceptionOutOfGas;
     }
 
-    if state.get_nonce(run_args.caller) >= U256::from(u64::MAX) {
+    if state.get_nonce(run_args.caller, context) >= U256::from(u64::MAX) {
         return TxResult::ExceptionInvalidNonce;
     }
 
@@ -124,13 +123,13 @@ pub fn new_tx(state: &mut State, data_cache: Option<&mut TransactionDataCache>, 
     call_frames.push(CallFrame::new(limit::STACK_SIZE, run_args.clone(), FrameType::MainCall));
 
     if run_args.is_create {
-        if state.is_contract_or_created_account(run_args.address) {
+        if state.is_contract_or_created_account(run_args.address, context) {
             runtime.add_gas_usage(tx_args.gas_limit.as_u64());
         } else {
             let gas_left = runtime.get_gas_left();
-            handle_new_call(state, &mut runtime, &run_args, gas_left, false);
+            handle_new_call(state, context, &mut runtime, &run_args, gas_left, false);
             // result = run(state, &mut runtime, run_args, env, true, 0);
-            match execute(state, &mut runtime, env, call_frames) {
+            match execute(state, context, &mut runtime, env, call_frames) {
                 Ok(value) => {
                     ret_value = value;
                 }
@@ -152,11 +151,11 @@ pub fn new_tx(state: &mut State, data_cache: Option<&mut TransactionDataCache>, 
     } else {
         let call_gas_limit = tx_args.gas_limit.as_u64().saturating_sub(base_cost);
         if is_precompile_address(run_args.address) {
-            let result = precompile(&run_args, &mut runtime, state, call_gas_limit, true, run_args.address);
+            let result = precompile(&run_args, &mut runtime, state, context, call_gas_limit, true, run_args.address);
             ret_value = result.1;
         } else {
-            handle_new_call(state, &mut runtime, &run_args, call_gas_limit, false);
-            match execute(state, &mut runtime, env, call_frames) {
+            handle_new_call(state, context, &mut runtime, &run_args, call_gas_limit, false);
+            match execute(state, context, &mut runtime, env, call_frames) {
                 Ok(value) => {
                     ret_value = value;
                 }
@@ -204,9 +203,9 @@ pub fn new_tx(state: &mut State, data_cache: Option<&mut TransactionDataCache>, 
     exception
 }
 
-fn precompile(run_args: &RunArgs, runtime: &mut Runtime, state: &mut State, gas_limit: u64, transfer_eth: bool, code_address: H160) -> (CallResult, Vec<u8>) {
+fn precompile(run_args: &RunArgs, runtime: &mut Runtime, state: &mut State, context: &mut Option<&mut SafeNativeContext>, gas_limit: u64, transfer_eth: bool, code_address: H160) -> (CallResult, Vec<u8>) {
     if transfer_eth {
-        if state.get_balance(run_args.caller) < run_args.value {
+        if state.get_balance(run_args.caller, context) < run_args.value {
             return (CallResult::Exception, vec![])
         }
     }
@@ -237,7 +236,7 @@ macro_rules! pop_stack {
     };
 }
 
-fn execute(state: &mut State, runtime: &mut Runtime, env: &Environment, call_frames: &mut Vec<CallFrame>) -> Result<Vec<u8>, ExecutionError> {
+fn execute(state: &mut State, context: &mut Option<&mut SafeNativeContext>, runtime: &mut Runtime, env: &Environment, call_frames: &mut Vec<CallFrame>) -> Result<Vec<u8>, ExecutionError> {
     while !call_frames.is_empty() {
        loop {
             let result = {
@@ -251,7 +250,7 @@ fn execute(state: &mut State, runtime: &mut Runtime, env: &Environment, call_fra
                     machine.pc += 1;
                     log_debug!("{:?}", machine.stack.data());
                     
-                    step(opcode, &frame.args, machine, state, runtime, env)
+                    step(opcode, &frame.args, machine, state, context, runtime, env)
                 }
             };
 
@@ -353,8 +352,8 @@ fn execute(state: &mut State, runtime: &mut Runtime, env: &Environment, call_fra
 }
 
 
-fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State, runtime: &mut Runtime, env: &Environment) -> Result<(), ExecutionError> {
-    let (gas_result, gas_cost) = calc_exec_gas(state, opcode, &args.address, machine, runtime);
+fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State, context: &mut Option<&mut SafeNativeContext>, runtime: &mut Runtime, env: &Environment) -> Result<(), ExecutionError> {
+    let (gas_result, gas_cost) = calc_exec_gas(state, context, opcode, &args.address, machine, runtime);
 
     log_debug!("opcode {} {} {}", opcode, machine.pc, args.depth);
     log_debug!("gas_cost {}", gas_cost);
@@ -550,7 +549,7 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
             },
             Opcode::BALANCE => {
                 let address = machine.stack.pop_address()?;
-                let balance = state.get_balance(address);
+                let balance = state.get_balance(address, context);
                 machine.stack.push(balance).map_err(|_| ExecutionError::StackOverflow)?;
                 Ok(())
             },
@@ -620,7 +619,7 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
             },
             Opcode::EXTCODESIZE => {
                 let address: H160 = machine.stack.pop_address()?;
-                let code_size = state.get_code_length(address);
+                let code_size = state.get_code_length(address, context);
                 machine.stack.push(U256::from(code_size))
             },
             Opcode::EXTCODECOPY => {
@@ -631,7 +630,7 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
     
                 machine.memory.resize_offset(memory_offset, len)?;
     
-                let code = state.get_code(address);
+                let code = state.get_code(address, context);
                 machine.memory.copy_large(memory_offset, code_offset, len, &code)
             },
             Opcode::RETURNDATASIZE => {
@@ -657,7 +656,7 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
             },
             Opcode::EXTCODEHASH => {
                 let address: H160 = machine.stack.pop_address()?;
-                let code_hash = state.get_code_hash(address);
+                let code_hash = state.get_code_hash(address, context);
                 machine.stack.push(U256::from_big_endian(&code_hash.0))
             },
             Opcode::BLOCKHASH => {
@@ -683,7 +682,7 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                 machine.stack.push(env.chain_id.into())
             },
             Opcode::SELFBALANCE => {
-                let balance = state.get_balance(args.address);
+                let balance = state.get_balance(args.address, context);
                 machine.stack.push(balance)
             },
             Opcode::BASEFEE => {
@@ -720,7 +719,7 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
             },
             Opcode::SLOAD => {
                 let index = pop_stack!(machine.stack);
-                let value = state.get_storage(args.address, index);
+                let value = state.get_storage(args.address, index, context);
                 machine.stack.push(value).map_err(|_| ExecutionError::StackOverflow)?;
                 Ok(())
             },
@@ -896,7 +895,7 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                 }
                 let output;
     
-                let dest_code = state.get_code(code_address);
+                let dest_code = state.get_code(code_address, context);
                 let is_contract_call = dest_code.len() > 0;
                 let new_args = RunArgs {
                     origin: args.origin,
@@ -912,7 +911,7 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                 };
     
                 if is_precompile {
-                    let (call_result, bytes) = precompile(&new_args, runtime, state, call_gas_limit, transfer_eth, code_address);
+                    let (call_result, bytes) = precompile(&new_args, runtime, state, context, call_gas_limit, transfer_eth, code_address);
                     output = if call_result == CallResult::Success {
                         machine.set_ret_bytes(bytes.clone());
                         machine.memory.copy_large(out_offset, U256::zero(), std::cmp::min(out_len, U256::from(bytes.len())), &bytes)?;
@@ -924,10 +923,10 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                 } else if is_contract_call {
                     machine.ret_pos = out_offset;
                     machine.ret_len = out_len;
-                    if new_args.depth > limit::DEPTH_SIZE || (transfer_eth && state.get_balance(new_args.caller) < new_args.value) {
+                    if new_args.depth > limit::DEPTH_SIZE || (transfer_eth && state.get_balance(new_args.caller, context) < new_args.value) {
                         output = U256::zero()
                     } else {
-                        handle_new_call(state, runtime, &new_args, call_gas_limit, is_static);
+                        handle_new_call(state, context, runtime, &new_args, call_gas_limit, is_static);
                         return Err(ExecutionError::SubCall(new_args));
                     }
                 } else {
@@ -954,7 +953,7 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                     Vec::new() // 如果转换失败，init_code 为空
                 };
     
-                let new_address = get_contract_address(args.address, state.get_nonce(args.address));
+                let new_address = get_contract_address(args.address, state.get_nonce(args.address, context));
     
                 let new_args = RunArgs {
                     origin: args.origin,
@@ -973,7 +972,7 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                     return Err(ExecutionError::InitCodeSizeExceed);
                 }
     
-                create_internal(&new_args, machine, state, runtime)?;
+                create_internal(&new_args, machine, state, context, runtime)?;
                 Ok(())
             }
             Opcode::CREATE2 => {
@@ -1010,7 +1009,7 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                     depth: args.depth + 1
                 };
     
-                create_internal(&new_args, machine, state, runtime)?;
+                create_internal(&new_args, machine, state, context, runtime)?;
                 Ok(())
             }
             Opcode::REVERT => {
@@ -1130,12 +1129,12 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
     
 }
 
-fn create_internal(args: &RunArgs, machine: &mut Machine, state: &mut State, runtime: &mut Runtime) -> Result<(), ExecutionError> {
+fn create_internal(args: &RunArgs, machine: &mut Machine, state: &mut State, context: &mut Option<&mut SafeNativeContext>, runtime: &mut Runtime) -> Result<(), ExecutionError> {
     machine.set_ret_bytes(vec![]);
 
-    if state.get_balance(args.caller) < args.value || 
+    if state.get_balance(args.caller, context) < args.value || 
         args.depth > limit::DEPTH_SIZE || 
-        state.get_nonce(args.caller) >= U256::from(u64::MAX) {
+        state.get_nonce(args.caller, context) >= U256::from(u64::MAX) {
         return machine.stack.push(U256::zero());
     }
 
@@ -1145,12 +1144,12 @@ fn create_internal(args: &RunArgs, machine: &mut Machine, state: &mut State, run
     let gas_left = runtime.get_gas_left();
     let (call_gas_limit, _) = max_call_gas(U256::from(gas_left), U256::from(gas_left), args.value, false);
 
-    if state.is_contract_or_created_account(args.address) {
+    if state.is_contract_or_created_account(args.address, context) {
         runtime.add_gas_usage(call_gas_limit);
         return machine.stack.push(U256::zero());
     }
 
-    handle_new_call(state, runtime, args, call_gas_limit, false);
+    handle_new_call(state, context, runtime, args, call_gas_limit, false);
     Err(ExecutionError::Create(args.clone()))
 }
 
@@ -1170,7 +1169,7 @@ fn after_created(state: &mut State, runtime: &mut Runtime, created_address: H160
     Ok(code)
 }
 
-fn handle_new_call(state: &mut State, runtime: &mut Runtime, args: &RunArgs, gas_limit: u64, is_static: bool) {
+fn handle_new_call(state: &mut State, context: &mut Option<&mut SafeNativeContext>, runtime: &mut Runtime, args: &RunArgs, gas_limit: u64, is_static: bool) {
     runtime.new_checkpoint(gas_limit, is_static);
     state.push_substate();
 
@@ -1181,7 +1180,7 @@ fn handle_new_call(state: &mut State, runtime: &mut Runtime, args: &RunArgs, gas
     }
 
     if args.is_create {
-        state.new_account(args.address, vec![], U256::zero(), U256::one());
+        state.new_account(args.address, vec![], U256::zero(), U256::one(), context);
     }
 }
 

@@ -94,11 +94,11 @@ impl NativeFunctions {
 }
 
 pub struct NativeContext<'a, 'b, 'c> {
-    pub interpreter: &'a mut Interpreter,
-    pub data_store: &'a mut TransactionDataCache<'c>,
-    pub resolver: &'a Resolver<'a>,
-    pub extensions: &'a mut NativeContextExtensions<'b>,
-    pub gas_balance: InternalGas,
+    interpreter: &'a mut Interpreter,
+    data_store: &'a mut TransactionDataCache<'c>,
+    resolver: &'a Resolver<'a>,
+    extensions: &'a mut NativeContextExtensions<'b>,
+    gas_balance: InternalGas,
 }
 
 impl<'a, 'b, 'c> NativeContext<'a, 'b, 'c> {
@@ -187,10 +187,6 @@ impl<'a, 'b, 'c> NativeContext<'a, 'b, 'c> {
 
     pub fn extensions_mut(&mut self) -> &mut NativeContextExtensions<'b> {
         self.extensions
-    }
-
-    pub fn data_store_mut(&mut self) -> &mut TransactionDataCache<'c> {
-        self.data_store
     }
 
     /// Get count stack frames, including the one of the called native function. This

@@ -280,6 +280,8 @@ impl RemAssign<U256> for U256 {
 }
 
 impl U256 {
+
+
     /// Zero value as U256
     pub const fn zero() -> Self {
         Self(PrimitiveU256::zero())
@@ -482,6 +484,12 @@ impl From<u128> for U256 {
 impl From<&U256> for BigInt {
     fn from(n: &U256) -> Self {
         BigInt::from_bytes_le(Sign::Plus, &n.to_le_bytes())
+    }
+}
+
+impl From<PrimitiveU256> for U256 {
+    fn from(n: PrimitiveU256) -> Self {
+        U256(n)
     }
 }
 
