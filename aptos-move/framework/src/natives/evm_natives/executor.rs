@@ -1,5 +1,5 @@
 
-use crate::{log_debug, natives::{aggregator_natives::context, evm_natives::{
+use crate::{log_debug, natives::evm_natives::{
     arithmetic,
     constants::{gas_cost, limit, CallResult, TxResult, TxType},
     gas::{calc_exec_gas, max_call_gas}, 
@@ -9,7 +9,7 @@ use crate::{log_debug, natives::{aggregator_natives::context, evm_natives::{
     state::State, 
     types::{Environment, ExecutionError, FrameType, Opcode, RunArgs, TransactArgs}, 
     utils::{h160_to_u256, u256_to_bytes, u256_to_usize}
-}}};
+}};
 
 use aptos_native_interface::SafeNativeContext;
 use primitive_types::{H160, U256};
@@ -44,7 +44,7 @@ fn calc_base_cost(data: &[u8], access_list_address_len: u64, access_list_slot_le
 }
 
 
-pub fn new_tx(state: &mut State, context: &mut Option<&mut SafeNativeContext>, run_args: RunArgs, tx_args: &TransactArgs, env: &Environment, tx_type: TxType, access_list_address_len: u64, access_list_slot_len: u64) -> TxResult {
+pub fn new_tx(state: &mut State, context: &mut Option<&mut SafeNativeContext>, run_args: RunArgs, tx_args: &TransactArgs, env: &Environment, tx_type: TxType, access_list_address_len: u64, access_list_slot_len: u64) -> (TxResult, u64, Vec<u8>, Vec<u8>) {
     
     let mut runtime = Runtime::new();
     runtime.new_checkpoint(tx_args.gas_limit.as_u64(), false);
@@ -62,32 +62,32 @@ pub fn new_tx(state: &mut State, context: &mut Option<&mut SafeNativeContext>, r
     let up_cost = match tx_args.gas_price.checked_mul(tx_args.gas_limit) {
         Some(cost) => match cost.checked_add(run_args.value) {
             Some(total) => total,
-            None => return TxResult::ExceptionGasLimitExceedBlockLimit,
+            None => return (TxResult::ExceptionGasLimitExceedBlockLimit, 0, vec![], vec![]),
         },
-        None => return TxResult::ExceptionGasLimitExceedBlockLimit,
+        None => return (TxResult::ExceptionGasLimitExceedBlockLimit, 0, vec![], vec![])
     };
 
     match tx_type {
         TxType::Eip1559 => {
             if env.block_base_fee_per_gas > tx_args.max_fee_per_gas || tx_args.max_priority_fee_per_gas > tx_args.max_fee_per_gas {
-                return TxResult::Exception1559MaxFeeLowerThanBaseFee;
+                return (TxResult::Exception1559MaxFeeLowerThanBaseFee, 0, vec![], vec![]);
             }
         }
         _ => {
             if env.block_base_fee_per_gas > tx_args.gas_price {
-                return TxResult::ExceptionLegacyGasPriceLowerThanBaseFee;
+                return (TxResult::ExceptionLegacyGasPriceLowerThanBaseFee, 0, vec![], vec![]);
             }
         }
     }
 
 
-    if tx_args.gas_limit > env.block_gas_limit {
-        return TxResult::ExceptionGasLimitExceedBlockLimit;
+    if !tx_args.skip_block_gas_limit_validation && tx_args.gas_limit > env.block_gas_limit {
+        return (TxResult::ExceptionGasLimitExceedBlockLimit, 0, vec![], vec![]);
     }
 
     if run_args.is_create {
         if data_size > limit::INIT_CODE_SIZE {
-            return TxResult::ExceptionCreateContractCodeSizeExceed;
+            return (TxResult::ExceptionCreateContractCodeSizeExceed, 0, vec![], vec![]);
         }
         let word_count = ((data_size + 31) / 32) as u64; 
         base_cost = base_cost
@@ -95,22 +95,25 @@ pub fn new_tx(state: &mut State, context: &mut Option<&mut SafeNativeContext>, r
             .saturating_add(gas_cost::CREATE_BASE);
     }
 
-    
-
     if state.get_balance(run_args.caller, context) < up_cost {
-        return TxResult::ExceptionInsufficientBalanceToSendTx;
+        if tx_args.skip_balance {
+            state.set_balance(run_args.caller, up_cost);
+        } else {
+            return (TxResult::ExceptionInsufficientBalanceToSendTx, 0, vec![], vec![]);
+        }
     }
 
     if state.get_code_length(run_args.caller, context) > 0 {
-        return TxResult::ExceptionSenderNotEOA;
+        return (TxResult::ExceptionSenderNotEOA, 0, vec![], vec![]);
     }
 
     if tx_args.gas_limit.as_u64() < base_cost {
-        return TxResult::ExceptionOutOfGas;
+        return (TxResult::ExceptionOutOfGas, 0, vec![], vec![]);
     }
 
-    if state.get_nonce(run_args.caller, context) >= U256::from(u64::MAX) {
-        return TxResult::ExceptionInvalidNonce;
+    let sender_nonce = state.get_nonce(run_args.caller, context);
+    if !tx_args.skip_nonce && (sender_nonce >= U256::from(u64::MAX) || sender_nonce != tx_args.nonce) {
+        return (TxResult::ExceptionInvalidNonce, 0, vec![], vec![]);
     }
 
     state.sub_balance(run_args.caller, tx_args.gas_limit.saturating_mul(tx_args.gas_price));
@@ -118,7 +121,7 @@ pub fn new_tx(state: &mut State, context: &mut Option<&mut SafeNativeContext>, r
     let created_address = H160::zero();
     let mut exception = TxResult::ExceptionNone;
     let mut message = Vec::new();
-    let ret_value;
+    let mut ret_value = vec![];
     let call_frames = &mut Vec::new();
     call_frames.push(CallFrame::new(limit::STACK_SIZE, run_args.clone(), FrameType::MainCall));
 
@@ -200,7 +203,7 @@ pub fn new_tx(state: &mut State, context: &mut Option<&mut SafeNativeContext>, r
     log_debug!("Created address: {:?}", created_address);
     log_debug!("Ret value {:?}", message);
     // log_debug!("State {:?}", state);
-    exception
+    (exception, gas_usage, ret_value, created_address.as_bytes().to_vec())
 }
 
 fn precompile(run_args: &RunArgs, runtime: &mut Runtime, state: &mut State, context: &mut Option<&mut SafeNativeContext>, gas_limit: u64, transfer_eth: bool, code_address: H160) -> (CallResult, Vec<u8>) {

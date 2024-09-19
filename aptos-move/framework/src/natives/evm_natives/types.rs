@@ -540,6 +540,21 @@ pub struct Environment {
 	pub chain_id: U256
 }
 
+impl Environment {
+	pub fn env_for_mainnet(block_number: U256, block_timestamp: U256, block_coinbase: H160, chain_id: U256) -> Self {
+		Self {
+			block_number,
+			block_coinbase,
+			block_timestamp,
+			block_difficulty: U256::zero(),
+			block_random: Vec::new(),
+			block_gas_limit: U256::from(30000000),
+			block_base_fee_per_gas: U256::from_str_radix("5000000000", 10).unwrap(),
+			chain_id
+		} 
+	}
+}
+
 #[derive(Clone, Debug)]
 pub struct RunArgs {
 	/// Transaction origin.
@@ -566,6 +581,8 @@ pub struct RunArgs {
 #[derive(Clone, Debug)]
 pub struct TransactArgs {
 	/// Transaction gas limit.
+	pub nonce: U256,
+	/// Transaction gas limit.
 	pub gas_limit: U256,
 	/// Transaction gas price.
 	pub gas_price: U256,
@@ -574,5 +591,11 @@ pub struct TransactArgs {
 	/// EIP1559 max fee per gas
 	pub max_fee_per_gas: U256,
 	/// EIP1559 max fee per gas
-	pub tx_type: u8,
+	pub tx_type: u64,
+	/// skip nonce
+	pub skip_nonce: bool,
+	/// skip balance
+	pub skip_balance: bool,
+	/// skip block gas verify
+	pub skip_block_gas_limit_validation: bool,
 }

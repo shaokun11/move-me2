@@ -3,16 +3,16 @@ module aptos_framework::evm {
     use std::vector;
     use aptos_std::aptos_hash::keccak256;
     use aptos_std::debug;
-    use aptos_framework::evm_util::{to_32bit, get_contract_address, data_to_u256, u256_to_data, mstore, to_u256, copy_to_memory, get_word_count, vector_slice_u256, vector_slice, get_valid_jumps, get_valid_ethereum_address, expand_to_pos, write_call_output, read_memory};
+    use aptos_framework::evm_util::{to_32bit, get_contract_address, data_to_u256, u256_to_data, mstore, to_u256, copy_to_memory, vector_slice_u256, vector_slice, get_valid_jumps, get_valid_ethereum_address, expand_to_pos, write_call_output, read_memory};
     use aptos_framework::event::EventHandle;
     use aptos_framework::event;
     use aptos_std::simple_map;
     use aptos_framework::evm_arithmetic::{add, mul, sub, div, sdiv, mod, smod, add_mod, mul_mod, exp, slt, sgt, shr, sar};
-    use aptos_framework::evm_global_state::{new_run_state, get_gas_price, get_coinbase, is_eip_1559, get_basefee, get_max_fee_per_gas, get_max_priority_fee_per_gas, get_block_gas_limit, add_gas_usage, get_gas_left, add_call_state, get_gas_refund, RunState, set_ret_bytes, get_is_static, clear_gas_refund, commit_call_state, revert_call_state, get_origin, get_ret_size, get_ret_bytes, get_timestamp, get_block_number, get_random, add_gas_left, get_sender, get_to, CallEvent, get_traces};
-    use aptos_framework::evm_trie_v2::{init_new_trie, add_warm_address, get_balance, get_code_length, get_nonce, sub_balance, add_checkpoint, is_contract_or_created_account, set_code, add_nonce, add_balance, save, transfer, revert_checkpoint, commit_latest_checkpoint, exist_account, get_state, set_state, get_transient_storage, put_transient_storage, exist_contract, set_balance, new_account};
-    use aptos_framework::evm_gas_v2::{calc_base_gas, max_call_gas, calc_exec_gas};
+    use aptos_framework::evm_global_state::{get_gas_price, get_coinbase, get_basefee, get_block_gas_limit, add_gas_usage, get_gas_left, add_call_state, RunState, set_ret_bytes, get_is_static, clear_gas_refund, commit_call_state, revert_call_state, get_origin, get_ret_size, get_ret_bytes, get_timestamp, get_block_number, get_random, add_gas_left, get_sender, get_to, CallEvent, get_traces};
+    use aptos_framework::evm_trie_v2::{add_warm_address, get_balance, get_nonce, add_checkpoint, is_contract_or_created_account, set_code, add_nonce, transfer, revert_checkpoint, commit_latest_checkpoint, exist_account, get_state, set_state, get_transient_storage, put_transient_storage, exist_contract, new_account};
+    use aptos_framework::evm_gas_v2::{max_call_gas, calc_exec_gas};
     use aptos_framework::evm_precompile::{is_precompile_address, run_precompile};
-    use aptos_framework::evm_storage::{get_code_storage, deposit_to, get_state_storage, withdraw_from};
+    use aptos_framework::evm_storage::{get_code_storage, deposit_to, get_state_storage, withdraw_from, AccountStorage};
     use aptos_framework::evm_storage;
     use std::string::utf8;
     #[test_only]
@@ -28,6 +28,13 @@ module aptos_framework::evm {
     use aptos_framework::evm_log;
     use aptos_framework::evm_trie_v2;
     use aptos_framework::evm_trie;
+    use aptos_framework::evm_context_v2;
+    use aptos_framework::timestamp::now_seconds;
+    use aptos_framework::block::get_current_block_height;
+    #[test_only]
+    use aptos_framework::timestamp::set_time_has_started_for_testing;
+    #[test_only]
+    use aptos_framework::block;
 
     friend aptos_framework::genesis;
 
@@ -133,7 +140,7 @@ module aptos_framework::evm {
 
     public entry fun send_tx(
         tx: vector<u8>
-    ) acquires ExecResource {
+    ) {
         let (chain_id, from, to, nonce, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_per_gas, access_list_bytes, tx_type) = decode_raw_tx(tx);
         assert!(chain_id == CHAIN_ID || chain_id == 0, ERROR_INVALID_CHAINID);
         debug::print(&utf8(b"new tx"));
@@ -169,6 +176,49 @@ module aptos_framework::evm {
         (exception, 0, x"")
     }
 
+    fun save() {
+        let (len, address_list, balances) = evm_context_v2::get_balance_change_set();
+        let i = 0;
+        while(i < len) {
+            let address = vector_slice(address_list, 32 * i, 32);
+            let balance = *vector::borrow(&balances, i);
+            evm_storage::save_account_balance(address, balance);
+            i = i + 1;
+        };
+
+        let (len, address_list, nonces) = evm_context_v2::get_nonce_change_set();
+        let i = 0;
+        while(i < len) {
+            let address = vector_slice(address_list, 32 * i, 32);
+            let nonce = *vector::borrow(&nonces, i);
+            evm_storage::save_account_nonce(address, nonce);
+            i = i + 1;
+        };
+
+        let (len, address_list, code_lengths, code_list) = evm_context_v2::get_code_change_set();
+        let i = 0;
+        let code_index = 0;
+        while(i < len) {
+            let address = vector_slice(address_list, 32 * i, 32);
+
+            let code_length = *vector::borrow(&code_lengths, i);
+            let code = vector_slice(code_list, code_index, code_length);
+            code_index = code_index + code_length;
+            evm_storage::save_account_code(address, code);
+
+            i = i + 1;
+        };
+
+        let (len, address_list) = evm_context_v2::get_address_change_set();
+        let i = 0;
+        while(i < len) {
+            let address = vector_slice(address_list, 32 * i, 32);
+            let (keys, values) = evm_context_v2::get_storage_change_set(address);
+            evm_storage::save_account_state(address, keys, values);
+            i = i + 1;
+        };
+    }
+
     fun execute(
         from: vector<u8>,
         to: vector<u8>,
@@ -179,143 +229,51 @@ module aptos_framework::evm {
         gas_price: u256,
         max_fee_per_gas: u256,
         max_priority_per_gas: u256,
-        access_list_bytes: vector<u8>,
+        _access_list_bytes: vector<u8>,
         tx_type: u64,
         skip_nonce: bool,
         skip_balance: bool,
         skip_block_gas_limit_validation: bool
-    ): (u64, u256, vector<u8>) acquires ExecResource {
-        let (access_address_count, access_slot_count) = init_new_trie(access_list_bytes);
-        let run_state = &mut new_run_state(from, to, gas_limit, gas_price, max_fee_per_gas, max_priority_per_gas, tx_type);
-        let gas_price = get_gas_price(run_state);
-        let log_context = &mut evm_log::init_logs();
+    ): (u64, u256, vector<u8>) {
+        let block_timestamp = (now_seconds() as u256);
+        let block_number = (get_current_block_height() as u256);
+        let block_coinbase = to_32bit(x"892a2b7cF919760e148A0d33C1eb0f44D3b383f8");
+        let (exception, gas_usage, return_value, created_address) = evm_context_v2::execute_tx<AccountStorage>(
+            from,
+            to,
+            value,
+            nonce,
+            data,
+            gas_limit,
+            gas_price,
+            max_fee_per_gas,
+            max_priority_per_gas,
+            0,
+            0,
+            tx_type,
+            skip_nonce,
+            skip_balance,
+            skip_block_gas_limit_validation,
+            block_timestamp,
+            block_number,
+            block_coinbase,
+            (CHAIN_ID as u256)
+        );
 
-        from = to_32bit(from);
-        add_warm_address(from);
-        add_warm_address(get_coinbase(run_state));
-
-        let data_size = (vector::length(&data) as u256);
-        let base_cost = calc_base_gas(&data, access_address_count, access_slot_count) + 21000;
-        let up_cost;
-        let overflow;
-
-        if(is_eip_1559(run_state)) {
-            if(get_basefee(run_state) > get_max_fee_per_gas(run_state) || get_max_priority_fee_per_gas(run_state) > get_max_fee_per_gas(run_state)) {
-                assert!(false, EXCEPTION_1559_MAX_FEE_LOWER_THAN_BASE_FEE);
-            };
-            (up_cost, overflow) = mul(get_gas_price(run_state), gas_limit);
-            if(!overflow) {
-                (up_cost, overflow) = add(up_cost, value);
-            };
-        } else {
-            assert!(get_basefee(run_state) <= gas_price, EXCEPTION_LEGACY_GAS_PRICE_LOWER_THAN_BASE_FEE);
-            (up_cost, overflow) = mul(gas_limit, gas_price);
-            if(!overflow) {
-                (up_cost, overflow) = add(up_cost, value);
-            };
-        };
-
-        if(!skip_block_gas_limit_validation && (overflow || gas_limit > get_block_gas_limit(run_state))) {
-            assert!(false, EXCEPTION_GAS_LIMIT_EXCEED_BLOCK_LIMIT);
-        };
-
-        if(to == EMPTY_ADDR) {
-            assert!(data_size <= MAX_INIT_CODE_SIZE, EXCEPTION_CREATE_CONTRACT_CODE_SIZE_EXCEED);
-            base_cost = base_cost + 2 * get_word_count(data_size) + 32000;
-        };
-
-        let from_balance = get_balance(from);
-
-        if(from_balance < up_cost) {
-            if(skip_balance) {
-                set_balance(from, up_cost);
-            } else {
-                assert!(false, EXCEPTION_INSUFFCIENT_BALANCE_TO_SEND_TX);
-            };
-        };
-
-        assert!(get_code_length(from) == 0, EXCEPTION_SENDER_NOT_EOA);
-        assert!(gas_limit >= base_cost, EXCEPTION_OUT_OF_GAS);
-
-        let sender_nonce = get_nonce(from);
-        if(!skip_nonce && (sender_nonce >= U64_MAX || sender_nonce != nonce)) {
-            assert!(false, EXCEPTION_INVALID_NONCE);
-        };
-
-        sub_balance(from, gas_limit * gas_price);
-        add_gas_usage(run_state, base_cost);
-
-        let return_value = x"";
-        let exception = EXCEPTION_NONE;
-        let message = x"";
-        let success;
-        let created_address = x"";
-
-        if(to == EMPTY_ADDR) {
-            let evm_contract = get_contract_address(from, (get_nonce(from) as u64));
-            if(is_contract_or_created_account(evm_contract)) {
-                add_gas_usage(run_state, gas_limit);
-            } else {
-                handle_new_checkpoint(log_context);
-                let gas_left = get_gas_left(run_state);
-                add_call_state(run_state, gas_left, false);
-                (success, return_value) = run(from, evm_contract, data, x"", value, gas_left, log_context, run_state, true, true, 0);
-                if(success == CALL_RESULT_SUCCESS) {
-                    created_address = evm_contract;
-                    set_code( evm_contract, return_value);
-                } else if(success == CALL_RESULT_OUT_OF_GAS) {
-                    exception = EXCEPTION_OUT_OF_GAS;
-                } else {
-                    exception = EXCEPTION_EXECUTE_REVERT;
-                    message = return_value
-                };
-            };
-        } else if(to_32bit(to) == WITHDRAW_ADDR) {
-            let amount = data_to_u256(data, 36, 32);
-            let to = to_address(vector_slice(data, 100, 32));
-            let result = sub_balance(from, amount);
-            if(result) {
-                withdraw_from(from, amount, to);
-            } else {
-                exception = EXCEPTION_INSUFFCIENT_BALANCE_TO_WITHDRAW;
-            }
-        } else {
-            to = to_32bit(to);
-            if(is_precompile_address(to)) {
-                (_, return_value) = precompile(from, to, to, data, value, gas_limit , run_state, true);
-                success = CALL_RESULT_SUCCESS;
-            } else {
-                handle_new_checkpoint(log_context);
-                add_call_state(run_state, gas_limit - base_cost, false);
-                (success, return_value) = run(from, to, evm_trie_v2::get_code(to), data, value, gas_limit - base_cost, log_context, run_state, true, false, 0);
-            };
-            if(success != CALL_RESULT_SUCCESS) {
-                if(success == CALL_RESULT_OUT_OF_GAS) {
-                    exception = EXCEPTION_OUT_OF_GAS;
-                } else {
-                    exception = EXCEPTION_EXECUTE_REVERT;
-                }
-            };
-        };
-
-        let gas_refund = get_gas_refund(run_state);
-        let gas_left = get_gas_left(run_state);
-        let gas_usage = gas_limit - gas_left;
-        if(gas_refund > gas_usage / 5) {
-            gas_refund = gas_usage / 5
-        };
-        gas_usage = gas_usage - gas_refund;
-        add_nonce(from);
-        let basefee = get_basefee(run_state);
-        if(basefee < gas_price) {
-            let miner_value = (gas_price - basefee) * gas_usage;
-            add_balance(get_coinbase(run_state), miner_value);
-        };
-        add_balance(from, (gas_left + gas_refund) * gas_price);
-        let logs = evm_log::get_logs(log_context);
+        assert!(exception == EXCEPTION_NONE || exception == EXCEPTION_OUT_OF_GAS || exception == EXCEPTION_EXECUTE_REVERT, exception);
         save();
 
-        emit_event(run_state, gas_usage, exception, message, created_address, logs);
+        event::emit(ExecResultEventV2 {
+            gas_usage: (gas_usage as u256),
+            exception,
+            message: return_value,
+            version: 1,
+            extra: x"",
+            logs: vector::empty(),
+            from,
+            to,
+            created_address
+        });
         // emit_trace(run_state);
 
         (exception, gas_usage, return_value)
@@ -351,7 +309,7 @@ module aptos_framework::evm {
                      max_fee_per_gas_bytes: vector<u8>,
                      max_priority_per_gas_bytes: vector<u8>,
                      access_list_bytes: vector<u8>,
-                     tx_type: u64): (u64, u256, vector<u8>) acquires ExecResource {
+                     tx_type: u64): (u64, u256, vector<u8>) {
         let nonce = to_u256(nonce_bytes);
         let value = to_u256(value_bytes);
         let gas_limit = to_u256(gas_limit_bytes);
@@ -1538,7 +1496,7 @@ module aptos_framework::evm {
     // }
 
     #[test]
-    fun simple_run() acquires ExecResource {
+    fun simple_run() {
         init();
         let user = x"8ded44ffa6351e286e7f073825feec6f108a4a88";
         test_deposit_to(user, 1000000000000000000);
@@ -1632,6 +1590,8 @@ module aptos_framework::evm {
     fun init() {
         let evm = account::create_account_for_test(@0x1);
         initialize(&evm);
+        set_time_has_started_for_testing(&evm);
+        block::initialize_for_test(&evm, 600000000);
 
         let evm = account::create_account_for_test(@0x1);
         let (burn_cap, freeze_cap, mint_cap) = coin::initialize<AptosCoin>(

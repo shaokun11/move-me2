@@ -111,7 +111,7 @@ fn read_table(
 
 #[derive(Default)]
 pub struct State {
-    substate: Box<Substate>,
+    pub substate: Box<Substate>,
     accessed: BTreeSet<(H160, Option<U256>)>,
 	storage_type: Option<Type>,
 }
@@ -203,7 +203,6 @@ impl State {
 				let account_ref = resource.value_as::<StructRef>().unwrap();
 				match account_ref.borrow_field(0).unwrap().value_as::<Reference>().unwrap().read_ref() {
 					Ok(value) => {
-						log_debug!("value {:?}", value);
 						return value.value_as::<move_u256>().unwrap().to_ethers_u256()
 					}
 					Err(err) => {
@@ -226,7 +225,7 @@ impl State {
 		match self.get_resource(context, address) {
 			Some(resource) => {
 				let account_ref = resource.value_as::<StructRef>().unwrap();
-				match account_ref.borrow_field(1).unwrap().value_as::<Reference>().unwrap().read_ref() {
+				match account_ref.borrow_field(2).unwrap().value_as::<Reference>().unwrap().read_ref() {
 					Ok(value) => {
 						return value.value_as::<move_u256>().unwrap().to_ethers_u256()
 					}
@@ -674,15 +673,15 @@ impl State {
 }
 
 #[derive(Default)]
-struct Substate {
-    parent: Option<Box<Substate>>,
-    balances: BTreeMap<H160, U256>,
-    codes: BTreeMap<H160, Vec<u8>>,
-    nonces: BTreeMap<H160, U256>,
-    storages: BTreeMap<H160, BTreeMap<U256, U256>>,
-    origin: BTreeMap<H160, BTreeMap<U256, U256>>,
-    transient_storages: BTreeMap<(H160, U256), U256>,
-    deletes: BTreeSet<H160>,
+pub struct Substate {
+    pub parent: Option<Box<Substate>>,
+    pub balances: BTreeMap<H160, U256>,
+    pub codes: BTreeMap<H160, Vec<u8>>,
+    pub nonces: BTreeMap<H160, U256>,
+    pub storages: BTreeMap<H160, BTreeMap<U256, U256>>,
+    pub origin: BTreeMap<H160, BTreeMap<U256, U256>>,
+    pub transient_storages: BTreeMap<(H160, U256), U256>,
+    pub deletes: BTreeSet<H160>,
 }
 
 impl Substate {

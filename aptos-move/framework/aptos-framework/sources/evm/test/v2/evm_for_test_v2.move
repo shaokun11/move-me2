@@ -5,9 +5,6 @@ module aptos_framework::evm_for_test_v2 {
     use aptos_framework::event;
     use aptos_std::debug;
     use aptos_framework::evm_util::to_u256;
-    use aptos_framework::evm_storage::AccountStorage;
-    #[test_only]
-    use aptos_framework::evm_storage;
 
     const TX_TYPE_NORMAL: u8 = 1;
     const TX_TYPE_1559: u8 = 2;
@@ -123,17 +120,5 @@ module aptos_framework::evm_for_test_v2 {
         debug::print(&state_root);
         debug::print(&execute_time);
         emit_event(state_root, execute_time);
-    }
-
-    #[test]
-    fun test_storage() {
-        let addr = x"123456";
-        debug::print(&evm_context_v2::get_balance_storage_for_test<AccountStorage>(addr));
-        evm_storage::save_account_balance(addr, 1222);
-        debug::print(&evm_context_v2::get_balance_storage_for_test<AccountStorage>(addr));
-
-        debug::print(&evm_context_v2::get_state_storage_for_test<AccountStorage>(addr, 1));
-        evm_storage::save_account_state(addr, vector[1], vector[2]);
-        debug::print(&evm_context_v2::get_state_storage_for_test<AccountStorage>(addr, 1));
     }
 }

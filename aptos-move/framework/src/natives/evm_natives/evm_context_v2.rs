@@ -36,6 +36,7 @@ impl NativeEvmContext {
     }
 }
 
+
 fn native_set_code(
     context: &mut SafeNativeContext,
     _ty_args: Vec<Type>,
@@ -163,34 +164,46 @@ fn native_execute_tx(
     mut ty_args: Vec<Type>,
     mut args: VecDeque<Value>,
 ) -> SafeNativeResult<SmallVec<[Value; 1]>> {
-    let tx_type = safely_pop_arg!(args, u8);
+    let chain_id = safely_pop_arg!(args, move_u256).to_ethers_u256();
+    let block_coinbase = bytes_to_h160(&safely_pop_arg!(args, Vec<u8>));
+    let block_number: U256 = safely_pop_arg!(args, move_u256).to_ethers_u256();
+    let block_timestamp: U256 = safely_pop_arg!(args, move_u256).to_ethers_u256();
+    let skip_block_gas_limit_validation = safely_pop_arg!(args, bool);
+    let skip_balance = safely_pop_arg!(args, bool);
+    let skip_nonce = safely_pop_arg!(args, bool);
+    let tx_type = safely_pop_arg!(args, u64);
     let access_list_slot_len = safely_pop_arg!(args, u64);
     let access_list_address_len = safely_pop_arg!(args, u64);
     let max_priority_fee_per_gas: U256 = safely_pop_arg!(args, move_u256).to_ethers_u256();
     let max_fee_per_gas: U256 = safely_pop_arg!(args, move_u256).to_ethers_u256();
-    let gas_price: U256 = safely_pop_arg!(args, move_u256).to_ethers_u256();
+    let mut gas_price: U256 = safely_pop_arg!(args, move_u256).to_ethers_u256();
     let gas_limit: U256 = safely_pop_arg!(args, move_u256).to_ethers_u256();
     let data = safely_pop_arg!(args, Vec<u8>);
+    let nonce: U256 = safely_pop_arg!(args, move_u256).to_ethers_u256();
     let value: U256 = safely_pop_arg!(args, move_u256).to_ethers_u256();
     let to = safely_pop_arg!(args, Vec<u8>);
     let from = safely_pop_arg!(args, Vec<u8>);
-    let env_data = safely_pop_arg!(args, Struct);
+    
     let type_ = ty_args.pop().unwrap();
-
-    let env = parse_env(env_data);
-    let code;
-
+    let env = Environment::env_for_mainnet(block_number, block_timestamp, block_coinbase, chain_id);
+    let code: Vec<u8>;
     let mut ctx_state = State::new();
     ctx_state.set_storage_type(type_);
 
+    if TxType::from(tx_type) == TxType::Eip1559 {
+        gas_price = env.block_base_fee_per_gas + max_priority_fee_per_gas;
+        gas_price = if gas_price > max_fee_per_gas {max_fee_per_gas} else {gas_price}
+    };
+
+
     let caller = H160::from_slice(&from);
     let (is_create, address, calldata) = if to.len() == 0 {
-        code = data.clone();
+        code = data;
         (true, get_contract_address(caller, ctx_state.get_nonce(caller, &mut Some(context))), vec![])
     } else {
         let addr = H160::from_slice(&to);
         code = ctx_state.get_code(addr, &mut Some(context));
-         
+            
         (false, addr, data)
     };
 
@@ -207,29 +220,28 @@ fn native_execute_tx(
         depth: 0
     };
     let tx_args = TransactArgs {
+        nonce: nonce,
         gas_limit,
         gas_price,
         max_priority_fee_per_gas,
         max_fee_per_gas,
         tx_type,
+        skip_balance,
+        skip_nonce,
+        skip_block_gas_limit_validation
     };
 
     let start_time = Instant::now();
 
-    let result = new_tx(&mut ctx_state, &mut Some(context), run_args, &tx_args, &env, TxType::from(tx_type), access_list_address_len, access_list_slot_len);
+    let (result, gas_usage, ret_value, created_address) = new_tx(&mut ctx_state, &mut Some(context), run_args, &tx_args, &env, TxType::from(tx_type), access_list_address_len, access_list_slot_len);
     log_debug!("result {:?}", result);
     let elapsed = start_time.elapsed();
     log_debug!("run time: {:?}", elapsed);
-    let total_nanos = elapsed.as_secs()
-        .saturating_mul(1_000_000_000)
-        .saturating_add(u64::from(elapsed.subsec_nanos()));
-    let elapsed_u256 = move_u256::from(total_nanos);
 
     let ctx = context.extensions_mut().get_mut::<NativeEvmContext>();
     ctx.state = ctx_state;
-    
-    Ok(smallvec![Value::u64(result as u64), Value::u256(elapsed_u256)])
 
+    Ok(smallvec![Value::u64(result as u64), Value::u256(move_u256::from(gas_usage)), Value::vector_u8(ret_value), Value::vector_u8(created_address)])
 }
 
 fn native_execute_tx_for_test(
@@ -237,7 +249,7 @@ fn native_execute_tx_for_test(
     mut _ty_args: Vec<Type>,
     mut args: VecDeque<Value>,
 ) -> SafeNativeResult<SmallVec<[Value; 1]>> {
-    let tx_type = safely_pop_arg!(args, u8);
+    let tx_type = safely_pop_arg!(args, u8) as u64;
     let access_list_slot_len = safely_pop_arg!(args, u64);
     let access_list_address_len = safely_pop_arg!(args, u64);
     let max_priority_fee_per_gas: U256 = safely_pop_arg!(args, move_u256).to_ethers_u256();
@@ -278,11 +290,15 @@ fn native_execute_tx_for_test(
         depth: 0
     };
     let tx_args = TransactArgs {
+        nonce: ctx_state.get_nonce(address, &mut None),
         gas_limit,
         gas_price,
         max_priority_fee_per_gas,
         max_fee_per_gas,
         tx_type,
+        skip_balance: false,
+        skip_block_gas_limit_validation: false,
+        skip_nonce: false
     };
 
     let start_time = Instant::now();
@@ -296,49 +312,120 @@ fn native_execute_tx_for_test(
         .saturating_add(u64::from(elapsed.subsec_nanos()));
     let elapsed_u256 = move_u256::from(total_nanos);
     
-    Ok(smallvec![Value::u64(result as u64), Value::u256(elapsed_u256)])
+    Ok(smallvec![Value::u64(result.0 as u64), Value::u256(elapsed_u256)])
 }
 
 
-fn native_get_balance_storage_for_test(
+fn native_get_balance_change_set(
     context: &mut SafeNativeContext,
-    mut ty_args: Vec<Type>,
-    mut args: VecDeque<Value>,
-) -> SafeNativeResult<SmallVec<[Value; 1]>> {
-    let mut address = safely_pop_arg!(args, Vec<u8>);
-    let ctx_state = &mut State::new();
-    let type_ = ty_args.pop().unwrap();
+    _ty_args: Vec<Type>,
+    _args: VecDeque<Value>,
+) -> SafeNativeResult<SmallVec<[Value; 1]>> { 
+    let ctx = context.extensions().get::<NativeEvmContext>();
 
-    if address.len() < 20 {
-        let mut padded_address = vec![0u8; 20 - address.len()];
-        padded_address.extend_from_slice(&address);
-        address = padded_address;
+    let len = ctx.state.substate.balances.len();
+    let mut address_list: Vec<u8> = Vec::with_capacity(len * 32);
+    let mut value_list: Vec<move_u256> = Vec::new();
+
+    for (address, value) in ctx.state.substate.balances.iter() {
+        let mut padded_address = vec![0u8; 12]; // 12 个前置零
+        padded_address.extend_from_slice(address.as_bytes());
+
+        address_list.extend_from_slice(&padded_address);
+
+        value_list.push(move_u256::from(*value));
     }
 
-    ctx_state.set_storage_type(type_);
-    let balance = ctx_state.get_balance_storage(H160::from_slice(&address), &mut Some(context));
-    Ok(smallvec![Value::u256(move_u256::from(balance))])
+    Ok(smallvec![Value::u64(len as u64), Value::vector_u8(address_list), Value::vector_u256(value_list)])
 }
 
-fn native_get_state_storage_for_test(
+fn native_get_nonce_change_set(
     context: &mut SafeNativeContext,
-    mut ty_args: Vec<Type>,
-    mut args: VecDeque<Value>,
-) -> SafeNativeResult<SmallVec<[Value; 1]>> {
-    let index = safely_pop_arg!(args, move_u256).to_ethers_u256();
-    let mut address = safely_pop_arg!(args, Vec<u8>);
-    let ctx_state = &mut State::new();
-    let type_ = ty_args.pop().unwrap();
+    _ty_args: Vec<Type>,
+    _args: VecDeque<Value>,
+) -> SafeNativeResult<SmallVec<[Value; 1]>> { 
+    let ctx = context.extensions().get::<NativeEvmContext>();
 
-    if address.len() < 20 {
-        let mut padded_address = vec![0u8; 20 - address.len()];
-        padded_address.extend_from_slice(&address);
-        address = padded_address;
+    let len = ctx.state.substate.nonces.len();
+    let mut address_list: Vec<u8> = Vec::with_capacity(len * 32);
+    let mut value_list: Vec<move_u256> = Vec::new();
+
+    for (address, value) in ctx.state.substate.nonces.iter() {
+        let mut padded_address = vec![0u8; 12]; 
+        padded_address.extend_from_slice(address.as_bytes());
+
+        address_list.extend_from_slice(&padded_address);
+
+        value_list.push(move_u256::from(*value));
     }
 
-    ctx_state.set_storage_type(type_);
-    let balance = ctx_state.get_state_storage(H160::from_slice(&address), index, &mut Some(context));
-    Ok(smallvec![Value::u256(move_u256::from(balance))])
+    Ok(smallvec![Value::u64(len as u64), Value::vector_u8(address_list), Value::vector_u256(value_list)])
+}
+
+fn native_get_code_change_set(
+    context: &mut SafeNativeContext,
+    _ty_args: Vec<Type>,
+    _args: VecDeque<Value>,
+) -> SafeNativeResult<SmallVec<[Value; 1]>> { 
+    let ctx = context.extensions().get::<NativeEvmContext>();
+
+    let len = ctx.state.substate.codes.len();
+    let mut address_list: Vec<u8> = Vec::with_capacity(len * 32);
+    let mut code_list: Vec<u8> = Vec::new();
+    let mut code_lengths: Vec<u64> = Vec::new();
+
+    for (address, code) in ctx.state.substate.codes.iter() {
+        let mut padded_address = vec![0u8; 12]; 
+        padded_address.extend_from_slice(address.as_bytes());
+
+        address_list.extend_from_slice(&padded_address);
+
+        code_lengths.push(code.len() as u64);
+        code_list.extend_from_slice(code);
+    }
+
+    Ok(smallvec![Value::u64(len as u64), Value::vector_u8(address_list), Value::vector_u64(code_lengths), Value::vector_u8(code_list)])
+}
+
+fn native_get_address_change_set(
+    context: &mut SafeNativeContext,
+    _ty_args: Vec<Type>,
+    _args: VecDeque<Value>,
+) -> SafeNativeResult<SmallVec<[Value; 1]>> { 
+    let ctx = context.extensions().get::<NativeEvmContext>();
+
+    let len = ctx.state.substate.storages.len();
+    let mut address_list: Vec<u8> = Vec::with_capacity(len * 32);
+
+    for address in ctx.state.substate.storages.keys() {
+        let mut padded_address = vec![0u8; 12]; 
+        padded_address.extend_from_slice(address.as_bytes());
+
+        address_list.extend_from_slice(&padded_address);
+    }
+
+    Ok(smallvec![Value::u64(len as u64), Value::vector_u8(address_list)])
+}
+
+fn native_get_storage_change_set(
+    context: &mut SafeNativeContext,
+    _ty_args: Vec<Type>,
+    mut args: VecDeque<Value>,
+) -> SafeNativeResult<SmallVec<[Value; 1]>> { 
+    let target_address = bytes_to_h160(&safely_pop_arg!(args, Vec<u8>));
+    let ctx = context.extensions().get::<NativeEvmContext>();
+
+    let mut keys: Vec<move_u256> = Vec::new();
+    let mut values: Vec<move_u256> = Vec::new();
+
+    if let Some(storage_map) = ctx.state.substate.storages.get(&target_address) {
+        for (key, value) in storage_map.iter() {
+            keys.push(move_u256::from(*key));
+            values.push(move_u256::from(*value));
+        }
+    }
+
+    Ok(smallvec![Value::vector_u256(keys), Value::vector_u256(values)])
 }
 /***************************************************************************************************
  * module
@@ -357,8 +444,11 @@ pub fn make_all(
         ("add_always_warm_address", native_add_always_warm_address as RawSafeNative),
         ("add_always_warm_slot", native_add_always_warm_slot as RawSafeNative),
         ("calculate_root", native_calculate_root as RawSafeNative),
-        ("get_state_storage_for_test", native_get_state_storage_for_test as RawSafeNative),
-        ("get_balance_storage_for_test", native_get_balance_storage_for_test as RawSafeNative)
+        ("get_balance_change_set", native_get_balance_change_set as RawSafeNative),
+        ("get_nonce_change_set", native_get_nonce_change_set as RawSafeNative),
+        ("get_code_change_set", native_get_code_change_set as RawSafeNative),
+        ("get_address_change_set", native_get_address_change_set as RawSafeNative),
+        ("get_storage_change_set", native_get_storage_change_set as RawSafeNative)
         // ("calculate_root", native_calculate_root as RawSafeNative),
         // ("get_balance_change_set", native_get_balance_change_set as RawSafeNative),
         // ("get_nonce_change_set", native_get_nonce_change_set as RawSafeNative),

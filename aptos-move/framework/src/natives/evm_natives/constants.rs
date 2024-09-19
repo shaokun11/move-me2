@@ -8,13 +8,14 @@ pub mod gas_cost {
     pub const CREATE_BASE: u64 = 32000;
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TxType {
     Normal = 1,
     Eip1559 = 2
 }
 
-impl From<u8> for TxType {
-    fn from(value: u8) -> Self {
+impl From<u64> for TxType {
+    fn from(value: u64) -> Self {
         match value {
             2 => TxType::Eip1559,
             _ => TxType::Normal,

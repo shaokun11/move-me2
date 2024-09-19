@@ -16,6 +16,7 @@
 -  [Function `emit_trace`](#0x1_evm_emit_trace)
 -  [Function `emit_event`](#0x1_evm_emit_event)
 -  [Function `handle_tx_failed`](#0x1_evm_handle_tx_failed)
+-  [Function `save`](#0x1_evm_save)
 -  [Function `execute`](#0x1_evm_execute)
 -  [Function `deposit`](#0x1_evm_deposit)
 -  [Function `batch_deposit`](#0x1_evm_batch_deposit)
@@ -40,10 +41,12 @@
 <pre><code><b>use</b> <a href="account.md#0x1_account">0x1::account</a>;
 <b>use</b> <a href="aptos_coin.md#0x1_aptos_coin">0x1::aptos_coin</a>;
 <b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/hash.md#0x1_aptos_hash">0x1::aptos_hash</a>;
+<b>use</b> <a href="block.md#0x1_block">0x1::block</a>;
 <b>use</b> <a href="coin.md#0x1_coin">0x1::coin</a>;
 <b>use</b> <a href="../../aptos-stdlib/doc/debug.md#0x1_debug">0x1::debug</a>;
 <b>use</b> <a href="event.md#0x1_event">0x1::event</a>;
 <b>use</b> <a href="arithmetic.md#0x1_evm_arithmetic">0x1::evm_arithmetic</a>;
+<b>use</b> <a href="evm_context_v2.md#0x1_evm_context_v2">0x1::evm_context_v2</a>;
 <b>use</b> <a href="gas_v2.md#0x1_evm_gas_v2">0x1::evm_gas_v2</a>;
 <b>use</b> <a href="global_state.md#0x1_evm_global_state">0x1::evm_global_state</a>;
 <b>use</b> <a href="log.md#0x1_evm_log">0x1::evm_log</a>;
@@ -52,9 +55,9 @@
 <b>use</b> <a href="trie.md#0x1_evm_trie">0x1::evm_trie</a>;
 <b>use</b> <a href="trie_v2.md#0x1_evm_trie_v2">0x1::evm_trie_v2</a>;
 <b>use</b> <a href="util.md#0x1_evm_util">0x1::evm_util</a>;
-<b>use</b> <a href="../../aptos-stdlib/doc/from_bcs.md#0x1_from_bcs">0x1::from_bcs</a>;
 <b>use</b> <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map">0x1::simple_map</a>;
 <b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/string.md#0x1_string">0x1::string</a>;
+<b>use</b> <a href="timestamp.md#0x1_timestamp">0x1::timestamp</a>;
 <b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">0x1::vector</a>;
 </code></pre>
 
@@ -667,7 +670,7 @@ EXCEPTION_SENDER_NOT_EOA
 
 <pre><code><b>public</b> entry <b>fun</b> <a href="evm.md#0x1_evm_send_tx">send_tx</a>(
     tx: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;
-) <b>acquires</b> <a href="evm.md#0x1_evm_ExecResource">ExecResource</a> {
+) {
     <b>let</b> (<a href="chain_id.md#0x1_chain_id">chain_id</a>, from, <b>to</b>, nonce, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_per_gas, access_list_bytes, tx_type) = <a href="evm.md#0x1_evm_decode_raw_tx">decode_raw_tx</a>(tx);
     <b>assert</b>!(<a href="chain_id.md#0x1_chain_id">chain_id</a> == <a href="evm.md#0x1_evm_CHAIN_ID">CHAIN_ID</a> || <a href="chain_id.md#0x1_chain_id">chain_id</a> == 0, <a href="evm.md#0x1_evm_ERROR_INVALID_CHAINID">ERROR_INVALID_CHAINID</a>);
     <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"new tx"));
@@ -768,13 +771,76 @@ EXCEPTION_SENDER_NOT_EOA
 
 </details>
 
+<a id="0x1_evm_save"></a>
+
+## Function `save`
+
+
+
+<pre><code><b>fun</b> <a href="evm.md#0x1_evm_save">save</a>()
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="evm.md#0x1_evm_save">save</a>() {
+    <b>let</b> (len, address_list, balances) = <a href="evm_context_v2.md#0x1_evm_context_v2_get_balance_change_set">evm_context_v2::get_balance_change_set</a>();
+    <b>let</b> i = 0;
+    <b>while</b>(i &lt; len) {
+        <b>let</b> <b>address</b> = vector_slice(address_list, 32 * i, 32);
+        <b>let</b> balance = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&balances, i);
+        <a href="storage.md#0x1_evm_storage_save_account_balance">evm_storage::save_account_balance</a>(<b>address</b>, balance);
+        i = i + 1;
+    };
+
+    <b>let</b> (len, address_list, nonces) = <a href="evm_context_v2.md#0x1_evm_context_v2_get_nonce_change_set">evm_context_v2::get_nonce_change_set</a>();
+    <b>let</b> i = 0;
+    <b>while</b>(i &lt; len) {
+        <b>let</b> <b>address</b> = vector_slice(address_list, 32 * i, 32);
+        <b>let</b> nonce = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&nonces, i);
+        <a href="storage.md#0x1_evm_storage_save_account_nonce">evm_storage::save_account_nonce</a>(<b>address</b>, nonce);
+        i = i + 1;
+    };
+
+    <b>let</b> (len, address_list, code_lengths, code_list) = <a href="evm_context_v2.md#0x1_evm_context_v2_get_code_change_set">evm_context_v2::get_code_change_set</a>();
+    <b>let</b> i = 0;
+    <b>let</b> code_index = 0;
+    <b>while</b>(i &lt; len) {
+        <b>let</b> <b>address</b> = vector_slice(address_list, 32 * i, 32);
+
+        <b>let</b> code_length = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&code_lengths, i);
+        <b>let</b> <a href="code.md#0x1_code">code</a> = vector_slice(code_list, code_index, code_length);
+        code_index = code_index + code_length;
+        <a href="storage.md#0x1_evm_storage_save_account_code">evm_storage::save_account_code</a>(<b>address</b>, <a href="code.md#0x1_code">code</a>);
+
+        i = i + 1;
+    };
+
+    <b>let</b> (len, address_list) = <a href="evm_context_v2.md#0x1_evm_context_v2_get_address_change_set">evm_context_v2::get_address_change_set</a>();
+    <b>let</b> i = 0;
+    <b>while</b>(i &lt; len) {
+        <b>let</b> <b>address</b> = vector_slice(address_list, 32 * i, 32);
+        <b>let</b> (keys, values) = <a href="evm_context_v2.md#0x1_evm_context_v2_get_storage_change_set">evm_context_v2::get_storage_change_set</a>(<b>address</b>);
+        <a href="storage.md#0x1_evm_storage_save_account_state">evm_storage::save_account_state</a>(<b>address</b>, keys, values);
+        i = i + 1;
+    };
+}
+</code></pre>
+
+
+
+</details>
+
 <a id="0x1_evm_execute"></a>
 
 ## Function `execute`
 
 
 
-<pre><code><b>fun</b> <a href="evm.md#0x1_evm_execute">execute</a>(from: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, nonce: u256, value: u256, data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_limit: u256, gas_price: u256, max_fee_per_gas: u256, max_priority_per_gas: u256, access_list_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, tx_type: u64, skip_nonce: bool, skip_balance: bool, skip_block_gas_limit_validation: bool): (u64, u256, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)
+<pre><code><b>fun</b> <a href="evm.md#0x1_evm_execute">execute</a>(from: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, nonce: u256, value: u256, data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_limit: u256, gas_price: u256, max_fee_per_gas: u256, max_priority_per_gas: u256, _access_list_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, tx_type: u64, skip_nonce: bool, skip_balance: bool, skip_block_gas_limit_validation: bool): (u64, u256, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)
 </code></pre>
 
 
@@ -793,143 +859,51 @@ EXCEPTION_SENDER_NOT_EOA
     gas_price: u256,
     max_fee_per_gas: u256,
     max_priority_per_gas: u256,
-    access_list_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
+    _access_list_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
     tx_type: u64,
     skip_nonce: bool,
     skip_balance: bool,
     skip_block_gas_limit_validation: bool
-): (u64, u256, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;) <b>acquires</b> <a href="evm.md#0x1_evm_ExecResource">ExecResource</a> {
-    <b>let</b> (access_address_count, access_slot_count) = init_new_trie(access_list_bytes);
-    <b>let</b> run_state = &<b>mut</b> new_run_state(from, <b>to</b>, gas_limit, gas_price, max_fee_per_gas, max_priority_per_gas, tx_type);
-    <b>let</b> gas_price = get_gas_price(run_state);
-    <b>let</b> log_context = &<b>mut</b> <a href="log.md#0x1_evm_log_init_logs">evm_log::init_logs</a>();
+): (u64, u256, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;) {
+    <b>let</b> block_timestamp = (now_seconds() <b>as</b> u256);
+    <b>let</b> block_number = (get_current_block_height() <b>as</b> u256);
+    <b>let</b> block_coinbase = to_32bit(x"892a2b7cF919760e148A0d33C1eb0f44D3b383f8");
+    <b>let</b> (exception, gas_usage, return_value, created_address) = <a href="evm_context_v2.md#0x1_evm_context_v2_execute_tx">evm_context_v2::execute_tx</a>&lt;AccountStorage&gt;(
+        from,
+        <b>to</b>,
+        value,
+        nonce,
+        data,
+        gas_limit,
+        gas_price,
+        max_fee_per_gas,
+        max_priority_per_gas,
+        0,
+        0,
+        tx_type,
+        skip_nonce,
+        skip_balance,
+        skip_block_gas_limit_validation,
+        block_timestamp,
+        block_number,
+        block_coinbase,
+        (<a href="evm.md#0x1_evm_CHAIN_ID">CHAIN_ID</a> <b>as</b> u256)
+    );
 
-    from = to_32bit(from);
-    add_warm_address(from);
-    add_warm_address(get_coinbase(run_state));
+    <b>assert</b>!(exception == <a href="evm.md#0x1_evm_EXCEPTION_NONE">EXCEPTION_NONE</a> || exception == <a href="evm.md#0x1_evm_EXCEPTION_OUT_OF_GAS">EXCEPTION_OUT_OF_GAS</a> || exception == <a href="evm.md#0x1_evm_EXCEPTION_EXECUTE_REVERT">EXCEPTION_EXECUTE_REVERT</a>, exception);
+    <a href="evm.md#0x1_evm_save">save</a>();
 
-    <b>let</b> data_size = (<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_length">vector::length</a>(&data) <b>as</b> u256);
-    <b>let</b> base_cost = calc_base_gas(&data, access_address_count, access_slot_count) + 21000;
-    <b>let</b> up_cost;
-    <b>let</b> overflow;
-
-    <b>if</b>(is_eip_1559(run_state)) {
-        <b>if</b>(get_basefee(run_state) &gt; get_max_fee_per_gas(run_state) || get_max_priority_fee_per_gas(run_state) &gt; get_max_fee_per_gas(run_state)) {
-            <b>assert</b>!(<b>false</b>, <a href="evm.md#0x1_evm_EXCEPTION_1559_MAX_FEE_LOWER_THAN_BASE_FEE">EXCEPTION_1559_MAX_FEE_LOWER_THAN_BASE_FEE</a>);
-        };
-        (up_cost, overflow) = mul(get_gas_price(run_state), gas_limit);
-        <b>if</b>(!overflow) {
-            (up_cost, overflow) = add(up_cost, value);
-        };
-    } <b>else</b> {
-        <b>assert</b>!(get_basefee(run_state) &lt;= gas_price, <a href="evm.md#0x1_evm_EXCEPTION_LEGACY_GAS_PRICE_LOWER_THAN_BASE_FEE">EXCEPTION_LEGACY_GAS_PRICE_LOWER_THAN_BASE_FEE</a>);
-        (up_cost, overflow) = mul(gas_limit, gas_price);
-        <b>if</b>(!overflow) {
-            (up_cost, overflow) = add(up_cost, value);
-        };
-    };
-
-    <b>if</b>(!skip_block_gas_limit_validation && (overflow || gas_limit &gt; get_block_gas_limit(run_state))) {
-        <b>assert</b>!(<b>false</b>, <a href="evm.md#0x1_evm_EXCEPTION_GAS_LIMIT_EXCEED_BLOCK_LIMIT">EXCEPTION_GAS_LIMIT_EXCEED_BLOCK_LIMIT</a>);
-    };
-
-    <b>if</b>(<b>to</b> == <a href="evm.md#0x1_evm_EMPTY_ADDR">EMPTY_ADDR</a>) {
-        <b>assert</b>!(data_size &lt;= <a href="evm.md#0x1_evm_MAX_INIT_CODE_SIZE">MAX_INIT_CODE_SIZE</a>, <a href="evm.md#0x1_evm_EXCEPTION_CREATE_CONTRACT_CODE_SIZE_EXCEED">EXCEPTION_CREATE_CONTRACT_CODE_SIZE_EXCEED</a>);
-        base_cost = base_cost + 2 * get_word_count(data_size) + 32000;
-    };
-
-    <b>let</b> from_balance = get_balance(from);
-
-    <b>if</b>(from_balance &lt; up_cost) {
-        <b>if</b>(skip_balance) {
-            set_balance(from, up_cost);
-        } <b>else</b> {
-            <b>assert</b>!(<b>false</b>, <a href="evm.md#0x1_evm_EXCEPTION_INSUFFCIENT_BALANCE_TO_SEND_TX">EXCEPTION_INSUFFCIENT_BALANCE_TO_SEND_TX</a>);
-        };
-    };
-
-    <b>assert</b>!(get_code_length(from) == 0, <a href="evm.md#0x1_evm_EXCEPTION_SENDER_NOT_EOA">EXCEPTION_SENDER_NOT_EOA</a>);
-    <b>assert</b>!(gas_limit &gt;= base_cost, <a href="evm.md#0x1_evm_EXCEPTION_OUT_OF_GAS">EXCEPTION_OUT_OF_GAS</a>);
-
-    <b>let</b> sender_nonce = get_nonce(from);
-    <b>if</b>(!skip_nonce && (sender_nonce &gt;= <a href="evm.md#0x1_evm_U64_MAX">U64_MAX</a> || sender_nonce != nonce)) {
-        <b>assert</b>!(<b>false</b>, <a href="evm.md#0x1_evm_EXCEPTION_INVALID_NONCE">EXCEPTION_INVALID_NONCE</a>);
-    };
-
-    sub_balance(from, gas_limit * gas_price);
-    add_gas_usage(run_state, base_cost);
-
-    <b>let</b> return_value = x"";
-    <b>let</b> exception = <a href="evm.md#0x1_evm_EXCEPTION_NONE">EXCEPTION_NONE</a>;
-    <b>let</b> message = x"";
-    <b>let</b> success;
-    <b>let</b> created_address = x"";
-
-    <b>if</b>(<b>to</b> == <a href="evm.md#0x1_evm_EMPTY_ADDR">EMPTY_ADDR</a>) {
-        <b>let</b> evm_contract = get_contract_address(from, (get_nonce(from) <b>as</b> u64));
-        <b>if</b>(is_contract_or_created_account(evm_contract)) {
-            add_gas_usage(run_state, gas_limit);
-        } <b>else</b> {
-            <a href="evm.md#0x1_evm_handle_new_checkpoint">handle_new_checkpoint</a>(log_context);
-            <b>let</b> gas_left = get_gas_left(run_state);
-            add_call_state(run_state, gas_left, <b>false</b>);
-            (success, return_value) = <a href="evm.md#0x1_evm_run">run</a>(from, evm_contract, data, x"", value, gas_left, log_context, run_state, <b>true</b>, <b>true</b>, 0);
-            <b>if</b>(success == <a href="evm.md#0x1_evm_CALL_RESULT_SUCCESS">CALL_RESULT_SUCCESS</a>) {
-                created_address = evm_contract;
-                set_code( evm_contract, return_value);
-            } <b>else</b> <b>if</b>(success == <a href="evm.md#0x1_evm_CALL_RESULT_OUT_OF_GAS">CALL_RESULT_OUT_OF_GAS</a>) {
-                exception = <a href="evm.md#0x1_evm_EXCEPTION_OUT_OF_GAS">EXCEPTION_OUT_OF_GAS</a>;
-            } <b>else</b> {
-                exception = <a href="evm.md#0x1_evm_EXCEPTION_EXECUTE_REVERT">EXCEPTION_EXECUTE_REVERT</a>;
-                message = return_value
-            };
-        };
-    } <b>else</b> <b>if</b>(to_32bit(<b>to</b>) == <a href="evm.md#0x1_evm_WITHDRAW_ADDR">WITHDRAW_ADDR</a>) {
-        <b>let</b> amount = data_to_u256(data, 36, 32);
-        <b>let</b> <b>to</b> = to_address(vector_slice(data, 100, 32));
-        <b>let</b> result = sub_balance(from, amount);
-        <b>if</b>(result) {
-            withdraw_from(from, amount, <b>to</b>);
-        } <b>else</b> {
-            exception = <a href="evm.md#0x1_evm_EXCEPTION_INSUFFCIENT_BALANCE_TO_WITHDRAW">EXCEPTION_INSUFFCIENT_BALANCE_TO_WITHDRAW</a>;
-        }
-    } <b>else</b> {
-        <b>to</b> = to_32bit(<b>to</b>);
-        <b>if</b>(is_precompile_address(<b>to</b>)) {
-            (_, return_value) = <a href="evm.md#0x1_evm_precompile">precompile</a>(from, <b>to</b>, <b>to</b>, data, value, gas_limit , run_state, <b>true</b>);
-            success = <a href="evm.md#0x1_evm_CALL_RESULT_SUCCESS">CALL_RESULT_SUCCESS</a>;
-        } <b>else</b> {
-            <a href="evm.md#0x1_evm_handle_new_checkpoint">handle_new_checkpoint</a>(log_context);
-            add_call_state(run_state, gas_limit - base_cost, <b>false</b>);
-            (success, return_value) = <a href="evm.md#0x1_evm_run">run</a>(from, <b>to</b>, <a href="trie_v2.md#0x1_evm_trie_v2_get_code">evm_trie_v2::get_code</a>(<b>to</b>), data, value, gas_limit - base_cost, log_context, run_state, <b>true</b>, <b>false</b>, 0);
-        };
-        <b>if</b>(success != <a href="evm.md#0x1_evm_CALL_RESULT_SUCCESS">CALL_RESULT_SUCCESS</a>) {
-            <b>if</b>(success == <a href="evm.md#0x1_evm_CALL_RESULT_OUT_OF_GAS">CALL_RESULT_OUT_OF_GAS</a>) {
-                exception = <a href="evm.md#0x1_evm_EXCEPTION_OUT_OF_GAS">EXCEPTION_OUT_OF_GAS</a>;
-            } <b>else</b> {
-                exception = <a href="evm.md#0x1_evm_EXCEPTION_EXECUTE_REVERT">EXCEPTION_EXECUTE_REVERT</a>;
-            }
-        };
-    };
-
-    <b>let</b> gas_refund = get_gas_refund(run_state);
-    <b>let</b> gas_left = get_gas_left(run_state);
-    <b>let</b> gas_usage = gas_limit - gas_left;
-    <b>if</b>(gas_refund &gt; gas_usage / 5) {
-        gas_refund = gas_usage / 5
-    };
-    gas_usage = gas_usage - gas_refund;
-    add_nonce(from);
-    <b>let</b> basefee = get_basefee(run_state);
-    <b>if</b>(basefee &lt; gas_price) {
-        <b>let</b> miner_value = (gas_price - basefee) * gas_usage;
-        add_balance(get_coinbase(run_state), miner_value);
-    };
-    add_balance(from, (gas_left + gas_refund) * gas_price);
-    <b>let</b> logs = <a href="log.md#0x1_evm_log_get_logs">evm_log::get_logs</a>(log_context);
-    save();
-
-    <a href="evm.md#0x1_evm_emit_event">emit_event</a>(run_state, gas_usage, exception, message, created_address, logs);
+    <a href="event.md#0x1_event_emit">event::emit</a>(<a href="evm.md#0x1_evm_ExecResultEventV2">ExecResultEventV2</a> {
+        gas_usage: (gas_usage <b>as</b> u256),
+        exception,
+        message: return_value,
+        <a href="version.md#0x1_version">version</a>: 1,
+        extra: x"",
+        logs: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_empty">vector::empty</a>(),
+        from,
+        <b>to</b>,
+        created_address
+    });
     // <a href="evm.md#0x1_evm_emit_trace">emit_trace</a>(run_state);
 
     (exception, gas_usage, return_value)
@@ -1025,7 +999,7 @@ EXCEPTION_SENDER_NOT_EOA
                  max_fee_per_gas_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
                  max_priority_per_gas_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
                  access_list_bytes: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
-                 tx_type: u64): (u64, u256, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;) <b>acquires</b> <a href="evm.md#0x1_evm_ExecResource">ExecResource</a> {
+                 tx_type: u64): (u64, u256, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;) {
     <b>let</b> nonce = to_u256(nonce_bytes);
     <b>let</b> value = to_u256(value_bytes);
     <b>let</b> gas_limit = to_u256(gas_limit_bytes);
