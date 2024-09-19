@@ -45,7 +45,8 @@
 -  [Function `parse_env`](#0x1_evm_global_state_for_test_parse_env)
 
 
-<pre><code><b>use</b> <a href="util.md#0x1_evm_util">0x1::evm_util</a>;
+<pre><code><b>use</b> <a href="../../aptos-stdlib/doc/debug.md#0x1_debug">0x1::debug</a>;
+<b>use</b> <a href="util.md#0x1_evm_util">0x1::evm_util</a>;
 </code></pre>
 
 
@@ -666,7 +667,7 @@
 
 <pre><code><b>public</b> <b>fun</b> <a href="global_state_for_test.md#0x1_evm_global_state_for_test_add_gas_left">add_gas_left</a>(run_state: &<b>mut</b> <a href="global_state_for_test.md#0x1_evm_global_state_for_test_RunState">RunState</a>, amount: u256) {
     <b>let</b> state = <a href="global_state_for_test.md#0x1_evm_global_state_for_test_get_lastest_state_mut">get_lastest_state_mut</a>(run_state);
-    state.gas_left = state.gas_left + amount;
+    state.gas_left = <b>if</b>(state.gas_left &gt; amount) state.gas_left + amount <b>else</b> 0;
 }
 </code></pre>
 
@@ -692,6 +693,7 @@
 <pre><code><b>public</b> <b>fun</b> <a href="global_state_for_test.md#0x1_evm_global_state_for_test_add_gas_refund">add_gas_refund</a>(run_state: &<b>mut</b> <a href="global_state_for_test.md#0x1_evm_global_state_for_test_RunState">RunState</a>, refund: u256) {
     <b>let</b> state = <a href="global_state_for_test.md#0x1_evm_global_state_for_test_get_lastest_state_mut">get_lastest_state_mut</a>(run_state);
     state.gas_refund = state.gas_refund + refund;
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&10011);
 }
 </code></pre>
 

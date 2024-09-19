@@ -974,7 +974,7 @@ EXCEPTION_SENDER_NOT_EOA
     <b>let</b> index = 0;
     <b>while</b>(i &lt; log_length) {
         <b>let</b> <b>address</b> = vector_slice(address_list, 32 * i, 32);
-        <b>let</b> data = vector_slice(address_list, 32 * i, 32);
+        <b>let</b> data = vector_slice(data_bytes, 32 * i, 32);
         <b>let</b> topic_length = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&topic_length_list, i);
         <b>let</b> j = 0;
         <b>let</b> topics = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_empty">vector::empty</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;();
@@ -1059,8 +1059,6 @@ EXCEPTION_SENDER_NOT_EOA
     <a href="evm.md#0x1_evm_save">save</a>();
 
     <b>let</b> logs = <a href="evm.md#0x1_evm_get_logs">get_logs</a>();
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&112233);
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&logs);
 
     <a href="event.md#0x1_event_emit">event::emit</a>(<a href="evm.md#0x1_evm_ExecResultEventV3">ExecResultEventV3</a> {
         gas_usage: (gas_usage <b>as</b> u256),

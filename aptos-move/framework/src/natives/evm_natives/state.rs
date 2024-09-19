@@ -176,7 +176,7 @@ impl State {
 	}
 
 	pub fn get_state_storage(
-		&self,
+		&mut self,
 		address: H160,
 		key: U256,
 		context: &mut Option<&mut SafeNativeContext>,
@@ -185,7 +185,9 @@ impl State {
 			if let Ok(account_ref) = resource.value_as::<StructRef>() {
 				if let Ok(field) = account_ref.borrow_field(3) {
 					if let Ok(table_ref) = field.value_as::<StructRef>() {
-						return read_table(&table_ref, Value::u256(move_u256::from(key)), context)
+						let value = read_table(&table_ref, Value::u256(move_u256::from( key)), context);
+						self.set_storage(address, key, value);
+						return value;
 					}
 				}
 			}
@@ -194,7 +196,7 @@ impl State {
 	}
 
 	pub fn get_balance_storage(
-		&self,
+		&mut self,
 		address: H160,
 		context: &mut Option<&mut SafeNativeContext>,
 	) -> U256 {
@@ -203,7 +205,9 @@ impl State {
 				let account_ref = resource.value_as::<StructRef>().unwrap();
 				match account_ref.borrow_field(0).unwrap().value_as::<Reference>().unwrap().read_ref() {
 					Ok(value) => {
-						return value.value_as::<move_u256>().unwrap().to_ethers_u256()
+						let balance = value.value_as::<move_u256>().unwrap().to_ethers_u256();
+						self.set_balance(address, balance);
+						return balance;
 					}
 					Err(err) => {
 						log_debug!("err {:?}", err);
@@ -218,7 +222,7 @@ impl State {
 	}
 
 	pub fn get_nonce_storage(
-		&self,
+		&mut self,
 		address: H160,
 		context: &mut Option<&mut SafeNativeContext>,
 	) -> U256 {
@@ -227,7 +231,9 @@ impl State {
 				let account_ref = resource.value_as::<StructRef>().unwrap();
 				match account_ref.borrow_field(2).unwrap().value_as::<Reference>().unwrap().read_ref() {
 					Ok(value) => {
-						return value.value_as::<move_u256>().unwrap().to_ethers_u256()
+						let nonce = value.value_as::<move_u256>().unwrap().to_ethers_u256();
+						self.set_nonce(address, nonce);
+						return nonce;
 					}
 					Err(err) => {
 						log_debug!("err {:?}", err);
@@ -242,7 +248,7 @@ impl State {
 	}
 
 	pub fn get_code_storage(
-		&self,
+		&mut self,
 		address: H160,
 		context: &mut Option<&mut SafeNativeContext>,
 	) -> Vec<u8> {
@@ -251,7 +257,9 @@ impl State {
 				let account_ref = resource.value_as::<StructRef>().unwrap();
 				match account_ref.borrow_field(1).unwrap().value_as::<Reference>().unwrap().read_ref() {
 					Ok(value) => {
-						return value.value_as::<Vec<u8>>().unwrap()
+						let code = value.value_as::<Vec<u8>>().unwrap();
+						self.set_code(address, code.clone());
+						return code;
 					}
 					Err(err) => {
 						log_debug!("err {:?}", err);
@@ -510,11 +518,7 @@ impl State {
 	) -> Vec<u8> {
 		match self.substate.known_code(address) {
 	        Some(value) => value,
-	        None => {
-				let code = self.get_code_storage(address, context);
-				self.set_code(address, code.clone());
-				code
-			}
+	        None => self.get_code_storage(address, context)
 	    }
 	}
 
@@ -546,11 +550,7 @@ impl State {
 	) -> U256 {
 		match self.substate.known_balance(address) {
 	        Some(value) => value,
-	        None => {
-				let balance = self.get_balance_storage(address, context);
-				self.set_balance(address, balance);
-				balance
-			}
+	        None => self.get_balance_storage(address, context)
 	    }
 	}
 
@@ -561,11 +561,7 @@ impl State {
 	) -> U256 {
 		match self.substate.known_nonce(address) {
 	        Some(value) => value,
-	        None => {
-				let nonce = self.get_nonce_storage(address, context);
-				self.set_nonce(address, nonce);
-				nonce
-			}
+	        None => self.get_nonce_storage(address, context)
 	    }
 	}
 
@@ -577,11 +573,7 @@ impl State {
 	) -> U256 {
 		match self.substate.known_storage(address, index) {
 	        Some(value) => value,
-	        None => {
-				let value = self.get_state_storage(address, index, context);
-				self.set_storage(address, index, value);
-				value
-			}
+	        None => self.get_state_storage(address, index, context)
 	    }
 	}
 
