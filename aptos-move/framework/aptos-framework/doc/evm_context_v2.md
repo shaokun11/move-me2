@@ -9,6 +9,7 @@
 -  [Function `get_nonce_change_set`](#0x1_evm_context_v2_get_nonce_change_set)
 -  [Function `get_code_change_set`](#0x1_evm_context_v2_get_code_change_set)
 -  [Function `get_address_change_set`](#0x1_evm_context_v2_get_address_change_set)
+-  [Function `get_logs`](#0x1_evm_context_v2_get_logs)
 -  [Function `get_storage_change_set`](#0x1_evm_context_v2_get_storage_change_set)
 -  [Function `calculate_root`](#0x1_evm_context_v2_calculate_root)
 -  [Function `set_code`](#0x1_evm_context_v2_set_code)
@@ -107,6 +108,28 @@
 
 
 <pre><code><b>public</b>(<b>friend</b>) <b>native</b> <b>fun</b> <a href="evm_context_v2.md#0x1_evm_context_v2_get_address_change_set">get_address_change_set</a>(): (u64, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;);
+</code></pre>
+
+
+
+</details>
+
+<a id="0x1_evm_context_v2_get_logs"></a>
+
+## Function `get_logs`
+
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="evm_context_v2.md#0x1_evm_context_v2_get_logs">get_logs</a>(): (u64, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u64&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>native</b> <b>fun</b> <a href="evm_context_v2.md#0x1_evm_context_v2_get_logs">get_logs</a>(): (u64, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u64&gt;);
 </code></pre>
 
 

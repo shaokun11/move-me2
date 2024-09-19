@@ -8,6 +8,8 @@
 -  [Resource `ExecResource`](#0x1_evm_ExecResource)
 -  [Struct `ExecResultEvent`](#0x1_evm_ExecResultEvent)
 -  [Struct `ExecResultEventV2`](#0x1_evm_ExecResultEventV2)
+-  [Struct `ExecResultEventV3`](#0x1_evm_ExecResultEventV3)
+-  [Struct `Log`](#0x1_evm_Log)
 -  [Constants](#@Constants_0)
 -  [Function `revert`](#0x1_evm_revert)
 -  [Function `decode_raw_tx`](#0x1_evm_decode_raw_tx)
@@ -17,6 +19,7 @@
 -  [Function `emit_event`](#0x1_evm_emit_event)
 -  [Function `handle_tx_failed`](#0x1_evm_handle_tx_failed)
 -  [Function `save`](#0x1_evm_save)
+-  [Function `get_logs`](#0x1_evm_get_logs)
 -  [Function `execute`](#0x1_evm_execute)
 -  [Function `deposit`](#0x1_evm_deposit)
 -  [Function `batch_deposit`](#0x1_evm_batch_deposit)
@@ -238,6 +241,121 @@
 </dd>
 <dt>
 <code>created_address: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+</dl>
+
+
+</details>
+
+<a id="0x1_evm_ExecResultEventV3"></a>
+
+## Struct `ExecResultEventV3`
+
+
+
+<pre><code>#[<a href="event.md#0x1_event">event</a>]
+<b>struct</b> <a href="evm.md#0x1_evm_ExecResultEventV3">ExecResultEventV3</a> <b>has</b> drop, store
+</code></pre>
+
+
+
+<details>
+<summary>Fields</summary>
+
+
+<dl>
+<dt>
+<code>from: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code><b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>gas_usage: u256</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>exception: u64</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>message: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>logs: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="evm.md#0x1_evm_Log">evm::Log</a>&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code><a href="version.md#0x1_version">version</a>: u8</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>extra: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>created_address: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+</dl>
+
+
+</details>
+
+<a id="0x1_evm_Log"></a>
+
+## Struct `Log`
+
+
+
+<pre><code><b>struct</b> <a href="evm.md#0x1_evm_Log">Log</a> <b>has</b> <b>copy</b>, drop, store
+</code></pre>
+
+
+
+<details>
+<summary>Fields</summary>
+
+
+<dl>
+<dt>
+<code>contract: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>topics: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;</code>
 </dt>
 <dd>
 
@@ -834,6 +952,53 @@ EXCEPTION_SENDER_NOT_EOA
 
 </details>
 
+<a id="0x1_evm_get_logs"></a>
+
+## Function `get_logs`
+
+
+
+<pre><code><b>fun</b> <a href="evm.md#0x1_evm_get_logs">get_logs</a>(): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="evm.md#0x1_evm_Log">evm::Log</a>&gt;
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="evm.md#0x1_evm_get_logs">get_logs</a>(): <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;<a href="evm.md#0x1_evm_Log">Log</a>&gt; {
+    <b>let</b> logs = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_empty">vector::empty</a>&lt;<a href="evm.md#0x1_evm_Log">Log</a>&gt;();
+    <b>let</b> (log_length, address_list, topic_bytes, data_bytes, topic_length_list) = <a href="evm_context_v2.md#0x1_evm_context_v2_get_logs">evm_context_v2::get_logs</a>();
+    <b>let</b> i = 0;
+    <b>let</b> index = 0;
+    <b>while</b>(i &lt; log_length) {
+        <b>let</b> <b>address</b> = vector_slice(address_list, 32 * i, 32);
+        <b>let</b> data = vector_slice(address_list, 32 * i, 32);
+        <b>let</b> topic_length = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&topic_length_list, i);
+        <b>let</b> j = 0;
+        <b>let</b> topics = <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_empty">vector::empty</a>&lt;<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;&gt;();
+        <b>while</b>(j &lt; topic_length) {
+            <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(&<b>mut</b> topics, vector_slice(topic_bytes, index, 32));
+            j = j + 1;
+            index = index + 32;
+        };
+        <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_push_back">vector::push_back</a>(&<b>mut</b> logs, <a href="evm.md#0x1_evm_Log">Log</a> {
+            contract: <b>address</b>,
+            topics,
+            data
+        });
+        i = i + 1;
+    };
+
+    logs
+}
+</code></pre>
+
+
+
+</details>
+
 <a id="0x1_evm_execute"></a>
 
 ## Function `execute`
@@ -893,13 +1058,17 @@ EXCEPTION_SENDER_NOT_EOA
     <b>assert</b>!(exception == <a href="evm.md#0x1_evm_EXCEPTION_NONE">EXCEPTION_NONE</a> || exception == <a href="evm.md#0x1_evm_EXCEPTION_OUT_OF_GAS">EXCEPTION_OUT_OF_GAS</a> || exception == <a href="evm.md#0x1_evm_EXCEPTION_EXECUTE_REVERT">EXCEPTION_EXECUTE_REVERT</a>, exception);
     <a href="evm.md#0x1_evm_save">save</a>();
 
-    <a href="event.md#0x1_event_emit">event::emit</a>(<a href="evm.md#0x1_evm_ExecResultEventV2">ExecResultEventV2</a> {
+    <b>let</b> logs = <a href="evm.md#0x1_evm_get_logs">get_logs</a>();
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&112233);
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&logs);
+
+    <a href="event.md#0x1_event_emit">event::emit</a>(<a href="evm.md#0x1_evm_ExecResultEventV3">ExecResultEventV3</a> {
         gas_usage: (gas_usage <b>as</b> u256),
         exception,
         message: return_value,
         <a href="version.md#0x1_version">version</a>: 1,
         extra: x"",
-        logs: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_empty">vector::empty</a>(),
+        logs,
         from,
         <b>to</b>,
         created_address

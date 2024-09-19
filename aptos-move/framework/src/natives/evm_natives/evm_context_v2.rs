@@ -427,6 +427,46 @@ fn native_get_storage_change_set(
 
     Ok(smallvec![Value::vector_u256(keys), Value::vector_u256(values)])
 }
+
+fn native_get_logs(
+    context: &mut SafeNativeContext,
+    _ty_args: Vec<Type>,
+    _args: VecDeque<Value>,
+) -> SafeNativeResult<SmallVec<[Value; 1]>> { 
+    let ctx = context.extensions().get::<NativeEvmContext>();
+
+    let mut addresses: Vec<u8> = Vec::new();
+    let mut topics_data: Vec<Vec<u8>> = Vec::new();
+    let mut data: Vec<Vec<u8>> = Vec::new();
+    let mut topics_lengths: Vec<u64> = Vec::new();
+
+    for log in ctx.state.substate.logs.iter() {
+        let mut padded_address = vec![0u8; 12]; // 12 个前置零
+        padded_address.extend_from_slice(log.address.as_bytes());
+        addresses.extend_from_slice(&padded_address);
+        
+        let mut topics_bytes = Vec::new();
+        for topic in &log.topics {
+            topics_bytes.extend_from_slice(topic);
+        }
+        topics_data.push(topics_bytes);
+        topics_lengths.push(log.topics.len() as u64);
+        
+        data.push(log.data.clone());
+    }
+
+    let topics_data_value = Value::vector_u8(topics_data.into_iter().flatten().collect::<Vec<u8>>());
+    let data_value = Value::vector_u8(data.into_iter().flatten().collect::<Vec<u8>>());
+    let topics_lengths_value = Value::vector_u64(topics_lengths);
+
+    Ok(smallvec![
+        Value::u64(ctx.state.substate.logs.len() as u64),
+        Value::vector_u8(addresses),
+        topics_data_value,
+        data_value,
+        topics_lengths_value
+    ])
+}
 /***************************************************************************************************
  * module
  *
@@ -448,7 +488,8 @@ pub fn make_all(
         ("get_nonce_change_set", native_get_nonce_change_set as RawSafeNative),
         ("get_code_change_set", native_get_code_change_set as RawSafeNative),
         ("get_address_change_set", native_get_address_change_set as RawSafeNative),
-        ("get_storage_change_set", native_get_storage_change_set as RawSafeNative)
+        ("get_storage_change_set", native_get_storage_change_set as RawSafeNative),
+        ("get_logs", native_get_logs as RawSafeNative)
         // ("calculate_root", native_calculate_root as RawSafeNative),
         // ("get_balance_change_set", native_get_balance_change_set as RawSafeNative),
         // ("get_nonce_change_set", native_get_nonce_change_set as RawSafeNative),

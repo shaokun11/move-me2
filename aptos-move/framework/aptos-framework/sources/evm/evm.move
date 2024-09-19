@@ -92,6 +92,8 @@ module aptos_framework::evm {
         call_event: EventHandle<vector<CallEvent>>
     }
 
+
+
     struct ExecResultEvent has drop, store {
         from: vector<u8>,
         to: vector<u8>,
@@ -115,6 +117,25 @@ module aptos_framework::evm {
         version: u8,
         extra: vector<u8>,
         created_address: vector<u8>
+    }
+
+    #[event]
+    struct ExecResultEventV3 has drop, store {
+        from: vector<u8>,
+        to: vector<u8>,
+        gas_usage: u256,
+        exception: u64,
+        message: vector<u8>,
+        logs: vector<Log>,
+        version: u8,
+        extra: vector<u8>,
+        created_address: vector<u8>
+    }
+
+    struct Log has copy, drop, store {
+        contract: vector<u8>,
+        data: vector<u8>,
+        topics: vector<vector<u8>>
     }
 
     const CALL_RESULT_SUCCESS: u8 = 0;
@@ -219,6 +240,33 @@ module aptos_framework::evm {
         };
     }
 
+    fun get_logs(): vector<Log> {
+        let logs = vector::empty<Log>();
+        let (log_length, address_list, topic_bytes, data_bytes, topic_length_list) = evm_context_v2::get_logs();
+        let i = 0;
+        let index = 0;
+        while(i < log_length) {
+            let address = vector_slice(address_list, 32 * i, 32);
+            let data = vector_slice(data_bytes, 32 * i, 32);
+            let topic_length = *vector::borrow(&topic_length_list, i);
+            let j = 0;
+            let topics = vector::empty<vector<u8>>();
+            while(j < topic_length) {
+                vector::push_back(&mut topics, vector_slice(topic_bytes, index, 32));
+                j = j + 1;
+                index = index + 32;
+            };
+            vector::push_back(&mut logs, Log {
+                contract: address,
+                topics,
+                data
+            });
+            i = i + 1;
+        };
+
+        logs
+    }
+
     fun execute(
         from: vector<u8>,
         to: vector<u8>,
@@ -263,13 +311,15 @@ module aptos_framework::evm {
         assert!(exception == EXCEPTION_NONE || exception == EXCEPTION_OUT_OF_GAS || exception == EXCEPTION_EXECUTE_REVERT, exception);
         save();
 
-        event::emit(ExecResultEventV2 {
+        let logs = get_logs();
+
+        event::emit(ExecResultEventV3 {
             gas_usage: (gas_usage as u256),
             exception,
             message: return_value,
             version: 1,
             extra: x"",
-            logs: vector::empty(),
+            logs,
             from,
             to,
             created_address

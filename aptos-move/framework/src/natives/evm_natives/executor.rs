@@ -1043,86 +1043,86 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                     return Err(ExecutionError::StaticStateChange);
                 }
     
-                let _data = if size == U256::zero() {
+                let data = if size == U256::zero() {
                     vec![]
                 } else {
                     machine.memory.get(u256_to_usize(offset)?, u256_to_usize(size)?)
                 };
-                //state.add_log(args.address, vec![], data);
+                state.add_log(args.address, vec![], data);
                 Ok(())
             }
             Opcode::LOG1 => {
                 let offset = pop_stack!(machine.stack);
                 let size = pop_stack!(machine.stack);
-                let _topic1 = pop_stack!(machine.stack);
+                let topic1 = pop_stack!(machine.stack);
     
                 if runtime.get_is_static() {
                     return Err(ExecutionError::StaticStateChange);
                 }
     
-                let _data = if size == U256::zero() {
+                let data = if size == U256::zero() {
                     vec![]
                 } else {
                     machine.memory.get(u256_to_usize(offset)?, u256_to_usize(size)?)
                 };
-                // state.add_log(args.address, vec![topic1], data);
+                state.add_log(args.address, vec![u256_to_bytes(topic1)], data);
                 Ok(())
             }
             Opcode::LOG2 => {
                 let offset = pop_stack!(machine.stack);
                 let size = pop_stack!(machine.stack);
-                let _topic1 = pop_stack!(machine.stack);
-                let _topic2 = pop_stack!(machine.stack);
+                let topic1 = pop_stack!(machine.stack);
+                let topic2 = pop_stack!(machine.stack);
     
                 if runtime.get_is_static() {
                     return Err(ExecutionError::StaticStateChange);
                 }
     
-                let _data = if size == U256::zero() {
+                let data = if size == U256::zero() {
                     vec![]
                 } else {
                     machine.memory.get(u256_to_usize(offset)?, u256_to_usize(size)?)
                 };
-                // state.add_log(args.address, vec![topic1, topic2], data);
+                state.add_log(args.address, vec![u256_to_bytes(topic1), u256_to_bytes(topic2)], data);
                 Ok(())
             }
             Opcode::LOG3 => {
                 let offset = pop_stack!(machine.stack);
                 let size = pop_stack!(machine.stack);
-                let _topic1 = pop_stack!(machine.stack);
-                let _topic2 = pop_stack!(machine.stack);
-                let _topic3 = pop_stack!(machine.stack);
+                let topic1 = pop_stack!(machine.stack);
+                let topic2 = pop_stack!(machine.stack);
+                let topic3 = pop_stack!(machine.stack);
     
                 if runtime.get_is_static() {
                     return Err(ExecutionError::StaticStateChange);
                 }
     
-                let _data = if size == U256::zero() {
+                let data = if size == U256::zero() {
                     vec![]
                 } else {
                     machine.memory.get(u256_to_usize(offset)?, u256_to_usize(size)?)
                 };
-                // state.add_log(args.address, vec![topic1, topic2, topic3], data);
+                state.add_log(args.address, vec![u256_to_bytes(topic1), u256_to_bytes(topic2), u256_to_bytes(topic3)], data);
                 Ok(())
             }
             Opcode::LOG4 => {
                 let offset = pop_stack!(machine.stack);
                 let size = pop_stack!(machine.stack);
-                let _topic1 = pop_stack!(machine.stack);
-                let _topic2 = pop_stack!(machine.stack);
-                let _topic3 = pop_stack!(machine.stack);
-                let _topic4 = pop_stack!(machine.stack);
+                let topic1 = pop_stack!(machine.stack);
+                let topic2 = pop_stack!(machine.stack);
+                let topic3 = pop_stack!(machine.stack);
+                let topic4 = pop_stack!(machine.stack);
     
                 if runtime.get_is_static() {
                     return Err(ExecutionError::StaticStateChange);
                 }
     
-                let _data = if size == U256::zero() {
+                let data = if size == U256::zero() {
                     vec![]
                 } else {
                     machine.memory.get(u256_to_usize(offset)?, u256_to_usize(size)?)
                 };
-                // state.add_log(args.address, vec![topic1, topic2, topic3, topic4], data);
+                state.add_log(args.address, vec![u256_to_bytes(topic1), u256_to_bytes(topic2), u256_to_bytes(topic3), u256_to_bytes(topic4)], data);
                 Ok(())
             },
             Opcode::INVALID => {

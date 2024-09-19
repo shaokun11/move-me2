@@ -265,6 +265,15 @@ impl State {
 		};
 	}
 
+	pub fn add_log(&mut self, address: H160, topics: Vec<Vec<u8>>, data: Vec<u8>) {
+        if topics.len() <= 4 {
+            let log = Log { address, topics, data };
+            self.substate.add_log(log);
+        } else {
+            log_debug!("Attempted to add a log with more than 4 topics");
+        }
+    }
+
 	pub fn new_account(
 		&mut self,
 		contract: H160,
@@ -621,6 +630,10 @@ impl State {
 	    for address in child.deletes {
 	        self.substate.deletes.insert(address);
 	    }
+
+		for log in child.logs {
+			self.substate.logs.push(log);
+		}
 	}
 
 	pub fn calculate_test_state_root(&self) -> Vec<u8> {
@@ -672,6 +685,13 @@ impl State {
 
 }
 
+#[derive(Clone, Debug, Default)]
+pub struct Log {
+    pub address: H160,
+    pub topics: Vec<Vec<u8>>,
+    pub data: Vec<u8>,
+}
+
 #[derive(Default)]
 pub struct Substate {
     pub parent: Option<Box<Substate>>,
@@ -682,6 +702,7 @@ pub struct Substate {
     pub origin: BTreeMap<H160, BTreeMap<U256, U256>>,
     pub transient_storages: BTreeMap<(H160, U256), U256>,
     pub deletes: BTreeSet<H160>,
+	pub logs: Vec<Log>
 }
 
 impl Substate {
@@ -695,7 +716,12 @@ impl Substate {
             origin: Default::default(),
             transient_storages: Default::default(),
             deletes: Default::default(),
+			logs: Default::default()
         }
+    }
+	
+	pub fn add_log(&mut self, log: Log) {
+        self.logs.push(log);
     }
 
     pub fn known_balance(&self, address: H160) -> Option<U256> {
