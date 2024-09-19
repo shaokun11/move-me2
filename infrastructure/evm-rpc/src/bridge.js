@@ -937,7 +937,7 @@ export async function getTransactionByHash(evm_hash) {
         // hash not found
         return null;
     }
-    const key = 'tx:' + evm_hash;
+    const key = 'v1:tx:' + evm_hash;
     let cache = await DB_TX.get(key);
     if (cache) {
         return JSON.parse(cache);
@@ -952,6 +952,7 @@ export async function getTransactionByHash(evm_hash) {
     } else {
         gasInfo.maxFeePerGas = toHex(txInfo.maxFeePerGas);
         gasInfo.maxPriorityFeePerGas = toHex(txInfo.maxPriorityFeePerGas);
+        gasInfo.gasPrice = toHex(BigNumber(BLOCK_BASE_FEE).plus(txInfo.maxPriorityFeePerGas));
     }
     const ret = {
         blockHash: block.block_hash,
