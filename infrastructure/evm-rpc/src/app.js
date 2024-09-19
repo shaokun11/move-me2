@@ -7,6 +7,7 @@ import { IS_MAIN_NODE, SERVER_PORT } from './const.js';
 import { startBotTask } from './task_bot.js';
 import { startFaucetTask } from './task_faucet.js';
 import http from 'node:http';
+import { inspect } from 'util';
 const { JSONRPCServer, createJSONRPCErrorResponse, JSONRPCErrorException } = JsonRpc;
 
 const app = express();
@@ -50,7 +51,7 @@ app.use('/', async function (req, res) {
         if (jsonRPCResponse.error) {
             // console.error(str_req, jsonRPCResponse);
         } else {
-            // console.log(str_req, jsonRPCResponse);
+            // console.log(str_req, inspect(jsonRPCResponse, {depth: null}));
         }
         if (Array.isArray(req.body) && req.body.length === 1) {
             res.json([jsonRPCResponse]);

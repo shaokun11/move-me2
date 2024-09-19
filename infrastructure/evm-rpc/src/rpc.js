@@ -188,7 +188,7 @@ export const rpc = {
      * @returns {Promise} - A promise that resolves to the transaction count
      */
     eth_getTransactionCount: async function (args) {
-        return getNonce(args[0]);
+        return getNonce(args[0], args[1]);
     },
 
     /**

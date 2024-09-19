@@ -1026,12 +1026,12 @@ export async function getTransactionReceipt(evm_hash) {
  * @returns {Promise<string>} The nonce in hexadecimal format.
  * @throws Will throw an error if the account information cannot be retrieved.
  */
-export async function getNonce(sender) {
+export async function getNonce(sender, blockTag) {
     if (EVM_NONCE_URL) {
-        const res = await postJsonRpc(EVM_NONCE_URL, 'eth_getTransactionCount', [sender]);
+        const res = await postJsonRpc(EVM_NONCE_URL, 'eth_getTransactionCount', [sender, blockTag]);
         return res.result;
     }
-    let info = await getAccountInfo(sender);
+    let info = await getAccountInfo(sender, blockTag);
     return toHex(info.nonce);
 }
 
