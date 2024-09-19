@@ -1,8 +1,16 @@
 module aptos_framework::evm_trie_for_test {
     use std::vector;
-    use aptos_framework::evm_util::{to_u256};
-    use aptos_framework::evm_context;
+    use aptos_framework::evm_util::{to_32bit, to_u256};
+    use aptos_std::simple_map::{SimpleMap};
+    use aptos_std::simple_map;
+    use aptos_framework::evm_precompile::is_precompile_address;
+    use aptos_std::debug;
 
+    struct Trie has drop {
+        context: vector<Checkpoint>,
+        storage: SimpleMap<vector<u8>, TestAccount>,
+        access_list: SimpleMap<vector<u8>, SimpleMap<u256, bool>>
+    }
 
     struct Log has copy, drop, store {
         contract: vector<u8>,
@@ -10,103 +18,186 @@ module aptos_framework::evm_trie_for_test {
         topics: vector<vector<u8>>
     }
 
-
-    public fun add_checkpoint() {
-        evm_context::push_substate();
+    struct Checkpoint has copy, drop {
+        state: SimpleMap<vector<u8>, TestAccount>,
+        transient: SimpleMap<vector<u8>, SimpleMap<u256, u256>>,
+        self_destruct: SimpleMap<vector<u8>, bool>,
+        origin: SimpleMap<vector<u8>, SimpleMap<u256, u256>>,
+        logs: vector<Log>
     }
 
-    // fun get_lastest_checkpoint_mut(trie: &mut Trie): &mut Checkpoint {
-    //     let len = vector::length(&trie.context);
-    //     vector::borrow_mut(&mut trie.context, len - 1)
-    // }
-    //
-    // fun get_lastest_checkpoint(trie: &Trie): &Checkpoint {
-    //     let len = vector::length(&trie.context);
-    //     vector::borrow(&trie.context, len - 1)
-    // }
-
-    // fun empty_account(): TestAccount {
-    //     TestAccount {
-    //         balance: 0,
-    //         code: x"",
-    //         nonce: 0,
-    //         storage: btree_map::new()
-    //     }
-    // }
-
-    // fun load_account_storage(trie: &Trie, contract: u256): TestAccount {
-    //     *simple_map::borrow(&trie.storage, &contract)
-    // }
-    //
-    // fun load_account_checkpoint(trie: &Trie, contract: u256) {
-    //     if(!evm_context::exist(contract)) {
-    //         if(simple_map::contains_key(&trie.storage, &contract)) {
-    //             let account = *simple_map::borrow(&trie.storage, &contract);
-    //             evm_context::set_account(contract, account.balance, account.code, account.nonce);
-    //         } else {
-    //             evm_context::set_account(contract, 0, x"", 0);
-    //         }
-    //     };
-    // }
-    //
-    // fun load_account_checkpoint_mut(trie: &mut Trie, contract: u256): &mut TestAccount {
-    //     let len = vector::length(&trie.context);
-    //     let checkpoint = &mut vector::borrow_mut(&mut trie.context, len - 1).state;
-    //     if(btree_map::contains_key(checkpoint, contract)) {
-    //         btree_map::borrow_mut(checkpoint, contract)
-    //     } else {
-    //         if(!btree_map::contains_key(&trie.storage, contract)) {
-    //             new_account(contract, vector::empty(), 0, 0, trie);
-    //             return load_account_checkpoint_mut(trie, contract)
-    //         };
-    //         let account = btree_map::borrow(&mut trie.storage, contract);
-    //         btree_map::add(checkpoint, contract, *account);
-    //         btree_map::borrow_mut(checkpoint, contract)
-    //     }
-    // }
-
-    public fun add_log(_contract: vector<u8>, _data: vector<u8>, _topics: vector<vector<u8>>) {
-        // let checkpoint = get_lastest_checkpoint_mut(trie);
-        // vector::push_back(&mut checkpoint.logs, Log {
-        //     contract,
-        //     data,
-        //     topics
-        // });
+    struct TestAccount has drop, copy, store {
+        balance: u256,
+        code: vector<u8>,
+        nonce: u256,
+        storage: SimpleMap<u256, u256>
     }
 
-    public fun get_transient_storage(contract: vector<u8>, key: u256): u256 {
-        evm_context::get_transient_storage(contract, key)
+    public fun add_checkpoint(trie: &mut Trie) {
+        let len = vector::length(&trie.context);
+        let elem = *vector::borrow(&mut trie.context, len - 1);
+        vector::push_back(&mut trie.context, elem);
     }
 
-    public fun put_transient_storage(contract: vector<u8>, key: u256, value: u256) {
-        evm_context::set_transient_storage(contract, key, value)
+    fun get_lastest_checkpoint_mut(trie: &mut Trie): &mut Checkpoint {
+        let len = vector::length(&trie.context);
+        vector::borrow_mut(&mut trie.context, len - 1)
     }
 
-    public fun set_code(contract: vector<u8>, code: vector<u8>) {
-        evm_context::set_code(contract, code);
+    fun get_lastest_checkpoint(trie: &Trie): &Checkpoint {
+        let len = vector::length(&trie.context);
+        vector::borrow(&trie.context, len - 1)
     }
 
-    public fun set_state(contract: vector<u8>, key: u256, value: u256) {
-        evm_context::set_storage(contract, key, value)
+    fun empty_account(): TestAccount {
+        TestAccount {
+            balance: 0,
+            code: x"",
+            nonce: 0,
+            storage: simple_map::new()
+        }
     }
 
-    public fun add_nonce(contract: vector<u8>) {
-        evm_context::inc_nonce(contract)
+    fun load_account_storage(trie: &Trie, contract_addr: vector<u8>): TestAccount {
+        *simple_map::borrow(&trie.storage, &contract_addr)
     }
 
-    public fun add_balance(contract: vector<u8>, value: u256) {
-        evm_context::add_balance(contract, value)
+    fun load_account_checkpoint(trie: &Trie, contract_addr: &vector<u8>): TestAccount {
+        let checkpoint = get_lastest_checkpoint(trie);
+        if(simple_map::contains_key(&checkpoint.state, contract_addr)) {
+            *simple_map::borrow(&checkpoint.state, contract_addr)
+        } else {
+            if(simple_map::contains_key(&trie.storage, contract_addr)) {
+                *simple_map::borrow(&trie.storage, contract_addr)
+            } else {
+                empty_account()
+            }
+        }
     }
 
-    public fun sub_balance(contract: vector<u8>, value: u256): bool {
-        evm_context::sub_balance(contract, value)
+    fun load_account_checkpoint_mut(trie: &mut Trie, contract_addr: &vector<u8>): &mut TestAccount {
+        let len = vector::length(&trie.context);
+        let checkpoint = &mut vector::borrow_mut(&mut trie.context, len - 1).state;
+        if(simple_map::contains_key(checkpoint, contract_addr)) {
+            simple_map::borrow_mut(checkpoint, contract_addr)
+        } else {
+            if(!simple_map::contains_key(&trie.storage, contract_addr)) {
+                new_account(*contract_addr, vector::empty(), 0, 0, trie);
+                return load_account_checkpoint_mut(trie, contract_addr)
+            };
+            let account = simple_map::borrow(&mut trie.storage, contract_addr);
+            simple_map::add(checkpoint, *contract_addr, *account);
+            simple_map::borrow_mut(checkpoint, contract_addr)
+        }
     }
 
-    public fun transfer(from: vector<u8>, to: vector<u8>, amount: u256): bool {
+    public fun add_log(trie: &mut Trie, contract: vector<u8>, data: vector<u8>, topics: vector<vector<u8>>) {
+        let checkpoint = get_lastest_checkpoint_mut(trie);
+        vector::push_back(&mut checkpoint.logs, Log {
+            contract,
+            data,
+            topics
+        });
+    }
+
+    public fun get_transient_storage(trie: &mut Trie, contract_addr: vector<u8>, key: u256): u256{
+        let checkpoint = get_lastest_checkpoint(trie);
+        if(!simple_map::contains_key(&checkpoint.transient, &contract_addr)) {
+            0
+        } else {
+            let data = simple_map::borrow(&checkpoint.transient, &contract_addr);
+            if(!simple_map::contains_key(data, &key)) {
+                0
+            } else {
+                *simple_map::borrow(data, &key)
+            }
+        }
+    }
+
+    public fun put_transient_storage(trie: &mut Trie, contract_addr: vector<u8>, key: u256, value: u256) {
+        let checkpoint = get_lastest_checkpoint_mut(trie);
+        if(!simple_map::contains_key(&checkpoint.transient, &contract_addr)) {
+            simple_map::add(&mut checkpoint.transient, contract_addr, simple_map::new())
+        };
+        let data = simple_map::borrow_mut(&mut checkpoint.transient, &contract_addr);
+        simple_map::upsert(data, key, value);
+    }
+
+    public fun set_balance(trie: &mut Trie, contract_addr: vector<u8>, balance: u256) {
+        let account = load_account_checkpoint_mut(trie, &contract_addr);
+        account.balance = balance;
+    }
+
+    public fun set_code(trie: &mut Trie, contract_addr: vector<u8>, code: vector<u8>) {
+        let account = load_account_checkpoint_mut(trie, &contract_addr);
+        account.code = code;
+    }
+
+    fun set_nonce(trie: &mut Trie, contract_addr: vector<u8>, nonce: u256) {
+        let account = load_account_checkpoint_mut(trie, &contract_addr);
+        account.nonce = nonce;
+    }
+
+    public fun set_state(contract_addr: vector<u8>, key: u256, value: u256, trie: &mut Trie) {
+        let account = load_account_checkpoint_mut(trie, &contract_addr);
+        if(value == 0) {
+            if(simple_map::contains_key(&mut account.storage, &key)) {
+                simple_map::remove(&mut account.storage, &key);
+            }
+        } else {
+            simple_map::upsert(&mut account.storage, key, value);
+        };
+    }
+
+    public fun new_account(contract_addr: vector<u8>, code: vector<u8>, balance: u256, nonce: u256, trie: &mut Trie) {
+        if(!exist_account(contract_addr, trie)) {
+            let checkpoint = get_lastest_checkpoint_mut(trie);
+            simple_map::add(&mut checkpoint.state, contract_addr, TestAccount {
+                code,
+                balance,
+                nonce,
+                storage: simple_map::new()
+            });
+        } else {
+            set_nonce(trie, contract_addr, 1);
+        }
+    }
+
+    public fun remove_account(contract_addr: vector<u8>, trie: &mut Trie) {
+        let checkpoint = get_lastest_checkpoint_mut(trie);
+        simple_map::remove(&mut checkpoint.state, &contract_addr);
+    }
+
+    public fun sub_balance(contract_addr: vector<u8>, amount: u256, trie: &mut Trie): bool {
+        let account = load_account_checkpoint_mut(trie, &contract_addr);
+        if(account.balance >= amount) {
+            account.balance = account.balance - amount;
+            true
+        } else {
+            false
+        }
+    }
+
+    public fun add_balance(contract_addr: vector<u8>, amount: u256, trie: &mut Trie) {
+        let account = load_account_checkpoint_mut(trie, &contract_addr);
+        account.balance = account.balance + amount;
+    }
+
+    public fun add_nonce(contract_addr: vector<u8>, trie: &mut Trie) {
+        let account = load_account_checkpoint_mut(trie, &contract_addr);
+        account.nonce = account.nonce + 1;
+    }
+
+    public fun clear_storage(contract_addr: vector<u8>, trie: &mut Trie) {
+        let account = load_account_checkpoint_mut(trie, &contract_addr);
+        account.storage = simple_map::new<u256, u256>();
+    }
+
+    public fun transfer(from: vector<u8>, to: vector<u8>, amount: u256, trie: &mut Trie): bool {
         if(amount > 0) {
-            let success = sub_balance(from, amount);
+            let success = sub_balance(from, amount, trie);
             if(success) {
-                add_balance(to, amount);
+                add_balance(to, amount, trie);
             };
             success
         } else {
@@ -114,65 +205,61 @@ module aptos_framework::evm_trie_for_test {
         }
     }
 
-    public fun commit_latest_checkpoint() {
-        evm_context::commit_substate()
-    }
-
-    public fun revert_checkpoint() {
-        evm_context::revert_substate()
-    }
-
-    public fun new_account(contract: vector<u8>, code: vector<u8>, balance: u256, nonce: u256) {
-        if(!exist_account(contract)) {
-            evm_context::set_account(contract, balance, code, nonce);
-        } else {
-            evm_context::set_nonce(contract, 1);
-        }
-    }
-
-    public fun is_contract_or_created_account(contract: vector<u8>): bool {
-        if(!exist_account(contract)) {
+    public fun is_contract_or_created_account(contract_addr: vector<u8>, trie: &Trie): bool {
+        if(!exist_account(contract_addr, trie)) {
             false
         } else {
-            get_code_length(contract) > 0 || get_nonce(contract) > 0 || !evm_context::storage_empty(contract)
+            let account = load_account_checkpoint(trie, &contract_addr);
+            vector::length(&account.code) > 0 || account.nonce > 0 || simple_map::length(&account.storage) > 0
         }
     }
 
-    public fun exist_contract(contract: vector<u8>): bool {
-        if(!exist_account(contract)) {
+    public fun exist_contract(contract_addr: vector<u8>, trie: &Trie): bool {
+        if(!exist_account(contract_addr, trie)) {
             false
         } else {
-            get_code_length(contract) > 0
+            let code = get_code(contract_addr, trie);
+            vector::length(&code) > 0
         }
     }
 
-    public fun exist_account(address: vector<u8>): bool {
-        let (_exist_in_context, exist) = evm_context::exist(address);
-        exist
+    public fun exist_account(address: vector<u8>, trie: &Trie): bool {
+        let len = vector::length(&trie.context);
+        let checkpoint = vector::borrow(&trie.context, len - 1).state;
+        if(!simple_map::contains_key(&checkpoint, &address)) {
+            return simple_map::contains_key(&trie.storage, &address)
+        };
+
+        true
     }
 
-    public fun get_nonce(contract: vector<u8>): u256 {
-        let (_exist, nonce) = evm_context::get_nonce(contract);
-        nonce
+    public fun get_nonce(contract_addr: vector<u8>, trie: &Trie): u256 {
+        let account = load_account_checkpoint(trie, &contract_addr);
+        account.nonce
     }
 
-    public fun get_code(contract: vector<u8>): vector<u8> {
-        let (_exist, code) = evm_context::get_code(contract);
-        code
+    public fun get_code(contract_addr: vector<u8>, trie: &Trie): vector<u8> {
+        let account = load_account_checkpoint(trie, &contract_addr);
+        account.code
     }
 
-    public fun get_code_length(contract: vector<u8>): u256 {
-        (vector::length(&get_code(contract)) as u256)
+    public fun get_code_length(contract_addr: vector<u8>, trie: &Trie): u256 {
+        let account = load_account_checkpoint(trie, &contract_addr);
+        (vector::length(&account.code) as u256)
     }
 
-    public fun get_balance(contract: vector<u8>): u256 {
-        let (_exist, balance) = evm_context::get_balance(contract);
-        balance
+    public fun get_balance(contract_addr: vector<u8>, trie: &Trie): u256 {
+        let account = load_account_checkpoint(trie, &contract_addr);
+        account.balance
     }
 
-    public fun get_state(contract: vector<u8>, key: u256): u256 {
-        let (_exist, value) = evm_context::get_storage(contract, key);
-        value
+    public fun get_state(contract_addr: vector<u8>, key: u256, trie: &Trie): u256 {
+        let account = load_account_checkpoint(trie, &contract_addr);
+        if(simple_map::contains_key(&account.storage, &key)) {
+            *simple_map::borrow(&account.storage, &key)
+        } else {
+            0
+        }
     }
 
     public fun pre_init(addresses: vector<vector<u8>>,
@@ -182,7 +269,12 @@ module aptos_framework::evm_trie_for_test {
                         storage_keys: vector<vector<vector<u8>>>,
                         storage_values: vector<vector<vector<u8>>>,
                         access_addresses: vector<vector<u8>>,
-                        access_keys: vector<vector<vector<u8>>>): (u256, u256) {
+                        access_keys: vector<vector<vector<u8>>>): (Trie, u256, u256) {
+        let trie = Trie {
+            context: vector::empty(),
+            storage: simple_map::new(),
+            access_list: simple_map::new()
+        };
 
         let pre_len = vector::length(&addresses);
         assert!(pre_len == vector::length(&codes), 3);
@@ -190,20 +282,25 @@ module aptos_framework::evm_trie_for_test {
         assert!(pre_len == vector::length(&storage_values), 3);
         let i = 0;
         while(i < pre_len) {
+            let storage = simple_map::new<u256, u256>();
             let key_datas = *vector::borrow(&storage_keys, i);
             let value_datas = *vector::borrow(&storage_values, i);
             let data_len = vector::length(&key_datas);
             assert!(data_len == vector::length(&value_datas), 4);
-            let address = *vector::borrow(&addresses, i);
 
             let j = 0;
             while (j < data_len) {
                 let key = *vector::borrow(&key_datas, j);
                 let value = *vector::borrow(&value_datas, j);
-                evm_context::set_storage(address, to_u256(key), to_u256(value));
+                simple_map::add(&mut storage, to_u256(key), to_u256(value));
                 j = j + 1;
             };
-            evm_context::set_account(address, to_u256(*vector::borrow(&balances, i)), *vector::borrow(&codes, i), to_u256(*vector::borrow(&nonces, i)));
+            simple_map::add(&mut trie.storage, to_32bit(*vector::borrow(&addresses, i)), TestAccount {
+                balance: to_u256(*vector::borrow(&balances, i)),
+                code: *vector::borrow(&codes, i),
+                nonce: to_u256(*vector::borrow(&nonces, i)),
+                storage,
+            });
             i = i + 1;
         };
 
@@ -213,57 +310,131 @@ module aptos_framework::evm_trie_for_test {
         assert!(access_list_len == vector::length(&access_keys), 3);
         while (i < access_list_len) {
             let access_data = *vector::borrow(&access_keys, i);
-            let contract = *vector::borrow(&access_addresses, i);
-            let j = 0;
-            let data_len = vector::length(&access_data);
-            while (j < data_len) {
-                let key = *vector::borrow(&access_data, j);
-                evm_context::add_always_hot_slot(contract, to_u256(key));
-                j = j + 1;
-                access_slot_count = access_slot_count + 1;
-            };
+            let address = to_32bit(*vector::borrow(&access_addresses, i));
+            if(!simple_map::contains_key(&trie.access_list, &address)) {
+                let access = simple_map::new<u256, bool>();
+                let j = 0;
+                let data_len = vector::length(&access_data);
+                while (j < data_len) {
+                    let key = *vector::borrow(&access_data, j);
+                    simple_map::upsert(&mut access, to_u256(key), true);
+                    j = j + 1;
+                    access_slot_count = access_slot_count + 1;
+                };
 
-            evm_context::add_always_hot_address(contract);
+                simple_map::add(&mut trie.access_list, address, access);
+            } else {
+                let j = 0;
+                let data_len = vector::length(&access_data);
+                let access = simple_map::borrow_mut(&mut trie.access_list, &address);
+                while (j < data_len) {
+                    let key = *vector::borrow(&access_data, j);
+                    simple_map::upsert(access, to_u256(key), true);
+                    j = j + 1;
+                    access_slot_count = access_slot_count + 1;
+                };
+            };
 
             i = i + 1;
         };
 
-        ((access_list_len as u256), access_slot_count)
+        vector::push_back(&mut trie.context, Checkpoint {
+            state: simple_map::new(),
+            self_destruct: simple_map::new(),
+            transient: simple_map::new(),
+            origin: simple_map::new(),
+            logs: vector::empty()
+        });
+        (trie, (access_list_len as u256), access_slot_count)
     }
 
-    // public fun get_storage_copy(trie: &Trie): BTreeMap<TestAccount> {
-    //     trie.storage
-    // }
-
-    // public fun get_trie_accounts(trie: &Trie): (vector<u256>, vector<TestAccount>) {
-    //     to_vec_pair(&trie.storage)
-    // }
-
-    public fun save() {
-        // let checkpoint = vector::pop_back(&mut trie.context).state;
-        // let (keys, values) = btree_map::to_vec_pair(&checkpoint);
-        // let i = 0;
-        // let len = vector::length(&keys);
-        // while(i < len) {
-        //     let address = *vector::borrow(&keys, i);
-        //     let account = *vector::borrow(&values, i);
-        //     btree_map::upsert(&mut trie.storage, address, account);
-        //     i = i + 1;
-        // };
-
-        // debug::print(trie)
+    public fun revert_checkpoint(trie: &mut Trie) {
+        vector::pop_back(&mut trie.context);
     }
 
-    public fun add_warm_address(address: vector<u8>) {
-        evm_context::add_hot_address(address)
+    public fun get_storage_copy(trie: &Trie): SimpleMap<vector<u8>, TestAccount> {
+        trie.storage
     }
 
-    public fun is_cold_address(address: vector<u8>): bool {
-        evm_context::is_cold_address(address)
+    public fun save(trie: &mut Trie) {
+        let checkpoint = vector::pop_back(&mut trie.context).state;
+        let (keys, values) = simple_map::to_vec_pair(checkpoint);
+        let i = 0;
+        let len = vector::length(&keys);
+        while(i < len) {
+            let address = *vector::borrow(&keys, i);
+            let account = *vector::borrow(&values, i);
+            simple_map::upsert(&mut trie.storage, address, account);
+            i = i + 1;
+        };
+
+        debug::print(trie);
+    }
+
+    public fun commit_latest_checkpoint(trie: &mut Trie) {
+        let new_checkpoint = vector::pop_back(&mut trie.context);
+        let old_checkpoint = get_lastest_checkpoint_mut(trie);
+        *old_checkpoint = new_checkpoint;
+    }
+
+    public fun add_warm_address(address: vector<u8>, trie: &mut Trie) {
+        let checkpoint = get_lastest_checkpoint_mut(trie);
+        if(!simple_map::contains_key(&checkpoint.origin, &address)) {
+            simple_map::upsert(&mut checkpoint.origin, address, simple_map::new<u256, u256>());
+        }
+    }
+
+    fun is_access_address(address: vector<u8>, trie: &mut Trie): bool {
+        simple_map::contains_key(&trie.access_list, &address)
+    }
+
+    fun is_access_slot(address: vector<u8>, key: u256, trie: &Trie): bool {
+        if(!simple_map::contains_key(&trie.access_list, &address)) {
+            return false
+        };
+
+        let data = simple_map::borrow(&trie.access_list, &address);
+        simple_map::contains_key(data, &key)
+    }
+
+    public fun is_cold_address(address: vector<u8>, trie: &mut Trie): bool {
+        if(is_precompile_address(address) || is_access_address(address, trie)) {
+            return false
+        };
+        let checkpoint = get_lastest_checkpoint_mut(trie);
+        let is_cold = !simple_map::contains_key(&checkpoint.origin, &address);
+        if(is_cold) {
+            simple_map::add(&mut checkpoint.origin, address, simple_map::new<u256, u256>());
+        };
+
+        is_cold
     }
 
     public fun get_cache(address: vector<u8>,
-                         key: u256): (bool, u256) {
-        evm_context::get_origin(address, key)
+                         key: u256, trie: &mut Trie): (bool, u256) {
+        let is_access_slot = !is_access_slot(address, key, trie);
+        let checkpoint = get_lastest_checkpoint(trie);
+        if(simple_map::contains_key(&checkpoint.origin, &address)) {
+            let storage = simple_map::borrow(&checkpoint.origin, &address);
+            if(simple_map::contains_key(storage, &key)) {
+                return (false, *simple_map::borrow(storage, &key))
+            }
+        };
+
+        let value = get_state(address, key, trie);
+        put(address, key, value, trie);
+
+        (is_access_slot, value)
     }
+
+    fun put(address: vector<u8>, key: u256, value: u256, trie: &mut Trie) {
+        let checkpoint = get_lastest_checkpoint_mut(trie);
+        if(!simple_map::contains_key(&checkpoint.origin, &address)) {
+            let new_table = simple_map::new<u256, u256>();
+            simple_map::add(&mut checkpoint.origin, address, new_table);
+        };
+        let table = simple_map::borrow_mut(&mut checkpoint.origin, &address);
+        simple_map::upsert(table, key, value);
+    }
+
 }

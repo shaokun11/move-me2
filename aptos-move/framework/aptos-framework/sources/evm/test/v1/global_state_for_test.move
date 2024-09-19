@@ -1,6 +1,7 @@
 module aptos_framework::evm_global_state_for_test {
     use std::vector;
     use aptos_framework::evm_util::{to_u256, to_32bit};
+    use aptos_std::debug;
 
     const TX_TYPE_NORMAL: u8 = 0;
     const TX_TYPE_1559: u8 = 1;
@@ -139,12 +140,13 @@ module aptos_framework::evm_global_state_for_test {
 
     public fun add_gas_left(run_state: &mut RunState, amount: u256) {
         let state = get_lastest_state_mut(run_state);
-        state.gas_left = state.gas_left + amount;
+        state.gas_left = if(state.gas_left > amount) state.gas_left + amount else 0;
     }
 
     public fun add_gas_refund(run_state: &mut RunState, refund: u256) {
         let state = get_lastest_state_mut(run_state);
         state.gas_refund = state.gas_refund + refund;
+        debug::print(&10011);
     }
 
     public fun sub_gas_refund(run_state: &mut RunState, refund: u256) {
@@ -257,4 +259,3 @@ module aptos_framework::evm_global_state_for_test {
         }
     }
 }
-

@@ -12,7 +12,7 @@ module aptos_framework::evm {
     use aptos_framework::evm_trie_v2::{add_warm_address, get_balance, get_nonce, add_checkpoint, is_contract_or_created_account, set_code, add_nonce, transfer, revert_checkpoint, commit_latest_checkpoint, exist_account, get_state, set_state, get_transient_storage, put_transient_storage, exist_contract, new_account};
     use aptos_framework::evm_gas_v2::{max_call_gas, calc_exec_gas};
     use aptos_framework::evm_precompile::{is_precompile_address, run_precompile};
-    use aptos_framework::evm_storage::{get_code_storage, deposit_to, get_state_storage, withdraw_from, AccountStorage};
+    use aptos_framework::evm_storage::{get_code_storage, deposit_to, get_state_storage, AccountStorage};
     use aptos_framework::evm_storage;
     use std::string::utf8;
     #[test_only]
@@ -23,7 +23,6 @@ module aptos_framework::evm {
     use std::string;
     use aptos_framework::coin::register;
     use aptos_framework::aptos_coin::AptosCoin;
-    use aptos_std::from_bcs::to_address;
     use aptos_framework::evm_log::{LogContext};
     use aptos_framework::evm_log;
     use aptos_framework::evm_trie_v2;
