@@ -120,7 +120,6 @@ pub fn new_tx(state: &mut State, context: &mut Option<&mut SafeNativeContext>, r
     runtime.add_gas_usage(base_cost);
     let created_address = H160::zero();
     let mut exception = TxResult::ExceptionNone;
-    let mut message = Vec::new();
     let mut ret_value = vec![];
     let call_frames = &mut Vec::new();
     call_frames.push(CallFrame::new(limit::STACK_SIZE, run_args.clone(), FrameType::MainCall));
@@ -139,9 +138,9 @@ pub fn new_tx(state: &mut State, context: &mut Option<&mut SafeNativeContext>, r
                 Err(ExecutionError::OutOfGas) => {
                     exception = TxResult::ExceptionOutOfGas;
                 }
-                Err(ExecutionError::Revert(ret_value)) => {
+                Err(ExecutionError::Revert(value)) => {
                     exception = TxResult::ExceptionExecuteRevert;
-                    message = ret_value;
+                    ret_value = value;
                 }
                 Err(ExecutionError::Exit) => {
                     exception = TxResult::ExecptionExit;
@@ -167,7 +166,7 @@ pub fn new_tx(state: &mut State, context: &mut Option<&mut SafeNativeContext>, r
                 }
                 Err(ExecutionError::Revert(value)) => {
                     exception = TxResult::ExceptionExecuteRevert;
-                    message = value;
+                    ret_value = value;
                 }
                 Err(ExecutionError::Exit) => {
                     exception = TxResult::ExecptionExit;
@@ -201,7 +200,7 @@ pub fn new_tx(state: &mut State, context: &mut Option<&mut SafeNativeContext>, r
 
     log_debug!("Execution cost: {:?} {:?} {:?} {:?}", base_cost, gas_usage - base_cost, gas_usage, gas_refund);
     log_debug!("Created address: {:?}", created_address);
-    log_debug!("Ret value {:?}", message);
+    log_debug!("Ret value {:?}", ret_value);
     // log_debug!("State {:?}", state);
     (exception, gas_usage, ret_value, created_address.as_bytes().to_vec())
 }
