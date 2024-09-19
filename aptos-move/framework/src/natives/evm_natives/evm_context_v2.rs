@@ -290,7 +290,7 @@ fn native_execute_tx_for_test(
         depth: 0
     };
     let tx_args = TransactArgs {
-        nonce: ctx_state.get_nonce(address, &mut None),
+        nonce: ctx_state.get_nonce(caller, &mut None),
         gas_limit,
         gas_price,
         max_priority_fee_per_gas,

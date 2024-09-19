@@ -97,5 +97,5 @@ function read(json_path, key, dataIndex, gasIndex, valueIndex) {
     generateEvmTest(addresses, codes, balances, nonces, storages, transactions, env, dataIndex, gasIndex, valueIndex);
 }
 
-let key = "RevertOpcodeReturn"
-read("./src/GeneralStateTests/stRevertTest/RevertOpcodeReturn.json", key, 5, 1, 0)
+let key = "transactionIntinsicBug_Paris"
+read("./src/GeneralStateTests/stEIP1559/transactionIntinsicBug_Paris.json", key, 0, 0, 0)

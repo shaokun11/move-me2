@@ -58,8 +58,14 @@ pub fn new_tx(state: &mut State, context: &mut Option<&mut SafeNativeContext>, r
         (calc_base_cost(&run_args.data, access_list_address_len, access_list_slot_len), run_args.data.len())
     };
 
+    let up_price = if tx_type == TxType::Eip1559 {
+        tx_args.max_fee_per_gas
+    } else {
+        tx_args.gas_price
+    };
+
     // Check if gas_limit * gas_price + value overflows
-    let up_cost = match tx_args.gas_price.checked_mul(tx_args.gas_limit) {
+    let up_cost = match up_price.checked_mul(tx_args.gas_limit) {
         Some(cost) => match cost.checked_add(run_args.value) {
             Some(total) => total,
             None => return (TxResult::ExceptionGasLimitExceedBlockLimit, 0, vec![], vec![]),
