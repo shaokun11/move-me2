@@ -124,7 +124,7 @@ pub fn new_tx(state: &mut State, context: &mut Option<&mut SafeNativeContext>, r
 
     state.sub_balance(run_args.caller, tx_args.gas_limit.saturating_mul(tx_args.gas_price));
     runtime.add_gas_usage(base_cost);
-    let created_address = H160::zero();
+    let mut created_address = H160::zero();
     let mut exception = TxResult::ExceptionNone;
     let mut ret_value = vec![];
     let call_frames = &mut Vec::new();
@@ -139,7 +139,8 @@ pub fn new_tx(state: &mut State, context: &mut Option<&mut SafeNativeContext>, r
             // result = run(state, &mut runtime, run_args, env, true, 0);
             match execute(state, context, &mut runtime, env, call_frames) {
                 Ok(value) => {
-                    ret_value = value;
+                    created_address = run_args.address;
+                    ret_value = vec![];
                 }
                 Err(ExecutionError::OutOfGas) => {
                     exception = TxResult::ExceptionOutOfGas;
