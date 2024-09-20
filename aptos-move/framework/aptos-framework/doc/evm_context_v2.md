@@ -320,7 +320,7 @@
 
 
 
-<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="evm_context_v2.md#0x1_evm_context_v2_execute_tx">execute_tx</a>&lt;Storage&gt;(from: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, value: u256, nonce: u256, data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_limit: u256, gas_price: u256, max_fee_per_gas: u256, max_priority_fee_per_gas: u256, access_list_address_len: u64, access_list_slot_len: u64, tx_type: u64, skip_nonce: bool, skip_balance: bool, skip_block_gas_limit_validation: bool, block_timestamp: u256, block_number: u256, block_coinbase: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="chain_id.md#0x1_chain_id">chain_id</a>: u256): (u64, u256, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="evm_context_v2.md#0x1_evm_context_v2_execute_tx">execute_tx</a>&lt;Storage, Box&gt;(from: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, value: u256, nonce: u256, data: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_limit: u256, gas_price: u256, max_fee_per_gas: u256, max_priority_fee_per_gas: u256, access_list_address_len: u64, access_list_slot_len: u64, tx_type: u64, skip_nonce: bool, skip_balance: bool, skip_block_gas_limit_validation: bool, block_timestamp: u256, block_number: u256, block_coinbase: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="chain_id.md#0x1_chain_id">chain_id</a>: u256): (u64, u256, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;, <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;)
 </code></pre>
 
 
@@ -329,7 +329,7 @@
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b>(<b>friend</b>) <b>native</b> <b>fun</b> <a href="evm_context_v2.md#0x1_evm_context_v2_execute_tx">execute_tx</a>&lt;Storage&gt;(from: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
+<pre><code><b>public</b>(<b>friend</b>) <b>native</b> <b>fun</b> <a href="evm_context_v2.md#0x1_evm_context_v2_execute_tx">execute_tx</a>&lt;Storage, Box&gt;(from: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
                                             <b>to</b>: <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
                                             value: u256,
                                             nonce: u256,

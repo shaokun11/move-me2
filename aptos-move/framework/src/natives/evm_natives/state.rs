@@ -53,76 +53,79 @@ fn to_move_address(evm_address: H160) -> AccountAddress {
 	AccountAddress::from_bytes(padded_address).unwrap()
 }
 
-fn read_table(
-	state_ref: &StructRef,
-	key: Value,
-	context: &mut Option<&mut SafeNativeContext>
-) -> U256 {
-	if let Some(context) = context.as_deref_mut() {
-		let table_context = context.extensions().get::<NativeTableContext>();
-		let mut table_data = table_context.table_data.borrow_mut();
-		
-		let handle = match get_table_handle(state_ref) {
-			Ok(h) => h,
-			Err(err) => {
-				log_debug!("err1 {:?}", err);
-				return U256::zero()
-			},
-		};
-	
-		let table = match table_data.get_or_create_table(context, handle, &Type::U256, &Type::U256) {
-			Ok(t) => t,
-			Err(err) => {
-				log_debug!("err2 {:?}", err);
-				return U256::zero()
-			},
-		};
-	
-		let key_bytes = key.simple_serialize(&table.key_layout).unwrap_or_default();
-	
-		let (gv, _) = match table.get_or_create_global_value(table_context, key_bytes) {
-			Ok(v) => v,
-			Err(err) => {
-				log_debug!("err3 {:?}", err);
-				return U256::zero()
-			},
-		};
-
-		if !gv.exists().unwrap_or(false) {
-            return U256::zero();
-        }
-	
-		match gv.borrow_global() {
-			Ok(ref_val) => {
-				let slot_ref = ref_val.value_as::<StructRef>().unwrap();
-				return slot_ref.borrow_field(0).unwrap().value_as::<Reference>().unwrap().read_ref().unwrap().value_as::<move_u256>().unwrap().to_ethers_u256();
-			}
-			Err(err) => {
-				log_debug!("err4 {:?}", err);
-				return U256::zero()
-			},
-		}
-	} else {
-		return U256::zero()
-	}
-
-	
-}
-
 #[derive(Default)]
 pub struct State {
     pub substate: Box<Substate>,
     accessed: BTreeSet<(H160, Option<U256>)>,
 	storage_type: Option<Type>,
+	value_box_type: Option<Type>
 }
 impl State {
 	pub fn new() -> Self {
         Self {
             substate: Box::new(Substate::new()),
             accessed: BTreeSet::new(),
-			storage_type: None
+			storage_type: None,
+			value_box_type: None
         }
     }
+
+	pub fn read_table(
+		&self,
+		state_ref: &StructRef,
+		key: Value,
+		context: &mut Option<&mut SafeNativeContext>
+	) -> U256 {
+		if let Some(context) = context.as_deref_mut() {
+			let table_context = context.extensions().get::<NativeTableContext>();
+			let mut table_data = table_context.table_data.borrow_mut();
+			
+			let handle = match get_table_handle(state_ref) {
+				Ok(h) => h,
+				Err(err) => {
+					log_debug!("err1 {:?}", err);
+					return U256::zero()
+				},
+			};
+			
+			let table = match table_data.get_or_create_table(context, handle, &Type::U256, self.value_box_type.as_ref().unwrap()) {
+				Ok(t) => t,
+				Err(err) => {
+					log_debug!("err2 {:?}", err);
+					return U256::zero()
+				},
+			};
+		
+			let key_bytes = key.simple_serialize(&table.key_layout).unwrap_or_default();
+		
+			let (gv, _) = match table.get_or_create_global_value(table_context, key_bytes) {
+				Ok(v) => v,
+				Err(err) => {
+					log_debug!("err3 {:?}", err);
+					return U256::zero()
+				},
+			};
+	
+			if !gv.exists().unwrap_or(false) {
+				return U256::zero();
+			}
+		
+			match gv.borrow_global() {
+				Ok(ref_val) => {
+					let slot_ref = ref_val.value_as::<StructRef>().unwrap();
+					return slot_ref.borrow_field(0).unwrap().value_as::<Reference>().unwrap().read_ref().unwrap().value_as::<move_u256>().unwrap().to_ethers_u256();
+				}
+				Err(err) => {
+					log_debug!("err4 {:?}", err);
+					return U256::zero()
+				},
+			}
+		} else {
+			return U256::zero()
+		}
+	
+		
+	}
 
 	pub fn get_resource(
 		&self,
@@ -134,7 +137,6 @@ impl State {
 				let account_address = to_move_address(address);
 				match context.load_resource(account_address, storage_type) {
 					Ok((global_value, _)) => {
-						// 检查资源是否存在
 						if global_value.exists().unwrap_or(false) {
 							match global_value.borrow_global() {
 								Ok(value) => Some(value),
@@ -185,7 +187,7 @@ impl State {
 			if let Ok(account_ref) = resource.value_as::<StructRef>() {
 				if let Ok(field) = account_ref.borrow_field(3) {
 					if let Ok(table_ref) = field.value_as::<StructRef>() {
-						let value = read_table(&table_ref, Value::u256(move_u256::from( key)), context);
+						let value = self.read_table(&table_ref, Value::u256(move_u256::from( key)), context);
 						self.set_storage(address, key, value);
 						return value;
 					}
@@ -297,6 +299,13 @@ impl State {
 			self.set_balance(contract, balance);
 			self.set_nonce(contract, nonce);
 		}
+	}
+
+	pub fn set_value_box_type(
+		&mut self,
+		value_box_type: Type
+	) {
+		self.value_box_type = Some(value_box_type);
 	}
 
 	pub fn set_storage_type(

@@ -19,7 +19,7 @@ module aptos_framework::evm_context_v2 {
     public(friend) native fun execute_tx_for_test(env: Env, from: vector<u8>, to: vector<u8>, value: u256, data: vector<u8>, gas_limit: u256,
                           gas_price: u256, max_fee_per_gas: u256, max_priority_fee_per_gas: u256, access_list_address_len: u64,
                                          access_list_slot_len: u64, tx_type: u8): (u64, u256);
-    public(friend) native fun execute_tx<Storage>(from: vector<u8>,
+    public(friend) native fun execute_tx<Storage, Box>(from: vector<u8>,
                                                 to: vector<u8>,
                                                 value: u256,
                                                 nonce: u256,

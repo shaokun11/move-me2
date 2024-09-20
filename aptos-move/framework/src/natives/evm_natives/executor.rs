@@ -138,7 +138,7 @@ pub fn new_tx(state: &mut State, context: &mut Option<&mut SafeNativeContext>, r
             handle_new_call(state, context, &mut runtime, &run_args, gas_left, false);
             // result = run(state, &mut runtime, run_args, env, true, 0);
             match execute(state, context, &mut runtime, env, call_frames) {
-                Ok(value) => {
+                Ok(_) => {
                     created_address = run_args.address;
                     ret_value = vec![];
                 }

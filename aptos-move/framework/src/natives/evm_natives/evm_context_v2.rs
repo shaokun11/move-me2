@@ -184,11 +184,13 @@ fn native_execute_tx(
     let to = safely_pop_arg!(args, Vec<u8>);
     let from = safely_pop_arg!(args, Vec<u8>);
     
-    let type_ = ty_args.pop().unwrap();
+    let box_type = ty_args.pop().unwrap();
+    let storage_type = ty_args.pop().unwrap();
     let env = Environment::env_for_mainnet(block_number, block_timestamp, block_coinbase, chain_id);
     let code: Vec<u8>;
     let mut ctx_state = State::new();
-    ctx_state.set_storage_type(type_);
+    ctx_state.set_storage_type(storage_type);
+    ctx_state.set_value_box_type(box_type);
 
     if TxType::from(tx_type) == TxType::Eip1559 {
         gas_price = env.block_base_fee_per_gas + max_priority_fee_per_gas;

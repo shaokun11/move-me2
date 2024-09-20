@@ -60,6 +60,7 @@
 <b>use</b> <a href="util.md#0x1_evm_util">0x1::evm_util</a>;
 <b>use</b> <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map">0x1::simple_map</a>;
 <b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/string.md#0x1_string">0x1::string</a>;
+<b>use</b> <a href="../../aptos-stdlib/doc/table.md#0x1_table">0x1::table</a>;
 <b>use</b> <a href="timestamp.md#0x1_timestamp">0x1::timestamp</a>;
 <b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">0x1::vector</a>;
 </code></pre>
@@ -792,11 +793,7 @@ EXCEPTION_SENDER_NOT_EOA
     <b>let</b> (<a href="chain_id.md#0x1_chain_id">chain_id</a>, from, <b>to</b>, nonce, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_per_gas, access_list_bytes, tx_type) = <a href="evm.md#0x1_evm_decode_raw_tx">decode_raw_tx</a>(tx);
     <b>assert</b>!(<a href="chain_id.md#0x1_chain_id">chain_id</a> == <a href="evm.md#0x1_evm_CHAIN_ID">CHAIN_ID</a> || <a href="chain_id.md#0x1_chain_id">chain_id</a> == 0, <a href="evm.md#0x1_evm_ERROR_INVALID_CHAINID">ERROR_INVALID_CHAINID</a>);
     <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"new tx"));
-    <b>let</b>(exception, gas_usage, return_value) = <a href="evm.md#0x1_evm_execute">execute</a>(from, <b>to</b>, nonce, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_per_gas, access_list_bytes, tx_type, <b>false</b>, <b>false</b>, <b>false</b>);
-
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&exception);
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&gas_usage);
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&return_value);
+    <a href="evm.md#0x1_evm_execute">execute</a>(from, <b>to</b>, nonce, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_per_gas, access_list_bytes, tx_type, <b>false</b>, <b>false</b>, <b>false</b>);
 }
 </code></pre>
 
@@ -1033,7 +1030,7 @@ EXCEPTION_SENDER_NOT_EOA
     <b>let</b> block_timestamp = (now_seconds() <b>as</b> u256);
     <b>let</b> block_number = (get_current_block_height() <b>as</b> u256);
     <b>let</b> block_coinbase = to_32bit(x"892a2b7cF919760e148A0d33C1eb0f44D3b383f8");
-    <b>let</b> (exception, gas_usage, return_value, created_address) = <a href="evm_context_v2.md#0x1_evm_context_v2_execute_tx">evm_context_v2::execute_tx</a>&lt;AccountStorage&gt;(
+    <b>let</b> (exception, gas_usage, return_value, created_address) = <a href="evm_context_v2.md#0x1_evm_context_v2_execute_tx">evm_context_v2::execute_tx</a>&lt;AccountStorage, Box&lt;u256&gt;&gt;(
         from,
         <b>to</b>,
         value,

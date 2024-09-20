@@ -114,8 +114,6 @@ fn native_decode_raw_tx(
             Value::u64(tx_type)
         ])
     }
-
-    
 }
 
 

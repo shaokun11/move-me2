@@ -34,6 +34,7 @@ module aptos_framework::evm {
     use aptos_framework::timestamp::set_time_has_started_for_testing;
     #[test_only]
     use aptos_framework::block;
+    use aptos_std::table::Box;
 
     friend aptos_framework::genesis;
 
@@ -164,11 +165,7 @@ module aptos_framework::evm {
         let (chain_id, from, to, nonce, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_per_gas, access_list_bytes, tx_type) = decode_raw_tx(tx);
         assert!(chain_id == CHAIN_ID || chain_id == 0, ERROR_INVALID_CHAINID);
         debug::print(&utf8(b"new tx"));
-        let(exception, gas_usage, return_value) = execute(from, to, nonce, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_per_gas, access_list_bytes, tx_type, false, false, false);
-
-        debug::print(&exception);
-        debug::print(&gas_usage);
-        debug::print(&return_value);
+        execute(from, to, nonce, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_per_gas, access_list_bytes, tx_type, false, false, false);
     }
 
     fun emit_trace(run_state: &RunState) acquires ExecResource {
@@ -285,7 +282,7 @@ module aptos_framework::evm {
         let block_timestamp = (now_seconds() as u256);
         let block_number = (get_current_block_height() as u256);
         let block_coinbase = to_32bit(x"892a2b7cF919760e148A0d33C1eb0f44D3b383f8");
-        let (exception, gas_usage, return_value, created_address) = evm_context_v2::execute_tx<AccountStorage>(
+        let (exception, gas_usage, return_value, created_address) = evm_context_v2::execute_tx<AccountStorage, Box<u256>>(
             from,
             to,
             value,
@@ -1598,7 +1595,7 @@ module aptos_framework::evm {
 
         let data = &mut x"70a08231";
         vector::append(data, to_32bit(user));
-        let(result, gas, bytes) = execute(user, contract,6, 0, *data, gas_limit, gas_price, 0, 0, x"", 1, false, false, false);
+        let(result, gas, bytes) = query(user, contract,u256_to_data(6), u256_to_data(0), *data, u256_to_data(gas_limit), u256_to_data(gas_price), u256_to_data(0), u256_to_data(0), x"", 1);
         debug::print(&result);
         debug::print(&gas);
         debug::print(&bytes);
