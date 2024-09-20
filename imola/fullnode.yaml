@@ -1,0 +1,56 @@
+base:
+    # Update this value to the location you want the node to store its database
+    data_dir: "/home/ubuntu/aptos-node-sync/data"
+    role: "full_node"
+    waypoint:
+        # Update this value to that which the blockchain publicly provides. Please regard the directions
+        # below on how to safely manage your genesis_file_location with respect to the waypoint.
+        from_file: "/home/ubuntu/aptos-node-sync/waypoint.txt"
+
+execution:
+    # Update this to the location to where the genesis.blob is stored, prefer fullpaths
+    # Note, this must be paired with a waypoint. If you update your waypoint without a
+    # corresponding genesis, the file location should be an empty path.
+    genesis_file_location: "/home/ubuntu/aptos-node-sync/genesis.blob"
+
+full_node_networks:
+    - discovery_method: "onchain"
+      seeds: # All seeds are declared below
+        b1367a7917b963d87e09c0f4977ab0b99db37c0b06122fcc5d9f0529aa45224f:
+          addresses:
+            - "/ip4/3.255.148.243/tcp/20202/noise-ik/0xb1367a7917b963d87e09c0f4977ab0b99db37c0b06122fcc5d9f0529aa45224f/handshake/0"
+          role: "Upstream"
+      listen_address: /ip4/0.0.0.0/tcp/20202
+      connection_backoff_base: 2
+      connectivity_check_interval_ms: 5000
+      network_channel_size: 1024
+      max_concurrent_network_reqs: 100
+      max_frame_size: 4194304
+      enable_proxy_protocol: false
+      ping_interval_ms: 10000
+      ping_timeout_ms: 20000
+      ping_failures_tolerated: 3
+      max_outbound_connections: 10
+      max_inbound_connections: 100
+      inbound_rate_limit_config: ~
+      outbound_rate_limit_config: ~
+      max_message_size: 67108864
+      max_parallel_deserialization_tasks: 16
+      enable_latency_aware_dialing: true
+api:
+    enabled: true
+    address: 127.0.0.1:8080
+storage:
+   enable_indexer: true
+   storage_pruner_config:
+      ledger_pruner_config:
+        enable: false
+
+# this must start for running indexer
+indexer_grpc:
+  enabled: true
+  address: 0.0.0.0:50051
+  processor_task_count: 10
+  processor_batch_size: 100
+  output_batch_size: 100
+  use_data_service_interface: true # for indexer 
