@@ -76,3 +76,19 @@ export class EvmHash extends Base {
   @Column({ type: "bigint" })
   version!: string;
 }
+
+@Entity("evm_error_hash")
+export class EvmErrorHash extends Base {
+  @PrimaryColumn({ length: 66 })
+  evm_hash!: string;
+
+  @PrimaryColumn({ length: 66 })
+  move_hash!: string;
+
+  @Column({ type: "bigint" })
+  blockNumber!: string;
+
+  @Column({ type: "bigint" })
+  version!: string;
+}
+

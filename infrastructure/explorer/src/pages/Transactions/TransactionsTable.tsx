@@ -251,8 +251,10 @@ function UserTransactionRow({
 }: UserTransactionRowProps) {
   const {data: transaction, isError} = useGetTransaction(version.toString());
 
+  // console.log("UserTransactionRow", transaction, isError);
+
   if (!transaction || isError) {
-  // if ( isError) {
+    // console.log("UserTransactionRow-error", transaction, isError);
     return null;
   }
 
@@ -347,7 +349,9 @@ export function UserTransactionsTable({
   address,
 }: UserTransactionsTableProps) {
 
-  console.log("columns",columns,versions);
+  // console.log("UserTransactionsTable", versions.length,columns);
+
+
   return (
     <Table>
       <TableHead>

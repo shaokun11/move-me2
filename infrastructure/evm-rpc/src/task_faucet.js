@@ -4,6 +4,8 @@ import { sleep, toBuffer, toHexStrict } from './helper.js';
 
 const FAUCET_QUEUE = [];
 
+let count = 0;
+
 /**
  * Start the batch faucet eth token task
  */
@@ -11,8 +13,14 @@ export async function startFaucetTask() {
     const faucet_amount = toBuffer(toHexStrict((FAUCET_AMOUNT * 1e18).toString()));
     while (1) {
         await run(faucet_amount, 100);
-        await sleep(0.5);
+        await sleep(2);
+        count++;
+        if (count % 100 == 0) {
+            count = 0;
+            break;
+        }
     }
+    setImmediate(startFaucetTask);
 }
 /**
  * Add a task to the faucet
@@ -35,11 +43,16 @@ async function run(faucet_amount, batch = 100) {
         };
         const ret_msg = {};
         try {
-            const txnRequest = await client.generateTransaction(FAUCET_SENDER_ACCOUNT.address(), payload);
+            const expire_time_sec = 60 * 5;
+            const txnRequest = await client.generateTransaction(FAUCET_SENDER_ACCOUNT.address(), payload, {
+                gas_unit_price: 200,
+                expiration_timestamp_secs: Math.floor(Date.now() / 1000) + expire_time_sec,
+            });
             const signedTxn = await client.signTransaction(FAUCET_SENDER_ACCOUNT, txnRequest);
             const transactionRes = await client.submitTransaction(signedTxn);
-            await client.waitForTransaction(transactionRes.hash);
-            const res = await client.getTransactionByHash(transactionRes.hash);
+            const res = await client.waitForTransactionWithResult(transactionRes.hash, {
+                timeoutSecs: expire_time_sec,
+            });
             if (res.success) {
                 ret_msg['hash'] = res.hash;
                 appendFile(
@@ -49,15 +62,18 @@ async function run(faucet_amount, batch = 100) {
                         time: Date.now(),
                         data: send_accounts.map(it => ({
                             addr: it.addr,
+                            ip: it.ip,
                         })),
                     }) + '\n',
                     () => {},
                 );
             } else {
+                console.error('Faucet EVM error:', res.vm_status);
                 // maybe not enough token to faucet
                 ret_msg['error'] = 'System error, please try again after 1 min';
             }
         } catch (e) {
+            console.error('Faucet EVM error:', e.message || e);
             // maybe network error
             ret_msg['error'] = 'System error, please try again after 5 min';
         }

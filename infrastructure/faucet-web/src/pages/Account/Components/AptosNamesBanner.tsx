@@ -19,7 +19,7 @@ export function AptosNamesBanner() {
       buttonLabel="Claim your name"
       onSignTransaction={submitTransaction}
       isWalletConnected={connected}
-      network="testnet"
+      network="devnet"
     />
   );
 

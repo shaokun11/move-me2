@@ -27,6 +27,8 @@ const NETWORK_URLS = {
 
 
 export default function LandingPage() {
+
+  console.log("LandingPage")
   const [searchParams] = useSearchParams(); // Reads the network param from the URL
   const network = searchParams.get('network');
   const navigate = useNavigate();
@@ -49,9 +51,10 @@ export default function LandingPage() {
   const coinClient = new CoinClient(aptosClient);
 
   const toggleNetwork = () => {
-    const newNetwork = currentNetwork === Network.Devnet ? Network.Testnet : Network.Devnet;
+    const newNetwork = Network.Devnet; //( currentNetwork != Network.Devnet) ? Network.Testnet : Network.Devnet;
     setCurrentNetwork(newNetwork);
-    navigate(`/?network=${newNetwork}`); // Update the URL to reflect the new network
+    navigate(`/`); // Update the URL to reflect the new network
+    // navigate(`/?network=${newNetwork}`); // Update the URL to reflect the new network
   };
 
   const m1FaucetRequest = async (address: string,token:string) => {
@@ -110,13 +113,13 @@ export default function LandingPage() {
       >
         <ToggleButton  
           sx={style} value="aptos">
-          <div style={text}><h1>IMOLA</h1>{"{MOVE}"}</div>
+          <div style={text}><h1>IMOLA</h1>{"{Aptos}"}</div>
         </ToggleButton>
         <ToggleButton sx={style} value="mevm">
           <div style={text}><h1>IMOLA</h1>{"{MEVM}"}</div>
         </ToggleButton>
         <ToggleButton sx={style} value="sui">
-          <div style={text}><h1>BAKU</h1>{"{MOVE}"}</div>
+          <div style={text}><h1>BAKU</h1>{"{Sui}"}</div>
         </ToggleButton>
       </ToggleButtonGroup>
       </Box>

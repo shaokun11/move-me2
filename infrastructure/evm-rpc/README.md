@@ -37,7 +37,7 @@ The following RPC methods have been implemented to ensure interaction with Solid
 
 ### New Rpc for Move Evm
 
-- `eth_faucet`: For get test token, only NODE_ENV not production is validate
+- `admin_getTxPool`:Return the tx pool 
 
 ```bash
 curl --location 'http://127.0.0.1:8998' \
@@ -45,10 +45,8 @@ curl --location 'http://127.0.0.1:8998' \
 --data '{
     "id": "1",
     "jsonrpc": "2.0",
-    "method": "eth_faucet",
-    "params": [
-        "0xB8f7166496996A7da21cF1f1b04d9B3E26a3d077"
-    ]
+    "method": "admin_getTxPool",
+    "params": []
 }'
 ```
 
@@ -61,6 +59,36 @@ curl --location 'http://127.0.0.1:8998' \
     "id": "1",
     "jsonrpc": "2.0",
     "method": "debug_getMoveHash",
+    "params": [
+        "0x3dc7fc5be27c5a5f92d35590ebe2a671ca0e98c22aeb09e3036ae94b6fedf81a"
+    ]
+}'
+```
+
+- `debug_getEvmHash`:Return the evm hash by move hash, if the move tx not a evm transaction, it will return null
+
+```bash
+curl --location 'http://127.0.0.1:8998' \
+--header 'Content-Type: application/json' \
+--data '{
+    "id": "1",
+    "jsonrpc": "2.0",
+    "method": "debug_getEvmHash",
+    "params": [
+        "0x03c970aba8e9003504a113413ef9117c74b4933297e17c1435d98e19e4562508"
+    ]
+}'
+```
+
+- `debug_getErrorByHash`:Return the evm tx running fail detail info
+
+```bash
+curl --location 'http://127.0.0.1:8998' \
+--header 'Content-Type: application/json' \
+--data '{
+    "id": "1",
+    "jsonrpc": "2.0",
+    "method": "debug_getErrorByHash",
     "params": [
         "0x3dc7fc5be27c5a5f92d35590ebe2a671ca0e98c22aeb09e3036ae94b6fedf81a"
     ]

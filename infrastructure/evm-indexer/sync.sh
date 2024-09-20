@@ -1,6 +1,7 @@
 tables=(
     "evm_logs"
     "evm_move_hash"
+    "evm_error_hash"
 )
 
 for table in "${tables[@]}"

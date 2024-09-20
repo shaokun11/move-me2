@@ -11,18 +11,19 @@ async function deposit() {
         type_arguments: [],
         arguments: [alice, random(1, 100)],
     };
-    const provider = new ethers.JsonRpcProvider('http://localhost:' + SERVER_PORT);
-    const evmSender = new ethers.Wallet(ROBOT_SENDER_ACCOUNT.toPrivateKeyObject().privateKeyHex, provider);
-    if (!evm_bot_sender) {
-        evm_bot_sender = evmSender.address;
-        // for debugging
-        console.log('Bot evm sender address', evm_bot_sender);
-    }
-    const tx = {
-        to: rand.address,
-        value: toBeHex(ethers.parseUnits('' + random(1, 100), 'gwei')),
-    };
-    await Promise.allSettled([evmSender.sendTransaction(tx), sendTx(payload)]);
+    await sendTx(payload);
+    // const provider = new ethers.JsonRpcProvider('http://localhost:' + SERVER_PORT);
+    // const evmSender = new ethers.Wallet(ROBOT_SENDER_ACCOUNT.toPrivateKeyObject().privateKeyHex, provider);
+    // if (!evm_bot_sender) {
+    //     evm_bot_sender = evmSender.address;
+    //     // for debugging
+    //     console.log('Bot evm sender address', evm_bot_sender);
+    // }
+    // const tx = {
+    //     to: rand.address,
+    //     value: toBeHex(ethers.parseUnits('' + random(1, 100), 'gwei')),
+    // };
+    // await Promise.allSettled([evmSender.sendTransaction(tx), sendTx(payload)]);
 }
 
 function toBuffer(hex) {
@@ -35,10 +36,15 @@ async function checkTxResult(tx) {
 }
 
 async function sendTx(payload) {
-    const txnRequest = await client.generateTransaction(ROBOT_SENDER_ACCOUNT.address(), payload);
+    const expire_time_sec = 60;
+    const txnRequest = await client.generateTransaction(ROBOT_SENDER_ACCOUNT.address(), payload, {
+        expiration_timestamp_secs: Math.trunc(Date.now() / 1000) + expire_time_sec,
+    });
     const signedTxn = await client.signTransaction(ROBOT_SENDER_ACCOUNT, txnRequest);
     const transactionRes = await client.submitTransaction(signedTxn);
-    await client.waitForTransaction(transactionRes.hash);
+    await client.waitForTransaction(transactionRes.hash, {
+        timeoutSecs: expire_time_sec + 5,
+    });
     return transactionRes.hash;
 }
 
@@ -48,6 +54,7 @@ function sleep(ms) {
 // https://github.com/Uniswap/deploy-v3.git
 // Since this project requires block generation to run, here I'm starting a script to generate a block every 2 seconds to achieve the purpose
 
+let count = 0;
 export async function startBotTask() {
     if (ROBOT_SENDER_ACCOUNT) {
         while (1) {
@@ -57,6 +64,12 @@ export async function startBotTask() {
                 console.log('Bot task error', e.message);
             }
             await sleep(2000);
+            count++;
+            if (count % 100 === 0) {
+                count = 0;
+                break;
+            }
         }
+        setImmediate(startBotTask);
     }
 }
