@@ -56,6 +56,7 @@ const PENDING_TX_SET = new Set();
  * }
  *
  */
+const ESTIMATED_GAS_ENLARGE = 1.2;
 const TX_MEMORY_POOL = {};
 const TX_EXPIRE_TIME = 1000 * 60 * 30;
 const ONE_ADDRESS_MAX_TX_COUNT = 20;
@@ -306,7 +307,7 @@ async function sendTxTask() {
                 let isLargeTx = false;
                 if (
                     // for we estimate the gas enlarge the gas limit to 140%
-                    BigNumber(txInfo.limit).gt(25_00_000 * 1.4) &&
+                    BigNumber(txInfo.limit).gt(25_00_000 * ESTIMATED_GAS_ENLARGE) &&
                     // not deploy contract
                     txInfo.to !== ZeroAddress
                 ) {
@@ -744,7 +745,7 @@ async function checkSendTx(tx) {
         throw 'sender not EOA';
     }
 
-    if (BigNumber(tx.limit).gt(30_000_000)) {
+    if (BigNumber(tx.limit).gt(30_000_000 * ESTIMATED_GAS_ENLARGE)) {
         throw 'gasLimit must be less than or equal to blockGasLimit';
     }
     // hex length is 2 * byte length
@@ -882,7 +883,7 @@ export async function estimateGas(info) {
     const isSuccess = result[0] === '200';
     // We need do more check, but now we just simply enlarge it 140%
     // https://github.com/ethereum/go-ethereum/blob/b0f66e34ca2a4ea7ae23475224451c8c9a569826/eth/gasestimator/gasestimator.go#L52
-    let gas = isSuccess ? BigNumber(result[1]).times(14).div(10).toFixed(0) : 3e7;
+    let gas = isSuccess ? BigNumber(result[1]).times(ESTIMATED_GAS_ENLARGE).toFixed(0) : 3e7;
     if (isSuccess && result[1] === '21000') {
         // If it just transfer eth ,we no need to change it
         gas = 21000;
