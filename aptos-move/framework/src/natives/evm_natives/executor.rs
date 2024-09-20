@@ -317,6 +317,8 @@ fn execute(state: &mut State, context: &mut Option<&mut SafeNativeContext>, runt
                                 return Ok(value);
                             }
                         }   
+                    } else {
+                        return Err(ExecutionError::Revert(value));
                     }
                     break;
                 }

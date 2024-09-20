@@ -368,7 +368,7 @@ impl State {
 		context: &mut Option<&mut SafeNativeContext>
 	) {
 		if value != U256::zero() {
-        let current_balance = match self.substate.known_balance(address) {
+        	let current_balance = match self.substate.known_balance(address) {
 	            Some(value) => value,
 	            None => self.get_balance_storage(address, context)
 	        };
