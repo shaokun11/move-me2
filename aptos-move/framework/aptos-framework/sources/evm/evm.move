@@ -164,7 +164,6 @@ module aptos_framework::evm {
     ) {
         let (chain_id, from, to, nonce, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_per_gas, access_list_bytes, tx_type) = decode_raw_tx(tx);
         assert!(chain_id == CHAIN_ID || chain_id == 0, ERROR_INVALID_CHAINID);
-        debug::print(&utf8(b"new tx"));
         execute(from, to, nonce, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_per_gas, access_list_bytes, tx_type, false, false, false);
     }
 
@@ -196,6 +195,8 @@ module aptos_framework::evm {
     fun save() {
         let (len, address_list, balances) = evm_context_v2::get_balance_change_set();
         let i = 0;
+        debug::print(&12312312321);
+        debug::print(&balances);
         while(i < len) {
             let address = vector_slice(address_list, 32 * i, 32);
             let balance = *vector::borrow(&balances, i);
@@ -1558,7 +1559,7 @@ module aptos_framework::evm {
         debug::print(&bytes);
 
         let contract = x"c4b16f158036160f10d41bdad4a084996b6ff551";
-        //
+        //deposit
         let data = x"d0e30db0";
         let(result, gas, bytes) = execute(user, contract, 1, value, data, gas_limit, gas_price, 0, 0, x"", 1, false, false, false);
         debug::print(&result);
@@ -1571,13 +1572,14 @@ module aptos_framework::evm {
         debug::print(&gas);
         debug::print(&bytes);
 
+        //totalsupply
         let data = x"18160ddd";
         let(result, gas, bytes) = execute(user, contract, 3, 0, data, gas_limit, gas_price, 0, 0, x"", 1, false, false, false);
         debug::print(&result);
         debug::print(&gas);
         debug::print(&bytes);
 
-
+        //balance of
         let data = &mut x"70a08231";
         vector::append(data, to_32bit(user));
         let(result, gas, bytes) = execute(user, contract,4, 0, *data, gas_limit, gas_price, 0, 0, x"", 1, false, false, false);

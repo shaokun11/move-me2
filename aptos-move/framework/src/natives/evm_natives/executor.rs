@@ -122,7 +122,7 @@ pub fn new_tx(state: &mut State, context: &mut Option<&mut SafeNativeContext>, r
         return (TxResult::ExceptionInvalidNonce, 0, vec![], vec![]);
     }
 
-    state.sub_balance(run_args.caller, tx_args.gas_limit.saturating_mul(tx_args.gas_price));
+    state.sub_balance(run_args.caller, tx_args.gas_limit.saturating_mul(tx_args.gas_price), context);
     runtime.add_gas_usage(base_cost);
     let mut created_address = vec![];
     let mut exception = TxResult::ExceptionNone;
@@ -200,10 +200,10 @@ pub fn new_tx(state: &mut State, context: &mut Option<&mut SafeNativeContext>, r
     let basefee = env.block_base_fee_per_gas;
     if basefee < tx_args.gas_price {
         let miner_value = (tx_args.gas_price - basefee).saturating_mul(U256::from(gas_usage));
-        state.add_balance(env.block_coinbase, miner_value);
+        state.add_balance(env.block_coinbase, miner_value, context);
     }
     
-    state.add_balance(run_args.caller, tx_args.gas_price.saturating_mul(U256::from(gas_left + gas_refund)));
+    state.add_balance(run_args.caller, tx_args.gas_price.saturating_mul(U256::from(gas_left + gas_refund)), context);
 
     log_debug!("Execution cost: {:?} {:?} {:?} {:?}", base_cost, gas_usage - base_cost, gas_usage, gas_refund);
     log_debug!("Created address: {:?}", created_address);
@@ -232,8 +232,8 @@ fn precompile(run_args: &RunArgs, runtime: &mut Runtime, state: &mut State, cont
     runtime.add_gas_usage(gas);
 
     if call_result == CallResult::Success && transfer_eth && run_args.value > U256::zero() {
-        state.sub_balance(run_args.caller, run_args.value);
-        state.add_balance(run_args.address, run_args.value);
+        state.sub_balance(run_args.caller, run_args.value, context);
+        state.add_balance(run_args.address, run_args.value, context);
     }
 
     (call_result, ret_val)
@@ -257,7 +257,7 @@ fn execute(state: &mut State, context: &mut Option<&mut SafeNativeContext>, runt
                 } else {
                     let opcode = Opcode(args.code[machine.pc]);
                     machine.pc += 1;
-                    log_debug!("{:?}", machine.stack.data());
+                    // log_debug!("{:?}", machine.stack.data());
                     
                     step(opcode, &frame.args, machine, state, context, runtime, env)
                 }
@@ -321,12 +321,10 @@ fn execute(state: &mut State, context: &mut Option<&mut SafeNativeContext>, runt
                     break;
                 }
                 Err(ExecutionError::Create(args)) => {
-                    log_debug!("new sub create {:?}", args);
                     call_frames.push(CallFrame::new(limit::STACK_SIZE, args, FrameType::Create));
                     break;
                 }
                 Err(ExecutionError::SubCall(args)) => {
-                    log_debug!("new sub call {:?}", args);
                     call_frames.push(CallFrame::new(limit::STACK_SIZE, args, FrameType::SubCall));
                     break;
                 }
@@ -364,9 +362,7 @@ fn execute(state: &mut State, context: &mut Option<&mut SafeNativeContext>, runt
 fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State, context: &mut Option<&mut SafeNativeContext>, runtime: &mut Runtime, env: &Environment) -> Result<(), ExecutionError> {
     let (gas_result, gas_cost) = calc_exec_gas(state, context, opcode, &args.address, machine, runtime);
 
-    log_debug!("opcode {} {} {}", opcode, machine.pc, args.depth);
-    log_debug!("gas_cost {}", gas_cost);
-    log_debug!("gas_left 0x{:x}", runtime.get_gas_left());
+    // log_debug!("opcode {} {} {}", opcode, machine.pc, args.depth);
     
     
     let out_of_gas = !runtime.add_gas_usage(gas_cost);
@@ -939,7 +935,7 @@ fn step(opcode: Opcode, args: &RunArgs, machine: &mut Machine, state: &mut State
                         return Err(ExecutionError::SubCall(new_args));
                     }
                 } else {
-                    output = if transfer_eth && !state.transfer(call_from, call_to, msg_value) {
+                    output = if transfer_eth && !state.transfer(call_from, call_to, msg_value, context) {
                         U256::zero()
                     } else {
                         U256::one()
@@ -1185,7 +1181,7 @@ fn handle_new_call(state: &mut State, context: &mut Option<&mut SafeNativeContex
     state.add_warm_address(args.address);
 
     if args.transfer_eth {
-        state.transfer(args.caller, args.address, args.value);
+        state.transfer(args.caller, args.address, args.value, context);
     }
 
     if args.is_create {

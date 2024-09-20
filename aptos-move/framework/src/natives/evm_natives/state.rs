@@ -347,11 +347,13 @@ impl State {
 		&mut self,
 		from: H160,
 		to: H160,
-		value: U256) -> bool {
+		value: U256, 
+		context: &mut Option<&mut SafeNativeContext>
+	) -> bool {
 		if value != U256::zero() {
-			let success = self.sub_balance(from, value);
+			let success = self.sub_balance(from, value, context);
 			if success {
-				self.add_balance(to, value);
+				self.add_balance(to, value, context);
 			}
 			return success
 		}
@@ -362,12 +364,13 @@ impl State {
 	pub fn add_balance(
 		&mut self,
 		address: H160,
-		value: U256
+		value: U256,
+		context: &mut Option<&mut SafeNativeContext>
 	) {
 		if value != U256::zero() {
         let current_balance = match self.substate.known_balance(address) {
 	            Some(value) => value,
-	            None => U256::zero()
+	            None => self.get_balance_storage(address, context)
 	        };
 	        self.substate.balances.insert(address, current_balance.overflowing_add(value).0); 
 	    }
@@ -376,12 +379,13 @@ impl State {
 	pub fn sub_balance(
 		&mut self,
 		address: H160,
-		value: U256
+		value: U256,
+		context: &mut Option<&mut SafeNativeContext>
 	) -> bool {
 		if value != U256::zero() {
 	        let current_balance = match self.substate.known_balance(address) {
 	            Some(value) => value,
-	            None => U256::zero()
+	            None => self.get_balance_storage(address, context)
 	        };
 	        if current_balance < value {
 	            return false
@@ -495,7 +499,8 @@ impl State {
 	pub fn get_origin(
 		&mut self,
 		address: H160,
-		index: U256
+		index: U256,
+		context: &mut Option<&mut SafeNativeContext>
 	) -> (bool, U256) {
 		let mut is_cold_slot = !self.accessed.contains(&(address, Some(index)));
     	let result;
@@ -509,7 +514,7 @@ impl State {
 	        None => {
 	            let value = match self.substate.known_storage(address, index) {
 	                Some(value) => value,
-	                None => U256::zero()
+	                None => self.get_state_storage(address, index, context)
 	            };
 	            self.substate.origin.entry(address)
 	            .or_insert_with(BTreeMap::new)

@@ -388,6 +388,7 @@ fn calc_create2_gas(
 fn calc_sload_gas(
     machine: &Machine,
     state: &mut State,
+    context: &mut Option<&mut SafeNativeContext>,
     address: &H160,
 ) -> (CallResult, u64) {
     if machine.stack.len() < 1 {
@@ -395,7 +396,7 @@ fn calc_sload_gas(
     }
 
     let key = machine.stack.peek(0).unwrap_or_default();
-    let(is_cold_slot, _) = state.get_origin(*address, key);
+    let(is_cold_slot, _) = state.get_origin(*address, key, context);
 
     if is_cold_slot {
         (CallResult::Success, COLD_SLOAD_COST)
@@ -423,7 +424,7 @@ fn calc_sstore_gas(
     let key = machine.stack.peek(0).unwrap_or_default();
     let new = machine.stack.peek(1).unwrap_or_default();
 
-    let (is_cold_slot, origin) = state.get_origin(*address, key);
+    let (is_cold_slot, origin) = state.get_origin(*address, key, context);
     let current = state.get_storage(*address, key, context);
 
     let cold_cost = if is_cold_slot { COLD_SLOAD_COST } else { 0 };
@@ -598,7 +599,7 @@ pub fn calc_exec_gas(state: &mut State, context: &mut Option<&mut SafeNativeCont
         },
         Opcode::CREATE => calc_create_gas(machine, gas_limit),
         Opcode::CREATE2 => calc_create2_gas(machine, gas_limit),
-        Opcode::SLOAD => calc_sload_gas(machine, state, address),
+        Opcode::SLOAD => calc_sload_gas(machine, state, context, address),
         Opcode::SSTORE => calc_sstore_gas(machine, state, context, address, runtime),
         Opcode::RETURN | Opcode::REVERT => {
             let offset = machine.stack.peek(0).unwrap_or_default();

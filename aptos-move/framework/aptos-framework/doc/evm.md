@@ -59,7 +59,6 @@
 <b>use</b> <a href="trie_v2.md#0x1_evm_trie_v2">0x1::evm_trie_v2</a>;
 <b>use</b> <a href="util.md#0x1_evm_util">0x1::evm_util</a>;
 <b>use</b> <a href="../../aptos-stdlib/doc/simple_map.md#0x1_simple_map">0x1::simple_map</a>;
-<b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/string.md#0x1_string">0x1::string</a>;
 <b>use</b> <a href="../../aptos-stdlib/doc/table.md#0x1_table">0x1::table</a>;
 <b>use</b> <a href="timestamp.md#0x1_timestamp">0x1::timestamp</a>;
 <b>use</b> <a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector">0x1::vector</a>;
@@ -792,7 +791,6 @@ EXCEPTION_SENDER_NOT_EOA
 ) {
     <b>let</b> (<a href="chain_id.md#0x1_chain_id">chain_id</a>, from, <b>to</b>, nonce, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_per_gas, access_list_bytes, tx_type) = <a href="evm.md#0x1_evm_decode_raw_tx">decode_raw_tx</a>(tx);
     <b>assert</b>!(<a href="chain_id.md#0x1_chain_id">chain_id</a> == <a href="evm.md#0x1_evm_CHAIN_ID">CHAIN_ID</a> || <a href="chain_id.md#0x1_chain_id">chain_id</a> == 0, <a href="evm.md#0x1_evm_ERROR_INVALID_CHAINID">ERROR_INVALID_CHAINID</a>);
-    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&utf8(b"new tx"));
     <a href="evm.md#0x1_evm_execute">execute</a>(from, <b>to</b>, nonce, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_per_gas, access_list_bytes, tx_type, <b>false</b>, <b>false</b>, <b>false</b>);
 }
 </code></pre>
@@ -904,6 +902,8 @@ EXCEPTION_SENDER_NOT_EOA
 <pre><code><b>fun</b> <a href="evm.md#0x1_evm_save">save</a>() {
     <b>let</b> (len, address_list, balances) = <a href="evm_context_v2.md#0x1_evm_context_v2_get_balance_change_set">evm_context_v2::get_balance_change_set</a>();
     <b>let</b> i = 0;
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&12312312321);
+    <a href="../../aptos-stdlib/doc/debug.md#0x1_debug_print">debug::print</a>(&balances);
     <b>while</b>(i &lt; len) {
         <b>let</b> <b>address</b> = vector_slice(address_list, 32 * i, 32);
         <b>let</b> balance = *<a href="../../aptos-stdlib/../move-stdlib/doc/vector.md#0x1_vector_borrow">vector::borrow</a>(&balances, i);
