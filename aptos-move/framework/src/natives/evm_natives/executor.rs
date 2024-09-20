@@ -124,7 +124,7 @@ pub fn new_tx(state: &mut State, context: &mut Option<&mut SafeNativeContext>, r
 
     state.sub_balance(run_args.caller, tx_args.gas_limit.saturating_mul(tx_args.gas_price));
     runtime.add_gas_usage(base_cost);
-    let mut created_address = H160::zero();
+    let mut created_address = vec![];
     let mut exception = TxResult::ExceptionNone;
     let mut ret_value = vec![];
     let call_frames = &mut Vec::new();
@@ -139,7 +139,7 @@ pub fn new_tx(state: &mut State, context: &mut Option<&mut SafeNativeContext>, r
             // result = run(state, &mut runtime, run_args, env, true, 0);
             match execute(state, context, &mut runtime, env, call_frames) {
                 Ok(_) => {
-                    created_address = run_args.address;
+                    created_address = run_args.address.as_bytes().to_vec();
                     ret_value = vec![];
                 }
                 Err(ExecutionError::OutOfGas) => {
@@ -209,7 +209,7 @@ pub fn new_tx(state: &mut State, context: &mut Option<&mut SafeNativeContext>, r
     log_debug!("Created address: {:?}", created_address);
     log_debug!("Ret value {:?}", ret_value);
     // log_debug!("State {:?}", state);
-    (exception, gas_usage, ret_value, created_address.as_bytes().to_vec())
+    (exception, gas_usage, ret_value, created_address)
 }
 
 fn precompile(run_args: &RunArgs, runtime: &mut Runtime, state: &mut State, context: &mut Option<&mut SafeNativeContext>, gas_limit: u64, transfer_eth: bool, code_address: H160) -> (CallResult, Vec<u8>) {
