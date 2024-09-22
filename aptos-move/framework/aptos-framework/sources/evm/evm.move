@@ -14,7 +14,6 @@ module aptos_framework::evm {
     use aptos_framework::evm_precompile::{is_precompile_address, run_precompile};
     use aptos_framework::evm_storage::{get_code_storage, deposit_to, get_state_storage, AccountStorage};
     use aptos_framework::evm_storage;
-    use std::string::utf8;
     #[test_only]
     use aptos_framework::account;
     #[test_only]
@@ -195,8 +194,6 @@ module aptos_framework::evm {
     fun save() {
         let (len, address_list, balances) = evm_context_v2::get_balance_change_set();
         let i = 0;
-        debug::print(&12312312321);
-        debug::print(&balances);
         while(i < len) {
             let address = vector_slice(address_list, 32 * i, 32);
             let balance = *vector::borrow(&balances, i);
@@ -311,7 +308,7 @@ module aptos_framework::evm {
         let logs = get_logs();
 
         event::emit(ExecResultEventV3 {
-            gas_usage: (gas_usage as u256),
+            gas_usage,
             exception,
             message: return_value,
             version: 1,
