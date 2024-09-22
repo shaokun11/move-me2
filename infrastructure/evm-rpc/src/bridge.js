@@ -56,7 +56,7 @@ const PENDING_TX_SET = new Set();
  * }
  *
  */
-const ESTIMATED_GAS_ENLARGE = 1.2;
+const ESTIMATED_GAS_ENLARGE = 1.4;
 const TX_MEMORY_POOL = {};
 const TX_EXPIRE_TIME = 1000 * 60 * 5;
 const ONE_ADDRESS_MAX_TX_COUNT = 20;
