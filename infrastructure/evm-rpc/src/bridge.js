@@ -369,7 +369,7 @@ async function sendTxTask() {
         logInfo.roundDuration = Date.now() - logInfo.roundDuration;
         console.log('======== round info =========', JSON.stringify(logInfo));
         isSending = false;
-    }, 1000);
+    }, 500);
 }
 
 function isSuccessTx(info) {
