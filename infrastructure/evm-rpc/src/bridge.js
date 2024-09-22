@@ -65,11 +65,15 @@ let LOG_START_Time = Date.now();
 async function logRequest(data) {
     const file_name = 'req-log.txt';
     const txt = data + '\n';
-    if (Date.now() - LOG_START_Time > 1000 * 60 * 60) {
-        await writeFile(file_name, txt);
-        LOG_START_Time = Date.now();
-    } else {
-        await appendFile(file_name, txt);
+    try {
+        if (Date.now() - LOG_START_Time > 1000 * 60 * 60) {
+            await writeFile(file_name, txt);
+            LOG_START_Time = Date.now();
+        } else {
+            await appendFile(file_name, txt);
+        }
+    } catch (error) {
+        // maybe multiple process write the file
     }
 }
 const SEND_LARGE_TX_INFO = {
