@@ -24,7 +24,7 @@ import { move2ethAddress } from './helper.js';
 import { googleRecaptcha } from './provider.js';
 import { addToFaucetTask } from './task_faucet.js';
 import { inspect } from 'node:util';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, appendFile } from 'node:fs/promises';
 import { DB_TX } from './leveldb_wrapper.js';
 import { ClientWrapper } from './client_wrapper.js';
 import { cluster } from 'radash';
@@ -56,11 +56,26 @@ const PENDING_TX_SET = new Set();
  * }
  *
  */
-const ESTIMATED_GAS_ENLARGE = 1.2;
+const ESTIMATED_GAS_ENLARGE = 1.4;
 const TX_MEMORY_POOL = {};
 const TX_EXPIRE_TIME = 1000 * 60 * 5;
 const ONE_ADDRESS_MAX_TX_COUNT = 20;
 const TX_NONCE_FIRST_CHECK_TIME = {};
+let LOG_START_Time = Date.now();
+async function logRequest(data) {
+    const file_name = 'req-log.txt';
+    const txt = data + '\n';
+    try {
+        if (Date.now() - LOG_START_Time > 1000 * 60 * 60) {
+            await writeFile(file_name, txt);
+            LOG_START_Time = Date.now();
+        } else {
+            await appendFile(file_name, txt);
+        }
+    } catch (error) {
+        // maybe multiple process write the file
+    }
+}
 const SEND_LARGE_TX_INFO = {
     sendTime: Date.now(),
     isFinish: true,
@@ -283,8 +298,18 @@ async function sendTxTask() {
         if (extraAccountInfo.length > 0) {
             await updateAccMap(extraAccountInfo);
         }
-        // Now we simply sort the tx by the timestamp
-        TimSort.sort(sendTxArr, (a, b) => a.ts - b.ts);
+        // Sort the tx by the price and timestamp
+        TimSort.sort(sendTxArr, (a, b) => {
+            const priceA = BigNumber(a.price);
+            const priceB = BigNumber(b.price);
+            if (!priceA.eq(priceB)) {
+                if (priceA.gt(priceB)) {
+                    return -1;
+                }
+                return 1;
+            }
+            return a.ts - b.ts;
+        });
         logInfo.allTxCount = sendTxArr.length;
         logInfo.idleSenderCount = SENDER_ACCOUNT_INDEX.length;
         logInfo.sendTxDuration = Date.now();
@@ -686,6 +711,9 @@ export async function getCode(addr) {
 }
 
 export async function getStorageAt(addr, pos) {
+    if (ethers.isAddress(addr)) {
+        throw 'address format error';
+    }
     let res = '0x';
     let payload = {
         function: `0x1::evm::get_storage_at`,
@@ -863,12 +891,16 @@ export async function estimateGas(info) {
     if (data.length % 2 === 1) {
         data = '0x0' + data.slice(2);
     }
+    const to = info.to || ZeroAddress;
+    if (!ethers.isAddress(to) || !ethers.isAddress(info.from)) {
+        throw 'address format error';
+    }
     const payload = {
         function: `0x1::evm::query`,
         type_arguments: [],
         arguments: [
             info.from,
-            info.to || '0x',
+            to,
             toBeHex(nonce),
             toBeHex(info.value || '0x0'),
             data,
@@ -880,6 +912,12 @@ export async function estimateGas(info) {
             type, //  if the tx type is 1 , only gas price is effect
         ],
     };
+    logRequest(
+        JSON.stringify({
+            type: 'estimateGas',
+            payload,
+        }),
+    );
     const result = await client.view(payload);
     const isSuccess = result[0] === '200';
     // We need do more check, but now we just simply enlarge it 140%
@@ -1150,6 +1188,12 @@ async function checkTxResult({
         });
 }
 async function sendTx(sender, tx, txKey, senderIndex, isLargeTx, to) {
+    logRequest(
+        JSON.stringify({
+            type: 'sendTx',
+            tx,
+        }),
+    );
     const payload = {
         function: `0x1::evm::send_tx`,
         type_arguments: [],
@@ -1198,7 +1242,11 @@ async function callContractImpl(from, contract, calldata, value, version) {
     if (data.length % 2 === 1) {
         data = '0x0' + data.slice(2);
     }
+    if (!ethers.isAddress(contract) || !ethers.isAddress(from)) {
+        throw 'address format error';
+    }
     const nonce = await getNonce(from);
+
     let payload = {
         function: `0x1::evm::query`,
         type_arguments: [],
@@ -1216,6 +1264,12 @@ async function callContractImpl(from, contract, calldata, value, version) {
             '1',
         ],
     };
+    logRequest(
+        JSON.stringify({
+            type: 'call',
+            payload,
+        }),
+    );
     const result = await client.view(payload, version);
     const isSuccess = result[0] === '200';
     const ret = {
