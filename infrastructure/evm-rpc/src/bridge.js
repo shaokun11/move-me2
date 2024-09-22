@@ -58,7 +58,7 @@ const PENDING_TX_SET = new Set();
  */
 const ESTIMATED_GAS_ENLARGE = 1.2;
 const TX_MEMORY_POOL = {};
-const TX_EXPIRE_TIME = 1000 * 60 * 30;
+const TX_EXPIRE_TIME = 1000 * 60 * 5;
 const ONE_ADDRESS_MAX_TX_COUNT = 20;
 const TX_NONCE_FIRST_CHECK_TIME = {};
 const SEND_LARGE_TX_INFO = {
@@ -228,7 +228,7 @@ async function sendTxTask() {
             ACC_NONCE_INFO.updateTime = Date.now();
             Object.assign(ACC_NONCE_INFO.data, newAccMap);
         };
-        if (Date.now() - ACC_NONCE_INFO.resetTime > 1000 * 60 * 5) {
+        if (Date.now() - ACC_NONCE_INFO.resetTime > 1000 * 60 * 2) {
             ACC_NONCE_INFO.updateTime = 0;
         }
         if (ACC_NONCE_INFO.updateTime === 0) {
@@ -316,7 +316,7 @@ async function sendTxTask() {
                     if (!SEND_LARGE_TX_INFO.isFinish) {
                         // not commit the last large tx
                         logInfo.largeTxPendingCount++;
-                        continue;
+                        // continue;
                     }
                     // form mevm3.0 there is no need to delay the large tx
                     // if (sendTxCount > 200) {
@@ -362,14 +362,13 @@ async function sendTxTask() {
                         // maybe tx can't be send to the chain
                         console.warn('evm:%s,error %s ', key, error.message ?? error);
                     });
-                await slowly();
             }
         }
         logInfo.sendTxDuration = Date.now() - logInfo.sendTxDuration;
         logInfo.roundDuration = Date.now() - logInfo.roundDuration;
         console.log('======== round info =========', JSON.stringify(logInfo));
         isSending = false;
-    }, 1000);
+    }, 500);
 }
 
 function isSuccessTx(info) {
@@ -1156,7 +1155,7 @@ async function sendTx(sender, tx, txKey, senderIndex, isLargeTx, to) {
         type_arguments: [],
         arguments: [toBuffer(tx)],
     };
-    const expire_time_sec = 150;
+    const expire_time_sec = 90;
     const account = await client.getAccount(sender.address());
     const txnRequest = await client.generateTransaction(sender.address(), payload, {
         max_gas_amount: 2 * 1e6, // Now it is the max value
