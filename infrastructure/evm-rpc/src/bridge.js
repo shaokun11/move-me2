@@ -362,7 +362,6 @@ async function sendTxTask() {
                         // maybe tx can't be send to the chain
                         console.warn('evm:%s,error %s ', key, error.message ?? error);
                     });
-                await slowly();
             }
         }
         logInfo.sendTxDuration = Date.now() - logInfo.sendTxDuration;
