@@ -61,14 +61,13 @@ const TX_MEMORY_POOL = {};
 const TX_EXPIRE_TIME = 1000 * 60 * 5;
 const ONE_ADDRESS_MAX_TX_COUNT = 20;
 const TX_NONCE_FIRST_CHECK_TIME = {};
-let LOG_COUNT = 0;
+let LOG_START_Time = Date.now();
 async function logRequest(data) {
     const file_name = 'req-log.txt';
-    LOG_COUNT++;
-    const txt = LOG_COUNT + ':' + data + '\n';
-    if (LOG_COUNT > 100000) {
+    const txt = data + '\n';
+    if (Date.now() - LOG_START_Time > 1000 * 60 * 60) {
         await writeFile(file_name, txt);
-        LOG_COUNT = 0;
+        LOG_START_Time = Date.now();
     } else {
         await appendFile(file_name, txt);
     }
