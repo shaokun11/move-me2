@@ -900,7 +900,7 @@ export async function estimateGas(info) {
     if (data.length % 2 === 1) {
         data = '0x0' + data.slice(2);
     }
-    if (info.to && info.to !== '0x' && !ethers.isAddress(to)) {
+    if (info.to && info.to !== '0x' && !ethers.isAddress(info.to)) {
         throw 'address format error';
     }
     info.to = info.to || '0x';
