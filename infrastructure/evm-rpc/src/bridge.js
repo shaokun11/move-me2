@@ -316,7 +316,7 @@ async function sendTxTask() {
                     if (!SEND_LARGE_TX_INFO.isFinish) {
                         // not commit the last large tx
                         logInfo.largeTxPendingCount++;
-                        continue;
+                        // continue;
                     }
                     // form mevm3.0 there is no need to delay the large tx
                     // if (sendTxCount > 200) {
