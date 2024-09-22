@@ -198,12 +198,12 @@ fn native_execute_tx(
     };
 
 
-    let caller = H160::from_slice(&from);
+    let caller = bytes_to_h160(&from);
     let (is_create, address, calldata) = if to.len() == 0 {
         code = data;
         (true, get_contract_address(caller, ctx_state.get_nonce(caller, &mut Some(context))), vec![])
     } else {
-        let addr = H160::from_slice(&to);
+        let addr = bytes_to_h160(&to);
         code = ctx_state.get_code(addr, &mut Some(context));
             
         (false, addr, data)
@@ -268,12 +268,12 @@ fn native_execute_tx_for_test(
     let ctx_state = &mut context.extensions_mut().get_mut::<NativeEvmContext>().state;
     let code;
 
-    let caller = H160::from_slice(&from);
+    let caller = bytes_to_h160(&from);
     let (is_create, address, calldata) = if to.len() == 0 {
         code = data.clone();
         (true, get_contract_address(caller, ctx_state.get_nonce(caller, &mut None)), vec![])
     } else {
-        let addr = H160::from_slice(&to);
+        let addr = bytes_to_h160(&to);
         code = ctx_state.get_code(addr, &mut None);
          
         (false, addr, data)
