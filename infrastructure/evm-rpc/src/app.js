@@ -3,12 +3,16 @@ import express from 'express';
 import cors from 'cors';
 import JsonRpc from 'json-rpc-2.0';
 import { rpc } from './rpc.js';
-import { SERVER_PORT } from './const.js';
+import { IS_MAIN_NODE, SERVER_PORT } from './const.js';
 import { startBotTask } from './task_bot.js';
 import { startFaucetTask } from './task_faucet.js';
-import { startSummaryTask } from './task_summary.js';
+import http from 'node:http';
+import { inspect } from 'util';
 const { JSONRPCServer, createJSONRPCErrorResponse, JSONRPCErrorException } = JsonRpc;
+
 const app = express();
+const httpServer = http.createServer(app);
+httpServer.setTimeout(100 * 1000);
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
@@ -47,7 +51,7 @@ app.use('/', async function (req, res) {
         if (jsonRPCResponse.error) {
             // console.error(str_req, jsonRPCResponse);
         } else {
-            // console.log(str_req, jsonRPCResponse);
+            // console.log(str_req, inspect(jsonRPCResponse, {depth: null}));
         }
         if (Array.isArray(req.body) && req.body.length === 1) {
             res.json([jsonRPCResponse]);
@@ -61,6 +65,7 @@ app.set('trust proxy', true);
 app.listen(SERVER_PORT, () => {
     console.log('server start at http://127.0.0.1:' + SERVER_PORT);
     startBotTask();
-    startFaucetTask();
-    startSummaryTask();
+    if (IS_MAIN_NODE) {
+        startFaucetTask();
+    }
 });

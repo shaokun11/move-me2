@@ -29,6 +29,10 @@ export default function TransactionsPreview() {
     queryFn: () => getTransactions({limit}, state.network_value),
   });
   const augmentTo = useAugmentToWithGlobalSearchParams();
+  // console.log("result", result);
+  if(result.isLoading) {
+    return null;
+  }
 
   return (
     <>

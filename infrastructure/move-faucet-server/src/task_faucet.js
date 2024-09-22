@@ -34,11 +34,15 @@ async function run(faucet_amount, batch = 100) {
         };
         const ret_msg = {};
         try {
-            const txnRequest = await client.generateTransaction(FAUCET_SENDER_ACCOUNT.address(), payload);
+            const txnRequest = await client.generateTransaction(FAUCET_SENDER_ACCOUNT.address(), payload,{
+                gas_unit_price: 200,
+                expiration_timestamp_secs: Math.floor(Date.now() / 1000) + 60 *5,
+            });
             const signedTxn = await client.signTransaction(FAUCET_SENDER_ACCOUNT, txnRequest);
             const transactionRes = await client.submitTransaction(signedTxn);
-            await client.waitForTransaction(transactionRes.hash);
-            const res = await client.getTransactionByHash(transactionRes.hash);
+            const res = await client.waitForTransactionWithResult(transactionRes.hash,{
+                timeoutSecs: 60 * 5,
+            });
             if (res.success) {
                 ret_msg['hash'] = res.hash;
                 appendFile(
@@ -54,10 +58,12 @@ async function run(faucet_amount, batch = 100) {
                     () => { },
                 );
             } else {
+                console.error('Faucet MOVE error:', res.vm_status);
                 // maybe not enough token to faucet
                 ret_msg['error'] = 'System error, please try again after 1 min';
             }
         } catch (e) {
+            console.error('Faucet MOVE error:', e.message || e);
             // maybe network error
             ret_msg['error'] = 'System error, please try again after 5 min';
         }

@@ -173,17 +173,17 @@ export class Worker {
         currentTxnVersion = endVersion;
 
         if (numProcessed) {
-          await this.dataSource.transaction(async (txnManager) => {
-            const nextVersionToProcess = createNextVersionToProcess({
-              indexerName: this.processor.name(),
-              version: currentTxnVersion + 1n,
-            });
-            await txnManager.upsert(
-              NextVersionToProcess,
-              nextVersionToProcess,
-              ["indexerName"],
-            );
-          });
+          // await this.dataSource.transaction(async (txnManager) => {
+          //   const nextVersionToProcess = createNextVersionToProcess({
+          //     indexerName: this.processor.name(),
+          //     version: currentTxnVersion + 1n,
+          //   });
+          //   await txnManager.upsert(
+          //     NextVersionToProcess,
+          //     nextVersionToProcess,
+          //     ["indexerName"],
+          //   );
+          // });
         } else if (currentTxnVersion % 1000n === 0n) {
           // Checkpoint
           const nextVersionToProcess = createNextVersionToProcess({

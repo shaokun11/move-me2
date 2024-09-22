@@ -14,16 +14,18 @@ import {
     getTransactionByHash,
     getTransactionReceipt,
     sendRawTx,
-    faucet,
     getLogs,
     eth_feeHistory,
     get_move_hash,
+    get_evm_hash,
     traceTransaction,
     getMoveAddress,
     batch_faucet,
     getBlockReceipts,
     getEvmSummary,
     getMaxPriorityFeePerGas,
+    getErrorByHash,
+    getTxPool,
 } from './bridge.js';
 import JsonRpc from 'json-rpc-2.0';
 const { JSONRPCErrorException } = JsonRpc;
@@ -41,7 +43,7 @@ function checkCall(res) {
                     const coder = new AbiCoder();
                     const decodeMsg = coder.decode(['string'], '0x' + res.message.slice(10));
                     data = res.message;
-                    msg = decodeMsg[0];
+                    msg = 'execution reverted:' + decodeMsg[0];
                 } catch (e) {}
             } else {
                 // The solidity error type, we keep it as the original message
@@ -53,11 +55,14 @@ function checkCall(res) {
                 msg = vmErrors[parseInt(res.code)];
             }
         }
-        throw new JSONRPCErrorException(msg, -32000, data);
+        throw new JSONRPCErrorException(msg, 3, data);
     }
 }
 
 export const rpc = {
+    admin_getTxPool: async function () {
+        return getTxPool();
+    },
     admin_getEvmTxSummary: async function () {
         return getEvmSummary();
     },
@@ -75,6 +80,13 @@ export const rpc = {
      */
     debug_getMoveHash: async function (args) {
         return get_move_hash(args[0]);
+    },
+    debug_getEvmHash: async function (args) {
+        return get_evm_hash(args[0]);
+    },
+
+    debug_getErrorByHash: async function (args) {
+        return getErrorByHash(args[0]);
     },
 
     /**
@@ -176,7 +188,7 @@ export const rpc = {
      * @returns {Promise} - A promise that resolves to the transaction count
      */
     eth_getTransactionCount: async function (args) {
-        return getNonce(args[0]);
+        return getNonce(args[0], args[1]);
     },
 
     /**
@@ -255,12 +267,6 @@ export const rpc = {
     },
     eth_getBlockReceipts: async function (args) {
         return getBlockReceipts(args[0]);
-    },
-    /**
-     * For development purpose, to get some test token
-     */
-    eth_faucet: async function (args, ctx) {
-        return faucet(args[0], ctx.ip);
     },
     /**
      * Use google recaptcha to implement the faucet

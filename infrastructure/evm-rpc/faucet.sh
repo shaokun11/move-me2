@@ -29,12 +29,7 @@ for address in "${addresses_eth[@]}"
 do
     response=$(curl --location 'http://127.0.0.1:8998' \
     --header 'Content-Type: application/json' \
-    --data '{
-        "id": 1,
-        "method": "eth_faucet",
-        "jsonrpc": "2.0",
-        "params": ['"$address"']
-    }')
+    --data "$(printf '{"id": 1, "method": "eth_batch_faucet", "jsonrpc": "2.0", "params": ["%s"]}' "$address")")
     echo "Response for address $address: $response"
 
     sleep 1

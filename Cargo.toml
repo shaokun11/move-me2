@@ -53,6 +53,7 @@ members = [
     "crates/aptos-admin-service",
     "crates/aptos-api-tester",
     "crates/aptos-bcs-utils",
+    "crates/aptos-me-indexer",
     "crates/aptos-bitvec",
     "crates/aptos-build-info",
     "crates/aptos-collections",

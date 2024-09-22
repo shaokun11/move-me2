@@ -1,6 +1,6 @@
 /// for summary all evm wallet address and evm transaction count
 
-import { client, START_SUMMARY_TASK } from './const.js';
+import { client } from './const.js';
 import { getEvmTransaction } from './db.js';
 import { JSONFilePreset } from 'lowdb/node';
 import { sleep } from './helper.js';
@@ -43,8 +43,8 @@ async function store(addressArr, txCount, syncVersion) {
 }
 
 async function run(startVersion) {
-    const txArr = await getEvmTransaction(startVersion, 5);
-    if (!txArr ||txArr.length === 0) {
+    const txArr = await getEvmTransaction(startVersion, 50);
+    if (!txArr || txArr.length === 0) {
         // Nothing, we slowly the task
         await sleep(5);
         return;
@@ -54,13 +54,6 @@ async function run(startVersion) {
     // get all address
     const address = [];
     txInfo.forEach(it => {
-        // const txResult = it.events.find(ele => ele.type === '0x1::evm::ExecResultEvent');
-        // if (txResult) {
-        //     address.push(txResult.data.from);
-        //     if (txResult.data.to !== '0x') {
-        //         address.push(txResult.data.to);
-        //     }
-        // }
         // If this evm account join the transaction , it's storage must be changed.
         // So we can trace it to found all the evm address
         const accounts = it.changes.filter(ele => ele.data?.type === '0x1::evm_storage::AccountStorage');
@@ -76,12 +69,9 @@ async function run(startVersion) {
     await store(address, txArr.length, endVersion);
 }
 
+let count = 0;
 // this could be do it at evm indexers
 export async function startSummaryTask() {
-    if (!START_SUMMARY_TASK) {
-        console.log('Summary task is not started');
-        return;
-    }
     while (1) {
         try {
             const ver = await db.data.syncVersion;
@@ -89,6 +79,14 @@ export async function startSummaryTask() {
         } catch (e) {
             console.log('Summary task error', e.message);
         }
-        await sleep(2);
+        await sleep(1);
+        count++;
+        if (count % 100 === 0) {
+            count = 0;
+            break;
+        }
     }
+    setImmediate(startSummaryTask);
 }
+
+startSummaryTask();

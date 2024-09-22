@@ -56,7 +56,7 @@ function useGetValidatorsRawData(network: NetworkName) {
   useEffect(() => {
     if (
       state.network_name === Network.MAINNET ||
-      state.network_name === Network.TESTNET ||
+      state.network_name === Network.DEVNET ||
       state.network_name === Network.PREVIEWNET
     ) {
       const fetchData = async () => {

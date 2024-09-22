@@ -49,6 +49,8 @@ export default function UserTransactions() {
   const startVersion = useGetUserTransactionVersions(1)[0];
   const versions = useGetUserTransactionVersions(LIMIT, startVersion, offset);
 
+  // console.log("versions2", versions.length, JSON.stringify(versions));
+
   return (
     <>
       <Stack spacing={2}>
