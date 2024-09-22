@@ -56,7 +56,7 @@ const PENDING_TX_SET = new Set();
  * }
  *
  */
-const ESTIMATED_GAS_ENLARGE = 1.4;
+const ESTIMATED_GAS_ENLARGE = 1.2;
 const TX_MEMORY_POOL = {};
 const TX_EXPIRE_TIME = 1000 * 60 * 5;
 const ONE_ADDRESS_MAX_TX_COUNT = 20;
@@ -839,7 +839,13 @@ export async function callContract(from, contract, calldata, value, block) {
     if (from === ETH_ADDRESS_ZERO || !from) {
         from = ETH_ADDRESS_ONE;
     }
-    contract = contract || ZeroAddress;
+    if (from && !ethers.isAddress(from)) {
+        throw 'from address format error';
+    }
+    if (contract && contract !== '0x' && !ethers.isAddress(contract)) {
+        throw 'to address format error';
+    }
+    contract = contract || '0x';
     if (DISABLE_EVM_ARCHIVE_NODE) {
         block = undefined;
     } else {
@@ -875,6 +881,9 @@ export async function estimateGas(info) {
         // the data is in the input field
         info.data = info.input;
     }
+    if (info.from && !ethers.isAddress(info.from)) {
+        throw 'from address format error';
+    }
     if (!info.from || info.from === ETH_ADDRESS_ZERO) {
         info.from = ETH_ADDRESS_ONE;
     }
@@ -891,16 +900,16 @@ export async function estimateGas(info) {
     if (data.length % 2 === 1) {
         data = '0x0' + data.slice(2);
     }
-    const to = info.to || ZeroAddress;
-    if (!ethers.isAddress(to) || !ethers.isAddress(info.from)) {
+    if (info.to && info.to !== '0x' && !ethers.isAddress(to)) {
         throw 'address format error';
     }
+    info.to = info.to || '0x';
     const payload = {
         function: `0x1::evm::query`,
         type_arguments: [],
         arguments: [
             info.from,
-            to,
+            info.to,
             toBeHex(nonce),
             toBeHex(info.value || '0x0'),
             data,
@@ -1241,9 +1250,6 @@ async function callContractImpl(from, contract, calldata, value, version) {
     let data = !calldata ? '0x' : calldata;
     if (data.length % 2 === 1) {
         data = '0x0' + data.slice(2);
-    }
-    if (!ethers.isAddress(contract) || !ethers.isAddress(from)) {
-        throw 'address format error';
     }
     const nonce = await getNonce(from);
 
