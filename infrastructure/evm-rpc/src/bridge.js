@@ -696,6 +696,9 @@ export async function getCode(addr) {
 }
 
 export async function getStorageAt(addr, pos) {
+    if(ethers.isAddress(addr)){
+        throw 'address format error';
+    }
     let res = '0x';
     let payload = {
         function: `0x1::evm::get_storage_at`,
@@ -873,12 +876,16 @@ export async function estimateGas(info) {
     if (data.length % 2 === 1) {
         data = '0x0' + data.slice(2);
     }
+    const to = info.to || ZeroAddress;
+    if(!ethers.isAddress(to) || !ethers.isAddress(info.from)){
+        throw 'address format error';
+    }
     const payload = {
         function: `0x1::evm::query`,
         type_arguments: [],
         arguments: [
             info.from,
-            info.to || '0x',
+            to,
             toBeHex(nonce),
             toBeHex(info.value || '0x0'),
             data,
@@ -1207,6 +1214,9 @@ async function callContractImpl(from, contract, calldata, value, version) {
     let data = !calldata ? '0x' : calldata;
     if (data.length % 2 === 1) {
         data = '0x0' + data.slice(2);
+    }
+    if(!ethers.isAddress(contract) || !ethers.isAddress(from)){
+        throw 'address format error';
     }
     const nonce = await getNonce(from);
     let payload = {
