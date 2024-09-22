@@ -283,8 +283,18 @@ async function sendTxTask() {
         if (extraAccountInfo.length > 0) {
             await updateAccMap(extraAccountInfo);
         }
-        // Now we simply sort the tx by the timestamp
-        TimSort.sort(sendTxArr, (a, b) => a.ts - b.ts);
+        // Sort the tx by the price and timestamp
+        TimSort.sort(sendTxArr, (a, b) => {
+            const priceA = BigNumber(a.price);
+            const priceB = BigNumber(b.price);
+            if(!priceA.eq(priceB)){
+                if(priceA.gt(priceB)){
+                    return -1;
+                }
+                return 1;
+            }
+            return a.ts - b.ts
+        });
         logInfo.allTxCount = sendTxArr.length;
         logInfo.idleSenderCount = SENDER_ACCOUNT_INDEX.length;
         logInfo.sendTxDuration = Date.now();
