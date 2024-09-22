@@ -314,7 +314,7 @@ fn execute(state: &mut State, context: &mut Option<&mut SafeNativeContext>, runt
                                 machine.set_ret_bytes(value);
                             }
                             _ => {
-                                return Ok(value);
+                                return Err(ExecutionError::Revert(value));
                             }
                         }   
                     } else {
@@ -347,6 +347,8 @@ fn execute(state: &mut State, context: &mut Option<&mut SafeNativeContext>, runt
                                 return Err(err);
                             }
                         }   
+                    } else {
+                        return Err(err);
                     }
                     break;
                 }
