@@ -1,52 +1,54 @@
-import { ZeroAddress, Transaction } from 'ethers';
 import { BigNumber } from 'bignumber.js';
 import { randomBytes } from 'node:crypto';
 import { HexString } from 'aptos';
 import { TransactionFactory } from '@ethereumjs/tx';
 
 export function parseRawTx(tx) {
-    let tx_;
-    let tx2;
+    let tx2 = null;
     try {
-        tx_ = Transaction.from(tx);
-        // the ethers parse rsv is not correct , so we need to parse it again
         tx2 = TransactionFactory.fromSerializedData(Buffer.from(tx.slice(2), 'hex'));
     } catch (error) {
         throw new Error('Invalid transaction');
     }
-    const txJson = tx_.toJSON();
-    const from = tx_.from.toLowerCase();
+    //  enum TransactionType {
+    //     Legacy = 0,
+    //     AccessListEIP2930 = 1,
+    //     FeeMarketEIP1559 = 2,
+    //     BlobEIP4844 = 3,
+    //   }
+    if (tx.type >= 3) {
+        throw new Error('Invalid transaction type');
+    }
     let gasPrice = null;
     let maxPriorityFeePerGas = null;
     let maxFeePerGas = null;
-    if (txJson.gasPrice) {
-        gasPrice = toHex(txJson.gasPrice);
+    if (tx2.gasPrice) {
+        gasPrice = toHex(tx2.gasPrice);
     }
-    if (txJson.maxPriorityFeePerGas) {
-        maxPriorityFeePerGas = toHex(txJson.maxPriorityFeePerGas);
+    if (tx2.maxPriorityFeePerGas) {
+        maxPriorityFeePerGas = toHex(tx2.maxPriorityFeePerGas);
     }
-    if (txJson.maxFeePerGas) {
-        maxFeePerGas = toHex(txJson.maxFeePerGas);
+    if (tx2.maxFeePerGas) {
+        maxFeePerGas = toHex(tx2.maxFeePerGas);
     }
     return {
-        hash: tx_.hash,
-        nonce: txJson.nonce,
-        from: from,
+        type: toHex(tx2.type),
+        from: tx2.getSenderAddress().toString().toLowerCase(),
+        to: tx2.to?.toString().toLowerCase(),
+        hash: '0x' + Buffer.from(tx2.hash()).toString('hex').padStart(64, '0'),
+        messageHash: '0x' + Buffer.from(tx2.getHashedMessageToSign()).toString('hex').padStart(64, '0'),
+        nonce: parseInt(tx2.nonce),
         maxPriorityFeePerGas: maxPriorityFeePerGas,
         maxFeePerGas: maxFeePerGas,
-        type: toHex(txJson.type || 0),
-        messageHash: tx_.unsignedHash,
-        accessList: txJson.accessList,
         gasPrice: gasPrice,
-        limit: toHex(txJson.gasLimit),
-        to: txJson.to?.toLowerCase() || ZeroAddress,
-        value: toHex(txJson.value),
-        data: txJson.data || '0x',
+        limit: toHex(tx2.gasLimit),
+        value: toHex(tx2.value),
+        data: '0x' + Buffer.from(tx2.data).toString('hex'),
         v: toHex(tx2.v?.toString() ?? 27),
         r: (tx2.r && toHex(tx2.r)) || '0x',
         s: (tx2.s && toHex(tx2.s)) || '0x',
-        chainId: +txJson.chainId,
-        accessList: txJson.accessList,
+        chainId: tx2.common.chainId(),
+        accessList: tx2.accessList || [],
     };
 }
 
