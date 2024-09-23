@@ -635,11 +635,31 @@ export async function getBlockByNumber(block, withTx) {
                         continue;
                     }
                 }
-                const { hash: evm_hash } = await parseMoveTxPayload(it);
-                evm_tx.push(evm_hash);
+                evm_tx.push(it);
             }
         }
     }
+    const getTx = async (it, block, transactionIndex) => {
+        const payload = await parseMoveTxPayload(it);
+        const evm_hash = payload.hash;
+        if (withTx) {
+            return assemblyTx(payload, block.block_hash, block.block_height, transactionIndex);
+        } else {
+            return evm_hash;
+        }
+    };
+    evm_tx = await Promise.all(
+        evm_tx.map((it, i) =>
+            getTx(
+                it,
+                {
+                    block_hash: info.block_hash,
+                    block_height: info.block_height,
+                },
+                i,
+            ),
+        ),
+    );
     const genHash = c => {
         const seed = info.block_hash;
         let hash = seed;
@@ -649,9 +669,6 @@ export async function getBlockByNumber(block, withTx) {
         }
         return hash;
     };
-    if (withTx && evm_tx.length > 0) {
-        evm_tx = await Promise.all(evm_tx.map(it => getTransactionByHash(it)));
-    }
     let timestamp = toHex(Math.trunc(info.block_timestamp / 1e6));
     if (block === 0) {
         timestamp = BigNumber((await getBlockByNumber(1, false)).timestamp).minus(1);
@@ -979,6 +996,7 @@ async function getTransactionIndex(block, hash) {
  *   - s: string - The s value of the transaction's signature
  */
 export async function getTransactionByHash(evm_hash) {
+    //MARK TODO
     let move_hash;
     try {
         move_hash = await getMoveHash(evm_hash);
@@ -995,6 +1013,12 @@ export async function getTransactionByHash(evm_hash) {
     const block = await client.getBlockByVersion(info.version);
     const txInfo = await parseMoveTxPayload(info);
     const transactionIndex = toHex(await getTransactionIndex(block.block_height, evm_hash));
+    const ret = assemblyTx(txInfo, block.block_hash, block.block_height, transactionIndex);
+    await DB_TX.put(key, JSON.stringify(ret));
+    return ret;
+}
+
+function assemblyTx(txInfo, blockHash, blockHeight, transactionIndex) {
     const gasInfo = {};
     if (txInfo.gasPrice) {
         gasInfo.gasPrice = toHex(txInfo.gasPrice);
@@ -1003,9 +1027,9 @@ export async function getTransactionByHash(evm_hash) {
         gasInfo.maxPriorityFeePerGas = toHex(txInfo.maxPriorityFeePerGas);
         gasInfo.gasPrice = toHex(BigNumber(BLOCK_BASE_FEE).plus(txInfo.maxPriorityFeePerGas));
     }
-    const ret = {
-        blockHash: block.block_hash,
-        blockNumber: toHex(block.block_height),
+    return {
+        blockHash: blockHash,
+        blockNumber: toHex(blockHeight),
         from: txInfo.from,
         gas: toHex(txInfo.limit),
         hash: txInfo.hash,
@@ -1022,8 +1046,6 @@ export async function getTransactionByHash(evm_hash) {
         chainId: toHex(CHAIN_ID),
         ...gasInfo,
     };
-    await DB_TX.put(key, JSON.stringify(ret));
-    return ret;
 }
 
 export async function getTransactionReceipt(evm_hash) {
