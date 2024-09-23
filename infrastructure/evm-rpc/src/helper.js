@@ -7,7 +7,7 @@ export function parseRawTx(tx) {
     let tx2 = null;
     try {
         tx2 = TransactionFactory.fromSerializedData(Buffer.from(tx.slice(2), 'hex'));
-        console.log(tx2);
+        // console.log(tx2);
     } catch (error) {
         throw new Error('Invalid transaction');
     }
