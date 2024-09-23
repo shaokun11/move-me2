@@ -47,7 +47,7 @@ export function parseRawTx(tx) {
         v: toHex(tx2.v?.toString() ?? 27),
         r: (tx2.r && toHex(tx2.r)) || '0x',
         s: (tx2.s && toHex(tx2.s)) || '0x',
-        chainId: tx2.common.chainId(),
+        chainId: toHex(tx2.common.chainId()),
         accessList: tx2.accessList || [],
     };
 }

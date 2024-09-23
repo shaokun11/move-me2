@@ -1012,7 +1012,7 @@ export async function getTransactionByHash(evm_hash) {
     const info = await ClientWrapper.getTransactionByHash(move_hash);
     const block = await client.getBlockByVersion(info.version);
     const txInfo = await parseMoveTxPayload(info);
-    const transactionIndex = toHex(await getTransactionIndex(block.block_height, evm_hash));
+    const transactionIndex = await getTransactionIndex(block.block_height, evm_hash);
     const ret = assemblyTx(txInfo, block.block_hash, block.block_height, transactionIndex);
     await DB_TX.put(key, JSON.stringify(ret));
     return ret;
@@ -1038,7 +1038,7 @@ function assemblyTx(txInfo, blockHash, blockHeight, transactionIndex) {
         nonce: toHex(txInfo.nonce),
         to: txInfo.to,
         accessList: txInfo.accessList,
-        transactionIndex,
+        transactionIndex: toHex(transactionIndex),
         value: toHex(txInfo.value),
         v: toHex(txInfo.v),
         r: toHex(txInfo.r, true), // need remove the leading zero, otherwise the eth go sdk will parse error
