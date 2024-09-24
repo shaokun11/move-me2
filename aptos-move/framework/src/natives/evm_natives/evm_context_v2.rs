@@ -441,6 +441,7 @@ fn native_get_logs(
     let mut topics_data: Vec<Vec<u8>> = Vec::new();
     let mut data: Vec<Vec<u8>> = Vec::new();
     let mut topics_lengths: Vec<u64> = Vec::new();
+    let mut data_lengths: Vec<u64> = Vec::new();
 
     for log in ctx.state.substate.logs.iter() {
         let mut padded_address = vec![0u8; 12]; // 12 个前置零
@@ -453,20 +454,23 @@ fn native_get_logs(
         }
         topics_data.push(topics_bytes);
         topics_lengths.push(log.topics.len() as u64);
-        
+
+        data_lengths.push(log.data.len() as u64);
         data.push(log.data.clone());
     }
 
     let topics_data_value = Value::vector_u8(topics_data.into_iter().flatten().collect::<Vec<u8>>());
     let data_value = Value::vector_u8(data.into_iter().flatten().collect::<Vec<u8>>());
     let topics_lengths_value = Value::vector_u64(topics_lengths);
+    let data_lengths_value = Value::vector_u64(data_lengths);
 
     Ok(smallvec![
         Value::u64(ctx.state.substate.logs.len() as u64),
         Value::vector_u8(addresses),
         topics_data_value,
         data_value,
-        topics_lengths_value
+        topics_lengths_value,
+        data_lengths_value
     ])
 }
 /***************************************************************************************************

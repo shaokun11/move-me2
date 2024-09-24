@@ -8,7 +8,7 @@ module aptos_framework::evm_context_v2 {
     public(friend) native fun get_nonce_change_set(): (u64, vector<u8>, vector<u256>);
     public(friend) native fun get_code_change_set(): (u64, vector<u8>, vector<u64>, vector<u8>);
     public(friend) native fun get_address_change_set(): (u64, vector<u8>);
-    public(friend) native fun get_logs(): (u64, vector<u8>, vector<u8>, vector<u8>, vector<u64>);
+    public(friend) native fun get_logs(): (u64, vector<u8>, vector<u8>, vector<u8>, vector<u64>, vector<u64>);
     public(friend) native fun get_storage_change_set(address: vector<u8>): (vector<u256>, vector<u256>);
     public(friend) native fun calculate_root(): vector<u8>;
     public(friend) native fun set_code(contract: vector<u8>, code: vector<u8>);
