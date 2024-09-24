@@ -236,19 +236,23 @@ module aptos_framework::evm {
 
     fun get_logs(): vector<Log> {
         let logs = vector::empty<Log>();
-        let (log_length, address_list, topic_bytes, data_bytes, topic_length_list) = evm_context_v2::get_logs();
+        let (log_length, address_list, topic_bytes, data_bytes, topic_length_list, data_length_list) = evm_context_v2::get_logs();
         let i = 0;
-        let index = 0;
+        let topic_index = 0;
+        let data_index = 0;
         while(i < log_length) {
             let address = vector_slice(address_list, 32 * i, 32);
-            let data = vector_slice(data_bytes, 32 * i, 32);
+            let data_length = *vector::borrow(&data_length_list, i);
+            let data = vector_slice(data_bytes, 32 * i, data_length);
+            data_index = data_index + data_length;
+
             let topic_length = *vector::borrow(&topic_length_list, i);
             let j = 0;
             let topics = vector::empty<vector<u8>>();
             while(j < topic_length) {
-                vector::push_back(&mut topics, vector_slice(topic_bytes, index, 32));
+                vector::push_back(&mut topics, vector_slice(topic_bytes, topic_index, 32));
                 j = j + 1;
-                index = index + 32;
+                topic_index = topic_index + 32;
             };
             vector::push_back(&mut logs, Log {
                 contract: address,
@@ -257,7 +261,6 @@ module aptos_framework::evm {
             });
             i = i + 1;
         };
-
         logs
     }
 
