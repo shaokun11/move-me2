@@ -243,7 +243,7 @@ module aptos_framework::evm {
         while(i < log_length) {
             let address = vector_slice(address_list, 32 * i, 32);
             let data_length = *vector::borrow(&data_length_list, i);
-            let data = vector_slice(data_bytes, 32 * i, data_length);
+            let data = vector_slice(data_bytes, data_index, data_length);
             data_index = data_index + data_length;
 
             let topic_length = *vector::borrow(&topic_length_list, i);
