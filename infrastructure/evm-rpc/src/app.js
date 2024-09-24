@@ -45,7 +45,8 @@ app.use('/', async function (req, res) {
             req.ip,
         token: req.headers['token'] || null, // for faucet google recaptcha token
     };
-    // console.log('>>> %s %s', context.ip, req.body.method);
+    // console.log('>>> %s %s', req.body);
+    let startTs = Date.now();
     // let str_req = `<<< ${JSON.stringify(req.body)}`;
     server.receive(req.body, context).then(jsonRPCResponse => {
         if (jsonRPCResponse.error) {
@@ -53,6 +54,7 @@ app.use('/', async function (req, res) {
         } else {
             // console.log(str_req, inspect(jsonRPCResponse, {depth: null}));
         }
+        // console.log(Date.now() - startTs, JSON.stringify(req.body));
         if (Array.isArray(req.body) && req.body.length === 1) {
             res.json([jsonRPCResponse]);
         } else {
