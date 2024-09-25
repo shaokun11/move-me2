@@ -12,6 +12,7 @@ const FAUCET_SENDER_ACCOUNT = AptosAccount.fromAptosAccountObject({
 
 let nonce = 0;
 let count = 0;
+let skip_count = 0;
 async function start(path) {
     const account = await client.getAccount(FAUCET_SENDER_ACCOUNT.address());
     nonce = account.sequence_number;
@@ -28,6 +29,9 @@ async function start(path) {
             const payload = makePayload(item);
             const startTs = Date.now();
             count++;
+            if (count <= skip_count) {
+                continue;
+            }
             console.log('%s send version start', count, item.version);
             await sendTx(payload, nonce);
             console.log('send version end ', Date.now() - startTs);
@@ -66,6 +70,6 @@ async function sendTx(payload, nonce) {
     const signedTxn = await client.signTransaction(FAUCET_SENDER_ACCOUNT, txnRequest);
     const transactionRes = await client.submitTransaction(signedTxn);
     let res = await client.waitForTransactionWithResult(transactionRes.hash);
-    console.log('sendTx:', new Date().toUTCString(), res.vm_status, res.version, isTx);
+    console.log('sendTx:', new Date().toISOString(), res.vm_status, res.version, isTx);
 }
-start('filtered_transactions.txt');
+start('filtered_transactions2.txt');
