@@ -590,7 +590,7 @@ export async function getBlockByNumber(block, withTx) {
     if (block < 0) {
         throw 'block number error';
     }
-    const eKey = `block:${withTx}:` + block;
+    const eKey = `v1:block:${withTx}:` + block;
     if (!is_pending) {
         // only cache the block not pending
         const cache = await DB_TX.get(eKey);
@@ -1056,7 +1056,7 @@ export async function getTransactionReceipt(evm_hash) {
         // hash not found
         return null;
     }
-    const key = 'receipt:' + evm_hash;
+    const key = 'v1:receipt:' + evm_hash;
     let cache = await DB_TX.get(key);
     if (cache) {
         return JSON.parse(cache);
