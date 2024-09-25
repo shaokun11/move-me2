@@ -57,6 +57,7 @@ function makePayload(item) {
 }
 
 async function sendTx(payload, nonce) {
+    const isTx = payload.function === '0x1::evm::send_tx';
     const txnRequest = await client.generateTransaction(FAUCET_SENDER_ACCOUNT.address(), payload, {
         max_gas_amount: 2 * 1e6,
         gas_unit_price: 100,
@@ -65,6 +66,6 @@ async function sendTx(payload, nonce) {
     const signedTxn = await client.signTransaction(FAUCET_SENDER_ACCOUNT, txnRequest);
     const transactionRes = await client.submitTransaction(signedTxn);
     let res = await client.waitForTransactionWithResult(transactionRes.hash);
-    console.log('sendTx:', new Date().toUTCString(), res.vm_status, res.version);
+    console.log('sendTx:', new Date().toUTCString(), res.vm_status, res.version, isTx);
 }
 start('filtered_transactions.txt');
