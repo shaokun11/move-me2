@@ -1056,7 +1056,7 @@ export async function getTransactionReceipt(evm_hash) {
         // hash not found
         return null;
     }
-    const key = 'v1:receipt:' + evm_hash;
+    const key = 'v2:receipt:' + evm_hash;
     let cache = await DB_TX.get(key);
     if (cache) {
         return JSON.parse(cache);
