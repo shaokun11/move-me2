@@ -267,7 +267,7 @@ module aptos_framework::evm {
         block_timestamp: u64,
         block_number: u64
     ) {
-        let (chain_id, from, to, nonce, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_per_gas, access_list_bytes, tx_type) = decode_raw_tx(tx);
+        let (chain_id, from, to, nonce, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_per_gas, _access_list_bytes, tx_type) = decode_raw_tx(tx);
         assert!(chain_id == CHAIN_ID || chain_id == 0, ERROR_INVALID_CHAINID);
         let block_coinbase = to_32bit(x"892a2b7cF919760e148A0d33C1eb0f44D3b383f8");
         let (exception, gas_usage, return_value, created_address) = evm_context_v2::execute_tx<AccountStorage, Box<u256>>(
