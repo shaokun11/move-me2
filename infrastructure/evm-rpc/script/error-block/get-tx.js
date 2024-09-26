@@ -42,16 +42,20 @@ async function start() {
         for (let i = 0; i < results.length; i++) {
             const res = results[i];
             if (res.type !== 'user_transaction') continue;
+            if (!res.success) continue;
             if (res?.payload?.function === '0x1::evm::send_tx') {
                 const tx = parseRawTx(res.payload.arguments[0]);
-                const item = {
-                    version: res.version,
-                    tx: res.payload.arguments[0],
-                    from: tx.from,
-                    to: tx.to,
-                    type: 'tx',
-                };
-                txArr.push(item);
+                const evt = res.events.find(it => it.type.startsWith('0x1::evm::ExecResultEvent'));
+                if (evt?.data?.exception === '200') {
+                    const item = {
+                        version: res.version,
+                        tx: res.payload.arguments[0],
+                        from: tx.from,
+                        to: tx.to,
+                        type: 'tx',
+                    };
+                    txArr.push(item);
+                }
             } else if (res?.payload?.function === '0x1::evm::batch_deposit') {
                 faucetTx.push({
                     version: res.version,
