@@ -41,6 +41,10 @@ async function start() {
                 return client.getTransactionByVersion('' + (start + it));
             }),
         );
+        let versions = results
+            .filter(it => it.type === 'user_transaction' && it.success)
+            .map(it => it.version);
+        let blockInfo = await Promise.all(versions.map(it => client.getBlockByVersion(it)));
         const txArr = [];
         const faucetTx = [];
         for (let i = 0; i < results.length; i++) {
@@ -48,14 +52,20 @@ async function start() {
             if (res.type !== 'user_transaction') continue;
             if (!res.success) continue;
             if (res?.payload?.function === '0x1::evm::send_tx') {
-                // const tx = parseRawTx(res.payload.arguments[0]);
+                const tx = parseRawTx(res.payload.arguments[0]);
                 // const evt = res.events.find(it => it.type.startsWith('0x1::evm::ExecResultEvent'));
+                const block = blockInfo.find(
+                    it => +it.first_version < res.version && it.last_version > +res.version,
+                );
+                // console.log(block);
                 const item = {
                     version: res.version,
                     tx: res.payload.arguments[0],
                     from: tx.from,
                     to: tx.to,
                     type: 'tx',
+                    ts: Math.trunc(+block.block_timestamp / 1e6),
+                    number: +block.block_height,
                     // evt,
                 };
                 txArr.push(item);
