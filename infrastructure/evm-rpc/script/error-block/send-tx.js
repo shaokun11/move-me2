@@ -87,6 +87,7 @@ async function sendTxBatch(payload, nonce) {
     });
     const signedTxn = await client.signTransaction(FAUCET_SENDER_ACCOUNT, txnRequest);
     const transactionRes = await client.submitTransaction(signedTxn);
+    console.log('hash:', transactionRes.hash);
     let res = await client.waitForTransactionWithResult(transactionRes.hash, {
         timeoutSecs: 120 + 5,
     });
