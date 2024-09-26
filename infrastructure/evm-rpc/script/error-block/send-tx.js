@@ -78,7 +78,7 @@ async function sendTx(payload, nonce) {
 async function sendTxBatch(payload, nonce) {
     let start = Date.now();
     console.log('start count :', SEND_COUNT);
-    //process.exit(1);
+
     const txnRequest = await client.generateTransaction(FAUCET_SENDER_ACCOUNT.address(), payload, {
         max_gas_amount: 2 * 1e6,
         gas_unit_price: 100,
@@ -86,6 +86,7 @@ async function sendTxBatch(payload, nonce) {
         expiration_timestamp_secs: Date.now() + 120,
     });
     const signedTxn = await client.signTransaction(FAUCET_SENDER_ACCOUNT, txnRequest);
+    // process.exit(1);
     const transactionRes = await client.submitTransaction(signedTxn);
     console.log('hash:', transactionRes.hash);
     let res = await client.waitForTransactionWithResult(transactionRes.hash, {
@@ -117,7 +118,12 @@ function makeBatchPayload(item, is_faucet) {
     return {
         function: `0xef484a99792ccba1be68dc29cdad33726f6e6c16817dfff98a7f6a5fa19c9b9b::hello::batch_send`,
         type_arguments: [],
-        arguments: [item.map(it => toBuffer(it.tx)), item.length],
+        arguments: [
+            item.map(it => toBuffer(it.tx)),
+            item.map(it => it.ts),
+            item.map(it => it.number),
+            item.length,
+        ],
     };
 }
 
