@@ -17,10 +17,14 @@ let client = new AptosClient('http://127.0.0.1:8080/v1');
 const START = {
     start: 29283365,
     delta: 576792,
+    end: 32744115,
 };
 const part = process.argv[2];
 const startVer = START.start + START.delta * parseInt(part);
-const endVer = START.start + START.delta * (parseInt(part) + 1) - 1;
+let endVer = START.start + START.delta * (parseInt(part) + 1) - 1;
+if (endVer > START.end) {
+    endVer = START.end;
+}
 console.log('will sync from ', startVer, ' to ', endVer);
 
 async function start() {
@@ -46,16 +50,15 @@ async function start() {
             if (res?.payload?.function === '0x1::evm::send_tx') {
                 const tx = parseRawTx(res.payload.arguments[0]);
                 const evt = res.events.find(it => it.type.startsWith('0x1::evm::ExecResultEvent'));
-                if (evt?.data?.exception === '200') {
-                    const item = {
-                        version: res.version,
-                        tx: res.payload.arguments[0],
-                        from: tx.from,
-                        to: tx.to,
-                        type: 'tx',
-                    };
-                    txArr.push(item);
-                }
+                const item = {
+                    version: res.version,
+                    tx: res.payload.arguments[0],
+                    from: tx.from,
+                    to: tx.to,
+                    type: 'tx',
+                    evt,
+                };
+                txArr.push(item);
             } else if (res?.payload?.function === '0x1::evm::batch_deposit') {
                 faucetTx.push({
                     version: res.version,
