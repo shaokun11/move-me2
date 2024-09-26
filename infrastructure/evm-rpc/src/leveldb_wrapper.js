@@ -48,11 +48,15 @@ class remoteLevelDBWrapper {
                 key,
                 value,
             }),
-        }).then(res => res.text());
+        })
+            .then(res => res.text())
+            .catch(() => null);
     }
 
     async get(key) {
-        return fetch(this.url + '?key=' + key).then(res => res.text());
+        return fetch(this.url + '?key=' + key)
+            .then(res => res.text())
+            .catch(() => null);
     }
 }
 
