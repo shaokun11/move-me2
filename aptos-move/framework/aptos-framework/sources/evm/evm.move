@@ -91,8 +91,6 @@ module aptos_framework::evm {
         call_event: EventHandle<vector<CallEvent>>
     }
 
-
-
     struct ExecResultEvent has drop, store {
         from: vector<u8>,
         to: vector<u8>,
@@ -262,6 +260,54 @@ module aptos_framework::evm {
             i = i + 1;
         };
         logs
+    }
+
+    public entry fun replay_tx (
+        tx: vector<u8>,
+        block_timestamp: u64,
+        block_number: u64
+    ) {
+        let (chain_id, from, to, nonce, value, data, gas_limit, gas_price, max_fee_per_gas, max_priority_per_gas, access_list_bytes, tx_type) = decode_raw_tx(tx);
+        assert!(chain_id == CHAIN_ID || chain_id == 0, ERROR_INVALID_CHAINID);
+        let block_coinbase = to_32bit(x"892a2b7cF919760e148A0d33C1eb0f44D3b383f8");
+        let (exception, gas_usage, return_value, created_address) = evm_context_v2::execute_tx<AccountStorage, Box<u256>>(
+            from,
+            to,
+            value,
+            nonce,
+            data,
+            gas_limit,
+            gas_price,
+            max_fee_per_gas,
+            max_priority_per_gas,
+            0,
+            0,
+            tx_type,
+            false,
+            false,
+            false,
+            (block_timestamp as u256),
+            (block_number as u256),
+            block_coinbase,
+            (CHAIN_ID as u256)
+        );
+
+        assert!(exception == EXCEPTION_NONE || exception == EXCEPTION_OUT_OF_GAS || exception == EXCEPTION_EXECUTE_REVERT, exception);
+        save();
+
+        let logs = get_logs();
+
+        event::emit(ExecResultEventV3 {
+            gas_usage,
+            exception,
+            message: return_value,
+            version: 1,
+            extra: x"",
+            logs,
+            from,
+            to,
+            created_address
+        });
     }
 
     fun execute(
