@@ -49,14 +49,14 @@ async function start() {
             if (!res.success) continue;
             if (res?.payload?.function === '0x1::evm::send_tx') {
                 const tx = parseRawTx(res.payload.arguments[0]);
-                const evt = res.events.find(it => it.type.startsWith('0x1::evm::ExecResultEvent'));
+                // const evt = res.events.find(it => it.type.startsWith('0x1::evm::ExecResultEvent'));
                 const item = {
                     version: res.version,
                     tx: res.payload.arguments[0],
                     from: tx.from,
                     to: tx.to,
                     type: 'tx',
-                    evt,
+                    // evt,
                 };
                 txArr.push(item);
             } else if (res?.payload?.function === '0x1::evm::batch_deposit') {
