@@ -61,6 +61,13 @@ const TX_MEMORY_POOL = {};
 const TX_EXPIRE_TIME = 1000 * 60 * 5;
 const ONE_ADDRESS_MAX_TX_COUNT = 20;
 const TX_NONCE_FIRST_CHECK_TIME = {};
+const VM_UPGRADE_VERSION = {
+    V3: {
+        ver: 29283365,
+        block: 9723536,
+    },
+};
+const VM_CURRENT_VERSION = VM_UPGRADE_VERSION.V3;
 let LOG_START_Time = Date.now();
 async function logRequest(data) {
     const file_name = 'req-log.txt';
@@ -882,6 +889,11 @@ export async function callContract(from, contract, calldata, value, block) {
             block = undefined;
         }
     }
+    if (block) {
+        if (+block <= VM_CURRENT_VERSION.ver) {
+            throw 'eth_call with block number only support block greater than ' + VM_CURRENT_VERSION.block;
+        }
+    }
     return callContractImpl(from, contract, calldata, value, block);
 }
 /**
@@ -1253,19 +1265,6 @@ async function sendTx(sender, tx, txKey, senderIndex, isLargeTx, to) {
     };
     checkTxResult(checkTxItem);
     return transactionRes.hash;
-}
-/**
- * Retrieves the address of the deployed contract.
- * @param {Object} info - The transaction information.
- * @returns {Promise<string|null>} The address of the deployed contract, or null if the transaction was not successful or did not deploy a contract.
- */
-async function getDeployedContract(info) {
-    if (!info.success) return null;
-    const { nonce, to, from } = await parseMoveTxPayload(info);
-    if (to === ZeroAddress || !to) {
-        return ethers.getCreateAddress({ from: from, nonce }).toLowerCase();
-    }
-    return null;
 }
 
 async function callContractImpl(from, contract, calldata, value, version) {
