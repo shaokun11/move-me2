@@ -9,7 +9,6 @@ async function main(path) {
         crlfDelay: Infinity,
     });
     for await (const line of rl) {
-        const thisLogs = [];
         const events = JSON.parse(line);
         for (let item of events) {
             const info = {
@@ -19,19 +18,19 @@ async function main(path) {
             const logs = item.event.logs;
             for (let index = 0; index < logs.length; index++) {
                 const log = logs[index];
-                if (log.data.length > 66) {
-                    info.logs.push({
-                        data: log.data,
-                        index: index,
-                    });
+                // the only one  32bytes log is correct, so we can skip it
+                if (log.data.length === 66) {
+                    continue;
                 }
+                info.logs.push({
+                    data: log.data,
+                    index: index,
+                });
             }
             if (info.logs.length > 0) {
-                thisLogs.push(info);
+                appendFile('logs.txt', JSON.stringify(info) + '\n');
             }
         }
-        // console.log('thisLogs', thisLogs);
-        appendFile('logs.txt', JSON.stringify(thisLogs) + '\n');
     }
 }
 
