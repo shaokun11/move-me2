@@ -47,7 +47,7 @@ async function start() {
             if (res.type !== 'user_transaction') continue;
             if (res?.payload?.function === SENDER_FUN) {
                 txArrRaw.push(...res.payload.arguments[0]);
-                evtArrRaw = res.events.filter(it => it.type.startsWith('0x1::evm::ExecResultEvent'));
+                evtArrRaw.push(...res.events.filter(it => it.type.startsWith('0x1::evm::ExecResultEvent')));
             }
         }
 
@@ -55,10 +55,12 @@ async function start() {
             const evt = evtArrRaw[i];
             if (evt?.data?.exception === '200') {
                 const tx = parseRawTx(txArrRaw[i]);
-                txArr.push({
-                    hash: tx.hash,
-                    event: evt.data,
-                });
+                if (evt.data.logs.length > 0) {
+                    txArr.push({
+                        hash: tx.hash,
+                        event: evt.data,
+                    });
+                }
             }
         }
         console.log(`${start}-${end} ${txArr.length} ${faucetTx.length}`);
