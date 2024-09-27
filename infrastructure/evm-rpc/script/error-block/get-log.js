@@ -24,6 +24,7 @@ async function getLogs(startVersion, endVersion) {
                 address
                 transaction_hash
                 block_hash
+                log_index
             }
         }
     `;
