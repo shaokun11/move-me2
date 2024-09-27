@@ -24,7 +24,8 @@ async function loadLogs() {
     }
 }
 await loadLogs();
-// // curl http://localhost:8897?hash=hash
+// // curl http://localhost:8897?hash=0x89ec49cf6a7d7a91b1504855834560e3f77b632d6ac170985c7314b9ef717b11
+// // curl http://localhost:8897?hash=0xebad6780a7dd2982879bf29238e4b67e541c1fd51438d4eb68313adde913348b
 app.get('/', (req, res) => {
     // console.log(req.query);
     const hash = req.query.hash;

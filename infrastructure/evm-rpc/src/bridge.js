@@ -14,6 +14,7 @@ import {
     EVM_NONCE_URL,
     MEVM_EVENT,
     IS_MAIN_NODE,
+    ERROR_LOG_URL,
 } from './const.js';
 import { parseRawTx, toHex, toNumber, toHexStrict, sleep } from './helper.js';
 import { getMoveHash, getBlockHeightByHash, getEvmLogs, getErrorTxMoveHash, getEvmHash } from './db.js';
@@ -30,6 +31,7 @@ import { ClientWrapper } from './client_wrapper.js';
 import { cluster } from 'radash';
 import { postJsonRpc } from './request.js';
 import TimSort from 'timsort';
+import { hash } from 'node:crypto';
 const pend_tx_path = 'db/tx-pending.json';
 /// When eth_call or estimateGas,from may be 0x0,
 // Now the evm's 0x0 address cannot exist in the move, so we need to convert it to 0x1
@@ -61,6 +63,10 @@ const TX_MEMORY_POOL = {};
 const TX_EXPIRE_TIME = 1000 * 60 * 5;
 const ONE_ADDRESS_MAX_TX_COUNT = 20;
 const TX_NONCE_FIRST_CHECK_TIME = {};
+const FIXED_EVENT_DATA_VERSION = {
+    START: 29283365,
+    END: 32744115,
+};
 const VM_UPGRADE_VERSION = {
     V3: {
         ver: 29283365,
@@ -69,6 +75,16 @@ const VM_UPGRADE_VERSION = {
 };
 const VM_CURRENT_VERSION = VM_UPGRADE_VERSION.V3;
 let LOG_START_Time = Date.now();
+
+const SEND_LARGE_TX_INFO = {
+    sendTime: Date.now(),
+    isFinish: true,
+};
+const ACC_NONCE_INFO = {
+    updateTime: 0,
+    resetTime: 0,
+    data: {},
+};
 async function logRequest(data) {
     const file_name = 'req-log.txt';
     const txt = data + '\n';
@@ -83,15 +99,31 @@ async function logRequest(data) {
         // maybe multiple process write the file
     }
 }
-const SEND_LARGE_TX_INFO = {
-    sendTime: Date.now(),
-    isFinish: true,
-};
-const ACC_NONCE_INFO = {
-    updateTime: 0,
-    resetTime: 0,
-    data: {},
-};
+
+// only for imola
+async function getFixedLogs(versions) {
+    if (!ERROR_LOG_URL) return {};
+    const inVers = versions.filter(
+        it => +it.version >= FIXED_EVENT_DATA_VERSION.START && +it.version <= FIXED_EVENT_DATA_VERSION.END,
+    );
+    if (inVers.length === 0) {
+        return {};
+    }
+    const hashArr = Array.from(new Set(inVers.map(it => it.hash)));
+    const logs = await Promise.all(
+        hashArr.map(it => {
+            return fetch(ERROR_LOG_URL + '?hash=' + it, {
+                method: 'GET',
+            }).then(res => res.json());
+        }),
+    );
+    const ret = {};
+    hashArr.forEach((it, i) => {
+        ret[it] = logs[i];
+    });
+    return ret;
+}
+
 async function initTxPool() {
     try {
         const { pool } = JSON.parse(await readFile(pend_tx_path, 'utf8'));
@@ -1080,6 +1112,24 @@ export async function getTransactionReceipt(evm_hash) {
     const transactionIndex = toHex(await getTransactionIndex(block.block_height, evm_hash));
     // we could get it from indexer , but is also to parse it directly to reduce the request
     const logs = parseLogs(info, block.block_height, block.block_hash, evm_hash, transactionIndex);
+    if (logs.length > 0) {
+        const fixedLogsMap = await getFixedLogs([
+            {
+                version: info.version,
+                hash: evm_hash,
+            },
+        ]);
+        if (fixedLogsMap[evm_hash]?.length > 0) {
+            const fixedLogs = fixedLogsMap[evm_hash];
+            logs.forEach(it => {
+                // there only on tx , so we can use the logIndex to search the fixed log
+                const fixLog = fixedLogs.find(e => parseInt(e.index) === parseInt(it.logIndex));
+                if (fixLog) {
+                    it.data = fixLog.data;
+                }
+            });
+        }
+    }
     const txResult = info.events.find(it => it.type.startsWith(MEVM_EVENT));
     const status = isSuccessTx(info) ? '0x1' : '0x0';
     let contractAddress =
@@ -1315,7 +1365,7 @@ export async function getLogs(obj) {
     const address = Array.isArray(obj.address) ? obj.address : [obj.address];
     if (toBlock < fromBlock) throw new Error('block range error');
     if (toBlock - fromBlock > 2000) throw new Error('block range too large, max 2000 blocks');
-    const ret = await getEvmLogs({
+    const [versions, ret] = await getEvmLogs({
         from: fromBlock,
         to: toBlock,
         address,
@@ -1348,10 +1398,20 @@ export async function getLogs(obj) {
             skipTx.push(hash);
         }
     }
-    if (skipTx.length > 0) {
-        return r.filter(it => !skipTx.includes(it.transactionHash));
+    const retLogs = skipTx.length > 0 ? r.filter(it => !skipTx.includes(it.transactionHash)) : r;
+    const fixedLogsMap = await getFixedLogs(versions);
+    if (Object.keys(fixedLogsMap).length > 0) {
+        for (const log of retLogs) {
+            const fixedLogs = fixedLogsMap[log.transactionHash];
+            if (fixedLogs) {
+                const fixedLog = fixedLogs.find(e => parseInt(e.index) === parseInt(log.logIndex));
+                if (fixedLog) {
+                    log.data = fixedLog.data;
+                }
+            }
+        }
     }
-    return r;
+    return retLogs;
 }
 
 function parseLogs(info, blockNumber, blockHash, evm_hash, transactionIndex) {

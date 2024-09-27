@@ -128,27 +128,35 @@ export async function getEvmLogs(obj) {
     const logs = res.data.evm_logs;
     const blockGroup = group(logs, it => parseInt(it.block_number));
     mapValues(blockGroup, v => sort(v, it => parseInt(it.version)));
-    return logs.map(it => {
-        const topics = [];
-        for (let i = 0; i < 5; i++) {
-            if (it[`topic${i}`].length === 66) {
-                topics.push(it[`topic${i}`]);
+    return [
+        logs.map(it => {
+            return {
+                version: +it.version,
+                hash: it.transaction_hash,
+            };
+        }),
+        logs.map(it => {
+            const topics = [];
+            for (let i = 0; i < 5; i++) {
+                if (it[`topic${i}`].length === 66) {
+                    topics.push(it[`topic${i}`]);
+                }
             }
-        }
-        const transactionIndex = blockGroup[it.block_number].findIndex(
-            ele => it.transaction_hash === ele.transaction_hash,
-        );
-        return {
-            topics,
-            data: it.data,
-            address: it.address,
-            blockHash: it.block_hash,
-            blockNumber: it.block_number,
-            transactionHash: it.transaction_hash,
-            transactionIndex,
-            logIndex: it.log_index,
-        };
-    });
+            const transactionIndex = blockGroup[it.block_number].findIndex(
+                ele => it.transaction_hash === ele.transaction_hash,
+            );
+            return {
+                topics,
+                data: it.data,
+                address: it.address,
+                blockHash: it.block_hash,
+                blockNumber: it.block_number,
+                transactionHash: it.transaction_hash,
+                transactionIndex,
+                logIndex: it.log_index,
+            };
+        }),
+    ];
 }
 
 export async function getErrorTxMoveHash(evm_hash) {

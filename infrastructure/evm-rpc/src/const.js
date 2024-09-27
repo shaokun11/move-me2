@@ -13,6 +13,7 @@ export const EVM_FAUCET_URL = process.env.EVM_FAUCET_URL;
 export const EVM_SUMMARY_URL = process.env.EVM_SUMMARY_URL;
 export const EVM_NONCE_URL = process.env.EVM_NONCE_URL;
 export const REMOTE_CACHE_URL = process.env.REMOTE_CACHE_URL;
+export const ERROR_LOG_URL = process.env.ERROR_LOG_URL;
 /**
  * EVM_SENDER is the sender's address, fetched from environment variables
  */
@@ -95,4 +96,5 @@ console.log({
     DISABLE_BATCH_FAUCET,
     IS_MAIN_NODE,
     REMOTE_CACHE_URL,
+    ERROR_LOG_URL,
 });
