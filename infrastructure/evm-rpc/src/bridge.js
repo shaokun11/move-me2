@@ -14,7 +14,7 @@ import {
     EVM_NONCE_URL,
     MEVM_EVENT,
     IS_MAIN_NODE,
-    ERROR_LOG_URL,
+    EVM_FIXED_LOG_URL,
 } from './const.js';
 import { parseRawTx, toHex, toNumber, toHexStrict, sleep } from './helper.js';
 import { getMoveHash, getBlockHeightByHash, getEvmLogs, getErrorTxMoveHash, getEvmHash } from './db.js';
@@ -102,7 +102,7 @@ async function logRequest(data) {
 
 // only for imola
 async function getFixedLogs(versions) {
-    if (!ERROR_LOG_URL) return {};
+    if (!EVM_FIXED_LOG_URL) return {};
     const inVers = versions.filter(
         it => +it.version >= FIXED_EVENT_DATA_VERSION.START && +it.version <= FIXED_EVENT_DATA_VERSION.END,
     );
@@ -112,7 +112,7 @@ async function getFixedLogs(versions) {
     const hashArr = Array.from(new Set(inVers.map(it => it.hash)));
     const logs = await Promise.all(
         hashArr.map(it => {
-            return fetch(ERROR_LOG_URL + '?hash=' + it, {
+            return fetch(EVM_FIXED_LOG_URL + '?hash=' + it, {
                 method: 'GET',
             }).then(res => res.json());
         }),
