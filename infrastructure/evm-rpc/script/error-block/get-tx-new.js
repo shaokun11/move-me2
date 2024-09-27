@@ -1,4 +1,4 @@
-import { AptosClient, AptosAccount } from 'aptos';
+import { AptosClient } from 'aptos';
 import { appendFile } from 'fs/promises';
 import { parseRawTx } from '../../src/helper.js';
 // https://explorer.devnet.imola.movementlabs.xyz/#/txn/0x44a3efe00d15951abc94ea4af07a545029dc58294d17c3e1c7e2e0ad411f94fb/payload?network=testnet
@@ -8,24 +8,25 @@ import { parseRawTx } from '../../src/helper.js';
 
 let client = new AptosClient('http://127.0.0.1:8080/v1');
 
-// the hash of this version : 0x592bc2b5ed2fc48871d5f8001bcc7dc8afa36bd4bba97463cfdd44ac87679d63
-// let startVer = 29283365;
-// const endVer = 32744115;
-// 0xCde46284D32148c4D470fA33BA788710b3d21E89
-// 0xb136c8f0EA9D1c3F676f91FeacEA8BF967fDA7d0
 const START = {
-    start: 29283365,
-    delta: 576792,
+    start: 29297290,
+    delta: 29297290,
+    end: 29708060,
 };
 const part = process.argv[2];
 const startVer = START.start + START.delta * parseInt(part);
-const endVer = START.start + START.delta * (parseInt(part) + 1) - 1;
+let endVer = START.start + START.delta * (parseInt(part) + 1) - 1;
+if (endVer > START.end) {
+    endVer = START.end;
+}
 console.log('will sync from ', startVer, ' to ', endVer);
+
+const SENDER_FUN = '0xef484a99792ccba1be68dc29cdad33726f6e6c16817dfff98a7f6a5fa19c9b9b::hello::batch_send';
 
 async function start() {
     let start = startVer;
     while (start < endVer) {
-        let end = start + 100;
+        let end = start + 300;
         if (end > endVer) {
             end = endVer;
         }
@@ -38,19 +39,26 @@ async function start() {
         );
         const txArr = [];
         const faucetTx = [];
+        const txArrRaw = [];
+        let evtArrRaw = [];
+
         for (let i = 0; i < results.length; i++) {
             const res = results[i];
             if (res.type !== 'user_transaction') continue;
-            if (res?.payload?.function === '0x1::evm::send_tx') {
-                const tx = parseRawTx(res.payload.arguments[0]);
-                const evt = res.events.find(it => it.type.startsWith('0x1::evm::ExecResultEvent'));
-                if (evt?.data?.exception === '200') {
-                    txArr.push({
-                        hash: tx.hash,
-                        version: res.version,
-                        event: evt.data,
-                    });
-                }
+            if (res?.payload?.function === SENDER_FUN) {
+                txArrRaw.push(...res.payload.arguments[0]);
+                evtArrRaw = res.events.filter(it => it.type.startsWith('0x1::evm::ExecResultEvent'));
+            }
+        }
+
+        for (let i = 0; i < evtArrRaw.length; i++) {
+            const evt = evtArrRaw[i];
+            if (evt?.data?.exception === '200') {
+                const tx = parseRawTx(txArrRaw[i]);
+                txArr.push({
+                    hash: tx.hash,
+                    event: evt.data,
+                });
             }
         }
         console.log(`${start}-${end} ${txArr.length} ${faucetTx.length}`);
