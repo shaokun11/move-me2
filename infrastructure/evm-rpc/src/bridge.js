@@ -767,7 +767,7 @@ export async function getCode(addr) {
 }
 
 export async function getStorageAt(addr, pos) {
-    if (ethers.isAddress(addr)) {
+    if (!ethers.isAddress(addr)) {
         throw 'address format error';
     }
     let res = '0x';
@@ -943,7 +943,7 @@ export async function estimateGas(info) {
         info.data = info.input;
     }
     if (info.from && !ethers.isAddress(info.from)) {
-        throw 'from address format error';
+        throw 'estimate gas from address format error';
     }
     if (!info.from || info.from === ETH_ADDRESS_ZERO) {
         info.from = ETH_ADDRESS_ONE;
@@ -962,7 +962,7 @@ export async function estimateGas(info) {
         data = '0x0' + data.slice(2);
     }
     if (info.to && info.to !== '0x' && !ethers.isAddress(info.to)) {
-        throw 'address format error';
+        throw 'estimate gas to address format error';
     }
     info.to = info.to || '0x';
     const payload = {
