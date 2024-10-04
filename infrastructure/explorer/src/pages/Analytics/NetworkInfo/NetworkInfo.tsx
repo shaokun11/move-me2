@@ -2,7 +2,7 @@ import React, {createContext, useEffect, useState} from "react";
 import Grid from "@mui/material/Grid";
 import TotalSupply from "./TotalSupply";
 // import TotalStake from "./TotalStake";
-// import TPS from "./TPS";
+import TPS from "./TPS";
 // import ActiveValidators from "./ActiveValidators";
 // import TotalTransactions from "./TotalTransactions";
 import {useGetInMainnet} from "../../../api/hooks/useGetInMainnet";
@@ -52,6 +52,7 @@ export async function getTotalData() {
   // console.log("res1", res1);
   evmaddressCount = res1.result?.addressCount||0;
   evmtxCount = res1.result?.txCount||0;
+  addressCount = res1.result?.moveWalletCount||0;
 }
 
 const aa2 = async function() {
@@ -93,7 +94,7 @@ const aa3 = async function() {
 }
 
   await aa1();
-  await aa2();
+  // await aa2();
   await aa3();
     
 
