@@ -94,7 +94,7 @@ async function store(addressArr, txCount, syncVersion) {
 
 async function run(startVersion) {
     console.log('sync evm info version start:', startVersion);
-    const txArr = await getEvmTransaction(startVersion, 100);
+    const txArr = await getEvmTransaction(startVersion, 5000);
     if (!txArr || txArr.length === 0) {
         await sleep(5);
         return;
