@@ -87,6 +87,7 @@ async function store(addressArr, txCount, syncVersion) {
             txCount: cachedTxCount,
             addrCount: cachedAddrCount,
             moveWalletCount: moveWalletCount,
+            time: new Date().toUTCString(),
         }),
     ).catch(() => {});
 }
