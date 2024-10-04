@@ -130,7 +130,7 @@ export async function startSummaryTask() {
         try {
             if (Date.now() - startTs > 1000 * 60 * 10) {
                 startTs = Date.now();
-                await getMoveWalletAddressCount();
+                //await getMoveWalletAddressCount();
             }
             const ver = await db('summary_meta').first('syncVersion');
             await run(ver.syncVersion);
