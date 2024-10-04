@@ -1,7 +1,7 @@
 /// for summary all evm wallet address and evm transaction count
 
 import { client } from './const.js';
-import { getEvmTransaction } from './db.js';
+import { getEvmTransaction, getTotalMoveAddress } from './db.js';
 import { JSONFilePreset } from 'lowdb/node';
 import { sleep } from './helper.js';
 import { writeFile } from 'node:fs/promises';
@@ -11,6 +11,10 @@ const db = await JSONFilePreset('db/summary-task-db.json', {
     txCount: 0,
     syncVersion: 0,
 });
+
+let count = 0;
+let startTs = 0;
+let moveWalletCount = 3743265;
 
 // init the address set
 const addressSet = new Set(db.data.address);
@@ -31,6 +35,7 @@ async function store(addressArr, txCount, syncVersion) {
             JSON.stringify({
                 txCount: data.txCount,
                 addrCount: addressSet.size,
+                moveWalletCount: moveWalletCount,
             }),
         )
             .then(() => {
@@ -69,11 +74,21 @@ async function run(startVersion) {
     await store(address, txArr.length, endVersion);
 }
 
-let count = 0;
+async function getMoveWalletAddressCount() {
+    try {
+        const count = await getTotalMoveAddress();
+        moveWalletCount = count;
+    } catch (error) {}
+}
+
 // this could be do it at evm indexers
 export async function startSummaryTask() {
     while (1) {
         try {
+            if (Date.now() - startTs > 1000 * 60 * 10) {
+                startTs = Date.now();
+                await getMoveWalletAddressCount();
+            }
             const ver = await db.data.syncVersion;
             await run(ver);
         } catch (e) {

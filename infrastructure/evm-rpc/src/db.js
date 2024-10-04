@@ -183,3 +183,15 @@ export async function getEvmTransaction(startVersion, count = 20) {
     const res = await indexer_client.query(query).toPromise();
     return res.data.evm_move_hash;
 }
+
+export async function getTotalMoveAddress() {
+    const query = gql`
+        account_transactions_aggregate(distinct_on: account_address) {
+          aggregate {
+            count(distinct: true)
+          }
+        }
+    `;
+    const res = await indexer_client.query(query).toPromise();
+    return res.data.account_transactions_aggregate.aggregate.count;
+}

@@ -442,6 +442,7 @@ function isSuccessTx(info) {
 const txSummary = {
     txCount: 0,
     addressCount: 0,
+    moveWalletCount: 0,
 };
 export async function getEvmSummary() {
     try {
@@ -451,10 +452,12 @@ export async function getEvmSummary() {
             res = await postJsonRpc(EVM_SUMMARY_URL, 'admin_getEvmTxSummary', []).then(res => res.result);
             txSummary.addressCount = res.addressCount;
             txSummary.txCount = res.txCount;
+            txSummary.moveWalletCount = res.moveWalletCount;
         } else {
             res = JSON.parse(await readFile('tx-summary.json', 'utf8'));
             txSummary.addressCount = res.addrCount;
             txSummary.txCount = res.txCount;
+            txSummary.moveWalletCount = res.moveWalletCount;
         }
     } catch (error) {}
     return txSummary;
