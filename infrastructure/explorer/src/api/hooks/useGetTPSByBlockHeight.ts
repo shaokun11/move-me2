@@ -34,6 +34,7 @@ export function useGetTPSByBlockHeight(currentBlockHeight: number | undefined) {
 
   useEffect(() => {
     if (startBlock !== undefined && endBlock !== undefined) {
+      // console.log("startBlock", startBlock, "endBlock", endBlock,currentBlockHeight);
       setTps(calculateTps(startBlock, endBlock));
     }
   }, [startBlock, endBlock]);

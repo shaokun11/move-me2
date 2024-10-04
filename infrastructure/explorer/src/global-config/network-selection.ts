@@ -59,18 +59,18 @@ export function useNetworkSelector() {
   }
 
   // on init check for existence of network query param, if not present, check local storage for a previously selected network. Then set query param to the network defined in local storage.
-  useEffect(
-    () => {
-      const currentNetworkSearchParam = searchParams.get("network");
-      if (!isValidNetworkName(currentNetworkSearchParam ?? "")) {
-        selectNetwork(getUserSelectedNetworkFromLocalStorageWithDefault(), {
-          replace: true,
-        });
-      }
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [], // empty [] makes this effect only run once (on mount)
-  );
+  // useEffect(
+  //   () => {
+  //     const currentNetworkSearchParam = searchParams.get("network");
+  //     if (!isValidNetworkName(currentNetworkSearchParam ?? "")) {
+  //       selectNetwork(getUserSelectedNetworkFromLocalStorageWithDefault(), {
+  //         replace: true,
+  //       });
+  //     }
+  //   },
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  //   [], // empty [] makes this effect only run once (on mount)
+  // );
 
   if (isValidNetworkName(selectedNetworkQueryParam)) {
     return [selectedNetworkQueryParam, selectNetwork] as const;

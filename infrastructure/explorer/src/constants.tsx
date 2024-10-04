@@ -2,13 +2,13 @@
  * Network
  */
 export const devnetUrl =
-import.meta.env.APTOS_DEVNET_URL || "https://api.devnet.aptoslabs.com/v1";
+import.meta.env.REACT_APP_MOVE_ENDPOINT || "https://aptos.devnet.imola.movementlabs.xyz/api/v1";
 
 export const networks = {
   mainnet: "https://api.mainnet.aptoslabs.com/v1",
-  testnet: import.meta.env.REACT_APP_MOVE_ENDPOINT||"https://api.testnet.aptoslabs.com/v1",
+  testnet: import.meta.env.REACT_APP_MOVE_ENDPOINT||"https://aptos.devnet.imola.movementlabs.xyz/api/v1",
   devnet: devnetUrl,
-  movement: import.meta.env.REACT_APP_MOVE_ENDPOINT||"https://rpc.internal.devnet.m1.movementlabs.xyz/v1",
+  movement: import.meta.env.REACT_APP_MOVE_ENDPOINT||"https://aptos.devnet.imola.movementlabs.xyz/api/v1",
   previewnet: "https://fullnode.previewnet.aptoslabs.com/v1",
   randomnet: "https://fullnode.random.aptoslabs.com/v1",
 };
@@ -36,7 +36,7 @@ for (const key of Object.keys(networks)) {
   }
 }
 
-export const defaultNetworkName: NetworkName = "testnet" as const;
+export const defaultNetworkName: NetworkName = "devnet" as const;
 
 if (!(defaultNetworkName in networks)) {
   throw `defaultNetworkName '${defaultNetworkName}' not in Networks!`;
