@@ -3,6 +3,7 @@ import { client } from './const.js';
 import { getEvmTransaction, getTotalMoveAddress } from './db.js';
 import { sleep } from './helper.js';
 import { writeFile } from 'node:fs/promises';
+import { cluster } from 'radash';
 
 // Initialize knex connection
 const db = knex({
@@ -65,8 +66,11 @@ async function store(addressArr, txCount, syncVersion) {
         const existingAddressSet = new Set(existingAddresses.map(a => a.address));
         const newAddresses = uniqueAddresses.filter(address => !existingAddressSet.has(address));
         if (newAddresses.length > 0) {
-            const insertData = newAddresses.map(address => ({ address }));
-            await trx('addresses').insert(insertData);
+            const chunk = cluster(newAddresses, 200);
+            for (const addresses of chunk) {
+                const insertData = addresses.map(address => ({ address }));
+                await trx('addresses').insert(insertData);
+            }
             insertedRows = newAddresses.length;
         }
         cachedAddrCount += insertedRows;
