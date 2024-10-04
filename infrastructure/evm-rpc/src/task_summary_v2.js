@@ -87,7 +87,6 @@ async function store(addressArr, txCount, syncVersion) {
             txCount: cachedTxCount,
             addrCount: cachedAddrCount,
             moveWalletCount: moveWalletCount,
-            insertedRows: insertedRows,
         }),
     ).catch(() => {});
 }
