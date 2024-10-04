@@ -59,16 +59,19 @@ export function useAugmentToWithGlobalSearchParams() {
   const [currentSearchParams] = useSearchParams();
   return function augmentToWithGlobalSearchParams(to: string) {
     const toUrl = new URL(to, window.location.origin);
+    // console.log('useAugmentToWithGlobalSearchParams1',toUrl.origin,to,window.location.origin,toUrl.pathname ,"search->", toUrl.search ,"hash->", toUrl.hash);
     if (toUrl.origin !== window.location.origin) {
       // Don't augment external links
       return to;
     }
     for (const param of GLOBAL_PERSISTENT_SEARCH_PARAMS) {
       if (!toUrl.searchParams.has(param) && currentSearchParams.has(param)) {
+        // console.log('searchParams',param, currentSearchParams.get(param));
         toUrl.searchParams.set(param, currentSearchParams.get(param)!);
       }
     }
-    // console.log('useAugmentToWithGlobalSearchParams',toUrl.pathname , toUrl.search , toUrl.hash);
-    return toUrl.pathname + toUrl.search + toUrl.hash;
+    // console.log('useAugmentToWithGlobalSearchParams2',toUrl.pathname ,"search->", toUrl.search , "hash->",toUrl.hash);
+    return toUrl.pathname + toUrl.hash;
+    // return toUrl.pathname + toUrl.search + toUrl.hash;
   };
 }

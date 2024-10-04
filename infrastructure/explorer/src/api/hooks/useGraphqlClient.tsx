@@ -22,7 +22,7 @@ export function getGraphqlURI(networkName: NetworkName): string | undefined {
     case "testnet":
       return import.meta.env.REACT_APP_MOVE_GQL;
     case "devnet":
-      return "https://api.devnet.aptoslabs.com/v1/graphql";
+      return import.meta.env.REACT_APP_MOVE_GQL;
     case "movement":
       return import.meta.env.REACT_APP_MOVE_GQL;
     case "randomnet":

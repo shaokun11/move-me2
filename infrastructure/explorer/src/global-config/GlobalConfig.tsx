@@ -71,7 +71,7 @@ function deriveGlobalState({
 
 const initialGlobalState = deriveGlobalState({
   feature_name: getSelectedFeatureFromLocalStorage(),
-  network_name: defaultNetworkName,
+  network_name: defaultNetworkName||"devnet",
 });
 
 export const GlobalStateContext = React.createContext(initialGlobalState);
