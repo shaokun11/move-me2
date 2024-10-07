@@ -15,6 +15,7 @@ import {
     MEVM_EVENT,
     IS_MAIN_NODE,
     EVM_FIXED_LOG_URL,
+    clientV2,
 } from './const.js';
 import { parseRawTx, toHex, toNumber, toHexStrict, sleep } from './helper.js';
 import { getMoveHash, getBlockHeightByHash, getEvmLogs, getErrorTxMoveHash, getEvmHash } from './db.js';
@@ -924,11 +925,6 @@ export async function callContract(from, contract, calldata, value, block) {
             block = undefined;
         }
     }
-    if (block) {
-        if (+block <= VM_CURRENT_VERSION.ver) {
-            throw 'eth_call with block number only support block greater than ' + VM_CURRENT_VERSION.block;
-        }
-    }
     return callContractImpl(from, contract, calldata, value, block);
 }
 /**
@@ -991,7 +987,12 @@ export async function estimateGas(info) {
             payload,
         }),
     );
-    const result = await client.view(payload);
+    let result;
+    if (block && +block <= VM_CURRENT_VERSION.ver) {
+        result = await clientV2.view(payload);
+    } else {
+        result = await client.view(payload);
+    }
     const isSuccess = result[0] === '200';
     // We need do more check, but now we just simply enlarge it 140%
     // https://github.com/ethereum/go-ethereum/blob/b0f66e34ca2a4ea7ae23475224451c8c9a569826/eth/gasestimator/gasestimator.go#L52
