@@ -99,4 +99,5 @@ console.log({
     IS_MAIN_NODE,
     REMOTE_CACHE_URL,
     EVM_FIXED_LOG_URL,
+    NODE_EVM_V2_URL
 });
