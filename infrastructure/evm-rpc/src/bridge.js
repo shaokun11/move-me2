@@ -15,7 +15,7 @@ import {
     MEVM_EVENT,
     IS_MAIN_NODE,
     EVM_FIXED_LOG_URL,
-    clientV2,
+    client_EVM_V2,
 } from './const.js';
 import { parseRawTx, toHex, toNumber, toHexStrict, sleep } from './helper.js';
 import { getMoveHash, getBlockHeightByHash, getEvmLogs, getErrorTxMoveHash, getEvmHash } from './db.js';
@@ -989,7 +989,7 @@ export async function estimateGas(info) {
     );
     let result;
     if (block && +block <= VM_CURRENT_VERSION.ver) {
-        result = await clientV2.view(payload);
+        result = await client_EVM_V2.view(payload);
     } else {
         result = await client.view(payload);
     }

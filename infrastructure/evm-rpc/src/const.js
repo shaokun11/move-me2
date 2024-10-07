@@ -52,7 +52,7 @@ if (FAUCET_SENDER) {
     console.log(`faucet sender: ${FAUCET_SENDER_ACCOUNT.address().hexString}`);
 }
 export const client = new AptosClient(NODE_URL);
-export const clientV2 = new AptosClient(NODE_EVM_V2_URL || NODE_URL);
+export const client_EVM_V2 = new AptosClient(NODE_EVM_V2_URL || NODE_URL);
 const INDEXER_URL = process.env.INDEXER_URL;
 export const indexer_client = new Client({
     url: INDEXER_URL,
