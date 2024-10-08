@@ -5,8 +5,10 @@ tar -czvf logs.tar.gz logs.txt
 xz -9 logs.tar.gz
 split -b 80M logs.tar.gz.xz logs.tar.gz.xz_part_
 
+cat logs.tar.gz.xz_part_* > logs.tar.gz.xz
 xz -d  logs.tar.gz.xz
 tar -xzvf logs.tar.gz
+
 
 cd ../../
 node --max-old-space-size=8192 src/app_logs.js
