@@ -32,7 +32,6 @@ import { ClientWrapper } from './client_wrapper.js';
 import { cluster } from 'radash';
 import { postJsonRpc } from './request.js';
 import TimSort from 'timsort';
-import { hash } from 'node:crypto';
 const pend_tx_path = 'db/tx-pending.json';
 /// When eth_call or estimateGas,from may be 0x0,
 // Now the evm's 0x0 address cannot exist in the move, so we need to convert it to 0x1
@@ -981,12 +980,6 @@ export async function estimateGas(info) {
             type, //  if the tx type is 1 , only gas price is effect
         ],
     };
-    logRequest(
-        JSON.stringify({
-            type: 'estimateGas',
-            payload,
-        }),
-    );
     let result = await client.view(payload);
     const isSuccess = result[0] === '200';
     // We need do more check, but now we just simply enlarge it 140%
@@ -1280,12 +1273,6 @@ async function checkTxResult({
         });
 }
 async function sendTx(sender, tx, txKey, senderIndex, isLargeTx, to) {
-    logRequest(
-        JSON.stringify({
-            type: 'sendTx',
-            tx,
-        }),
-    );
     const payload = {
         function: `0x1::evm::send_tx`,
         type_arguments: [],
@@ -1340,17 +1327,24 @@ async function callContractImpl(from, contract, calldata, value, version) {
             '1',
         ],
     };
-    logRequest(
-        JSON.stringify({
-            type: 'call',
-            payload,
-        }),
-    );
     let result;
     if (version && +version <= VM_CURRENT_VERSION.ver) {
         result = await client_EVM_V2.view(payload, version);
     } else {
-        result = await client.view(payload, version);
+        try {
+            result = await client.view(payload, version);
+        } catch (e) {
+            const v3ErrorVersion = [29352893, 32744115];
+            const msg = e.message;
+            const isV3Error = msg.includes(
+                'Arity mismatch: return value count does not match return type count',
+            );
+            if (version && +version >= v3ErrorVersion[0] && +version <= v3ErrorVersion[1] && isV3Error) {
+                result = ['200', '0xffff', '0x'];
+            } else {
+                throw e;
+            }
+        }
     }
     const isSuccess = result[0] === '200';
     const ret = {
