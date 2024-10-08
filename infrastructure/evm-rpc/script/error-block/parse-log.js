@@ -19,9 +19,9 @@ async function main(path) {
             for (let index = 0; index < logs.length; index++) {
                 const log = logs[index];
                 // the only one  32bytes log is correct, so we can skip it
-                if (log.data.length === 66) {
-                    continue;
-                }
+                // if (log.data.length === 66) {
+                //     continue;
+                // }
                 info.logs.push({
                     data: log.data,
                     index: index,
