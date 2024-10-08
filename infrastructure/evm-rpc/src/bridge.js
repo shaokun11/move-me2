@@ -987,12 +987,7 @@ export async function estimateGas(info) {
             payload,
         }),
     );
-    let result;
-    if (block && +block <= VM_CURRENT_VERSION.ver) {
-        result = await client_EVM_V2.view(payload);
-    } else {
-        result = await client.view(payload);
-    }
+    let result = await client.view(payload);
     const isSuccess = result[0] === '200';
     // We need do more check, but now we just simply enlarge it 140%
     // https://github.com/ethereum/go-ethereum/blob/b0f66e34ca2a4ea7ae23475224451c8c9a569826/eth/gasestimator/gasestimator.go#L52
@@ -1351,7 +1346,12 @@ async function callContractImpl(from, contract, calldata, value, version) {
             payload,
         }),
     );
-    const result = await client.view(payload, version);
+    let result;
+    if (version && +version <= VM_CURRENT_VERSION.ver) {
+        result = await client_EVM_V2.view(payload, version);
+    } else {
+        result = await client.view(payload, version);
+    }
     const isSuccess = result[0] === '200';
     const ret = {
         success: isSuccess,

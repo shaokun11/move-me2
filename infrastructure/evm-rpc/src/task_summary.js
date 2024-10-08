@@ -10,7 +10,7 @@ const db = await JSONFilePreset('db/summary-task-db.json', {
     address: [],
     txCount: 0,
     syncVersion: 0,
-    moveWalletCount:0   
+    moveWalletCount: 0,
 });
 
 let count = 0;
