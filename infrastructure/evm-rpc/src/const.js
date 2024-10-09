@@ -15,6 +15,7 @@ export const EVM_NONCE_URL = process.env.EVM_NONCE_URL;
 export const REMOTE_CACHE_URL = process.env.REMOTE_CACHE_URL;
 export const EVM_FIXED_LOG_URL = process.env.EVM_FIXED_LOG_URL;
 export const NODE_EVM_V2_URL = process.env.NODE_EVM_V2_URL;
+export const NODE_EVM_V3_V1_URL = process.env.NODE_EVM_V3_V1_URL;
 /**
  * EVM_SENDER is the sender's address, fetched from environment variables
  */
@@ -53,6 +54,7 @@ if (FAUCET_SENDER) {
 }
 export const client = new AptosClient(NODE_URL);
 export const client_EVM_V2 = new AptosClient(NODE_EVM_V2_URL || NODE_URL);
+export const client_EVM_V3_V1 = new AptosClient(NODE_EVM_V3_V1_URL || NODE_URL);
 const INDEXER_URL = process.env.INDEXER_URL;
 export const indexer_client = new Client({
     url: INDEXER_URL,
@@ -100,4 +102,5 @@ console.log({
     REMOTE_CACHE_URL,
     EVM_FIXED_LOG_URL,
     NODE_EVM_V2_URL,
+    NODE_EVM_V3_V1_URL
 });

@@ -16,6 +16,7 @@ import {
     IS_MAIN_NODE,
     EVM_FIXED_LOG_URL,
     client_EVM_V2,
+    client_EVM_V3_V1,
 } from './const.js';
 import { parseRawTx, toHex, toNumber, toHexStrict, sleep } from './helper.js';
 import { getMoveHash, getBlockHeightByHash, getEvmLogs, getErrorTxMoveHash, getEvmHash } from './db.js';
@@ -67,13 +68,10 @@ const FIXED_EVENT_DATA_VERSION = {
     START: 29283365,
     END: 32744115,
 };
-const VM_UPGRADE_VERSION = {
-    V3: {
-        ver: 29283365,
-        block: 9723536,
-    },
-};
-const VM_CURRENT_VERSION = VM_UPGRADE_VERSION.V3;
+
+const V2_END_VERSION = 29285712;
+const V3_START_VERSION = 32744412;
+
 let LOG_START_Time = Date.now();
 
 const SEND_LARGE_TX_INFO = {
@@ -1328,23 +1326,12 @@ async function callContractImpl(from, contract, calldata, value, version) {
         ],
     };
     let result;
-    if (version && +version <= VM_CURRENT_VERSION.ver) {
+    if (version && +version < V2_END_VERSION) {
         result = await client_EVM_V2.view(payload, version);
+    } else if (version && +version <= V3_START_VERSION) {
+        result = await client_EVM_V3_V1.view(payload, version);
     } else {
-        try {
-            result = await client.view(payload, version);
-        } catch (e) {
-            const v3ErrorVersion = [29352893, 32744115];
-            const msg = e.message;
-            const isV3Error = msg.includes(
-                'Arity mismatch: return value count does not match return type count',
-            );
-            if (version && +version >= v3ErrorVersion[0] && +version <= v3ErrorVersion[1] && isV3Error) {
-                result = ['200', '0xffff', '0x'];
-            } else {
-                throw e;
-            }
-        }
+        result = await client.view(payload, version);
     }
     const isSuccess = result[0] === '200';
     const ret = {
