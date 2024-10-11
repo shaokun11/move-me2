@@ -280,7 +280,7 @@ async function sendTxTask() {
             ACC_NONCE_INFO.updateTime = Date.now();
             Object.assign(ACC_NONCE_INFO.data, newAccMap);
         };
-        if (Date.now() - ACC_NONCE_INFO.resetTime > 1000 * 20) {
+        if (Date.now() - ACC_NONCE_INFO.resetTime > 1000 * 20 || allKeys.length <= 200) {
             ACC_NONCE_INFO.updateTime = 0;
         }
         if (ACC_NONCE_INFO.updateTime === 0) {
