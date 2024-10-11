@@ -582,9 +582,9 @@ export async function eth_feeHistory() {
  */
 export async function getBlock() {
     const info = await client.getLedgerInfo();
-    // delay 1 seconds
+    // delay 2 seconds
     // 1 seconds may produce 3 new blocks
-    return toHex(info.block_height - 3);
+    return toHex(info.block_height - 6);
 }
 
 export async function getBlockReceipts(block) {
