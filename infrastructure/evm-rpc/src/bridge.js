@@ -452,7 +452,7 @@ export async function getEvmSummary() {
             txSummary.txCount = res.txCount;
             txSummary.moveWalletCount = res.moveWalletCount;
         } else {
-            res = JSON.parse(await readFile('tx-summary.json', 'utf8'));
+            res = JSON.parse(await readFile('tx-summary2.json', 'utf8'));
             txSummary.addressCount = res.addrCount;
             txSummary.txCount = res.txCount;
             txSummary.moveWalletCount = res.moveWalletCount;

@@ -98,7 +98,7 @@ async function store(addressArr, txCount, syncVersion) {
 
 async function run(startVersion) {
     console.log('sync evm info version start:', startVersion);
-    const txArr = await getEvmTransaction(startVersion, 5000);
+    const txArr = await getEvmTransaction(startVersion, 2000);
     if (!txArr || txArr.length === 0) {
         await sleep(5);
         return;
@@ -132,9 +132,9 @@ export async function startSummaryTask() {
     await initTable();
     while (true) {
         try {
-            if (Date.now() - startTs > 1000 * 60 * 10) {
+            if (Date.now() - startTs > 1000 * 60 * 30) {
                 startTs = Date.now();
-                //await getMoveWalletAddressCount();
+                await getMoveWalletAddressCount();
             }
             const ver = await db('summary_meta').first('syncVersion');
             await run(ver.syncVersion);
