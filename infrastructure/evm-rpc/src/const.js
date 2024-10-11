@@ -104,5 +104,5 @@ console.log({
     EVM_FIXED_LOG_URL,
     NODE_EVM_V2_URL,
     NODE_EVM_V3_V1_URL,
-    INDEXER_QUERY_URL
+    INDEXER_QUERY_URL,
 });
