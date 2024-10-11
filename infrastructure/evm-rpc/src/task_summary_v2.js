@@ -1,9 +1,29 @@
 import knex from 'knex';
-import { client } from './const.js';
-import { getEvmTransaction, getTotalMoveAddress } from './db.js';
+import { client, INDEXER_QUERY_URL } from './const.js';
+import { Client, fetchExchange } from '@urql/core';
+import { getEvmTransaction } from './db.js';
 import { sleep } from './helper.js';
 import { writeFile } from 'node:fs/promises';
 import { cluster } from 'radash';
+
+const indexer_client = new Client({
+    url: INDEXER_QUERY_URL,
+    exchanges: [fetchExchange],
+});
+
+async function getTotalMoveAddress() {
+    const query = gql`
+        {
+            account_transactions_aggregate(distinct_on: account_address) {
+                aggregate {
+                    count(distinct: true)
+                }
+            }
+        }
+    `;
+    const res = await indexer_client.query(query).toPromise();
+    return res.data.account_transactions_aggregate.aggregate.count;
+}
 
 // Initialize knex connection
 const db = knex({

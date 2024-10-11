@@ -16,6 +16,7 @@ export const REMOTE_CACHE_URL = process.env.REMOTE_CACHE_URL;
 export const EVM_FIXED_LOG_URL = process.env.EVM_FIXED_LOG_URL;
 export const NODE_EVM_V2_URL = process.env.NODE_EVM_V2_URL;
 export const NODE_EVM_V3_V1_URL = process.env.NODE_EVM_V3_V1_URL;
+export const INDEXER_QUERY_URL = process.env.INDEXER_QUERY_URL || process.env.INDEXER_URL;
 /**
  * EVM_SENDER is the sender's address, fetched from environment variables
  */
@@ -102,5 +103,5 @@ console.log({
     REMOTE_CACHE_URL,
     EVM_FIXED_LOG_URL,
     NODE_EVM_V2_URL,
-    NODE_EVM_V3_V1_URL
+    NODE_EVM_V3_V1_URL,
 });
