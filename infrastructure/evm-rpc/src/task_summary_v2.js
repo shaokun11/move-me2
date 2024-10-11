@@ -5,6 +5,7 @@ import { getEvmTransaction } from './db.js';
 import { sleep } from './helper.js';
 import { writeFile } from 'node:fs/promises';
 import { cluster } from 'radash';
+import { gql } from '@urql/core';
 
 const indexer_client = new Client({
     url: INDEXER_QUERY_URL,
