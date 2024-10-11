@@ -124,7 +124,9 @@ async function run(startVersion) {
         await sleep(5);
         return;
     }
-
+    if (txArr.length < 500) {
+        await sleep(2);
+    }
     const txInfo = await Promise.all(txArr.map(it => client.getTransactionByHash(it.move_hash)));
     const address = [];
     txInfo.forEach(it => {
