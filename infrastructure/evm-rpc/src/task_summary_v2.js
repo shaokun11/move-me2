@@ -142,8 +142,10 @@ async function run(startVersion) {
 
 async function getMoveWalletAddressCount() {
     try {
+        const start = Date.now();
         const count = await getTotalMoveAddress();
         moveWalletCount = count;
+        console.log('Get move wallet count:', count, 'time:', Date.now() - start);
     } catch (error) {
         console.error('Error fetching move wallet count', error);
     }
