@@ -280,7 +280,7 @@ async function sendTxTask() {
             ACC_NONCE_INFO.updateTime = Date.now();
             Object.assign(ACC_NONCE_INFO.data, newAccMap);
         };
-        if (Date.now() - ACC_NONCE_INFO.resetTime > 1000 * 60 * 2) {
+        if (Date.now() - ACC_NONCE_INFO.resetTime > 1000 * 20) {
             ACC_NONCE_INFO.updateTime = 0;
         }
         if (ACC_NONCE_INFO.updateTime === 0) {
@@ -391,6 +391,7 @@ async function sendTxTask() {
                 }
                 // This tx will be send to chain , so we can remove the first check time
                 delete TX_NONCE_FIRST_CHECK_TIME[key];
+                delete ACC_NONCE_INFO.data[from];
                 removeTxFromMemoryPool(from, nonce);
                 PENDING_TX_SET.add(key);
                 const senderIndex = SENDER_ACCOUNT_INDEX.shift();
