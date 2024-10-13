@@ -748,13 +748,7 @@ export async function getBlockByNumber(block, withTx) {
 
 export async function getBlockByHash(hash, withTx) {
     try {
-        // Use keccak256 for make key more shorter
-        const key = keccak256(Buffer.from(`hash:to:block:${hash}`, 'utf8'));
-        let height = await DB_TX.get(key);
-        if (!height) {
-            height = await getBlockHeightByHash(hash);
-            await DB_TX.put(key, height);
-        }
+        const height = await getBlockHeightByHash(hash);
         return getBlockByNumber(parseInt(height), withTx);
     } catch (error) {
         return null;
