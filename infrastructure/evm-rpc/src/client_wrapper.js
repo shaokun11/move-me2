@@ -3,12 +3,20 @@ import { client, NODE_URL } from './const.js';
 import { retry } from 'radash';
 BigNumber.config({ EXPONENTIAL_AT: 100 });
 export class ClientWrapper {
+    static async getBlockByVersion(ver, withTx) {
+        let res = await this.getBlockByVersionMe(ver);
+        if (!withTx) {
+            return res;
+        }
+        return this.getBlockByHeight(res.block_height, true);
+    }
+
     static async getBlockByHeight(height, withTxs) {
         if (!withTxs) {
-            return client.getBlockByHeight(height, false);
+            return this.getBlockByHeightMe(height, false);
         }
         // this api only return the first 100 transactions
-        const block = await client.getBlockByHeight(height, true);
+        const block = await this.getBlockByHeightMe(height, true);
         const fetchCount = block.transactions.length;
         let count = BigNumber(block.last_version).minus(block.first_version).toNumber() - fetchCount + 1;
         if (count > 0) {
@@ -17,7 +25,7 @@ export class ClientWrapper {
                     Array(count)
                         .fill()
                         .map((_, i) => {
-                            return client.getTransactionByVersion(
+                            return this.getTransactionByVersionMe(
                                 BigNumber(block.first_version)
                                     .plus(fetchCount + i)
                                     .toFixed(0),
@@ -31,7 +39,7 @@ export class ClientWrapper {
 
     static getTransactionByHash(hash) {
         const run = () => {
-            return client.getTransactionByHash(hash);
+            return this.getTransactionByHashMe(hash);
         };
         // for some node may not sync to the latest block, we need to retry
         return retry(
@@ -42,7 +50,32 @@ export class ClientWrapper {
             run,
         );
     }
-    
+    static getLedgerInfo() {
+        return fetch(NODE_URL).then(response => response.json());
+    }
+
+    static getBlockByHeightMe(height, withTxs) {
+        return fetch(NODE_URL + '/blocks/by_height/' + height + '?with_transactions=' + withTxs).then(
+            response => {
+                return response.json();
+            },
+        );
+    }
+
+    static getBlockByVersionMe(ver) {
+        return fetch(NODE_URL + '/blocks/by_version/' + ver + '?with_transactions=' + false).then(
+            response => {
+                return response.json();
+            },
+        );
+    }
+
+    static getTransactionByVersionMe(ver) {
+        return fetch(NODE_URL + '/transactions/by_version/' + ver).then(response => {
+            return response.json();
+        });
+    }
+
     static getTransactionByHashMe(hash) {
         return fetch(NODE_URL + '/transactions/by_hash/' + hash).then(response => {
             return response.json();

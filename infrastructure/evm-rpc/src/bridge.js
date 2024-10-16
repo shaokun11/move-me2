@@ -581,7 +581,7 @@ export async function eth_feeHistory() {
  * @returns {Promise<string>} - A promise that resolves to the latest block
  */
 export async function getBlock() {
-    const info = await client.getLedgerInfo();
+    const info = await ClientWrapper.getLedgerInfo();
     // delay 2 seconds
     // 1 seconds may produce 3 new blocks
     return toHex(info.block_height - 6);
@@ -626,8 +626,7 @@ export async function getBlockByNumber(block, withTx) {
         is_pending = true;
     }
     if (block === 'latest') {
-        let info = await client.getLedgerInfo();
-        block = info.block_height;
+        block = await getBlock();
     }
     block = BigNumber(block).toNumber();
     if (block < 0) {
@@ -1041,7 +1040,7 @@ export async function getTransactionByHash(evm_hash) {
         return JSON.parse(cache);
     }
     const info = await ClientWrapper.getTransactionByHash(move_hash);
-    const block = await client.getBlockByVersion(info.version);
+    const block = await ClientWrapper.getBlockByVersion(info.version);
     const txInfo = await parseMoveTxPayload(info);
     const transactionIndex = await getTransactionIndex(block.block_height, evm_hash);
     const ret = assemblyTx(txInfo, block.block_hash, block.block_height, transactionIndex);
@@ -1093,7 +1092,7 @@ export async function getTransactionReceipt(evm_hash) {
         return JSON.parse(cache);
     }
     let info = await ClientWrapper.getTransactionByHash(move_hash);
-    let block = await client.getBlockByVersion(info.version);
+    let block = await ClientWrapper.getBlockByVersion(info.version);
     const { to, from, type } = await parseMoveTxPayload(info);
     // let contractAddress = await getDeployedContract(info);
     const transactionIndex = toHex(await getTransactionIndex(block.block_height, evm_hash));
