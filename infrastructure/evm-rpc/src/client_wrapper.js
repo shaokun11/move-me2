@@ -81,13 +81,42 @@ export class ClientWrapper {
             return response.json();
         });
     }
+    static getAccount(account) {
+        return fetch(NODE_URL + '/accounts/' + account).then(response => {
+            return response.json();
+        });
+    }
+
+    static submitTransaction(tx) {
+        return fetch(NODE_URL + '/transactions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x.aptos.signed_transaction+bcs',
+                accept: 'application/json',
+            },
+            body: tx,
+        }).then(response => {
+            return response.json();
+        });
+    }
+
+    static getAccountResource(address, source, ledger_version) {
+        let url = NODE_URL + `/accounts/${address}/resource/${source}`;
+        if (ledger_version?.ledger_version) {
+            url = url + `?ledger_version=${ledger_version.ledger_version}`;
+        }
+        console.log('url', url);
+        return fetch(url).then(response => {
+            return response.json();
+        });
+    }
 
     static view(payload, ledger_version) {
-        const controller = new AbortController();
-        const signal = controller.signal;
-        const timeout = setTimeout(() => {
-            controller.abort();
-        }, 120 * 1000);
+        // const controller = new AbortController();
+        // const signal = controller.signal;
+        // const timeout = setTimeout(() => {
+        //     controller.abort();
+        // }, 120 * 1000);
         let url = NODE_URL + '/view';
         if (ledger_version) {
             url = NODE_URL + '/view?ledger_version=' + ledger_version;
@@ -97,10 +126,10 @@ export class ClientWrapper {
             headers: {
                 'Content-Type': 'application/json',
             },
-            signal: signal,
+            // signal: signal,
             body: JSON.stringify(payload),
         }).then(response => {
-            clearTimeout(timeout);
+            // clearTimeout(timeout);
             return response.json();
         });
     }

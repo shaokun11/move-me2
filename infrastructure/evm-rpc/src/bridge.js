@@ -774,7 +774,7 @@ export async function getStorageAt(addr, pos) {
         arguments: [addr, toHexStrict(pos)],
     };
     try {
-        let result = await client.view(payload);
+        let result = await ClientWrapper.view(payload);
         res = result[0];
     } catch (error) {
         // console.log('getStorageAt error', error);
@@ -817,6 +817,7 @@ function getGasPriceFromTx(tx) {
 // 8. `nonce` should be equal to the current nonce + 1 (general rule).
 
 async function checkSendTx(tx) {
+    // console.log('checkSendTx', tx);
     const gasPrice = getGasPriceFromTx(tx);
     const account = await getAccountInfo(tx.from);
     if (BigNumber(gasPrice).times(tx.limit).plus(tx.value).gt(account.balance)) {
@@ -974,7 +975,7 @@ export async function estimateGas(info) {
             type, //  if the tx type is 1 , only gas price is effect
         ],
     };
-    let result = await client.view(payload);
+    let result = await ClientWrapper.view(payload);
     const isSuccess = result[0] === '200';
     // We need do more check, but now we just simply enlarge it 140%
     // https://github.com/ethereum/go-ethereum/blob/b0f66e34ca2a4ea7ae23475224451c8c9a569826/eth/gasestimator/gasestimator.go#L52
@@ -1191,14 +1192,19 @@ async function getAccountInfo(acc, block) {
                 block = undefined;
             }
         }
-        const resource = await client.getAccountResource(moveAddress, `0x1::evm_storage::AccountStorage`, {
-            ledgerVersion: block,
-        });
+        const resource = await ClientWrapper.getAccountResource(
+            moveAddress,
+            `0x1::evm_storage::AccountStorage`,
+            {
+                ledgerVersion: block,
+            },
+        );
         ret.moveAddress = moveAddress;
         ret.balance = resource.data.balance;
         ret.nonce = +resource.data.nonce;
         ret.code = resource.data.code;
     } catch (error) {
+        // console.error('getAccountInfo %s error %s', acc, error.message ?? error);
         // if this eth address not deposit from move ,it will error
     }
 
@@ -1228,7 +1234,7 @@ async function checkTxResult({
                     // maybe drop the tx for the tx expired
                     return resolve();
                 }
-                const accountNow = await client.getAccount(sender);
+                const accountNow = await ClientWrapper.getAccount(sender);
                 // if the sequence_number is changed, this account can reuse to send tx again
                 if (sequenceNumber !== accountNow.sequence_number) {
                     return resolve();
@@ -1273,7 +1279,7 @@ async function sendTx(sender, tx, txKey, senderIndex, isLargeTx, to) {
         arguments: [toBuffer(tx)],
     };
     const expire_time_sec = 90;
-    const account = await client.getAccount(sender.address());
+    const account = await ClientWrapper.getAccount(sender.address());
     const txnRequest = await client.generateTransaction(sender.address(), payload, {
         max_gas_amount: 2 * 1e6, // Now it is the max value
         gas_unit_price: 100, // the default value
@@ -1281,7 +1287,7 @@ async function sendTx(sender, tx, txKey, senderIndex, isLargeTx, to) {
         expiration_timestamp_secs: Math.trunc(Date.now() / 1000) + expire_time_sec,
     });
     const signedTxn = await client.signTransaction(sender, txnRequest);
-    const transactionRes = await client.submitTransaction(signedTxn);
+    const transactionRes = await ClientWrapper.submitTransaction(signedTxn);
     // Need to check the tx result for log and return sender account to the pool
     const checkTxItem = {
         hash: transactionRes.hash,
@@ -1327,7 +1333,7 @@ async function callContractImpl(from, contract, calldata, value, version) {
     } else if (version && +version <= V3_START_VERSION) {
         result = await client_EVM_V3_V1.view(payload, version);
     } else {
-        result = await client.view(payload, version);
+        result = await ClientWrapper.view(payload, version);
     }
     const isSuccess = result[0] === '200';
     const ret = {
