@@ -105,7 +105,6 @@ export class ClientWrapper {
         if (ledger_version?.ledger_version) {
             url = url + `?ledger_version=${ledger_version.ledger_version}`;
         }
-        console.log('url', url);
         return fetch(url).then(response => {
             return response.json();
         });
