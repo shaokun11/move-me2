@@ -584,7 +584,7 @@ export async function getBlock() {
     const info = await ClientWrapper.getLedgerInfo();
     // delay 2 seconds
     // 1 seconds may produce 3 new blocks
-    return toHex(info.block_height - 6);
+    return toHex(info.block_height);
 }
 
 export async function getBlockReceipts(block) {
