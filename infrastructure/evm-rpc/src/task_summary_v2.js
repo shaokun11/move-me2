@@ -6,10 +6,12 @@ import { sleep } from './helper.js';
 import { writeFile } from 'node:fs/promises';
 import { cluster } from 'radash';
 import { gql } from '@urql/core';
+import { ClientWrapper } from './client_wrapper.js';
 
 const indexer_client = new Client({
     url: INDEXER_QUERY_URL,
     exchanges: [fetchExchange],
+    requestPolicy: 'network-only',
 });
 
 async function getTotalMoveAddress() {
@@ -127,7 +129,7 @@ async function run(startVersion) {
     if (txArr.length < 500) {
         await sleep(2);
     }
-    const txInfo = await Promise.all(txArr.map(it => client.getTransactionByHash(it.move_hash)));
+    const txInfo = await Promise.all(txArr.map(it => ClientWrapper.getTransactionByHashMe(it.move_hash)));
     const address = [];
     txInfo.forEach(it => {
         const accounts = it.changes.filter(ele => ele.data?.type === '0x1::evm_storage::AccountStorage');

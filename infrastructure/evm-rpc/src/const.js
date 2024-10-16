@@ -60,6 +60,7 @@ const INDEXER_URL = process.env.INDEXER_URL;
 export const indexer_client = new Client({
     url: INDEXER_URL,
     exchanges: [fetchExchange],
+    requestPolicy: 'network-only',
 });
 
 export const ROBOT_SENDER_ACCOUNT = Boolean(ROBOT_SENDER)

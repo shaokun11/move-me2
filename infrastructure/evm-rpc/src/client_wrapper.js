@@ -42,6 +42,12 @@ export class ClientWrapper {
             run,
         );
     }
+    
+    static getTransactionByHashMe(hash) {
+        return fetch(NODE_URL + '/transactions/by_hash/' + hash).then(response => {
+            return response.json();
+        });
+    }
 
     static view(payload, ledger_version) {
         const controller = new AbortController();
