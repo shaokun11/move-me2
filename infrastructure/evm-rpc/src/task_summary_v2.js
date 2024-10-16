@@ -1,21 +1,13 @@
 import knex from 'knex';
-import { client, INDEXER_QUERY_URL } from './const.js';
-import { Client, fetchExchange } from '@urql/core';
+import { INDEXER_QUERY_URL } from './const.js';
 import { getEvmTransaction } from './db.js';
 import { sleep } from './helper.js';
 import { writeFile } from 'node:fs/promises';
 import { cluster } from 'radash';
-import { gql } from '@urql/core';
 import { ClientWrapper } from './client_wrapper.js';
 
-const indexer_client = new Client({
-    url: INDEXER_QUERY_URL,
-    exchanges: [fetchExchange],
-    requestPolicy: 'network-only',
-});
-
 async function getTotalMoveAddress() {
-    const query = gql`
+    const query = `
         {
             account_transactions_aggregate(distinct_on: account_address) {
                 aggregate {
@@ -24,7 +16,15 @@ async function getTotalMoveAddress() {
             }
         }
     `;
-    const res = await indexer_client.query(query).toPromise();
+    const res = await fetch(INDEXER_QUERY_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            query,
+        }),
+    }).then(res => res.json());
     return res.data.account_transactions_aggregate.aggregate.count;
 }
 

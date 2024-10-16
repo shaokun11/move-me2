@@ -1,11 +1,22 @@
-import { gql } from '@urql/core';
-import { indexer_client } from './const.js';
+import { INDEXER_URL } from './const.js';
 import { group, mapValues, sort, retry } from 'radash';
 import { isAddress } from 'ethers';
 
+function request(query) {
+    return fetch(INDEXER_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            query,
+        }),
+    }).then(res => res.json());
+}
+
 export async function getMoveHash(evm_hash) {
     const run = async function () {
-        const query = gql`
+        const query = `
             {
                 evm_move_hash(where:{
                     evm_hash:{
@@ -17,7 +28,7 @@ export async function getMoveHash(evm_hash) {
                 }
             }
         `;
-        const res = await indexer_client.query(query).toPromise();
+        const res = await request(query);
         if (res.data.evm_move_hash.length == 0) {
             throw new Error('Transaction not found');
         }
@@ -30,7 +41,7 @@ export async function getMoveHash(evm_hash) {
 
 export async function getEvmHash(move_hash) {
     const run = async function () {
-        const query = gql`
+        const query = `
             {
                 evm_move_hash(where:{
                     move_hash:{
@@ -42,7 +53,7 @@ export async function getEvmHash(move_hash) {
                 }
             }
         `;
-        const res = await indexer_client.query(query).toPromise();
+        const res = await request(query);
         if (res.data.evm_move_hash.length == 0) {
             throw new Error('Transaction not found');
         }
@@ -55,7 +66,7 @@ export async function getEvmHash(move_hash) {
 
 export async function getBlockHeightByHash(block_hash) {
     const run = async function () {
-        const query = gql`
+        const query = `
             {
                 block_metadata_transactions(where: {id: {_eq: "${block_hash}"}}) {
                     block_height
@@ -63,7 +74,7 @@ export async function getBlockHeightByHash(block_hash) {
                 }
             }
         `;
-        const res = await indexer_client.query(query).toPromise();
+        const res = await request(query);
         if (res.data.block_metadata_transactions.length == 0) {
             throw new Error('No block found by ' + block_hash);
         }
@@ -87,7 +98,6 @@ export async function getEvmLogs(obj) {
                 } else {
                     topicArr.push(obj.topics[i]);
                 }
-                // Why there need [] but the address doesn't need ? Just for the gql syntax?
                 topicWhere += `topic${i}: {_in: [${topicArr.map(x => `"${x.toLowerCase()}"`)}]}\n`;
             }
         }
@@ -97,7 +107,7 @@ export async function getEvmLogs(obj) {
     if (addresses.length > 0) {
         addressWhere = `address: {_in: [${addresses.map(x => `"${x.toLowerCase()}"`)}]}\n`;
     }
-    const query = gql`
+    const query = `
             {
             evm_logs (where:{
                 _and:{
@@ -124,7 +134,7 @@ export async function getEvmLogs(obj) {
                 }
             }
     `;
-    const res = await indexer_client.query(query).toPromise();
+    const res = await request(query);
     const logs = res.data.evm_logs;
     const blockGroup = group(logs, it => parseInt(it.block_number));
     mapValues(blockGroup, v => sort(v, it => parseInt(it.version)));
@@ -160,19 +170,19 @@ export async function getEvmLogs(obj) {
 }
 
 export async function getErrorTxMoveHash(evm_hash) {
-    const query = gql`
+    const query = `
         {
             evm_error_hash(limit: 1, where: {evm_hash: {_eq: "${evm_hash}"}}) {
                 move_hash
             }
         }
     `;
-    const res = await indexer_client.query(query).toPromise();
+    const res = await request(query);
     return res.data.evm_error_hash[0];
 }
 
 export async function getEvmTransaction(startVersion, count = 20) {
-    const query = gql`
+    const query = `
         {
             evm_move_hash(limit: ${count}, order_by: {version: asc}, where: {version: {_gt: "${startVersion}"}}) {
                 move_hash
@@ -180,12 +190,12 @@ export async function getEvmTransaction(startVersion, count = 20) {
             }
         }
     `;
-    const res = await indexer_client.query(query).toPromise();
+    const res = await request(query);
     return res.data.evm_move_hash;
 }
 
 export async function getTotalMoveAddress() {
-    const query = gql`
+    const query = `
         {
             account_transactions_aggregate(distinct_on: account_address) {
                 aggregate {
@@ -194,6 +204,6 @@ export async function getTotalMoveAddress() {
             }
         }
     `;
-    const res = await indexer_client.query(query).toPromise();
+    const res = await request(query);
     return res.data.account_transactions_aggregate.aggregate.count;
 }
