@@ -157,21 +157,19 @@ async function getMoveWalletAddressCount() {
     }
 }
 
-export async function startSummaryTask() {
-    await initTable();
-    while (true) {
-        try {
-            if (Date.now() - startTs > 1000 * 60 * 60) {
-                startTs = Date.now();
-                await getMoveWalletAddressCount();
-            }
-            const ver = await db('summary_meta').first('syncVersion');
-            await run(ver.syncVersion);
-        } catch (e) {
-            console.log('Summary task error', e.message);
+async function startSummaryTask() {
+    try {
+        await initTable();
+        if (Date.now() - startTs > 1000 * 60 * 60) {
+            startTs = Date.now();
+            await getMoveWalletAddressCount();
         }
-        await sleep(1);
+        const ver = await db('summary_meta').first('syncVersion');
+        await run(ver.syncVersion);
+    } catch (e) {
+        console.log('Summary task error', e.message);
     }
+    setTimeout(startSummaryTask, 1000);
 }
 
 startSummaryTask();
