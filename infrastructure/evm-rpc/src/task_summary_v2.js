@@ -142,6 +142,8 @@ async function run(startVersion) {
 
     const endVersion = txArr[txArr.length - 1].version;
     await store(address, txArr.length, endVersion);
+    txArr.length = 0;
+    address.length = 0;
 }
 
 async function getMoveWalletAddressCount() {
@@ -159,7 +161,7 @@ export async function startSummaryTask() {
     await initTable();
     while (true) {
         try {
-            if (Date.now() - startTs > 1000 * 60 * 30) {
+            if (Date.now() - startTs > 1000 * 60 * 60) {
                 startTs = Date.now();
                 await getMoveWalletAddressCount();
             }
@@ -168,6 +170,7 @@ export async function startSummaryTask() {
         } catch (e) {
             console.log('Summary task error', e.message);
         }
+        await sleep(1);
     }
 }
 
