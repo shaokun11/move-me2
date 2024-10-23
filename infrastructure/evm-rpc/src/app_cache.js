@@ -14,17 +14,22 @@ app.use(express.json({ limit: '100mb' }));
 // curl http://localhost:8898?key=key1
 app.get('/', (req, res) => {
     // console.log(req.query);
-    DB_TX.get(req.query.key).then(value => {
-        res.send(value || '');
-    });
+    DB_TX.get(req.query.key)
+        .then(value => {
+            res.send(value || '');
+        })
+        .catch(err => {
+            res.send('');
+        });
 });
 
 // curl -X POST -H "Content-Type: application/json" -d '{"key":"key1","value":"value1"}' http://localhost:8898
 app.post('/', (req, res) => {
     // console.log(req.body);
-    DB_TX.put(req.body.key, req.body.value).then(() => {
-        res.send('ok');
-    });
+    DB_TX.put(req.body.key, req.body.value)
+        .then(() => {})
+        .catch(err => {});
+    res.send('ok');
 });
 
 app.listen(8898, () => {
