@@ -1213,7 +1213,7 @@ async function checkTxResult({
             );
         })
         .catch(err => {
-            logger.error('checkTxResult %s error %s', hash, err.message ?? err);
+            logger.debug('checkTxResult %s error %s', hash, err.message ?? err);
         });
 }
 async function sendTx(sender, tx, txKey, senderIndex, isLargeTx, to) {

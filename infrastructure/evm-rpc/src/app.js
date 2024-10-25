@@ -27,7 +27,7 @@ server.applyMiddleware(async function (next, request, serverParams) {
     try {
         return await next(request, serverParams);
     } catch (error) {
-        logger.error('rpc error:%s', error);
+        logger.debug('rpc error:%s', error);
         if (error instanceof JSONRPCErrorException) {
             return createJSONRPCErrorResponse(request.id, error?.code || -32000, error.message, error.data);
         }
