@@ -1,5 +1,5 @@
 import { appendFile } from 'node:fs';
-import { FAUCET_AMOUNT, FAUCET_SENDER_ACCOUNT, client } from './const.js';
+import { FAUCET_AMOUNT, FAUCET_SENDER_ACCOUNT, IS_MAIN_NODE, client } from './const.js';
 import { sleep, toBuffer, toHexStrict } from './helper.js';
 
 const FAUCET_QUEUE = [];
@@ -10,6 +10,7 @@ let count = 0;
  * Start the batch faucet eth token task
  */
 export async function startFaucetTask() {
+    if (!IS_MAIN_NODE) return;
     const faucet_amount = toBuffer(toHexStrict((FAUCET_AMOUNT * 1e18).toString()));
     while (1) {
         await run(faucet_amount, 100);

@@ -26,13 +26,13 @@ import { toBuffer } from './helper.js';
 import { move2ethAddress } from './helper.js';
 import { googleRecaptcha } from './provider.js';
 import { addToFaucetTask } from './task_faucet.js';
-import { inspect } from 'node:util';
-import { readFile, writeFile, appendFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { DB_TX } from './leveldb_wrapper.js';
 import { ClientWrapper } from './client_wrapper.js';
 import { cluster } from 'radash';
 import { postJsonRpc } from './request.js';
 import TimSort from 'timsort';
+import logger from './logger.js';
 const pend_tx_path = 'db/tx-pending.json';
 /// When eth_call or estimateGas,from may be 0x0,
 // Now the evm's 0x0 address cannot exist in the move, so we need to convert it to 0x1
@@ -72,8 +72,6 @@ const FIXED_EVENT_DATA_VERSION = {
 const V2_END_VERSION = 29285712;
 const V3_START_VERSION = 32744412;
 
-let LOG_START_Time = Date.now();
-
 const SEND_LARGE_TX_INFO = {
     sendTime: Date.now(),
     isFinish: true,
@@ -83,20 +81,6 @@ const ACC_NONCE_INFO = {
     resetTime: 0,
     data: {},
 };
-async function logRequest(data) {
-    const file_name = 'req-log.txt';
-    const txt = data + '\n';
-    try {
-        if (Date.now() - LOG_START_Time > 1000 * 60 * 60) {
-            await writeFile(file_name, txt);
-            LOG_START_Time = Date.now();
-        } else {
-            await appendFile(file_name, txt);
-        }
-    } catch (error) {
-        // maybe multiple process write the file
-    }
-}
 
 // only for imola
 async function getFixedLogs(versions) {
@@ -128,6 +112,7 @@ async function initTxPool() {
         Object.keys(pool).forEach(key => {
             TX_MEMORY_POOL[key] = pool[key];
         });
+        logger.debug('initTxPool:%s', TX_MEMORY_POOL);
     } catch (error) {}
 }
 
@@ -172,13 +157,14 @@ export async function sendRawTx(tx) {
     if (EVM_RAW_TX_URL) {
         const res = await postJsonRpc(EVM_RAW_TX_URL, 'eth_sendRawTransaction', [tx]);
         let msg = res.error?.message ?? res.result ?? res;
-        console.log('send raw tx', msg);
+        logger.info('send raw tx %s', msg);
         if (res.error) {
             throw res.error?.message ?? res.error;
         }
         return res.result;
     }
     const info = parseRawTx(tx);
+    logger.debug('receive tx:%s', info);
     if (!BigNumber(info.chainId).eq(CHAIN_ID)) {
         throw 'chainId error';
     }
@@ -401,11 +387,9 @@ async function sendTxTask() {
                     SEND_LARGE_TX_INFO.isFinish = false;
                     SEND_LARGE_TX_INFO.lastSendTime = Date.now();
                 }
-
-                await sendTx(sender, tx, key, senderIndex, isLargeTx, txInfo.to)
-                    .then(() => {
-                        logInfo.realSendCount++;
-                    })
+                logInfo.realSendCount += 1;
+                sendTx(sender, tx, key, senderIndex, isLargeTx, txInfo.to)
+                    .then(() => {})
                     .catch(error => {
                         // reset this tx info to the pool
                         PENDING_TX_SET.delete(key);
@@ -423,13 +407,13 @@ async function sendTxTask() {
                             SEND_LARGE_TX_INFO.lastSendTime = Date.now();
                         }
                         // maybe tx can't be send to the chain
-                        console.warn('evm:%s,error %s ', key, error.message ?? error);
+                        logger.debug('evm:%s,error %s ', key, error.message ?? error);
                     });
             }
         }
         logInfo.sendTxDuration = Date.now() - logInfo.sendTxDuration;
         logInfo.roundDuration = Date.now() - logInfo.roundDuration;
-        console.log('======== round info =========', JSON.stringify(logInfo));
+        logger.info('task:%s', JSON.stringify(logInfo));
         isSending = false;
     }, 1000);
 }
@@ -489,45 +473,6 @@ export async function get_evm_hash(move_hash) {
 export async function traceTransaction(hash) {
     // Now it is not support , but maybe useful in the future
     return {};
-    const move_hash = await getMoveHash(hash);
-    const info = await ClientWrapper.getTransactionByHash(move_hash);
-    const callType = ['CALL', 'STATIC_CALL', 'DELEGATE_CALL'];
-    const toEtherAddress = addr => '0x' + addr.slice(-40);
-    const format_item = data => ({
-        from: toEtherAddress(data.from),
-        gas: toHex(data.gas),
-        gasUsed: toHex(data.gas_used),
-        to: toEtherAddress(data.to),
-        input: data.input,
-        output: data.output || '0x',
-        value: toHex(data.value),
-        type: callType[data.type],
-    });
-    const traces = info.events.find(it => it.type === 'vector<0x1::evm_global_state::CallEvent>');
-    traces.data.sort((a, b) => parseInt(a.depth) - parseInt(b.depth));
-    console.log('traceTransaction', inspect(traces, false, null, true));
-    const root_call = format_item(traces.data.shift());
-
-    const find_caller = (item, trace) => {
-        if (trace.to === item.from) {
-            if (!trace.calls) trace['calls'] = [];
-            trace.calls.push(item);
-        } else {
-            if (!root_call.calls) {
-                // now we think it top level,
-                if (!root_call.calls) root_call['calls'] = [];
-                root_call.calls.push(item);
-            } else {
-                for (let call of trace.calls) {
-                    find_caller(item, call);
-                }
-            }
-        }
-    };
-    traces.data.forEach(data => {
-        find_caller(format_item(data), root_call);
-    });
-    return root_call;
 }
 
 export async function batch_faucet(addr, token, ip) {
@@ -777,7 +722,7 @@ export async function getStorageAt(addr, pos) {
         let result = await ClientWrapper.view(payload);
         res = result[0];
     } catch (error) {
-        // console.log('getStorageAt error', error);
+        logger.debug('getStorageAt error', error);
     }
     return res;
 }
@@ -817,7 +762,6 @@ function getGasPriceFromTx(tx) {
 // 8. `nonce` should be equal to the current nonce + 1 (general rule).
 
 async function checkSendTx(tx) {
-    // console.log('checkSendTx', tx);
     const gasPrice = getGasPriceFromTx(tx);
     const account = await getAccountInfo(tx.from);
     if (BigNumber(gasPrice).times(tx.limit).plus(tx.value).gt(account.balance)) {
@@ -1204,7 +1148,7 @@ async function getAccountInfo(acc, block) {
         ret.nonce = +resource.data.nonce;
         ret.code = resource.data.code;
     } catch (error) {
-        // console.error('getAccountInfo %s error %s', acc, error.message ?? error);
+        logger.debug('getAccountInfo %s error %s', acc, error.message ?? error);
         // if this eth address not deposit from move ,it will error
     }
 
@@ -1256,7 +1200,7 @@ async function checkTxResult({
     ClientWrapper.getTransactionByHash(hash)
         .then(result => {
             // maybe pending
-            console.log(
+            logger.debug(
                 '%s,%s,ms:%s,move:%s,tx:%s,%s',
                 senderIndex,
                 isLargeTx,
@@ -1269,7 +1213,7 @@ async function checkTxResult({
             );
         })
         .catch(err => {
-            console.error('checkTxResult %s error %s', hash, err.message ?? err);
+            logger.error('checkTxResult %s error %s', hash, err.message ?? err);
         });
 }
 async function sendTx(sender, tx, txKey, senderIndex, isLargeTx, to) {
@@ -1442,18 +1386,20 @@ export async function getTxPool() {
     return TX_MEMORY_POOL;
 }
 
-if (IS_MAIN_NODE) {
-    await initTxPool();
-    // restart the process , save the tx pool
-    process.on('SIGINT', () => {
-        writeFile(
-            pend_tx_path,
-            JSON.stringify({
-                pool: TX_MEMORY_POOL,
-            }),
-        ).then(() => {
-            process.exit(0);
+export async function initTxPoolTask() {
+    if (IS_MAIN_NODE) {
+        await initTxPool();
+        // restart the process , save the tx pool
+        process.on('SIGINT', () => {
+            writeFile(
+                pend_tx_path,
+                JSON.stringify({
+                    pool: TX_MEMORY_POOL,
+                }),
+            ).then(() => {
+                process.exit(0);
+            });
         });
-    });
-    sendTxTask();
+        sendTxTask();
+    }
 }

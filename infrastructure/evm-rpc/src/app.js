@@ -3,11 +3,13 @@ import express from 'express';
 import cors from 'cors';
 import JsonRpc from 'json-rpc-2.0';
 import { rpc } from './rpc.js';
-import { IS_MAIN_NODE, SERVER_PORT } from './const.js';
+import { SERVER_PORT } from './const.js';
 import { startBotTask } from './task_bot.js';
 import { startFaucetTask } from './task_faucet.js';
 import http from 'node:http';
 import { inspect } from 'util';
+import { initTxPoolTask } from './bridge.js';
+import logger from './logger.js';
 const { JSONRPCServer, createJSONRPCErrorResponse, JSONRPCErrorException } = JsonRpc;
 
 const app = express();
@@ -25,7 +27,7 @@ server.applyMiddleware(async function (next, request, serverParams) {
     try {
         return await next(request, serverParams);
     } catch (error) {
-        // console.error('error', error);
+        logger.error('rpc error:%s', error);
         if (error instanceof JSONRPCErrorException) {
             return createJSONRPCErrorResponse(request.id, error?.code || -32000, error.message, error.data);
         }
@@ -45,16 +47,15 @@ app.use('/', async function (req, res) {
             req.ip,
         token: req.headers['token'] || null, // for faucet google recaptcha token
     };
-    // console.log('>>> %s %s', req.body);
     let startTs = Date.now();
-    // let str_req = `<<< ${JSON.stringify(req.body)}`;
+    let str_req = `<<< ${JSON.stringify(req.body)}`;
     server.receive(req.body, context).then(jsonRPCResponse => {
-        if (jsonRPCResponse.error) {
-            // console.error(str_req, jsonRPCResponse);
-        } else {
-            // console.log(str_req, inspect(jsonRPCResponse, {depth: null}));
-        }
-        // console.log(Date.now() - startTs, JSON.stringify(req.body));
+        logger.debug(
+            'ts:%s,req:%s,res:%s',
+            Date.now() - startTs,
+            str_req,
+            inspect(jsonRPCResponse, { depth: null }),
+        );
         if (Array.isArray(req.body) && req.body.length === 1) {
             res.json([jsonRPCResponse]);
         } else {
@@ -64,10 +65,10 @@ app.use('/', async function (req, res) {
 });
 
 app.set('trust proxy', true);
-app.listen(SERVER_PORT, () => {
-    console.log('server start at http://127.0.0.1:' + SERVER_PORT);
-    startBotTask();
-    if (IS_MAIN_NODE) {
+initTxPoolTask().then(() => {
+    app.listen(SERVER_PORT, () => {
+        logger.info('server start at http://127.0.0.1:' + SERVER_PORT);
+        startBotTask();
         startFaucetTask();
-    }
+    });
 });

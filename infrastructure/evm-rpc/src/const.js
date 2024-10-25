@@ -1,6 +1,7 @@
 import 'dotenv/config.js';
 import { AptosClient, AptosAccount } from 'aptos';
 import { Client, fetchExchange } from '@urql/core';
+import logger from './logger.js';
 export const SERVER_PORT = process.env.SERVER_PORT || 8998;
 export const CACHE_SERVER_PORT = process.env.CACHE_SERVER_PORT || 8898;
 
@@ -41,7 +42,7 @@ EVM_SENDER.forEach(privateKeyHex => {
     }
 });
 senderAccounts.forEach((account, i) => {
-    console.log(`evm sender ${i}: ${account.address().hexString}`);
+    logger.info(`evm sender ${i}: ${account.address().hexString}`);
 });
 export const GET_SENDER_ACCOUNT = (i = 0) => senderAccounts[i];
 export const SENDER_ACCOUNT_COUNT = senderAccounts.length;
@@ -51,7 +52,7 @@ if (FAUCET_SENDER) {
     FAUCET_SENDER_ACCOUNT = AptosAccount.fromAptosAccountObject({
         privateKeyHex: FAUCET_SENDER,
     });
-    console.log(`faucet sender: ${FAUCET_SENDER_ACCOUNT.address().hexString}`);
+    logger.info(`faucet sender: ${FAUCET_SENDER_ACCOUNT.address().hexString}`);
 }
 export const client = new AptosClient(NODE_URL);
 export const client_EVM_V2 = new AptosClient(NODE_EVM_V2_URL || NODE_URL);
@@ -85,7 +86,7 @@ export const MEVM_EVENT = '0x1::evm::ExecResultEvent'; // 0x1::evm::ExecResultEv
 
 export const IS_MAIN_NODE = !DISABLE_SEND_TX && !EVM_RAW_TX_URL;
 
-console.log({
+logger.info('config %s', {
     SERVER_PORT,
     NODE_URL,
     EVM_RAW_TX_URL,
