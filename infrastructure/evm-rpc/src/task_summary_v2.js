@@ -160,7 +160,7 @@ async function getMoveWalletAddressCount() {
 async function startSummaryTask() {
     try {
         await initTable();
-        if (Date.now() - startTs > 1000 * 60 * 60) {
+        if (Date.now() - startTs > 1000 * 60 * 60 * 6) {
             startTs = Date.now();
             await getMoveWalletAddressCount();
         }

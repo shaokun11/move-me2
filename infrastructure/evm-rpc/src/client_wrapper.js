@@ -25,7 +25,7 @@ export class ClientWrapper {
                     Array(count)
                         .fill()
                         .map((_, i) => {
-                            return this.getTransactionByVersionMe(
+                            return this.getTransactionByHash(
                                 BigNumber(block.first_version)
                                     .plus(fetchCount + i)
                                     .toFixed(0),
@@ -38,8 +38,30 @@ export class ClientWrapper {
     }
 
     static getTransactionByHash(hash) {
-        const run = () => {
-            return this.getTransactionByHashMe(hash);
+        const run = async () => {
+            const info = await this.getTransactionByHashMe(hash);
+            if (info.error_code === 'transaction_not_found') {
+                throw new Error('transaction not found');
+            }
+            return info;
+        };
+        // for some node may not sync to the latest block, we need to retry
+        return retry(
+            {
+                times: 10,
+                delay: 1000,
+            },
+            run,
+        );
+    }
+
+    static getTransactionByVersion(version) {
+        const run = async () => {
+            const info = await this.getTransactionByVersionMe(version);
+            if (info.error_code === 'transaction_not_found') {
+                throw new Error('transaction not found');
+            }
+            return info;
         };
         // for some node may not sync to the latest block, we need to retry
         return retry(
