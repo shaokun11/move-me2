@@ -233,7 +233,6 @@ async function sendTxTask() {
         if (allTx.length === 0) {
             return;
         }
-        const slowly = () => sleep(0.005);
         // set LOCKER
         isSending = true;
         const logInfo = {
@@ -415,7 +414,7 @@ async function sendTxTask() {
         logInfo.roundDuration = Date.now() - logInfo.roundDuration;
         logger.info('task:%s', JSON.stringify(logInfo));
         isSending = false;
-    }, 1000);
+    }, 500);
 }
 
 function isSuccessTx(info) {
@@ -1167,9 +1166,9 @@ async function checkTxResult({
 }) {
     // now we found many tx commit will greater than 200ms
     let checkMs = 200;
-    if (isLargeTx) {
-        checkMs = 1000;
-    }
+    // if (isLargeTx) {
+    // checkMs = 1000;
+    // }
     const checkStart = Date.now();
     await new Promise(resolve => {
         const checkAccount = async () => {
@@ -1186,8 +1185,7 @@ async function checkTxResult({
             } catch (error) {}
             setTimeout(checkAccount, checkMs);
         };
-        // the first time check after half of the checkMs
-        setTimeout(checkAccount, Math.trunc(checkMs / 2));
+        setTimeout(checkAccount, checkMs);
     });
     SENDER_ACCOUNT_INDEX.push(senderIndex);
     PENDING_TX_SET.delete(txKey);
