@@ -18,7 +18,7 @@ export function parseRawTx(tx) {
     //     FeeMarketEIP1559 = 2,
     //     BlobEIP4844 = 3,
     //   }
-    if (tx.type >= 3) {
+    if (tx2.type >= 3) {
         throw new Error('Invalid transaction type');
     }
     let gasPrice = null;
