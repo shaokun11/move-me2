@@ -134,6 +134,10 @@ export class EvmProcessor extends TransactionsProcessor {
         // maybe this payload is not a valid tx skip it
         continue;
       }
+      if(!evmTx.hash){
+          // if parse error , the hash will be null, skip it
+        continue;
+      }
       const evm_hash = evmTx.hash;
       const move_tx_hash =
         "0x" + Buffer.from(transaction.info!.hash!).toString("hex");
