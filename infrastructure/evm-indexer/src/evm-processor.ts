@@ -89,6 +89,7 @@ async function getBlockHashByNumber(dataSource: DataSource, number: bigint) {
   }
 }
 
+
 export class EvmProcessor extends TransactionsProcessor {
   name(): string {
     return "evm_processor";
@@ -130,12 +131,12 @@ export class EvmProcessor extends TransactionsProcessor {
         //@ts-ignore
         const tx =userTransaction.request.payload.entryFunctionPayload.arguments[0].replaceAll('"',"",);
         evmTx = ethers.Transaction.from(tx);
+        if (!evmTx.hash) {
+          // if parse error , the hash will be null, skip it
+          continue;
+        }
       } catch (error) {
         // maybe this payload is not a valid tx skip it
-        continue;
-      }
-      if(!evmTx.hash){
-          // if parse error , the hash will be null, skip it
         continue;
       }
       const evm_hash = evmTx.hash;
@@ -149,7 +150,7 @@ export class EvmProcessor extends TransactionsProcessor {
         item.version = transaction.version!.toString();
         item.blockNumber = transactionBlockHeight.toString();
         hashArr.push(item);
-        const evmEvent = "0x1::evm::ExecResultEvent"
+        const evmEvent = "0x1::evm::ExecResultEvent";
         const events: any = userTransaction?.events?.filter((it) => {
           return it.typeStr?.startsWith(evmEvent);
         });
