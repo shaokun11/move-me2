@@ -33,6 +33,7 @@ import { cluster } from 'radash';
 import { postJsonRpc } from './request.js';
 import TimSort from 'timsort';
 import logger from './logger.js';
+import Tinypool from 'tinypool';
 const pend_tx_path = 'db/tx-pending.json';
 /// When eth_call or estimateGas,from may be 0x0,
 // Now the evm's 0x0 address cannot exist in the move, so we need to convert it to 0x1
@@ -81,6 +82,10 @@ const ACC_NONCE_INFO = {
     resetTime: 0,
     data: {},
 };
+
+const TX_PARSE_THREAD = new Tinypool({
+    filename: new URL('./helper.js', import.meta.url).href,
+});
 
 // only for imola
 async function getFixedLogs(versions) {
@@ -163,7 +168,10 @@ export async function sendRawTx(tx) {
         }
         return res.result;
     }
-    const info = parseRawTx(tx);
+    const info = await TX_PARSE_THREAD.run(tx, {
+        name: 'parseRawTx',
+    });
+    // const info = parseRawTx(tx);
     logger.debug('receive tx:%s', info);
     if (!BigNumber(info.chainId).eq(CHAIN_ID)) {
         throw 'chainId error';
