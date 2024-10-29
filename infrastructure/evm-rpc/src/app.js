@@ -63,7 +63,6 @@ app.use('/', async function (req, res) {
         }
     });
 });
-
 app.set('trust proxy', true);
 initTxPoolTask().then(() => {
     app.listen(SERVER_PORT, () => {
