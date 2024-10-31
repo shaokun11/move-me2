@@ -82,10 +82,7 @@ const ACC_NONCE_INFO = {
     resetTime: 0,
     data: {},
 };
-
-const TX_PARSE_THREAD = new Tinypool({
-    filename: new URL('./helper.js', import.meta.url).href,
-});
+let TX_PARSE_THREAD;
 
 // only for imola
 async function getFixedLogs(versions) {
@@ -168,10 +165,14 @@ export async function sendRawTx(tx) {
         }
         return res.result;
     }
-    const info = await TX_PARSE_THREAD.run(tx, {
-        name: 'parseRawTx',
-    });
-    // const info = parseRawTx(tx);
+    let info;
+    if (TX_PARSE_THREAD) {
+        info = await TX_PARSE_THREAD.run(tx, {
+            name: 'parseRawTx',
+        });
+    } else {
+        info = parseRawTx(tx);
+    }
     logger.debug('receive tx:%s', info);
     if (!BigNumber(info.chainId).eq(CHAIN_ID)) {
         throw 'chainId error';
@@ -1405,6 +1406,9 @@ export async function initTxPoolTask() {
             ).then(() => {
                 process.exit(0);
             });
+        });
+        TX_PARSE_THREAD = new Tinypool({
+            filename: new URL('./helper.js', import.meta.url).href,
         });
         sendTxTask();
     }
