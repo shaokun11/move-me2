@@ -32,7 +32,7 @@ export function verifyFaucetToken(token) {
         return true;
     }
     if(!token) return false
-    if (isCFToken(token)) {
+    if (!!CF_TURNSTILE_SECRET && isCFToken(token)) {
         return cfTokenValidate(token);
     }
     return googleRecaptcha(token);
