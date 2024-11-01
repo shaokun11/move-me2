@@ -495,6 +495,9 @@ export async function batch_faucet(addr, token, ip) {
         const res = await postJsonRpc(EVM_FAUCET_URL, 'eth_batch_faucet', [addr], {
             token: token,
         });
+        if (res.error) {
+            throw res.error.message || 'internal error';
+        }
         return res.result;
     }
     if ((await googleRecaptcha(token)) === false) {
