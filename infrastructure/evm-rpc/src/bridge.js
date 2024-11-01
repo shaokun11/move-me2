@@ -24,7 +24,7 @@ import { ZeroAddress, ethers, isHexString, toBeHex, keccak256, isAddress } from 
 import BigNumber from 'bignumber.js';
 import { toBuffer } from './helper.js';
 import { move2ethAddress } from './helper.js';
-import { googleRecaptcha } from './provider.js';
+import { verifyFaucetToken } from './provider.js';
 import { addToFaucetTask } from './task_faucet.js';
 import { readFile, writeFile } from 'node:fs/promises';
 import { DB_TX } from './leveldb_wrapper.js';
@@ -500,7 +500,7 @@ export async function batch_faucet(addr, token, ip) {
         }
         return res.result;
     }
-    if ((await googleRecaptcha(token)) === false) {
+    if ((await verifyFaucetToken(token)) === false) {
         throw 'recaptcha error';
     }
 

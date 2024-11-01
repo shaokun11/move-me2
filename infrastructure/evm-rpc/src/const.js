@@ -74,6 +74,7 @@ if (ROBOT_SENDER_ACCOUNT) {
 }
 
 export const RECAPTCHA_SECRET = process.env.RECAPTCHA_SECRET;
+export const CF_TURNSTILE_SECRET = process.env.CF_TURNSTILE_SECRET;
 
 export const DISABLE_EVM_SUMMARY_TASK = process.env.DISABLE_EVM_SUMMARY_TASK === 'true';
 

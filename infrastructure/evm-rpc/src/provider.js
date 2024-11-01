@@ -1,4 +1,4 @@
-import { NODE_URL, RECAPTCHA_SECRET } from './const.js';
+import { NODE_URL, RECAPTCHA_SECRET, CF_TURNSTILE_SECRET } from './const.js';
 import { keccak256 } from 'ethers';
 import fetch from 'node-fetch';
 export function request(method, ...params) {
@@ -22,6 +22,21 @@ export function getRequest(query) {
     }).then(response => response.json());
 }
 const FAUCET_TOKEN_SET = new Set();
+
+function isCFToken(token) {
+    return token.startsWith('0.');
+}
+
+export function verifyFaucetToken(token) {
+    if (!CF_TURNSTILE_SECRET && !RECAPTCHA_SECRET) {
+        return true;
+    }
+    if (isCFToken(token)) {
+        return cfTokenValidate(token);
+    }
+    return googleRecaptcha(token);
+}
+
 export async function googleRecaptcha(token) {
     if (!RECAPTCHA_SECRET) return true;
     if (!token) return false;
@@ -42,6 +57,34 @@ export async function googleRecaptcha(token) {
         })
             .then(response => response.json())
             .then(res => res.success)
+            .catch(() => false);
+        if (pass) return true;
+    }
+    return false;
+}
+
+export async function cfTokenValidate(token) {
+    if (!CF_TURNSTILE_SECRET) return true;
+    if (!token) return false;
+    const t = keccak256(Buffer.from(token, 'utf8'));
+    if (FAUCET_TOKEN_SET.has(t)) {
+        throw 'recaptcha token has been used';
+    }
+    FAUCET_TOKEN_SET.add(t);
+    setTimeout(() => {
+        FAUCET_TOKEN_SET.delete(t);
+    }, 20 * 1000);
+    const keys = process.env.CF_TURNSTILE_SECRET.split(',');
+    for (const key of keys) {
+        const pass = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ response: token, secret: key }),
+        })
+            .then(response => response.json())
+            .then(res => {
+                return res.success;
+            })
             .catch(() => false);
         if (pass) return true;
     }
