@@ -31,6 +31,7 @@ export function verifyFaucetToken(token) {
     if (!CF_TURNSTILE_SECRET && !RECAPTCHA_SECRET) {
         return true;
     }
+    if(!token) return false
     if (isCFToken(token)) {
         return cfTokenValidate(token);
     }
