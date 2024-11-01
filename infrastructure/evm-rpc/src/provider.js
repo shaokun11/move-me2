@@ -24,6 +24,7 @@ export function getRequest(query) {
 const FAUCET_TOKEN_SET = new Set();
 
 function isCFToken(token) {
+    if(!token) return false
     return token.startsWith('0.');
 }
 
@@ -31,7 +32,6 @@ export function verifyFaucetToken(token) {
     if (!CF_TURNSTILE_SECRET && !RECAPTCHA_SECRET) {
         return true;
     }
-    if(!token) return false
     if (!!CF_TURNSTILE_SECRET && isCFToken(token)) {
         return cfTokenValidate(token);
     }
