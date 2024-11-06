@@ -588,7 +588,7 @@ export async function getBlockByNumber(block, withTx) {
     if (block < 0) {
         throw 'block number error';
     }
-    const eKey = `v2:block:${withTx}:` + block;
+    const eKey = `v4:block:${withTx}:` + block;
     if (!is_pending) {
         // only cache the block not pending
         const cache = await DB_TX.get(eKey);
@@ -598,7 +598,7 @@ export async function getBlockByNumber(block, withTx) {
     }
     let info;
     try {
-        const mKey = 'move:block:' + block;
+        const mKey = 'v1:move:block:' + block;
         const moveInfo = await DB_TX.get(mKey);
         if (moveInfo) {
             info = JSON.parse(moveInfo);
