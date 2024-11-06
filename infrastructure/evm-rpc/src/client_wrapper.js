@@ -25,7 +25,7 @@ export class ClientWrapper {
                     Array(count)
                         .fill()
                         .map((_, i) => {
-                            return this.getTransactionByHash(
+                            return this.getTransactionByVersion(
                                 BigNumber(block.first_version)
                                     .plus(fetchCount + i)
                                     .toFixed(0),
