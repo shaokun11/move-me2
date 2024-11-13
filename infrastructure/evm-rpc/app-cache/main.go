@@ -18,7 +18,10 @@ func main() {
 	defer DB_TX.Close()
 
 	// Initialize Fiber app
-	app := fiber.New()
+	app := fiber.New(fiber.Config{
+		BodyLimit:   100 * 1024 * 1024,
+		Concurrency: 256 * 1024,
+	})
 
 	// GET route (e.g., curl http://localhost:8898?key=key1)
 	app.Get("/", func(c *fiber.Ctx) error {
