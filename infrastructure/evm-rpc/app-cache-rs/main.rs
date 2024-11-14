@@ -25,8 +25,8 @@ struct QueryParams {
 #[tokio::main]
 async fn main() -> Result<()> {
     let path = FilePath::new("../db/tx2");
-    let options = Options::new();
-    // options.create_if_missing = true;
+    let mut options = Options::new();
+    options.create_if_missing = true;
     let database = Database::open(&path, &options)?;
     let app_state = Arc::new(database);
     let app = Router::new()
