@@ -30,22 +30,9 @@ async fn main() -> Result<()> {
     let database = Database::open(&path, &options)?;
     let app_state = Arc::new(database);
     let app = Router::new()
-        .route(
-            "/",
-            post({
-                let app_state = app_state.clone();
-                move |payload: Json<KeyValue>| put_handler(State(app_state.clone()), payload)
-            }),
-        )
-        .route(
-            "/",
-            get({
-                let app_state = app_state.clone();
-                move |query: Query<QueryParams>| {
-                    get_handler(State(app_state.clone()), query.0.key.clone())
-                }
-            }),
-        );
+        .route("/", post(put_handler))
+        .route("/", get(get_handler))
+        .with_state(app_state);
     let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", 8898)).await?;
     axum::serve(listener, app).await?;
     Ok(())
@@ -64,9 +51,12 @@ async fn put_handler(
     Ok("ok")
 }
 
-async fn get_handler(State(db): State<Arc<Database>>, key: String) -> Result<String, AppError> {
+async fn get_handler(
+    State(db): State<Arc<Database>>,
+    Query(query): Query<QueryParams>,
+) -> Result<String, AppError> {
     let read_ops = ReadOptions::new();
-    let value = db.get(&read_ops, &key.as_bytes())?;
+    let value = db.get(&read_ops, &query.key.as_bytes())?;
     match value {
         Some(value) => {
             let value = std::str::from_utf8(&value).unwrap().to_string();
