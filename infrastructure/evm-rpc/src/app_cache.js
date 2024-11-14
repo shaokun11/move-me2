@@ -4,7 +4,7 @@ import cors from 'cors';
 import http from 'node:http';
 import LevelDBWrapper from './leveldb_wrapper.js';
 
-let DB_TX = new LevelDBWrapper('db/tx');
+let DB_TX = new LevelDBWrapper('db/tx2');
 const app = express();
 const httpServer = http.createServer(app);
 httpServer.setTimeout(100 * 1000);

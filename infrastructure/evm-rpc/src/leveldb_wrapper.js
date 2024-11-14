@@ -62,7 +62,7 @@ class remoteLevelDBWrapper {
 
 export const DB_TX = REMOTE_CACHE_URL
     ? new remoteLevelDBWrapper(REMOTE_CACHE_URL)
-    : new LevelDBWrapper('db/tx');
+    : new LevelDBWrapper('db/tx2');
 export default LevelDBWrapper;
 
 // let db = new LevelDBWrapper('./db/tx');

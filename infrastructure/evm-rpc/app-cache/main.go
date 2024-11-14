@@ -11,7 +11,7 @@ func main() {
 	// Open LevelDB
 	var err error
 	var DB_TX *leveldb.DB
-	DB_TX, err = leveldb.OpenFile("../db/tx", nil)
+	DB_TX, err = leveldb.OpenFile("../db/tx2", nil)
 	if err != nil {
 		log.Fatal(err)
 	}
