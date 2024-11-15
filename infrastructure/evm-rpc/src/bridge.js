@@ -606,14 +606,14 @@ export async function getBlockByNumber(block, withTx) {
 
         if (moveInfo) {
             info = JSON.parse(moveInfo);
-            logger.debug(`getBlockByNumber ${block} move block from cache %s`, obj);
+            logger.debug(`getBlockByNumber ${block} move block from cache %s`, info);
         } else {
             info = await ClientWrapper.getBlockByHeight(block, true);
             await DB_TX.put(mKey, JSON.stringify(info));
             logger.debug(`getBlockByNumber ${block} move block raw %s`, info);
         }
     } catch (error) {
-        logger.debug(`getBlockByNumber move block error %s`, info);
+        logger.debug(`getBlockByNumber move block error %s %s`, info, error);
         // block not found
         return null;
     }
