@@ -577,6 +577,7 @@ export async function getBlockReceipts(block) {
  *   - uncles: Array<string> - The uncle blocks of the block
  */
 export async function getBlockByNumber(block, withTx) {
+    logger.debug(`getBlockByNumber start %s`, block);
     let is_pending = false;
     if (block === 'pending') {
         is_pending = true;
@@ -593,20 +594,26 @@ export async function getBlockByNumber(block, withTx) {
         // only cache the block not pending
         const cache = await DB_TX.get(eKey);
         if (cache) {
-            return JSON.parse(cache);
+            const obj = JSON.parse(cache);
+            logger.debug(`getBlockByNumber ${block} from cache %s`, obj);
+            return obj;
         }
     }
     let info;
     try {
         const mKey = 'v1:move:block:' + block;
         const moveInfo = await DB_TX.get(mKey);
+
         if (moveInfo) {
             info = JSON.parse(moveInfo);
+            logger.debug(`getBlockByNumber ${block} move block from cache %s`, obj);
         } else {
             info = await ClientWrapper.getBlockByHeight(block, true);
             await DB_TX.put(mKey, JSON.stringify(info));
+            logger.debug(`getBlockByNumber ${block} move block raw %s`, info);
         }
     } catch (error) {
+        logger.debug(`getBlockByNumber move block error %s`, info);
         // block not found
         return null;
     }
@@ -704,8 +711,9 @@ export async function getBlockByNumber(block, withTx) {
 export async function getBlockByHash(hash, withTx) {
     try {
         const height = await getBlockHeightByHash(hash);
-        return getBlockByNumber(parseInt(height), withTx);
+        return await getBlockByNumber(parseInt(height), withTx);
     } catch (error) {
+        logger.debug(`getBlockByHash ${hash} error %s`, error);
         return null;
     }
 }

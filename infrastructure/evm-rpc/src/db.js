@@ -1,6 +1,8 @@
 import { INDEXER_URL } from './const.js';
 import { group, mapValues, sort, retry } from 'radash';
 import { isAddress } from 'ethers';
+import logger from './logger.js';
+import { inspect } from 'util';
 
 function request(query) {
     return fetch(INDEXER_URL, {
@@ -76,6 +78,7 @@ export async function getBlockHeightByHash(block_hash) {
         `;
         const res = await request(query);
         if (res.data.block_metadata_transactions.length == 0) {
+            logger.debug('db getBlockHeightByHash %s', inspect(res, { depth: null }));
             throw new Error('No block found by ' + block_hash);
         }
         return res.data.block_metadata_transactions[0].block_height;
@@ -84,7 +87,7 @@ export async function getBlockHeightByHash(block_hash) {
     if (block_hash == '0x' + '0'.repeat(64)) {
         return 0;
     }
-    return await retry({ times: 3, delay: 1000 }, run);
+    return await retry({ times: 20, delay: 500 }, run);
 }
 
 export async function getEvmLogs(obj) {
