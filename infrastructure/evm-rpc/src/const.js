@@ -9,6 +9,7 @@ export const CACHE_SERVER_PORT = process.env.CACHE_SERVER_PORT || 8898;
  * NODE_URL is the URL of the node, fetched from environment variables
  */
 export const NODE_URL = process.env.NODE_URL;
+export const FULL_NODE_URL = process.env.FULLNODE_URL || NODE_URL;
 export const EVM_RAW_TX_URL = process.env.EVM_RAW_TX_URL;
 export const EVM_FAUCET_URL = process.env.EVM_FAUCET_URL;
 export const EVM_SUMMARY_URL = process.env.EVM_SUMMARY_URL;
@@ -90,6 +91,7 @@ export const IS_MAIN_NODE = !DISABLE_SEND_TX && !EVM_RAW_TX_URL;
 logger.info('config %s', {
     SERVER_PORT,
     NODE_URL,
+    FULL_NODE_URL,
     EVM_RAW_TX_URL,
     EVM_FAUCET_URL,
     EVM_SUMMARY_URL,

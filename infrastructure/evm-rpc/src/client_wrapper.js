@@ -1,5 +1,5 @@
 import BigNumber from 'bignumber.js';
-import { client, NODE_URL } from './const.js';
+import { client, FULL_NODE_URL, NODE_URL } from './const.js';
 import { retry } from 'radash';
 BigNumber.config({ EXPONENTIAL_AT: 100 });
 export class ClientWrapper {
@@ -77,19 +77,25 @@ export class ClientWrapper {
     }
 
     static getBlockByHeightMe(height, withTxs) {
-        return fetch(NODE_URL + '/blocks/by_height/' + height + '?with_transactions=' + withTxs).then(
-            response => {
-                return response.json();
-            },
-        );
+        const info = this.getLedgerInfo();
+        let url = NODE_URL;
+        if (parseInt(height) <= parseInt(info.oldest_block_height)) {
+            url = FULL_NODE_URL;
+        }
+        return fetch(url + '/blocks/by_height/' + height + '?with_transactions=' + withTxs).then(response => {
+            return response.json();
+        });
     }
 
     static getBlockByVersionMe(ver) {
-        return fetch(NODE_URL + '/blocks/by_version/' + ver + '?with_transactions=' + false).then(
-            response => {
-                return response.json();
-            },
-        );
+        const info = this.getLedgerInfo();
+        let url = NODE_URL;
+        if (BigNumber(ver).isLessThanOrEqualTo(info.oldest_block_version)) {
+            url = FULL_NODE_URL;
+        }
+        return fetch(url + '/blocks/by_version/' + ver + '?with_transactions=' + false).then(response => {
+            return response.json();
+        });
     }
 
     static getTransactionByVersionMe(ver) {
