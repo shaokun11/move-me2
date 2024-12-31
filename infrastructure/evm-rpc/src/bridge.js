@@ -611,7 +611,7 @@ export async function getBlockByNumber(block, withTx) {
             logger.debug(`getBlockByNumber ${block} move block from cache %s`, info);
         } else {
             info = await ClientWrapper.getBlockByHeight(block, true);
-            await DB_TX.put(mKey, JSON.stringify(info));
+            // await DB_TX.put(mKey, JSON.stringify(info));
             logger.debug(`getBlockByNumber ${block} move block raw %s`, info);
         }
     } catch (error) {
