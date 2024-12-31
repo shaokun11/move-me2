@@ -602,7 +602,9 @@ export async function getBlockByNumber(block, withTx) {
     let info;
     try {
         const mKey = 'v1:move:block:' + block;
-        const moveInfo = await DB_TX.get(mKey);
+        // const moveInfo = await DB_TX.get(mKey);
+        // we need't cache the move block, so always get the move block from the client
+        let moveInfo;
 
         if (moveInfo) {
             info = JSON.parse(moveInfo);

@@ -99,7 +99,9 @@ async function store(addressArr, txCount, syncVersion) {
         cachedAddrCount += insertedRows;
         cachedTxCount += txCount;
         cachedSyncVersion = syncVersion;
-
+        // for we can't get the total count from database,
+        // now we just summarize the count from the ethereum address count
+        moveWalletCount += insertedRows;
         await trx('summary_meta').update({
             txCount: cachedTxCount,
             syncVersion: cachedSyncVersion,
@@ -147,6 +149,9 @@ async function run(startVersion) {
 }
 
 async function getMoveWalletAddressCount() {
+    // the data is very large, we can't get the total count from this way, so we need to find another way to get the total count
+    // now we just ignore it
+    return 
     try {
         const start = Date.now();
         const count = await getTotalMoveAddress();
